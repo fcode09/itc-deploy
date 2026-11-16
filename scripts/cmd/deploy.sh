@@ -21,8 +21,15 @@ check_required() { # archivo clave...
 }
 
 # Validaciones propias de cada servicio. Un servicio nuevo define su preflight_<sN>.
+# Variables obligatorias (única fuente de verdad: las usan los preflight y tests/test-help.sh las compara
+# con el glosario de ./itc help variable). Las de etiqueta y puerto de cada servicio se suman en preflight().
+REQUIRED_INSTANCE=(INSTANCE COMPOSE_PROFILES)
+REQUIRED_S0=(IP_SERVER JWT_SECRET MONGO_URI IP_INTERNAL_CONNECTION)
+REQUIRED_S1=(IP_SERVER AUTH_URL JWT_SECRET FEDERATION_ENCRYPTION_KEY SERVERS_CONFIG
+  MONGO_DELTA_DISPATCH_URI MONGO_AUTHSOFTWARE_URI MONGO_ROBIN_URI FCM_CERT KEEPER_FCM_CERT DEEPGRAM_API_KEY)
+
 preflight_s0() { # carpeta_instancia
-  check_required "$1/.env.s0" IP_SERVER JWT_SECRET MONGO_URI IP_INTERNAL_CONNECTION
+  check_required "$1/.env.s0" "${REQUIRED_S0[@]}"
 }
 
 preflight_s1() { # carpeta_instancia
@@ -35,9 +42,7 @@ preflight_s1() { # carpeta_instancia
       warn ".env.s1: s0 está activo pero TCP_LISTEN_HOST es '${listen:-vacío}': s0 no podrá alcanzar el TCP 5020 de s1 (usa 0.0.0.0)"
     fi
   done
-  check_required "$dir/.env.s1" IP_SERVER AUTH_URL JWT_SECRET FEDERATION_ENCRYPTION_KEY SERVERS_CONFIG \
-    MONGO_DELTA_DISPATCH_URI MONGO_AUTHSOFTWARE_URI MONGO_ROBIN_URI \
-    FCM_CERT KEEPER_FCM_CERT DEEPGRAM_API_KEY
+  check_required "$dir/.env.s1" "${REQUIRED_S1[@]}"
   # Los JSON de Firebase referenciados con /run/secrets/... deben existir en secrets/.
   for f in FCM_CERT KEEPER_FCM_CERT; do
     path="$(get_var "$dir/.env.s1" "$f")"
@@ -55,7 +60,7 @@ preflight() { # instancia servicio...
   dir="$(instance_dir "$name")"
   PREFLIGHT_ERRORS=0
 
-  check_required "$dir/.env.instance" INSTANCE COMPOSE_PROFILES
+  check_required "$dir/.env.instance" "${REQUIRED_INSTANCE[@]}"
   if [ "$(get_var "$dir/.env.instance" INSTANCE)" != "$name" ]; then
     warn ".env.instance: INSTANCE no coincide con el nombre de la carpeta ($name)"
     PREFLIGHT_ERRORS=$((PREFLIGHT_ERRORS + 1))
