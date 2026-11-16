@@ -11,3 +11,11 @@ include:
     project_directory: .
   - path: services/compose-s1.yaml
     project_directory: .
+
+# Red privada de la instancia: todos sus servicios se conectan a ella (la red "default" de
+# Compose) y se resuelven por el nombre del servicio (s0, s1...). Cada instancia tiene su propia
+# red, así que los servicios de una municipalidad no ven a los de otra. No es "internal": los
+# contenedores siguen pudiendo salir al exterior y llegar a Mongo en el host.
+networks:
+  default:
+    name: ${INSTANCE}_net

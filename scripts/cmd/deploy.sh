@@ -27,7 +27,7 @@ preflight_s0() { # carpeta_instancia
 
 preflight_s1() { # carpeta_instancia
   local dir="$1" f path
-  check_required "$dir/s1.env" IP_SERVER JWT_SECRET FEDERATION_ENCRYPTION_KEY SERVERS_CONFIG \
+  check_required "$dir/s1.env" IP_SERVER AUTH_URL JWT_SECRET FEDERATION_ENCRYPTION_KEY SERVERS_CONFIG \
     MONGO_DELTA_DISPATCH_URI MONGO_AUTHSOFTWARE_URI MONGO_ROBIN_URI \
     FCM_CERT KEEPER_FCM_CERT DEEPGRAM_API_KEY
   # Los JSON de Firebase referenciados con /run/secrets/... deben existir en secrets/.
