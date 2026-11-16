@@ -29,7 +29,7 @@ itc-deploy/
 ├─ itc                  # CLI: ./itc help
 ├─ compose.yaml         # name: ${INSTANCE}; include de services/
 ├─ services/            # compose-s0.yaml, compose-s1.yaml
-├─ templates/           # plantillas versionadas (instance, s0, s1)
+├─ templates/           # plantillas versionadas: .env.instance.example, .env.s0.example, .env.s1.example
 ├─ instances/           # instancias reales: NO se versionan
 ├─ scripts/             # lib.sh y cmd/*.sh que usa ./itc
 └─ docs/                # catálogo de servicios
