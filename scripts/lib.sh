@@ -35,6 +35,7 @@ Uso: ./itc <comando> [instancia] [opciones]
   load <archivo.tar|.tar.gz>           Carga imágenes en el Docker de este servidor
   images [servicio]                    Versiones de imagen disponibles y qué instancias las usan
   list                                 Instancias, servicios, puertos, etiquetas y estado
+  status [instancia] [--json|--stats]  Panel de estado: versiones, salud, desajustes y siguientes pasos
   ps <instancia>                       Estado de los contenedores
   logs <instancia> [servicio] [-f]     Logs (últimas 200 líneas)
   down <instancia> [--yes]             Detiene y elimina los contenedores (los datos se conservan)
