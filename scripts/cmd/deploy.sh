@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# ./itc deploy <instancia>: valida, descarga imágenes y levanta la instancia.
+# ./itc deploy <instancia> [servicio]: valida, descarga imágenes y levanta la instancia
+# (o solo el servicio indicado).
 
 PREFLIGHT_ERRORS=0
 
@@ -19,29 +20,16 @@ check_required() { # archivo clave...
   done
 }
 
-preflight() { # instancia
-  local name="$1" dir tag f path
-  dir="$(instance_dir "$name")"
-  PREFLIGHT_ERRORS=0
+# Validaciones propias de cada servicio. Un servicio nuevo define su preflight_<sN>.
+preflight_s0() { # carpeta_instancia
+  check_required "$1/s0.env" IP_SERVER JWT_SECRET MONGO_URI IP_INTERNAL_CONNECTION
+}
 
-  [ -f "$dir/s0.env" ] || die "falta $dir/s0.env"
-  [ -f "$dir/s1.env" ] || die "falta $dir/s1.env"
-
-  check_required "$dir/instance.env" INSTANCE REGISTRY S0_TAG S1_TAG S0_PORT S1_PORT
-  if [ "$(get_var "$dir/instance.env" INSTANCE)" != "$name" ]; then
-    warn "instance.env: INSTANCE no coincide con el nombre de la carpeta ($name)"
-    PREFLIGHT_ERRORS=$((PREFLIGHT_ERRORS + 1))
-  fi
-  for tag in S0_TAG S1_TAG; do
-    [ "$(get_var "$dir/instance.env" "$tag")" = "latest" ] \
-      && warn "instance.env: $tag=latest; usa una etiqueta por versión o commit"
-  done
-
-  check_required "$dir/s0.env" IP_SERVER JWT_SECRET MONGO_URI IP_INTERNAL_CONNECTION
+preflight_s1() { # carpeta_instancia
+  local dir="$1" f path
   check_required "$dir/s1.env" IP_SERVER JWT_SECRET FEDERATION_ENCRYPTION_KEY SERVERS_CONFIG \
     MONGO_DELTA_DISPATCH_URI MONGO_AUTHSOFTWARE_URI MONGO_ROBIN_URI \
     FCM_CERT KEEPER_FCM_CERT DEEPGRAM_API_KEY
-
   # Los JSON de Firebase referenciados con /run/secrets/... deben existir en secrets/.
   for f in FCM_CERT KEEPER_FCM_CERT; do
     path="$(get_var "$dir/s1.env" "$f")"
@@ -50,50 +38,112 @@ preflight() { # instancia
       PREFLIGHT_ERRORS=$((PREFLIGHT_ERRORS + 1))
     fi
   done
+}
+
+# Valida solo los servicios indicados: un servicio inactivo en la instancia no se exige.
+preflight() { # instancia servicio...
+  local name="$1" dir svc tag_name port_name
+  shift
+  dir="$(instance_dir "$name")"
+  PREFLIGHT_ERRORS=0
+
+  check_required "$dir/instance.env" INSTANCE REGISTRY COMPOSE_PROFILES
+  if [ "$(get_var "$dir/instance.env" INSTANCE)" != "$name" ]; then
+    warn "instance.env: INSTANCE no coincide con el nombre de la carpeta ($name)"
+    PREFLIGHT_ERRORS=$((PREFLIGHT_ERRORS + 1))
+  fi
+
+  for svc in "$@"; do
+    tag_name="$(tag_var "$svc")"
+    port_name="${svc^^}_PORT"
+    check_required "$dir/instance.env" "$tag_name" "$port_name"
+    if [ "$(get_var "$dir/instance.env" "$tag_name")" = "latest" ]; then
+      warn "instance.env: $tag_name=latest; usa una etiqueta por versión o commit"
+    fi
+    [ -f "$dir/$svc.env" ] || die "falta $dir/$svc.env"
+    "preflight_$svc" "$dir"
+  done
 
   # Permisos de data/: solo aviso (puede que el despliegue lo haga otro usuario).
-  if [ -d "$dir/data/s0/media" ] && [ "$(stat -c %u "$dir/data/s0/media" 2>/dev/null || echo "$RUNTIME_UID")" != "$RUNTIME_UID" ]; then
+  if [ -d "$dir/data" ] && [ "$(stat -c %u "$dir/data" 2>/dev/null || echo "$RUNTIME_UID")" != "$RUNTIME_UID" ]; then
     warn "data/ no pertenece al uid $RUNTIME_UID: la app podría no poder escribir. Ejecuta: sudo chown -R $RUNTIME_UID:$RUNTIME_UID $dir/data"
   fi
 
   [ "$PREFLIGHT_ERRORS" -eq 0 ] || die "$PREFLIGHT_ERRORS problema(s) en la configuración de '$name'; corrígelos y reintenta"
 }
 
-# Descarga imágenes y levanta; registra las etiquetas desplegadas solo si todo queda healthy.
-deploy_up() { # instancia
-  local name="$1" dir
+# Guarda como "previas" las etiquetas desplegadas que van a cambiar (para el rollback).
+record_previous() { # instancia servicio...
+  local name="$1" dir svc tag_name cur dep
+  shift
   dir="$(instance_dir "$name")"
+  touch "$dir/.deployed" "$dir/.previous"
+  for svc in "$@"; do
+    tag_name="$(tag_var "$svc")"
+    cur="$(get_var "$dir/instance.env" "$tag_name")"
+    dep="$(get_var "$dir/.deployed" "$tag_name")"
+    if [ -n "$dep" ] && [ "$dep" != "$cur" ]; then
+      set_var "$dir/.previous" "$tag_name" "$dep"
+    fi
+  done
+}
+
+# Descarga y levanta. explicit=0: todo lo activo según COMPOSE_PROFILES. explicit=1: solo los
+# servicios dados; --profile reemplaza COMPOSE_PROFILES, así que los demás no se tocan.
+# Registra las etiquetas desplegadas solo si todo queda healthy.
+deploy_up() { # explicit instancia servicio...
+  local explicit="$1" name="$2" dir svc
+  shift 2
+  dir="$(instance_dir "$name")"
+  local -a pargs=() svcs=() upflags=()
+
+  if [ "$explicit" = "1" ]; then
+    svcs=("$@")
+    for svc in "$@"; do pargs+=(--profile "$svc"); done
+    # Un solo servicio: sin dependencias, para no tocar nada más.
+    [ "$#" -eq 1 ] && upflags+=(--no-deps)
+  fi
 
   info "Descargando imágenes..."
-  dc "$name" pull
+  dc "$name" ${pargs[@]+"${pargs[@]}"} pull ${svcs[@]+"${svcs[@]}"}
 
   info "Levantando servicios (espera a que estén healthy)..."
-  if ! dc "$name" up -d --wait --wait-timeout "${WAIT_TIMEOUT:-300}"; then
+  if ! dc "$name" ${pargs[@]+"${pargs[@]}"} up -d ${upflags[@]+"${upflags[@]}"} \
+      --wait --wait-timeout "${WAIT_TIMEOUT:-300}" ${svcs[@]+"${svcs[@]}"}; then
     warn "los servicios no llegaron a healthy"
     warn "revisa: ./itc logs $name   |   para volver atrás: ./itc rollback $name"
     return 1
   fi
 
-  snapshot_tags "$dir" > "$dir/.deployed"
-  dc "$name" ps
+  touch "$dir/.deployed"
+  for svc in "$@"; do
+    set_var "$dir/.deployed" "$(tag_var "$svc")" "$(get_var "$dir/instance.env" "$(tag_var "$svc")")"
+  done
+  dc "$name" --profile '*' ps
 }
 
 cmd_deploy() {
-  local name="${1:-}"
+  local name="${1:-}" only="${2:-}"
   require_instance "$name"
-  local dir
-  dir="$(instance_dir "$name")"
+  select_services "$name" "$only"
 
   check_docker
-  preflight "$name"
-  info "Validando compose..."
-  dc "$name" config -q || die "el compose no es válido para '$name'"
+  preflight "$name" "${SELECTED[@]}"
 
-  # Si las etiquetas cambian, las que estaban desplegadas pasan a ser las "previas" del rollback.
-  if [ -f "$dir/.deployed" ] && [ "$(cat "$dir/.deployed")" != "$(snapshot_tags "$dir")" ]; then
-    cp "$dir/.deployed" "$dir/.previous"
+  info "Validando compose..."
+  if [ -n "$only" ]; then
+    dc "$name" --profile "$only" config -q || die "el compose no es válido para '$name'"
+  else
+    dc "$name" config -q || die "el compose no es válido para '$name'"
   fi
 
-  deploy_up "$name" || die "el despliegue de '$name' falló"
-  ok "instancia '$name' desplegada"
+  record_previous "$name" "${SELECTED[@]}"
+
+  if [ -n "$only" ]; then
+    deploy_up 1 "$name" "${SELECTED[@]}" || die "el despliegue de $only en '$name' falló"
+    ok "$only desplegado en '$name'"
+  else
+    deploy_up 0 "$name" "${SELECTED[@]}" || die "el despliegue de '$name' falló"
+    ok "instancia '$name' desplegada (${SELECTED[*]})"
+  fi
 }

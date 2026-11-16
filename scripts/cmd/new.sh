@@ -2,10 +2,36 @@
 # ./itc new <instancia>: crea instances/<instancia>/ desde las plantillas.
 
 cmd_new() {
-  local name="${1:-}"
-  [ -n "$name" ] || die "uso: ./itc new <instancia>"
+  local name="" services="" a
+  while [ "$#" -gt 0 ]; do
+    a="$1"
+    case "$a" in
+      --services)
+        [ "$#" -ge 2 ] || die "--services requiere un valor (ej. --services s1)"
+        services="$2"
+        shift 2
+        ;;
+      -*) die "opción desconocida: $a" ;;
+      *)
+        [ -z "$name" ] || die "sobra el argumento '$a'"
+        name="$a"
+        shift
+        ;;
+    esac
+  done
+  [ -n "$name" ] || die "uso: ./itc new <instancia> [--services s0,s1]"
   valid_instance_name "$name" \
     || die "nombre de instancia inválido: '$name' (minúsculas, números y guion; empieza con letra; 2 a 31 caracteres)"
+
+  if [ -n "$services" ]; then
+    local part
+    local -a parts
+    IFS=',' read -ra parts <<< "$services"
+    for part in "${parts[@]}"; do
+      valid_service "${part// /}" \
+        || die "servicio desconocido en --services: '$part' (válidos: ${KNOWN_SERVICES[*]})"
+    done
+  fi
 
   local dir
   dir="$(instance_dir "$name")"
@@ -36,6 +62,9 @@ cmd_new() {
   set_var "$dir/instance.env" INSTANCE "$name"
   set_var "$dir/instance.env" S0_PORT "$s0_port"
   set_var "$dir/instance.env" S1_PORT "$s1_port"
+  if [ -n "$services" ]; then
+    set_var "$dir/instance.env" COMPOSE_PROFILES "${services// /}"
+  fi
   chmod 600 "$dir/instance.env" "$dir/s0.env" "$dir/s1.env"
   chmod 700 "$dir/secrets"
 

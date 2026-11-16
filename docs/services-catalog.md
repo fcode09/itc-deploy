@@ -44,8 +44,11 @@ La clave `sN` de cada uno está **por asignar**. Ninguno tiene Dockerfile todav�
 
 1. Dockerizarlo y publicar su imagen en el registry.
 2. Asignarle la siguiente clave libre (`s2`, `s3`...) y un puerto: `base + N` dentro del bloque de la instancia.
-3. Crear `services/compose-sN.yaml` siguiendo `compose-s0.yaml` (variables `SN_TAG`, `SN_PORT`, `SN_MEM_LIMIT`).
+3. Crear `services/compose-sN.yaml` siguiendo `compose-s0.yaml` (variables `SN_TAG`, `SN_PORT`, `SN_MEM_LIMIT`)
+   con `profiles: ["sN"]`. Si depende de otro servicio, `depends_on` con `required: false`.
 4. Añadir su línea a `include` en `compose.yaml`.
 5. Crear `templates/sN.env.example` y añadir las variables a `templates/instance.env.example`.
-6. Ampliar `scripts/cmd/new.sh` (carpetas de `data/`) y las validaciones de `scripts/cmd/deploy.sh`.
-7. Actualizar este catálogo y la tabla del README.
+6. Añadir `sN` a `KNOWN_SERVICES` en `scripts/lib.sh`, definir `preflight_sN` en `scripts/cmd/deploy.sh`
+   y ampliar `scripts/cmd/new.sh` (carpetas de `data/` y puertos).
+7. Las instancias existentes no lo activan solas: sumar `sN` a su `COMPOSE_PROFILES`.
+8. Actualizar este catálogo y la tabla del README.

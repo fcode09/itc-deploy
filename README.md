@@ -44,7 +44,7 @@ git clone <este-repo> && cd itc-deploy
 # Completa instances/colorado/{instance.env,s0.env,s1.env} y copia los JSON de Firebase a secrets/
 ./itc deploy colorado       # pull + up -d + espera a que estén healthy
 
-./itc list                  # instancias, puertos y etiquetas
+./itc list                  # instancias, servicios, puertos, etiquetas y estado
 ./itc ps colorado           # estado
 ./itc logs colorado s1      # logs de un servicio
 ./itc rollback colorado     # vuelve a las etiquetas anteriores
@@ -54,6 +54,37 @@ git clone <este-repo> && cd itc-deploy
 Para actualizar una instancia: cambia `S0_TAG` / `S1_TAG` en su `instance.env` y ejecuta
 `./itc deploy <instancia>`. Las etiquetas anteriores quedan guardadas para el rollback.
 **No uses `latest`**: usa una etiqueta por versión o commit.
+
+## Elegir qué servicios corre cada instancia
+
+`COMPOSE_PROFILES` en `instance.env` lista los servicios activos de la instancia. Un servicio que
+no está en la lista no se descarga ni se levanta, y no se le exige configuración.
+
+```
+COMPOSE_PROFILES=s0,s1       # los dos
+COMPOSE_PROFILES=s1          # solo Gue (Auth corre en otro lugar)
+COMPOSE_PROFILES=s0,s1,s3    # "todos menos s2": listas los que sí quieres
+```
+
+`./itc new <instancia> --services s1` crea la instancia ya con esa lista. Un servicio nuevo que se
+añada al repo **no** se activa solo en instancias existentes: hay que sumarlo a su lista.
+
+## Actuar sobre un solo servicio
+
+Sin argumento, `deploy` y `rollback` actúan sobre todos los servicios activos. Con el nombre
+de un servicio, solo sobre ese; los demás no se descargan ni se reinician:
+
+```bash
+./itc deploy colorado s1              # actualiza solo s1 (cambia antes S1_TAG en instance.env)
+./itc rollback colorado s1            # vuelve solo s1 a su etiqueta anterior
+./itc stop colorado s0                # detiene s0 sin tocar los demás
+./itc logs colorado s1 -f             # logs en vivo de s1
+```
+
+Las etiquetas desplegadas y las previas se guardan por servicio, así que el rollback de uno no
+afecta al otro. Sin servicio, `rollback` solo revierte los que tengan una etiqueta previa distinta
+de la actual. **Quitar un servicio de `COMPOSE_PROFILES` no lo detiene** si ya está corriendo:
+usa `./itc stop <instancia> <servicio>`.
 
 ## Puertos por instancia
 
