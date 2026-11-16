@@ -56,9 +56,9 @@ cmd_new() {
     "$dir/data/s1/media" "$dir/data/s1/uploads" \
     "$dir/data/s1/fileIncidentsResolved" "$dir/data/s1/imageIncidentsResolved"
 
-  cp "$ROOT/templates/instance.env.example" "$dir/instance.env"
-  cp "$ROOT/templates/s0.env.example" "$dir/s0.env"
-  cp "$ROOT/templates/s1.env.example" "$dir/s1.env"
+  cp "$ROOT/templates/.env.instance.example" "$dir/instance.env"
+  cp "$ROOT/templates/.env.s0.example" "$dir/s0.env"
+  cp "$ROOT/templates/.env.s1.example" "$dir/s1.env"
   set_var "$dir/instance.env" INSTANCE "$name"
   set_var "$dir/instance.env" S0_PORT "$s0_port"
   set_var "$dir/instance.env" S1_PORT "$s1_port"

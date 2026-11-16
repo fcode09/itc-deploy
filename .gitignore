@@ -3,10 +3,11 @@
 instances/*
 !instances/.gitkeep
 
-# Archivos de entorno locales (las plantillas *.env.example sí se versionan)
+# Archivos de entorno locales. Las plantillas se llaman .env.<nombre>.example (en templates/
+# y examples/): no coinciden con estos patrones y sí se versionan.
 .env
 *.env
-!*.env.example
+!.env.*.example
 
 # Estado del despliegue (etiquetas previas para el rollback)
 .previous
