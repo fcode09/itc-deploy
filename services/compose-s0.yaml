@@ -1,7 +1,11 @@
 # s0 = auth-backend (NestJS). Puerto interno 3200; se publica solo en 127.0.0.1:${S0_PORT}.
 services:
   s0:
-    image: ${REGISTRY:?define REGISTRY en instance.env}/auth-backend:${S0_TAG:?define S0_TAG en instance.env}
+    # REGISTRY vacío = imagen local (auth-backend:<tag>); con valor se antepone (<registry>/auth-backend:<tag>).
+    image: ${REGISTRY:+${REGISTRY}/}auth-backend:${S0_TAG:?define S0_TAG en instance.env}
+    # ./itc fija PULL_POLICY=never cuando REGISTRY está vacío: si falta la imagen local, Docker no
+    # debe bajar de Docker Hub una imagen homónima que no es la nuestra.
+    pull_policy: ${PULL_POLICY:-missing}
     container_name: s0_${INSTANCE}
     restart: unless-stopped
     # El servicio solo corre en las instancias que lo listan en COMPOSE_PROFILES (instance.env).

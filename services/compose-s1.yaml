@@ -2,7 +2,10 @@
 # se publica solo en 127.0.0.1:${S1_PORT}.
 services:
   s1:
-    image: ${REGISTRY:?define REGISTRY en instance.env}/gueo-back-end:${S1_TAG:?define S1_TAG en instance.env}
+    # REGISTRY vacío = imagen local (gueo-back-end:<tag>); con valor se antepone (<registry>/gueo-back-end:<tag>).
+    image: ${REGISTRY:+${REGISTRY}/}gueo-back-end:${S1_TAG:?define S1_TAG en instance.env}
+    # ./itc fija PULL_POLICY=never cuando REGISTRY está vacío (ver compose-s0.yaml).
+    pull_policy: ${PULL_POLICY:-missing}
     container_name: s1_${INSTANCE}
     restart: unless-stopped
     # El servicio solo corre en las instancias que lo listan en COMPOSE_PROFILES (instance.env).

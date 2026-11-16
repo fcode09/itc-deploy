@@ -28,9 +28,11 @@ itc: despliegue y operación de instancias (Docker Compose).
 Uso: ./itc <comando> [instancia] [opciones]
 
   new <instancia> [--services s0,s1]   Crea instances/<instancia>/ desde las plantillas
-  deploy <instancia> [servicio]        Valida, descarga imágenes y levanta (espera a healthy)
+  deploy <instancia> [servicio]        Valida, comprueba las imágenes y levanta (espera a healthy)
   rollback <instancia> [servicio] [--yes]  Vuelve a las etiquetas del despliegue anterior
   stop <instancia> <servicio>          Detiene un servicio sin tocar los demás
+  load <archivo.tar|.tar.gz>           Carga imágenes en el Docker de este servidor
+  images [servicio]                    Versiones de imagen disponibles y qué instancias las usan
   list                                 Instancias, servicios, puertos, etiquetas y estado
   ps <instancia>                       Estado de los contenedores
   logs <instancia> [servicio] [-f]     Logs (últimas 200 líneas)
@@ -40,6 +42,8 @@ Uso: ./itc <comando> [instancia] [opciones]
 Nombre de instancia: minúsculas, números y guion; empieza con letra (ej. colorado).
 Servicios: s0 (auth-backend), s1 (gueo-back-end). Sin [servicio], deploy y rollback actúan
 sobre los que la instancia tiene en COMPOSE_PROFILES (instance.env).
+Imágenes: con REGISTRY vacío en instance.env se usan las ya cargadas en este Docker
+(auth-backend:<tag>) y no se descarga nada; con REGISTRY, deploy hace pull.
 EOF
 }
 
@@ -87,14 +91,61 @@ check_docker() {
   fi
 }
 
+# ¿La instancia usa imágenes ya cargadas en este Docker? (REGISTRY vacío en instance.env)
+uses_local_images() { # instancia
+  [ -z "$(get_var "$(instance_dir "$1")/instance.env" REGISTRY)" ]
+}
+
 # Ejecuta docker compose para una instancia, siempre desde la raíz del repo.
-# Se limpian COMPOSE_PROFILES y COMPOSE_PROJECT_NAME del shell: si estuvieran exportados
-# pisarían lo que define instance.env y la instancia se comportaría distinto según quién la ejecute.
+# - Se limpian COMPOSE_PROFILES y COMPOSE_PROJECT_NAME del shell: si estuvieran exportados
+#   pisarían lo que define instance.env y la instancia se comportaría distinto según quién la ejecute.
+# - Con imágenes locales (REGISTRY vacío) se fija PULL_POLICY=never: si falta la imagen, Docker no
+#   debe bajar de Docker Hub una imagen homónima que no es la nuestra.
 dc() { # instancia args...
-  local name="$1"
+  local name="$1" policy=missing
   shift
+  if uses_local_images "$name"; then policy=never; fi
   (cd "$ROOT" && unset COMPOSE_PROFILES COMPOSE_PROJECT_NAME \
-    && docker compose --env-file "instances/$name/instance.env" "$@")
+    && PULL_POLICY="$policy" docker compose --env-file "instances/$name/instance.env" "$@")
+}
+
+# Nombre de la imagen (sin registry ni etiqueta) de cada servicio.
+service_repo() { # servicio
+  case "$1" in
+    s0) echo "auth-backend" ;;
+    s1) echo "gueo-back-end" ;;
+    *) return 1 ;;
+  esac
+}
+
+# Referencia completa de imagen que Compose usará para un servicio de la instancia.
+service_image_ref() { # instancia servicio
+  dc "$1" --profile "$2" config --images 2>/dev/null | head -n1
+}
+
+image_exists() { docker image inspect "$1" >/dev/null 2>&1; }
+
+image_id() { docker image inspect --format '{{.Id}}' "$1" 2>/dev/null || true; }
+
+short_id() { local id="${1#sha256:}"; printf '%s' "${id:0:12}"; }
+
+# Arquitectura de este servidor en el vocabulario de las imágenes (amd64, arm64...).
+server_arch() {
+  case "$(docker info --format '{{.Architecture}}' 2>/dev/null)" in
+    x86_64) echo amd64 ;;
+    aarch64) echo arm64 ;;
+    *) docker info --format '{{.Architecture}}' 2>/dev/null ;;
+  esac
+}
+
+# Avisa si una imagen no es de la arquitectura de este servidor (no arrancaría).
+warn_arch_mismatch() { # referencia
+  local img srv
+  img="$(docker image inspect --format '{{.Architecture}}' "$1" 2>/dev/null || true)"
+  srv="$(server_arch)"
+  if [ -n "$img" ] && [ -n "$srv" ] && [ "$img" != "$srv" ]; then
+    warn "la imagen $1 es $img y este servidor es $srv: no podrá arrancar"
+  fi
 }
 
 valid_service() { # servicio

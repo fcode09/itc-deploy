@@ -47,7 +47,7 @@ preflight() { # instancia servicio...
   dir="$(instance_dir "$name")"
   PREFLIGHT_ERRORS=0
 
-  check_required "$dir/instance.env" INSTANCE REGISTRY COMPOSE_PROFILES
+  check_required "$dir/instance.env" INSTANCE COMPOSE_PROFILES
   if [ "$(get_var "$dir/instance.env" INSTANCE)" != "$name" ]; then
     warn "instance.env: INSTANCE no coincide con el nombre de la carpeta ($name)"
     PREFLIGHT_ERRORS=$((PREFLIGHT_ERRORS + 1))
@@ -72,18 +72,60 @@ preflight() { # instancia servicio...
   [ "$PREFLIGHT_ERRORS" -eq 0 ] || die "$PREFLIGHT_ERRORS problema(s) en la configuración de '$name'; corrígelos y reintenta"
 }
 
-# Guarda como "previas" las etiquetas desplegadas que van a cambiar (para el rollback).
+# Con imágenes locales, comprueba que cada imagen exista en este Docker antes de tocar nada.
+check_images() { # instancia servicio...
+  local name="$1" svc ref missing=0
+  shift
+  uses_local_images "$name" || return 0
+  for svc in "$@"; do
+    ref="$(service_image_ref "$name" "$svc")"
+    if image_exists "$ref"; then
+      warn_arch_mismatch "$ref"
+    else
+      warn "falta la imagen $ref ($svc) en este servidor"
+      missing=$((missing + 1))
+    fi
+  done
+  [ "$missing" -eq 0 ] \
+    || die "$missing imagen(es) sin cargar. Cárgalas con ./itc load <archivo> y revisa las disponibles con ./itc images"
+}
+
+# Con imágenes locales una etiqueta se puede reconstruir y apuntar a otra imagen: si la etiqueta
+# desplegada ahora apunta a un ID distinto del desplegado, solo se avisa.
+warn_changed_images() { # instancia servicio...
+  local name="$1" dir svc tag_name cur dep dep_id ref cur_id
+  shift
+  dir="$(instance_dir "$name")"
+  uses_local_images "$name" || return 0
+  for svc in "$@"; do
+    tag_name="$(tag_var "$svc")"
+    cur="$(get_var "$dir/instance.env" "$tag_name")"
+    dep="$(get_var "$dir/.deployed" "$tag_name")"
+    dep_id="$(get_var "$dir/.deployed" "${svc^^}_IMAGE_ID")"
+    if [ -n "$dep_id" ] && [ "$cur" = "$dep" ]; then
+      ref="$(service_image_ref "$name" "$svc")"
+      cur_id="$(image_id "$ref")"
+      if [ -n "$cur_id" ] && [ "$cur_id" != "$dep_id" ]; then
+        warn "$svc: la etiqueta $cur ahora apunta a otra imagen ($(short_id "$cur_id")) distinta de la desplegada ($(short_id "$dep_id")); no reutilices etiquetas"
+      fi
+    fi
+  done
+}
+
+# Guarda como "previas" las etiquetas (y el ID de imagen) desplegadas que van a cambiar (para el rollback).
 record_previous() { # instancia servicio...
-  local name="$1" dir svc tag_name cur dep
+  local name="$1" dir svc tag_name id_name cur dep
   shift
   dir="$(instance_dir "$name")"
   touch "$dir/.deployed" "$dir/.previous"
   for svc in "$@"; do
     tag_name="$(tag_var "$svc")"
+    id_name="${svc^^}_IMAGE_ID"
     cur="$(get_var "$dir/instance.env" "$tag_name")"
     dep="$(get_var "$dir/.deployed" "$tag_name")"
     if [ -n "$dep" ] && [ "$dep" != "$cur" ]; then
       set_var "$dir/.previous" "$tag_name" "$dep"
+      set_var "$dir/.previous" "$id_name" "$(get_var "$dir/.deployed" "$id_name")"
     fi
   done
 }
@@ -104,8 +146,12 @@ deploy_up() { # explicit instancia servicio...
     [ "$#" -eq 1 ] && upflags+=(--no-deps)
   fi
 
-  info "Descargando imágenes..."
-  dc "$name" ${pargs[@]+"${pargs[@]}"} pull ${svcs[@]+"${svcs[@]}"}
+  if uses_local_images "$name"; then
+    info "Imágenes locales (REGISTRY vacío): no se descarga nada."
+  else
+    info "Descargando imágenes..."
+    dc "$name" ${pargs[@]+"${pargs[@]}"} pull ${svcs[@]+"${svcs[@]}"}
+  fi
 
   info "Levantando servicios (espera a que estén healthy)..."
   if ! dc "$name" ${pargs[@]+"${pargs[@]}"} up -d ${upflags[@]+"${upflags[@]}"} \
@@ -118,6 +164,7 @@ deploy_up() { # explicit instancia servicio...
   touch "$dir/.deployed"
   for svc in "$@"; do
     set_var "$dir/.deployed" "$(tag_var "$svc")" "$(get_var "$dir/instance.env" "$(tag_var "$svc")")"
+    set_var "$dir/.deployed" "${svc^^}_IMAGE_ID" "$(image_id "$(service_image_ref "$name" "$svc")")"
   done
   dc "$name" --profile '*' ps
 }
@@ -137,6 +184,8 @@ cmd_deploy() {
     dc "$name" config -q || die "el compose no es válido para '$name'"
   fi
 
+  check_images "$name" "${SELECTED[@]}"
+  warn_changed_images "$name" "${SELECTED[@]}"
   record_previous "$name" "${SELECTED[@]}"
 
   if [ -n "$only" ]; then
