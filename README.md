@@ -51,6 +51,9 @@ git clone <este-repo> && cd itc-deploy
 ./itc down colorado         # detiene la instancia
 ```
 
+Guía completa con valores de ejemplo: [`docs/example-new-municipality.md`](docs/example-new-municipality.md)
+(archivos completados en [`examples/colorado/`](examples/colorado/)).
+
 Para actualizar una instancia: cambia `S0_TAG` / `S1_TAG` en su `instance.env` y ejecuta
 `./itc deploy <instancia>`. Las etiquetas anteriores quedan guardadas para el rollback.
 **No uses `latest`**: usa una etiqueta por versión o commit.
