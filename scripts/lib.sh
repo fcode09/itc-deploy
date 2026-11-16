@@ -116,27 +116,54 @@ uses_local_images() { # instancia
   [ -z "$(get_var "$(instance_dir "$1")/.env.instance" REGISTRY)" ]
 }
 
+# Variables que leen los compose (más las propias de Compose que cambiarían qué se despliega). En Compose el
+# shell manda sobre --env-file: si alguna estuviera exportada, Docker usaría ese valor mientras que itc
+# validaría el de .env.instance. Por eso dc las ignora todas: solo cuenta .env.instance.
+compose_shell_vars() {
+  local s u
+  printf '%s\n' INSTANCE REGISTRY DATA_DIR PULL_POLICY \
+    COMPOSE_PROFILES COMPOSE_PROJECT_NAME COMPOSE_FILE COMPOSE_ENV_FILES COMPOSE_PATH_SEPARATOR
+  for s in "${KNOWN_SERVICES[@]}"; do
+    u="${s^^}"
+    printf '%s\n' "${u}_IMAGE" "${u}_TAG" "${u}_PORT" "${u}_MEM_LIMIT"
+  done
+}
+
 # Ejecuta docker compose para una instancia, siempre desde la raíz del repo.
-# - Se limpian COMPOSE_PROFILES y COMPOSE_PROJECT_NAME del shell: si estuvieran exportados
-#   pisarían lo que define .env.instance y la instancia se comportaría distinto según quién la ejecute.
+# - Se ignoran las variables de compose_shell_vars exportadas en el shell (ver arriba).
 # - Con imágenes locales (REGISTRY vacío) se fija PULL_POLICY=never: si falta la imagen, Docker no
 #   debe bajar de Docker Hub una imagen homónima que no es la nuestra.
 dc() { # instancia args...
-  local name="$1" policy=missing
+  local name="$1" policy=missing v
+  local -a drop=()
   shift
   if uses_local_images "$name"; then policy=never; fi
-  (cd "$ROOT" && unset COMPOSE_PROFILES COMPOSE_PROJECT_NAME \
+  while IFS= read -r v; do drop+=("$v"); done < <(compose_shell_vars)
+  (cd "$ROOT" && unset "${drop[@]}" \
     && PULL_POLICY="$policy" docker compose --env-file "instances/$name/.env.instance" "$@")
 }
 
-# Nombre de la imagen (sin registry ni etiqueta) de cada servicio.
-service_repo() { # servicio
+# Nombre por defecto de la imagen (sin registry ni etiqueta) de cada servicio.
+default_repo() { # servicio
   case "$1" in
     s0) echo "auth-backend" ;;
     s1) echo "gueo-back-end" ;;
     *) return 1 ;;
   esac
 }
+
+# Nombre de la imagen de un servicio: el de <SN>_IMAGE en .env.instance de la instancia, o el por defecto.
+service_repo() { # servicio [instancia]
+  local svc="$1" name="${2:-}" def val=""
+  def="$(default_repo "$svc")" || return 1
+  if [ -n "$name" ]; then
+    val="$(get_var "$(instance_dir "$name")/.env.instance" "${svc^^}_IMAGE")"
+  fi
+  printf '%s' "${val:-$def}"
+}
+
+# Nombre de imagen válido (sin etiqueta): minúsculas, números y separadores . _ - ; admite / para rutas.
+valid_image_name() { [[ "$1" =~ ^[a-z0-9]+([._-][a-z0-9]+)*(/[a-z0-9]+([._-][a-z0-9]+)*)*$ ]]; }
 
 # Referencia completa de imagen que Compose usará para un servicio de la instancia.
 service_image_ref() { # instancia servicio

@@ -50,7 +50,7 @@ preflight_s1() { # carpeta_instancia
 
 # Valida solo los servicios indicados: un servicio inactivo en la instancia no se exige.
 preflight() { # instancia servicio...
-  local name="$1" dir svc tag_name port_name
+  local name="$1" dir svc tag_name port_name img_name
   shift
   dir="$(instance_dir "$name")"
   PREFLIGHT_ERRORS=0
@@ -65,6 +65,17 @@ preflight() { # instancia servicio...
     tag_name="$(tag_var "$svc")"
     port_name="${svc^^}_PORT"
     check_required "$dir/.env.instance" "$tag_name" "$port_name"
+    # Nombre de imagen propio (opcional): sin etiqueta y con formato válido.
+    img_name="$(get_var "$dir/.env.instance" "${svc^^}_IMAGE")"
+    if [ -n "$img_name" ]; then
+      if [[ "$img_name" == *:* ]]; then
+        warn ".env.instance: ${svc^^}_IMAGE='$img_name' lleva ':'; el nombre va sin etiqueta (la etiqueta va en $tag_name)"
+        PREFLIGHT_ERRORS=$((PREFLIGHT_ERRORS + 1))
+      elif ! valid_image_name "$img_name"; then
+        warn ".env.instance: ${svc^^}_IMAGE='$img_name' no es un nombre de imagen válido (minúsculas, números y . _ - ; admite /)"
+        PREFLIGHT_ERRORS=$((PREFLIGHT_ERRORS + 1))
+      fi
+    fi
     if [ "$(get_var "$dir/.env.instance" "$tag_name")" = "latest" ]; then
       warn ".env.instance: $tag_name=latest; usa una etiqueta por versión o commit"
     fi

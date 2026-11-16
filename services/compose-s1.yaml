@@ -3,7 +3,7 @@
 services:
   s1:
     # REGISTRY vacío = imagen local (gueo-back-end:<tag>); con valor se antepone (<registry>/gueo-back-end:<tag>).
-    image: ${REGISTRY:+${REGISTRY}/}gueo-back-end:${S1_TAG:?define S1_TAG en .env.instance}
+    image: ${REGISTRY:+${REGISTRY}/}${S1_IMAGE:-gueo-back-end}:${S1_TAG:?define S1_TAG en .env.instance}
     # ./itc fija PULL_POLICY=never cuando REGISTRY está vacío (ver compose-s0.yaml).
     pull_policy: ${PULL_POLICY:-missing}
     container_name: s1_${INSTANCE}

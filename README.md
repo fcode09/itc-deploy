@@ -106,9 +106,21 @@ Construir las imágenes, empaquetarlas y copiarlas al servidor **queda fuera de 
 repo empieza cuando la imagen ya está en el Docker del servidor.
 
 **Cómo funciona.** Docker lee las imágenes de su propio almacén (normalmente `/var/lib/docker`),
-no de una carpeta. Con `REGISTRY` vacío en `.env.instance`, el compose usa `auth-backend:<S0_TAG>` y
-`gueo-back-end:<S1_TAG>` tal cual están en ese almacén, y **no descarga nada**. Cada instancia elige su
-versión con sus etiquetas, así que pueden convivir versiones distintas en el mismo servidor.
+no de una carpeta. Con `REGISTRY` vacío en `.env.instance`, el compose usa `<S0_IMAGE>:<S0_TAG>` y
+`<S1_IMAGE>:<S1_TAG>` tal cual están en ese almacén (por defecto `auth-backend` y `gueo-back-end`), y
+**no descarga nada**. Cada instancia elige su versión con sus etiquetas, así que pueden convivir versiones
+distintas en el mismo servidor.
+
+**Nombre de la imagen.** El nombre (sin etiqueta ni registry) se define en `.env.instance` con `S0_IMAGE` y
+`S1_IMAGE`; si no existen, valen `auth-backend` y `gueo-back-end`. Si construiste las imágenes con otro
+nombre (por ejemplo `s0` y `s1`), ponlo ahí: `S0_IMAGE=s0`, `S1_IMAGE=s1`. Debe construirse con ese mismo
+nombre: `docker build -t s1:1.0.0 .`. Formato: minúsculas, números y `. _ - `; admite `/` para rutas; **sin
+`:`** (la etiqueta va en `S1_TAG`). Cada instancia puede usar nombres distintos. Con un `REGISTRY` se
+antepone: `<registry>/<S1_IMAGE>:<S1_TAG>`.
+
+**Solo cuenta el archivo.** `itc` ignora las variables de la instancia (`S0_IMAGE`, `S1_TAG`, `REGISTRY`,
+puertos, límites, `DATA_DIR`, `COMPOSE_PROFILES`, `COMPOSE_FILE`...) aunque estén exportadas en tu shell,
+para que lo que valida sea siempre lo que Docker despliega. Escríbelas en `.env.instance`.
 
 **Cargar una imagen que llegó como archivo** (el resultado de `docker save`, comprimido o no):
 
