@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# itc: punto de entrada para desplegar y operar instancias. Ver ./itc help
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export ROOT
+
+# shellcheck source=scripts/lib.sh
+source "$ROOT/scripts/lib.sh"
+
+CMD="${1:-help}"
+shift 2>/dev/null || true
+export CMD
+
+case "$CMD" in
+  new | deploy | rollback | list)
+    # shellcheck source=/dev/null
+    source "$ROOT/scripts/cmd/$CMD.sh"
+    "cmd_$CMD" "$@"
+    ;;
+  ps | logs | down)
+    # shellcheck source=scripts/cmd/ops.sh
+    source "$ROOT/scripts/cmd/ops.sh"
+    "cmd_$CMD" "$@"
+    ;;
+  help | -h | --help)
+    usage
+    ;;
+  *)
+    warn "comando desconocido: $CMD"
+    usage >&2
+    exit 1
+    ;;
+esac
