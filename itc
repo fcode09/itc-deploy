@@ -13,7 +13,7 @@ shift 2>/dev/null || true
 export CMD
 
 case "$CMD" in
-  new | deploy | rollback | list)
+  new | deploy | rollback | list | images | load)
     # shellcheck source=/dev/null
     source "$ROOT/scripts/cmd/$CMD.sh"
     "cmd_$CMD" "$@"

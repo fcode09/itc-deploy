@@ -1,7 +1,8 @@
 # itc-deploy
 
 Despliegue con Docker Compose de los backends de ITC (auth-backend y gueo-back-end).
-Usa imágenes ya construidas del registry; no contiene código fuente.
+Usa imágenes ya construidas (cargadas en el Docker del servidor, o bajadas de un registry);
+no contiene código fuente ni construye imágenes.
 
 Cada **instancia** (por ejemplo `colorado`) es un despliegue independiente. Varias
 instancias conviven en el mismo servidor con un único `compose.yaml`.
@@ -18,7 +19,8 @@ Walle, Robin y Link todavía no están dockerizados: ver [`docs/services-catalog
 ## Requisitos del servidor
 
 - Docker Engine con **Docker Compose v2.20 o superior** (`include` lo necesita).
-- Sesión en el registry de las imágenes (`docker login`). Recomendado: un *deploy token* de solo lectura.
+- Las imágenes de `s0` y `s1` ya disponibles: **cargadas en el Docker del servidor** (ver "Imágenes locales")
+  o, si usas un registry, con sesión iniciada (`docker login`; recomendado un *deploy token* de solo lectura).
 - MongoDB ya disponible en el servidor. **Este repo no levanta Mongo.**
 - Usuario con permisos para ejecutar `docker` y `chown` sobre `instances/` (los contenedores corren como uid 1000).
 
@@ -40,9 +42,11 @@ itc-deploy/
 ```bash
 git clone <este-repo> && cd itc-deploy
 
+./itc images                # versiones de imagen cargadas en este servidor y quién las usa
 ./itc new colorado          # crea instances/colorado/ desde las plantillas
-# Completa instances/colorado/{instance.env,s0.env,s1.env} y copia los JSON de Firebase a secrets/
-./itc deploy colorado       # pull + up -d + espera a que estén healthy
+# Completa instances/colorado/{instance.env,s0.env,s1.env} (S0_TAG y S1_TAG = versiones de ./itc images)
+# y copia los JSON de Firebase a secrets/
+./itc deploy colorado       # comprueba las imágenes, levanta y espera a que estén healthy
 
 ./itc list                  # instancias, servicios, puertos, etiquetas y estado
 ./itc ps colorado           # estado
@@ -57,6 +61,38 @@ Guía completa con valores de ejemplo: [`docs/example-new-municipality.md`](docs
 Para actualizar una instancia: cambia `S0_TAG` / `S1_TAG` en su `instance.env` y ejecuta
 `./itc deploy <instancia>`. Las etiquetas anteriores quedan guardadas para el rollback.
 **No uses `latest`**: usa una etiqueta por versión o commit.
+
+## Imágenes locales (sin registry)
+
+Construir las imágenes, empaquetarlas y copiarlas al servidor **queda fuera de este repo**. Este
+repo empieza cuando la imagen ya está en el Docker del servidor.
+
+**Cómo funciona.** Docker lee las imágenes de su propio almacén (normalmente `/var/lib/docker`),
+no de una carpeta. Con `REGISTRY` vacío en `instance.env`, el compose usa `auth-backend:<S0_TAG>` y
+`gueo-back-end:<S1_TAG>` tal cual están en ese almacén, y **no descarga nada**. Cada instancia elige su
+versión con sus etiquetas, así que pueden convivir versiones distintas en el mismo servidor.
+
+**Cargar una imagen que llegó como archivo** (el resultado de `docker save`, comprimido o no):
+
+```bash
+./itc load imagenes-2026-11-16.tar.gz   # equivale a docker load; el archivo se puede borrar después
+./itc images                            # ver qué etiquetas quedaron y cuáles usa cada instancia
+```
+
+**Comprobaciones de `./itc deploy` (con `REGISTRY` vacío):**
+- Que cada imagen exista en este Docker; si falta, dice cuál y cómo cargarla.
+- Que su arquitectura sea la del servidor (aviso).
+- Con `PULL_POLICY=never`, para que si falta una imagen Docker no baje de Docker Hub una imagen
+  homónima que no es la nuestra.
+- Que la etiqueta no apunte ahora a otra imagen distinta de la desplegada antes (aviso): una etiqueta
+  local se puede reconstruir. **No reutilices etiquetas**; usa una versión nueva por build.
+
+**Rollback:** exige que la imagen previa siga cargada, y avisa si su ID cambió. Por eso **no borres
+versiones viejas**: `./itc images` marca las que ninguna instancia usa (ni como actual ni como previa)
+como candidatas a borrar, pero solo lista. Evita `docker image prune -a` y `docker system prune -a`.
+
+**Con registry:** pon su ruta en `REGISTRY` (ej. `registry.ejemplo.com/itc`) y `deploy` hará `pull`.
+El resto no cambia.
 
 ## Elegir qué servicios corre cada instancia
 

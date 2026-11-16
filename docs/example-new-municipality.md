@@ -6,8 +6,10 @@ Cada municipalidad es una **instancia** de este repo (ver el README).
 
 ## 0. Antes de empezar
 
-- Las imágenes `auth-backend` (s0) y `gueo-back-end` (s1) ya están publicadas en el registry, con la etiqueta que vas a desplegar.
-- El servidor tiene Docker Compose 2.20 o superior y `docker login` hecho en el registry.
+- Las imágenes `auth-backend` (s0) y `gueo-back-end` (s1) ya están **cargadas en el Docker del servidor**
+  (`./itc load <archivo>` si llegaron como archivo de `docker save`), con la etiqueta que vas a desplegar.
+  Compruébalo con `./itc images`. Con un registry, déjalas publicadas y pon su ruta en `REGISTRY`.
+- El servidor tiene Docker Compose 2.20 o superior.
 - Existe un MongoDB en el servidor. Decide los **nombres de base** de esta municipalidad (el ejemplo usa `colorado_authsoftware`, `colorado_deltadispatch` y `colorado_robin`); no compartas bases entre instancias.
 - Tienes los dos JSON de cuenta de servicio de Firebase **de esa municipalidad**.
 
@@ -60,8 +62,9 @@ chmod 600 instances/colorado/secrets/*.json
 ./itc deploy colorado
 ```
 
-Valida la configuración (avisa de variables vacías, valores de ejemplo y JSON faltantes), descarga
-las imágenes, levanta los servicios y espera a que estén `healthy`.
+Valida la configuración (avisa de variables vacías, valores de ejemplo y JSON faltantes), comprueba
+que las imágenes con esas etiquetas estén cargadas en el servidor (con un registry, las descarga),
+levanta los servicios y espera a que estén `healthy`.
 
 ## 5. Comprobar
 
