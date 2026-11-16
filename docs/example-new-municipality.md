@@ -28,7 +28,7 @@ Compara tus archivos con los de [`examples/colorado/`](../examples/colorado/):
 |---|---|
 | `instance.env` | `S0_TAG` y `S1_TAG` (una etiqueta por versión), `REGISTRY`, y revisar `COMPOSE_PROFILES` y puertos |
 | `s0.env` | `IP_SERVER`, `JWT_SECRET`, `MONGO_URI`, `GOOGLE_KEY` |
-| `s1.env` | `IP_SERVER`, `JWT_SECRET`, las tres URI de Mongo, `FEDERATION_ENCRYPTION_KEY`, `DEEPGRAM_API_KEY`, `DELTA_UNIVERSITY_HANDOFF_SECRET` |
+| `s1.env` | `IP_SERVER`, `AUTH_URL` (déjala en `http://s0:3200`), `JWT_SECRET`, las tres URI de Mongo, `FEDERATION_ENCRYPTION_KEY`, `DEEPGRAM_API_KEY`, `DELTA_UNIVERSITY_HANDOFF_SECRET` |
 
 Secretos únicos por instancia (no los reutilices entre municipalidades):
 
@@ -102,7 +102,7 @@ detener una no afecta a la otra.
 
 - **Proxy inverso y TLS:** los puertos se publican solo en `127.0.0.1`; qué sale a internet y con qué
   dominio lo decide un proxy que no forma parte de este repo.
-- **`IP_SERVER`:** el valor del ejemplo (`203.0.113.10`) es una dirección de documentación. Cómo se
-  usa esta variable en Gue (URL pública y llamada a Auth a la vez) es un riesgo abierto, descrito
-  en el README.
+- **`IP_SERVER`:** el valor del ejemplo (`203.0.113.10`) es una dirección de documentación. Con
+  `AUTH_URL=http://s0:3200`, Gue llama a Auth por la red privada `colorado_net` y `IP_SERVER` queda
+  solo como URL pública; eso exige una imagen de Gue con soporte de `AUTH_URL` (ver el README).
 - **Walle, Robin y Link:** todavía no se despliegan con este repo (ver `docs/services-catalog.md`).

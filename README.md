@@ -104,11 +104,29 @@ Cada instancia ocupa un bloque de 10 puertos desde `4100`, y la clave `sN` usa `
 
 `./itc new` propone el siguiente bloque libre y avisa si un puerto ya lo usa otra instancia.
 
+## Red privada por instancia
+
+Cada instancia tiene su **propia red de Docker**, `<instancia>_net` (por ejemplo `colorado_net`).
+Sus servicios se conectan a ella y se resuelven por nombre (`s0`, `s1`); los de otra
+municipalidad están en otra red y no los ven. La red no es `internal`: los contenedores siguen
+pudiendo salir al exterior y llegar a Mongo en el host.
+
+| Comunicación | Cómo viaja | ¿Red privada? |
+|---|---|---|
+| s0 → s1 (TCP, puerto fijo 5020) | `IP_INTERNAL_CONNECTION=s1` en `s0.env` | Sí |
+| s1 → s0 (HTTP, 3200) | `AUTH_URL=http://s0:3200` en `s1.env` | Sí |
+| Navegadores y apps → servicios | `127.0.0.1:<S0_PORT/S1_PORT>` detrás de un proxy | No (es lo público) |
+| Servicios → Mongo | `host.docker.internal` | No (sale al host) |
+
+**`AUTH_URL` requiere una imagen de gueo-back-end que la soporte** (rama `feat/auth-internal-url`
+del repo de Gue, commit `445533bc`). Una imagen anterior la ignora y llama a `${IP_SERVER}:3200`,
+que en este diseño no está publicado. `./itc deploy` exige que `AUTH_URL` esté definida en `s1.env`.
+
 ## Qué es por instancia
 
 Todo lo que podría chocar entre instancias es una variable:
 
-- Nombre del proyecto Compose (`INSTANCE`): aísla redes y volúmenes.
+- Nombre del proyecto Compose (`INSTANCE`): aísla la red (`<instancia>_net`) y los volúmenes.
 - Nombres de contenedor: `s0_${INSTANCE}`, `s1_${INSTANCE}`.
 - Puertos del host, etiquetas de imagen y límites de memoria.
 - Carpetas `data/` y `secrets/` dentro de `instances/<instancia>/`.
@@ -122,9 +140,9 @@ Todo lo que podría chocar entre instancias es una variable:
 
 ## Riesgos y pendientes conocidos
 
-- **`IP_SERVER` en gueo-back-end** es a la vez la URL pública y la dirección con la que se llama
-  a auth-backend (`${IP_SERVER}:3200`). Con varias instancias en un servidor no puede haber un
-  único puerto 3200 público; lo limpio es separar ambas variables en el código de Gue. No resuelto aquí.
+- **`IP_SERVER` en gueo-back-end** era a la vez la URL pública y la dirección de auth-backend
+  (`${IP_SERVER}:3200`). Se separó con `AUTH_URL` (ver "Red privada por instancia"), pero eso
+  depende de que la imagen de Gue incluya ese cambio, que hoy está en una rama local de su repo.
 - **Mongo en el host:** los contenedores lo alcanzan con `host.docker.internal` (el compose añade
   `extra_hosts` con `host-gateway`). Si Mongo está en otra máquina, usa su dirección en las URI.
 - **Chromium:** cada gueo-back-end puede abrir hasta 2 Chromium a la vez; ajusta `S1_MEM_LIMIT`.
