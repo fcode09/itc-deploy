@@ -8,12 +8,20 @@ export ROOT
 # shellcheck source=scripts/lib.sh
 source "$ROOT/scripts/lib.sh"
 
+# Sin argumentos: en una terminal, pantalla de inicio (banner + estado); en un pipe o script, la ayuda.
+if [ "$#" -eq 0 ] && [ "$UI_RICH" -eq 1 ]; then
+  # shellcheck source=scripts/cmd/status.sh
+  source "$ROOT/scripts/cmd/status.sh"
+  cmd_home
+  exit 0
+fi
+
 CMD="${1:-help}"
 shift 2>/dev/null || true
 export CMD
 
 case "$CMD" in
-  new | deploy | rollback | list | images | load)
+  new | deploy | rollback | list | images | load | status)
     # shellcheck source=/dev/null
     source "$ROOT/scripts/cmd/$CMD.sh"
     "cmd_$CMD" "$@"
