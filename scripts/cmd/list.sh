@@ -4,7 +4,7 @@
 cmd_list() {
   local found=0 f name state n
   printf '%-16s %-9s %-6s %-6s %-12s %-12s %s\n' INSTANCIA SERVICIOS S0 S1 S0_TAG S1_TAG ESTADO
-  for f in "$INSTANCES_DIR"/*/instance.env; do
+  for f in "$INSTANCES_DIR"/*/.env.instance; do
     [ -f "$f" ] || continue
     found=1
     name="$(basename "$(dirname "$f")")"

@@ -3,12 +3,12 @@
 services:
   s1:
     # REGISTRY vacío = imagen local (gueo-back-end:<tag>); con valor se antepone (<registry>/gueo-back-end:<tag>).
-    image: ${REGISTRY:+${REGISTRY}/}gueo-back-end:${S1_TAG:?define S1_TAG en instance.env}
+    image: ${REGISTRY:+${REGISTRY}/}gueo-back-end:${S1_TAG:?define S1_TAG en .env.instance}
     # ./itc fija PULL_POLICY=never cuando REGISTRY está vacío (ver compose-s0.yaml).
     pull_policy: ${PULL_POLICY:-missing}
     container_name: s1_${INSTANCE}
     restart: unless-stopped
-    # El servicio solo corre en las instancias que lo listan en COMPOSE_PROFILES (instance.env).
+    # El servicio solo corre en las instancias que lo listan en COMPOSE_PROFILES (.env.instance).
     profiles: ["s1"]
     # s0 llama a s1 por TCP (5020) y s1 llama a s0 por HTTP (3200): si s0 está activo en la
     # instancia, se arranca primero. required: false permite instancias sin s0 (con un Auth
@@ -18,12 +18,12 @@ services:
         condition: service_healthy
         required: false
     env_file:
-      - ./instances/${INSTANCE}/s1.env
+      - ./instances/${INSTANCE}/.env.s1
     environment:
-      # Fijo: debe coincidir con el puerto interno publicado abajo. Pisa lo que diga s1.env.
+      # Fijo: debe coincidir con el puerto interno publicado abajo. Pisa lo que diga .env.s1.
       SERVER_PORT: "3000"
     ports:
-      - "127.0.0.1:${S1_PORT:?define S1_PORT en instance.env}:3000"
+      - "127.0.0.1:${S1_PORT:?define S1_PORT en .env.instance}:3000"
     volumes:
       - ${DATA_DIR:-./instances/${INSTANCE}/data}/s1/media:/app/src/media
       - ${DATA_DIR:-./instances/${INSTANCE}/data}/s1/uploads:/app/uploads

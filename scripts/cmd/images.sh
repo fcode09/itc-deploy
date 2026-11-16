@@ -10,7 +10,7 @@ cmd_images() {
 
   # Uso por etiqueta: "<sN>:<tag>" -> instancias que la tienen como actual o como previa (rollback).
   local -A used=()
-  for f in "$INSTANCES_DIR"/*/instance.env; do
+  for f in "$INSTANCES_DIR"/*/.env.instance; do
     [ -f "$f" ] || continue
     name="$(basename "$(dirname "$f")")"
     for svc in "${KNOWN_SERVICES[@]}"; do

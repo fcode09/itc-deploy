@@ -19,7 +19,7 @@ Cada municipalidad es una **instancia** de este repo (ver el README).
 ./itc new colorado
 ```
 
-Crea `instances/colorado/` con `instance.env`, `s0.env`, `s1.env`, `secrets/` y `data/`, y propone el
+Crea `instances/colorado/` con `.env.instance`, `.env.s0`, `.env.s1`, `secrets/` y `data/`, y propone el
 siguiente bloque de puertos libre. Para una municipalidad que solo usará Gue: `./itc new colorado --services s1`.
 
 ## 2. Completar la configuración
@@ -28,9 +28,9 @@ Compara tus archivos con los de [`examples/colorado/`](../examples/colorado/):
 
 | Archivo | Qué completar |
 |---|---|
-| `instance.env` | `S0_TAG` y `S1_TAG` (una etiqueta por versión), `REGISTRY`, y revisar `COMPOSE_PROFILES` y puertos |
-| `s0.env` | `IP_SERVER`, `JWT_SECRET`, `MONGO_URI`, `GOOGLE_KEY` |
-| `s1.env` | `IP_SERVER`, `AUTH_URL` (déjala en `http://s0:3200`), `JWT_SECRET`, las tres URI de Mongo, `FEDERATION_ENCRYPTION_KEY`, `DEEPGRAM_API_KEY`, `DELTA_UNIVERSITY_HANDOFF_SECRET` |
+| `.env.instance` | `S0_TAG` y `S1_TAG` (una etiqueta por versión), `REGISTRY`, y revisar `COMPOSE_PROFILES` y puertos |
+| `.env.s0` | `IP_SERVER`, `JWT_SECRET`, `MONGO_URI`, `GOOGLE_KEY` |
+| `.env.s1` | `IP_SERVER`, `AUTH_URL` (déjala en `http://s0:3200`), `JWT_SECRET`, las tres URI de Mongo, `FEDERATION_ENCRYPTION_KEY`, `DEEPGRAM_API_KEY`, `DELTA_UNIVERSITY_HANDOFF_SECRET` |
 
 Secretos únicos por instancia (no los reutilices entre municipalidades):
 
@@ -41,7 +41,7 @@ openssl rand -base64 32   # FEDERATION_ENCRYPTION_KEY (base64 de exactamente 32 
 
 ## 3. Copiar los JSON de Firebase
 
-Copia los dos archivos a `instances/colorado/secrets/` con **estos nombres**, porque `s1.env` los
+Copia los dos archivos a `instances/colorado/secrets/` con **estos nombres**, porque `.env.s1` los
 referencia así (`FCM_CERT=/run/secrets/fcm.json`, `KEEPER_FCM_CERT=/run/secrets/keeper-fcm.json`):
 
 | Archivo | Para qué |
@@ -77,7 +77,7 @@ levanta los servicios y espera a que estén `healthy`.
 ## 6. Operar después
 
 ```bash
-# actualizar solo Gue: cambia S1_TAG en instance.env y
+# actualizar solo Gue: cambia S1_TAG en .env.instance y
 ./itc deploy colorado s1
 
 # volver atrás solo ese servicio

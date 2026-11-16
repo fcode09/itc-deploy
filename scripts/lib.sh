@@ -41,8 +41,8 @@ Uso: ./itc <comando> [instancia] [opciones]
 
 Nombre de instancia: minúsculas, números y guion; empieza con letra (ej. colorado).
 Servicios: s0 (auth-backend), s1 (gueo-back-end). Sin [servicio], deploy y rollback actúan
-sobre los que la instancia tiene en COMPOSE_PROFILES (instance.env).
-Imágenes: con REGISTRY vacío en instance.env se usan las ya cargadas en este Docker
+sobre los que la instancia tiene en COMPOSE_PROFILES (.env.instance).
+Imágenes: con REGISTRY vacío en .env.instance se usan las ya cargadas en este Docker
 (auth-backend:<tag>) y no se descarga nada; con REGISTRY, deploy hace pull.
 EOF
 }
@@ -56,7 +56,7 @@ require_instance() {
   [ -n "$name" ] || die "falta el nombre de la instancia. Uso: ./itc ${CMD:-<comando>} <instancia>"
   valid_instance_name "$name" \
     || die "nombre de instancia inválido: '$name' (minúsculas, números y guion; empieza con letra; 2 a 31 caracteres)"
-  [ -f "$(instance_dir "$name")/instance.env" ] \
+  [ -f "$(instance_dir "$name")/.env.instance" ] \
     || die "la instancia '$name' no existe. Créala con: ./itc new $name"
 }
 
@@ -91,14 +91,14 @@ check_docker() {
   fi
 }
 
-# ¿La instancia usa imágenes ya cargadas en este Docker? (REGISTRY vacío en instance.env)
+# ¿La instancia usa imágenes ya cargadas en este Docker? (REGISTRY vacío en .env.instance)
 uses_local_images() { # instancia
-  [ -z "$(get_var "$(instance_dir "$1")/instance.env" REGISTRY)" ]
+  [ -z "$(get_var "$(instance_dir "$1")/.env.instance" REGISTRY)" ]
 }
 
 # Ejecuta docker compose para una instancia, siempre desde la raíz del repo.
 # - Se limpian COMPOSE_PROFILES y COMPOSE_PROJECT_NAME del shell: si estuvieran exportados
-#   pisarían lo que define instance.env y la instancia se comportaría distinto según quién la ejecute.
+#   pisarían lo que define .env.instance y la instancia se comportaría distinto según quién la ejecute.
 # - Con imágenes locales (REGISTRY vacío) se fija PULL_POLICY=never: si falta la imagen, Docker no
 #   debe bajar de Docker Hub una imagen homónima que no es la nuestra.
 dc() { # instancia args...
@@ -106,7 +106,7 @@ dc() { # instancia args...
   shift
   if uses_local_images "$name"; then policy=never; fi
   (cd "$ROOT" && unset COMPOSE_PROFILES COMPOSE_PROJECT_NAME \
-    && PULL_POLICY="$policy" docker compose --env-file "instances/$name/instance.env" "$@")
+    && PULL_POLICY="$policy" docker compose --env-file "instances/$name/.env.instance" "$@")
 }
 
 # Nombre de la imagen (sin registry ni etiqueta) de cada servicio.
@@ -163,17 +163,17 @@ load_enabled() { # instancia
   ENABLED=()
   local raw part
   local -a parts
-  raw="$(get_var "$(instance_dir "$1")/instance.env" COMPOSE_PROFILES)"
-  [ -n "$raw" ] || die "instance.env: COMPOSE_PROFILES está vacío; indica los servicios activos (ej. s0,s1)"
+  raw="$(get_var "$(instance_dir "$1")/.env.instance" COMPOSE_PROFILES)"
+  [ -n "$raw" ] || die ".env.instance: COMPOSE_PROFILES está vacío; indica los servicios activos (ej. s0,s1)"
   IFS=',' read -ra parts <<< "$raw"
   for part in "${parts[@]}"; do
     part="${part// /}"
     [ -n "$part" ] || continue
     valid_service "$part" \
-      || die "instance.env: COMPOSE_PROFILES contiene '$part', que no es un servicio conocido (${KNOWN_SERVICES[*]})"
+      || die ".env.instance: COMPOSE_PROFILES contiene '$part', que no es un servicio conocido (${KNOWN_SERVICES[*]})"
     ENABLED+=("$part")
   done
-  [ "${#ENABLED[@]}" -gt 0 ] || die "instance.env: COMPOSE_PROFILES no contiene servicios"
+  [ "${#ENABLED[@]}" -gt 0 ] || die ".env.instance: COMPOSE_PROFILES no contiene servicios"
 }
 
 # Deja en SELECTED los servicios sobre los que actúa un comando: el indicado, o todos los
@@ -189,7 +189,7 @@ select_services() { # instancia [servicio]
   valid_service "$want" || die "servicio desconocido: '$want' (válidos: ${KNOWN_SERVICES[*]})"
   for s in "${ENABLED[@]}"; do [ "$s" = "$want" ] && found=1; done
   [ "$found" -eq 1 ] \
-    || die "'$want' no está activo en '$name' (COMPOSE_PROFILES=$(IFS=,; echo "${ENABLED[*]}")); añádelo a instance.env si debe correr ahí"
+    || die "'$want' no está activo en '$name' (COMPOSE_PROFILES=$(IFS=,; echo "${ENABLED[*]}")); añádelo a .env.instance si debe correr ahí"
   SELECTED=("$want")
 }
 
@@ -215,7 +215,7 @@ parse_yes() {
 # Siguiente puerto S0 libre: máximo existente + PORT_STEP (o BASE_PORT si no hay instancias).
 next_s0_port() {
   local max=$((BASE_PORT - PORT_STEP)) f p
-  for f in "$INSTANCES_DIR"/*/instance.env; do
+  for f in "$INSTANCES_DIR"/*/.env.instance; do
     [ -f "$f" ] || continue
     p="$(get_var "$f" S0_PORT)"
     if [[ "$p" =~ ^[0-9]+$ ]] && [ "$p" -gt "$max" ]; then max="$p"; fi
@@ -226,7 +226,7 @@ next_s0_port() {
 # Nombre de la instancia (distinta de $2) que ya usa el puerto $1, o vacío.
 port_owner() { # puerto instancia_excluida
   local f n
-  for f in "$INSTANCES_DIR"/*/instance.env; do
+  for f in "$INSTANCES_DIR"/*/.env.instance; do
     [ -f "$f" ] || continue
     n="$(basename "$(dirname "$f")")"
     [ "$n" = "${2:-}" ] && continue
