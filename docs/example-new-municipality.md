@@ -56,15 +56,28 @@ sudo chown 1000:1000 instances/colorado/secrets/*.json
 chmod 600 instances/colorado/secrets/*.json
 ```
 
-## 4. Desplegar
+## 4. Inicializar y desplegar
+
+**Municipalidad nueva** (sin datos): una sola vez,
+
+```bash
+./itc init colorado
+```
+
+Comprueba que las bases estén vacías, siembra los datos iniciales en el orden correcto (seed de s1, s1
+arriba, seeds de s0 con su sincronización de usuarios) y deja s1 y s0 corriendo y `healthy`. Se niega si
+las bases ya tienen datos. Tras el primer login, cambia las contraseñas de `root` y `superuser`.
+
+**Municipalidad que ya existe con datos**: apunta sus URI a las bases actuales, crea la instancia con
+`./itc new colorado --existing` (o `./itc adopt colorado` si ya estaba creada) y despliega:
 
 ```bash
 ./itc deploy colorado
 ```
 
-Valida la configuración (avisa de variables vacías, valores de ejemplo y JSON faltantes), comprueba
-que las imágenes con esas etiquetas estén cargadas en el servidor (con un registry, las descarga),
-levanta los servicios y espera a que estén `healthy`.
+`deploy` valida la configuración (avisa de variables vacías, valores de ejemplo y JSON faltantes),
+comprueba que las imágenes con esas etiquetas estén cargadas en el servidor (con un registry, las
+descarga), levanta los servicios y espera a que estén `healthy`. **Nunca siembra datos**.
 
 ## 5. Comprobar
 

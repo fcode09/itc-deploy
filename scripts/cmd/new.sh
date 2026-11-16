@@ -2,7 +2,7 @@
 # ./itc new <instancia>: crea instances/<instancia>/ desde las plantillas.
 
 cmd_new() {
-  local name="" services="" a
+  local name="" services="" existing=0 a
   while [ "$#" -gt 0 ]; do
     a="$1"
     case "$a" in
@@ -10,6 +10,10 @@ cmd_new() {
         [ "$#" -ge 2 ] || die "--services requiere un valor (ej. --services s1)"
         services="$2"
         shift 2
+        ;;
+      --existing)
+        existing=1
+        shift
         ;;
       -*) die "opción desconocida: $a" ;;
       *)
@@ -19,7 +23,7 @@ cmd_new() {
         ;;
     esac
   done
-  [ -n "$name" ] || die "uso: ./itc new <instancia> [--services s0,s1]"
+  [ -n "$name" ] || die "uso: ./itc new <instancia> [--services s0,s1] [--existing]"
   valid_instance_name "$name" \
     || die "nombre de instancia inválido: '$name' (minúsculas, números y guion; empieza con letra; 2 a 31 caracteres)"
 
@@ -78,6 +82,10 @@ cmd_new() {
     warn "  sudo chown -R $RUNTIME_UID:$RUNTIME_UID $dir/data"
   fi
 
+  if [ "$existing" -eq 1 ]; then
+    write_marker "$name" existing
+    info "Marcada como EXISTENTE: ./itc init no podrá ejecutarse sobre ella (apunta sus URI a las bases actuales)."
+  fi
   ok "instancia '$name' creada en $dir (puertos $s0_port/$s1_port)"
   info ""
   info "Siguientes pasos:"
