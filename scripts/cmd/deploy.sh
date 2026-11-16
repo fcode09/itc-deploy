@@ -194,6 +194,9 @@ cmd_deploy() {
 
   check_images "$name" "${SELECTED[@]}"
   warn_changed_images "$name" "${SELECTED[@]}"
+  if [ ! -f "$(marker_file "$name")" ] && [ "${ITC_SUPPRESS_INIT_WARN:-0}" != "1" ]; then
+    warn "'$name' no está inicializada: si es una municipalidad NUEVA ejecuta ./itc init $name; si YA tiene datos, ./itc adopt $name (deploy nunca siembra)"
+  fi
   record_previous "$name" "${SELECTED[@]}"
 
   if [ -n "$only" ]; then

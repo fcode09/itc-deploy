@@ -46,9 +46,10 @@ git clone <este-repo> && cd itc-deploy
 ./itc new colorado          # crea instances/colorado/ desde las plantillas
 # Completa instances/colorado/{.env.instance,.env.s0,.env.s1} (S0_TAG y S1_TAG = versiones de ./itc images)
 # y copia los JSON de Firebase a secrets/
-./itc deploy colorado       # comprueba las imágenes, levanta y espera a que estén healthy
+./itc init colorado         # SOLO si es una municipalidad NUEVA: siembra los datos iniciales y levanta s1 y s0
+# (si YA tiene datos: ./itc new colorado --existing, o ./itc adopt colorado, y luego ./itc deploy colorado)
 
-./itc list                  # instancias, servicios, puertos, etiquetas y estado
+./itc list                  # instancias, servicios, puertos, etiquetas, datos y estado
 ./itc ps colorado           # estado
 ./itc logs colorado s1      # logs de un servicio
 ./itc rollback colorado     # vuelve a las etiquetas anteriores
@@ -65,6 +66,39 @@ Guía completa con valores de ejemplo: [`docs/example-new-municipality.md`](docs
 Para actualizar una instancia: cambia `S0_TAG` / `S1_TAG` en su `.env.instance` y ejecuta
 `./itc deploy <instancia>`. Las etiquetas anteriores quedan guardadas para el rollback.
 **No uses `latest`**: usa una etiqueta por versión o commit.
+
+## Datos iniciales de una instancia nueva
+
+Los datos iniciales salen de comandos de la CLI que ya vienen en las imágenes (`populating_data_s1`,
+`populating_data_s0`, `create_root_user`, `url_systems`). Son **destructivos**: hacen `drop` de colecciones
+y el seed de s0 le ordena a s1, por TCP, que **vacíe su tabla de usuarios**. Por eso `./itc deploy` **nunca
+siembra**: sembrar y actualizar son cosas separadas.
+
+**`./itc init <instancia>`** (solo para municipalidades **nuevas**, una sola vez) hace, en este orden:
+1. Comprueba que las tablas de usuarios de Auth (`usuarios`) y Gue (`users`) estén vacías; si tienen datos, **se niega**.
+2. Seed de s1 (catálogos).
+3. Levanta s1 y espera a que esté `healthy`: **s1 tiene que estar arriba** cuando corre el seed de s0, o no se
+   sincroniza ningún usuario con él (Auth avisa `GUEP SERVER IS DOWN!`).
+4. Seeds de s0 en la red privada de la instancia: `populating_data_s0` (vacía los usuarios de s1 y vuelve a
+   enviarle los de seed), `create_root_user` (superuser, root y deltadispatch, en Auth y en Gue) y `url_systems`.
+5. Levanta s0 y escribe el marcador `.initialized`.
+
+Salvaguardas: no hay `--force`; con el marcador presente `init` no se vuelve a ejecutar; los seeds terminan
+siempre con código 0 aunque fallen, así que `init` **lee su log** (sin `Ocurred an error` y con los pasos
+esperados: 30 en s1 y al menos 17 en s0); si algo falla, **no marca la instancia**, deja el log en
+`instances/<instancia>/init-logs/` y te pide limpiar las bases a mano antes de reintentar.
+`SPIDER SERVER IS DOWN!` es normal (no hay servidor Spider en este despliegue).
+
+**Municipalidades que ya existen con datos reales** (por ejemplo las que hoy corren con PM2): nunca se les
+hace `init`. Usa `./itc new <x> --existing` al crearlas, o `./itc adopt <x>` si la instancia ya estaba
+creada, apunta sus URI a las bases actuales y despliega con `./itc deploy`.
+
+**Actualizar** una instancia sembrada es solo `./itc deploy`: no repuebla ni borra datos (verificado). La
+columna `DATOS` de `./itc list` muestra `init`, `existente` o `sin sembrar`.
+
+**Requisitos:** imágenes de gueo-back-end con `TCP_LISTEN_HOST` (para que s0 alcance a s1) y
+`TCP_LISTEN_HOST=0.0.0.0` en `.env.s1`. Los usuarios root y superuser salen con contraseñas **fijas en el
+código de Auth**: cámbialas tras el primer login.
 
 ## Imágenes locales (sin registry)
 

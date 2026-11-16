@@ -27,7 +27,10 @@ itc: despliegue y operación de instancias (Docker Compose).
 
 Uso: ./itc <comando> [instancia] [opciones]
 
-  new <instancia> [--services s0,s1]   Crea instances/<instancia>/ desde las plantillas
+  new <instancia> [--services s0,s1] [--existing]   Crea instances/<instancia>/ desde las plantillas
+                                       (--existing: la municipalidad YA tiene datos; no se sembrará nunca)
+  init <instancia> [--yes]             Siembra los datos iniciales de una instancia NUEVA (una sola vez)
+  adopt <instancia>                    Marca como ya inicializada una instancia que YA tiene datos
   deploy <instancia> [servicio]        Valida, comprueba las imágenes y levanta (espera a healthy)
   rollback <instancia> [servicio] [--yes]  Vuelve a las etiquetas del despliegue anterior
   stop <instancia> <servicio>          Detiene un servicio sin tocar los demás
@@ -89,6 +92,23 @@ check_docker() {
   if [ -n "$v" ] && [ "$(printf '%s\n%s\n' 2.20.0 "$v" | sort -V | head -n1)" != "2.20.0" ]; then
     die "Docker Compose $v es demasiado antiguo: se necesita 2.20 o superior (por 'include')"
   fi
+}
+
+# Marcador de "datos iniciales ya sembrados o instancia con datos existentes". Mientras exista,
+# `./itc init` se niega a ejecutarse: los seeds borran datos (drop de colecciones).
+marker_file() { printf '%s/.initialized' "$(instance_dir "$1")"; }
+
+write_marker() { # instancia origen(init|existing)
+  local dir f
+  dir="$(instance_dir "$1")"
+  f="$(marker_file "$1")"
+  {
+    printf 'SOURCE=%s\n' "$2"
+    printf 'INITIALIZED_AT=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    printf 'S0_TAG=%s\n' "$(get_var "$dir/.env.instance" S0_TAG)"
+    printf 'S1_TAG=%s\n' "$(get_var "$dir/.env.instance" S1_TAG)"
+  } > "$f"
+  chmod 600 "$f"
 }
 
 # ¿La instancia usa imágenes ya cargadas en este Docker? (REGISTRY vacío en .env.instance)

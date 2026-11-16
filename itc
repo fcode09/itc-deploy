@@ -18,6 +18,11 @@ case "$CMD" in
     source "$ROOT/scripts/cmd/$CMD.sh"
     "cmd_$CMD" "$@"
     ;;
+  init | adopt)
+    # shellcheck source=scripts/cmd/init.sh
+    source "$ROOT/scripts/cmd/init.sh"
+    "cmd_$CMD" "$@"
+    ;;
   ps | logs | stop | down)
     # shellcheck source=scripts/cmd/ops.sh
     source "$ROOT/scripts/cmd/ops.sh"
