@@ -26,6 +26,12 @@ case "$CMD" in
     source "$ROOT/scripts/cmd/$CMD.sh"
     "cmd_$CMD" "$@"
     ;;
+  versions)
+    # Alias de images.
+    # shellcheck source=scripts/cmd/images.sh
+    source "$ROOT/scripts/cmd/images.sh"
+    cmd_images "$@"
+    ;;
   init | adopt)
     # shellcheck source=scripts/cmd/init.sh
     source "$ROOT/scripts/cmd/init.sh"
