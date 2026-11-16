@@ -159,7 +159,7 @@ check "avisa que no hay docker y sigue mostrando la configuración" \
 rm -f "$FIX/nodocker"
 
 section "12. pantalla de inicio (./itc sin argumentos)"
-check "en un pipe muestra la ayuda" 'bash ./itc 2>&1 | grep -q "Uso:"'
+check "en un pipe muestra la ayuda" 'bash ./itc 2>&1 | grep -qx "Uso"'
 home="$(ITC_UI=rich ITC_COLOR=never COLUMNS=100 bash ./itc 2>&1)"
 check "en una terminal muestra banner y estado" 'echo "$home" | grep -q "██╗" && echo "$home" | grep -q "Estado de las instancias"'
 check "la pantalla de inicio apunta a la ayuda" 'echo "$home" | grep -q "./itc help"'
