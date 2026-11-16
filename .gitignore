@@ -1,0 +1,18 @@
+# Datos reales de cada instancia: nunca se versionan (secretos, .env y volúmenes).
+# Solo se conserva instances/.gitkeep para que la carpeta exista al clonar.
+instances/*
+!instances/.gitkeep
+
+# Archivos de entorno locales (las plantillas *.env.example sí se versionan)
+.env
+*.env
+!*.env.example
+
+# Estado del despliegue (etiquetas previas para el rollback)
+.previous
+
+# SO / editores
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
