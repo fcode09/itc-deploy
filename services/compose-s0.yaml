@@ -4,6 +4,8 @@ services:
     image: ${REGISTRY:?define REGISTRY en instance.env}/auth-backend:${S0_TAG:?define S0_TAG en instance.env}
     container_name: s0_${INSTANCE}
     restart: unless-stopped
+    # El servicio solo corre en las instancias que lo listan en COMPOSE_PROFILES (instance.env).
+    profiles: ["s0"]
     # La imagen no trae init (a diferencia de s1, que usa tini): Docker aporta uno.
     init: true
     env_file:

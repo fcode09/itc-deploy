@@ -13,6 +13,9 @@ BASE_PORT=4100        # primer bloque de puertos del host
 PORT_STEP=10          # cada instancia ocupa un bloque de 10 puertos (sN usa base + N)
 RUNTIME_UID=1000      # uid del usuario "node" dentro de las imágenes
 
+# Servicios conocidos. Al sumar uno nuevo: añadirlo aquí y definir preflight_<sN> en scripts/cmd/deploy.sh.
+KNOWN_SERVICES=(s0 s1)
+
 info() { printf '%s\n' "$*"; }
 ok()   { printf '%sOK%s %s\n' "$C_GRN" "$C_OFF" "$*"; }
 warn() { printf '%sAVISO%s %s\n' "$C_YEL" "$C_OFF" "$*" >&2; }
@@ -24,16 +27,19 @@ itc: despliegue y operación de instancias (Docker Compose).
 
 Uso: ./itc <comando> [instancia] [opciones]
 
-  new <instancia>               Crea instances/<instancia>/ desde las plantillas
-  deploy <instancia>            Valida, descarga imágenes y levanta (espera a healthy)
-  rollback <instancia> [--yes]  Vuelve a las etiquetas del despliegue anterior
-  list                          Instancias, puertos, etiquetas y estado
-  ps <instancia>                Estado de los contenedores
-  logs <instancia> [servicio] [-f]   Logs (últimas 200 líneas)
-  down <instancia> [--yes]      Detiene y elimina los contenedores (los datos se conservan)
-  help                          Esta ayuda
+  new <instancia> [--services s0,s1]   Crea instances/<instancia>/ desde las plantillas
+  deploy <instancia> [servicio]        Valida, descarga imágenes y levanta (espera a healthy)
+  rollback <instancia> [servicio] [--yes]  Vuelve a las etiquetas del despliegue anterior
+  stop <instancia> <servicio>          Detiene un servicio sin tocar los demás
+  list                                 Instancias, servicios, puertos, etiquetas y estado
+  ps <instancia>                       Estado de los contenedores
+  logs <instancia> [servicio] [-f]     Logs (últimas 200 líneas)
+  down <instancia> [--yes]             Detiene y elimina los contenedores (los datos se conservan)
+  help                                 Esta ayuda
 
 Nombre de instancia: minúsculas, números y guion; empieza con letra (ej. colorado).
+Servicios: s0 (auth-backend), s1 (gueo-back-end). Sin [servicio], deploy y rollback actúan
+sobre los que la instancia tiene en COMPOSE_PROFILES (instance.env).
 EOF
 }
 
@@ -82,10 +88,58 @@ check_docker() {
 }
 
 # Ejecuta docker compose para una instancia, siempre desde la raíz del repo.
+# Se limpian COMPOSE_PROFILES y COMPOSE_PROJECT_NAME del shell: si estuvieran exportados
+# pisarían lo que define instance.env y la instancia se comportaría distinto según quién la ejecute.
 dc() { # instancia args...
   local name="$1"
   shift
-  (cd "$ROOT" && docker compose --env-file "instances/$name/instance.env" "$@")
+  (cd "$ROOT" && unset COMPOSE_PROFILES COMPOSE_PROJECT_NAME \
+    && docker compose --env-file "instances/$name/instance.env" "$@")
+}
+
+valid_service() { # servicio
+  local s
+  for s in "${KNOWN_SERVICES[@]}"; do [ "$s" = "$1" ] && return 0; done
+  return 1
+}
+
+# Variable de etiqueta de un servicio: s1 -> S1_TAG
+tag_var() { printf '%s_TAG' "${1^^}"; }
+
+# Lee COMPOSE_PROFILES de la instancia y deja los servicios activos en ENABLED.
+ENABLED=()
+load_enabled() { # instancia
+  ENABLED=()
+  local raw part
+  local -a parts
+  raw="$(get_var "$(instance_dir "$1")/instance.env" COMPOSE_PROFILES)"
+  [ -n "$raw" ] || die "instance.env: COMPOSE_PROFILES está vacío; indica los servicios activos (ej. s0,s1)"
+  IFS=',' read -ra parts <<< "$raw"
+  for part in "${parts[@]}"; do
+    part="${part// /}"
+    [ -n "$part" ] || continue
+    valid_service "$part" \
+      || die "instance.env: COMPOSE_PROFILES contiene '$part', que no es un servicio conocido (${KNOWN_SERVICES[*]})"
+    ENABLED+=("$part")
+  done
+  [ "${#ENABLED[@]}" -gt 0 ] || die "instance.env: COMPOSE_PROFILES no contiene servicios"
+}
+
+# Deja en SELECTED los servicios sobre los que actúa un comando: el indicado, o todos los
+# activos de la instancia. Un servicio indicado debe estar activo en ella.
+SELECTED=()
+select_services() { # instancia [servicio]
+  local name="$1" want="${2:-}" s found=0
+  load_enabled "$name"
+  if [ -z "$want" ]; then
+    SELECTED=("${ENABLED[@]}")
+    return 0
+  fi
+  valid_service "$want" || die "servicio desconocido: '$want' (válidos: ${KNOWN_SERVICES[*]})"
+  for s in "${ENABLED[@]}"; do [ "$s" = "$want" ] && found=1; done
+  [ "$found" -eq 1 ] \
+    || die "'$want' no está activo en '$name' (COMPOSE_PROFILES=$(IFS=,; echo "${ENABLED[*]}")); añádelo a instance.env si debe correr ahí"
+  SELECTED=("$want")
 }
 
 # Pide confirmación. ASSUME_YES=1 (opción --yes) la omite.
@@ -105,12 +159,6 @@ parse_yes() {
   for a in "$@"; do
     if [ "$a" = "--yes" ] || [ "$a" = "-y" ]; then ASSUME_YES=1; else ARGS+=("$a"); fi
   done
-}
-
-# Etiquetas actuales de una instancia, en el formato de .deployed / .previous.
-snapshot_tags() { # carpeta_instancia
-  printf 'S0_TAG=%s\nS1_TAG=%s\n' \
-    "$(get_var "$1/instance.env" S0_TAG)" "$(get_var "$1/instance.env" S1_TAG)"
 }
 
 # Siguiente puerto S0 libre: máximo existente + PORT_STEP (o BASE_PORT si no hay instancias).

@@ -1,49 +1,49 @@
 #!/usr/bin/env bash
-# ./itc rollback <instancia> [--yes]: vuelve a las etiquetas del despliegue anterior.
+# ./itc rollback <instancia> [servicio] [--yes]: vuelve a las etiquetas del despliegue anterior.
+# Sin servicio, revierte todos los activos que tengan una etiqueta previa distinta de la actual.
 
 # deploy_up viene de deploy.sh
 source "$ROOT/scripts/cmd/deploy.sh"
 
 cmd_rollback() {
   parse_yes "$@"
-  local name="${ARGS[0]:-}"
+  local name="${ARGS[0]:-}" only="${ARGS[1]:-}"
   require_instance "$name"
-  local dir
+  select_services "$name" "$only"
+
+  local dir svc tag_name cur prev
+  local -a roll=()
+  local -A prevs=() deployed=()
   dir="$(instance_dir "$name")"
 
-  [ -f "$dir/.previous" ] || die "no hay un despliegue previo registrado para '$name'"
-
-  local cur0 cur1 prev0 prev1
-  cur0="$(get_var "$dir/instance.env" S0_TAG)"
-  cur1="$(get_var "$dir/instance.env" S1_TAG)"
-  prev0="$(get_var "$dir/.previous" S0_TAG)"
-  prev1="$(get_var "$dir/.previous" S1_TAG)"
-  [ -n "$prev0" ] && [ -n "$prev1" ] || die "el archivo .previous de '$name' está incompleto"
-
   info "Instancia: $name"
-  info "  s0: $cur0 -> $prev0"
-  info "  s1: $cur1 -> $prev1"
-  confirm "¿Volver a estas etiquetas?" || die "cancelado"
+  for svc in "${SELECTED[@]}"; do
+    tag_name="$(tag_var "$svc")"
+    cur="$(get_var "$dir/instance.env" "$tag_name")"
+    prev="$(get_var "$dir/.previous" "$tag_name")"
+    if [ -z "$prev" ] || [ "$prev" = "$cur" ]; then
+      [ -z "$only" ] || die "no hay una etiqueta previa registrada para $svc en '$name'"
+      continue
+    fi
+    roll+=("$svc")
+    prevs[$svc]="$prev"
+    deployed[$svc]="$(get_var "$dir/.deployed" "$tag_name")"
+    info "  $svc: $cur -> $prev"
+  done
+  [ "${#roll[@]}" -gt 0 ] || die "no hay nada que revertir en '$name'"
 
+  confirm "¿Volver a estas etiquetas?" || die "cancelado"
   check_docker
 
+  for svc in "${roll[@]}"; do
+    set_var "$dir/instance.env" "$(tag_var "$svc")" "${prevs[$svc]}"
+  done
+
+  deploy_up 1 "$name" "${roll[@]}" || die "el rollback de '$name' no llegó a healthy"
+
   # Lo que estaba desplegado pasa a ser "previo", así un segundo rollback lo restaura.
-  local keep=""
-  if [ -f "$dir/.deployed" ]; then
-    keep="$(mktemp)"
-    cp "$dir/.deployed" "$keep"
-  fi
-
-  set_var "$dir/instance.env" S0_TAG "$prev0"
-  set_var "$dir/instance.env" S1_TAG "$prev1"
-
-  if ! deploy_up "$name"; then
-    [ -z "$keep" ] || rm -f "$keep"
-    die "el rollback de '$name' no llegó a healthy"
-  fi
-
-  if [ -n "$keep" ]; then
-    mv "$keep" "$dir/.previous"
-  fi
-  ok "rollback de '$name' completado"
+  for svc in "${roll[@]}"; do
+    [ -z "${deployed[$svc]}" ] || set_var "$dir/.previous" "$(tag_var "$svc")" "${deployed[$svc]}"
+  done
+  ok "rollback de '$name' completado (${roll[*]})"
 }
