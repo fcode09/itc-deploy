@@ -21,7 +21,7 @@ cmd_stop() {
   local name="${1:-}" svc="${2:-}"
   require_instance "$name"
   [ -n "$svc" ] || die "uso: ./itc stop <instancia> <servicio>  (para detener todo: ./itc down $name)"
-  valid_service "$svc" || die "servicio desconocido: '$svc' (válidos: ${KNOWN_SERVICES[*]})"
+  valid_service "$svc" || die "servicio desconocido: '$svc' (válidos: ${KNOWN_SERVICES[*]})$(see servicios)"
   check_docker
   dc "$name" --profile "$svc" stop "$svc"
   ok "$svc detenido en '$name'"

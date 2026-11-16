@@ -134,4 +134,38 @@ done
 check "todas las variables recomendadas existen en el glosario (${bad_var:-ok})" '[ -z "$bad_var" ]'
 check "las líneas de las páginas caben en 130 columnas" '! awk "length(\$0) > 130 { exit 1 }" $H/cmd-*.txt $H/topic-*.txt'
 
+section "10. los errores apuntan a la ayuda"
+# Toda pista $(see X) del código debe señalar un tema o comando que exista.
+bad_see=""
+while IFS= read -r t; do
+  case "$t" in "variable "*) continue ;; esac
+  { echo "$cmds"; echo "$topics"; } | grep -qx "$t" || bad_see+="$t "
+done < <(grep -ohE '\$\(see [^)]*\)' scripts/lib.sh scripts/cmd/*.sh | sed -E 's/^\$\(see "?//; s/"?\)$//' | sort -u)
+check "cada pista \$(see ...) del código señala una página existente (${bad_see:-ok})" '[ -z "$bad_see" ]'
+
+# docker mínimo para llegar a las validaciones sin Docker real
+FIX="$(mktemp -d)"; mkdir -p "$FIX/bin"
+trap 'rm -rf "$FIX" instances/hp-*' EXIT
+printf '#!/usr/bin/env bash\ncase "$*" in "compose version --short") echo v2.30.0 ;; esac\nexit 0\n' > "$FIX/bin/docker"
+chmod +x "$FIX/bin/docker"
+export PATH="$FIX/bin:$PATH"
+
+check "instancia inexistente apunta a la guía de instancia nueva" \
+  'bash ./itc deploy zz-no 2>&1 | grep -q "(ayuda: ./itc help nueva-instancia)"'
+check "nombre inválido apunta a la ayuda de new" \
+  'bash ./itc new Mal_Nombre 2>&1 | grep -q "(ayuda: ./itc help new)"'
+bash ./itc new hp-test >/dev/null 2>&1
+out="$(bash ./itc deploy hp-test 2>&1)"
+check "una variable vacía apunta a su entrada del glosario" 'echo "$out" | grep "JWT_SECRET está vacía" | grep -q "(ayuda: ./itc help variable JWT_SECRET)"'
+check "un valor de ejemplo apunta a su entrada del glosario" 'echo "$out" | grep "valor de ejemplo" | grep -q "(ayuda: ./itc help variable "'
+check "el resumen de errores apunta a la guía" 'echo "$out" | grep -q "corrígelos y reintenta (ayuda: ./itc help nueva-instancia)"'
+check "servicio desconocido apunta a la guía de servicios" 'bash ./itc stop hp-test s9 2>&1 | grep -q "(ayuda: ./itc help servicios)"'
+check "servicio inactivo apunta a la guía de servicios" \
+  'sed -i "s/^COMPOSE_PROFILES=.*/COMPOSE_PROFILES=s0/" instances/hp-test/.env.instance; bash ./itc deploy hp-test s1 2>&1 | grep -q "(ayuda: ./itc help servicios)"'
+check "el aviso de imagen faltante nombra la guía de imágenes" \
+  'sed -i "s/^COMPOSE_PROFILES=.*/COMPOSE_PROFILES=s0,s1/" instances/hp-test/.env.instance; grep -q "see imagenes" scripts/cmd/deploy.sh'
+check "los mensajes siguen mostrando su texto original" 'echo "$out" | grep -q "está vacía" && echo "$out" | grep -q "problema(s) en la configuración"'
+check "las pistas también salen sin color" '! echo "$out" | has_ansi'
+rm -rf instances/hp-test
+
 finish

@@ -23,7 +23,7 @@ cmd_load() {
   while IFS= read -r ref; do
     [ -z "$ref" ] || loaded+=("$ref")
   done < <(printf '%s\n' "$out" | sed -n 's/^Loaded image: //p')
-  [ "${#loaded[@]}" -gt 0 ] || die "el archivo no contiene imágenes con nombre (¿es un archivo de docker save?)"
+  [ "${#loaded[@]}" -gt 0 ] || die "el archivo no contiene imágenes con nombre (¿es un archivo de docker save?)$(see imagenes)"
 
   info "Imágenes cargadas:"
   for ref in "${loaded[@]}"; do

@@ -25,7 +25,7 @@ cmd_rollback() {
     cur="$(get_var "$dir/.env.instance" "$tag_name")"
     prev="$(get_var "$dir/.previous" "$tag_name")"
     if [ -z "$prev" ] || [ "$prev" = "$cur" ]; then
-      [ -z "$only" ] || die "no hay una etiqueta previa registrada para $svc en '$name'"
+      [ -z "$only" ] || die "no hay una etiqueta previa registrada para $svc en '$name'$(see actualizar)"
       continue
     fi
 
@@ -50,7 +50,7 @@ cmd_rollback() {
     info "  $svc: $cur -> $prev"
   done
 
-  [ "$missing" -eq 0 ] || die "faltan imágenes previas en este servidor: no se cambió nada. Revisa ./itc images"
+  [ "$missing" -eq 0 ] || die "faltan imágenes previas en este servidor: no se cambió nada. Revisa ./itc images$(see actualizar)"
   [ "${#roll[@]}" -gt 0 ] || die "no hay nada que revertir en '$name'"
 
   confirm "¿Volver a estas etiquetas?" || die "cancelado"

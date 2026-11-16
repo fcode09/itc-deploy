@@ -11,10 +11,10 @@ check_required() { # archivo clave...
   for key in "$@"; do
     val="$(get_var "$file" "$key")"
     if [ -z "$val" ]; then
-      warn "$(basename "$file"): $key está vacía"
+      warn "$(basename "$file"): $key está vacía$(see "variable $key")"
       PREFLIGHT_ERRORS=$((PREFLIGHT_ERRORS + 1))
     elif [[ "$val" == *CAMBIAR* ]]; then
-      warn "$(basename "$file"): $key aún tiene el valor de ejemplo (CAMBIAR...)"
+      warn "$(basename "$file"): $key aún tiene el valor de ejemplo (CAMBIAR...)$(see "variable $key")"
       PREFLIGHT_ERRORS=$((PREFLIGHT_ERRORS + 1))
     fi
   done
@@ -39,7 +39,7 @@ preflight_s1() { # carpeta_instancia
   listen="$(get_var "$dir/.env.s1" TCP_LISTEN_HOST)"
   for s in "${ENABLED[@]}"; do
     if [ "$s" = "s0" ] && { [ -z "$listen" ] || [ "$listen" = "127.0.0.1" ] || [ "$listen" = "localhost" ]; }; then
-      warn ".env.s1: s0 está activo pero TCP_LISTEN_HOST es '${listen:-vacío}': s0 no podrá alcanzar el TCP 5020 de s1 (usa 0.0.0.0)"
+      warn ".env.s1: s0 está activo pero TCP_LISTEN_HOST es '${listen:-vacío}': s0 no podrá alcanzar el TCP 5020 de s1 (usa 0.0.0.0)$(see red)"
     fi
   done
   check_required "$dir/.env.s1" "${REQUIRED_S1[@]}"
@@ -47,7 +47,7 @@ preflight_s1() { # carpeta_instancia
   for f in FCM_CERT KEEPER_FCM_CERT; do
     path="$(get_var "$dir/.env.s1" "$f")"
     if [[ "$path" == /run/secrets/* ]] && [ ! -f "$dir/secrets/${path#/run/secrets/}" ]; then
-      warn ".env.s1: $f apunta a $path, pero falta secrets/${path#/run/secrets/}"
+      warn ".env.s1: $f apunta a $path, pero falta secrets/${path#/run/secrets/}$(see secretos)"
       PREFLIGHT_ERRORS=$((PREFLIGHT_ERRORS + 1))
     fi
   done
@@ -74,10 +74,10 @@ preflight() { # instancia servicio...
     img_name="$(get_var "$dir/.env.instance" "${svc^^}_IMAGE")"
     if [ -n "$img_name" ]; then
       if [[ "$img_name" == *:* ]]; then
-        warn ".env.instance: ${svc^^}_IMAGE='$img_name' lleva ':'; el nombre va sin etiqueta (la etiqueta va en $tag_name)"
+        warn ".env.instance: ${svc^^}_IMAGE='$img_name' lleva ':'; el nombre va sin etiqueta (la etiqueta va en $tag_name)$(see imagenes)"
         PREFLIGHT_ERRORS=$((PREFLIGHT_ERRORS + 1))
       elif ! valid_image_name "$img_name"; then
-        warn ".env.instance: ${svc^^}_IMAGE='$img_name' no es un nombre de imagen válido (minúsculas, números y . _ - ; admite /)"
+        warn ".env.instance: ${svc^^}_IMAGE='$img_name' no es un nombre de imagen válido (minúsculas, números y . _ - ; admite /)$(see imagenes)"
         PREFLIGHT_ERRORS=$((PREFLIGHT_ERRORS + 1))
       fi
     fi
@@ -93,7 +93,7 @@ preflight() { # instancia servicio...
     warn "data/ no pertenece al uid $RUNTIME_UID: la app podría no poder escribir. Ejecuta: sudo chown -R $RUNTIME_UID:$RUNTIME_UID $dir/data"
   fi
 
-  [ "$PREFLIGHT_ERRORS" -eq 0 ] || die "$PREFLIGHT_ERRORS problema(s) en la configuración de '$name'; corrígelos y reintenta"
+  [ "$PREFLIGHT_ERRORS" -eq 0 ] || die "$PREFLIGHT_ERRORS problema(s) en la configuración de '$name'; corrígelos y reintenta$(see nueva-instancia)"
 }
 
 # Con imágenes locales, comprueba que cada imagen exista en este Docker antes de tocar nada.
@@ -111,7 +111,7 @@ check_images() { # instancia servicio...
     fi
   done
   [ "$missing" -eq 0 ] \
-    || die "$missing imagen(es) sin cargar. Cárgalas con ./itc load <archivo> y revisa las disponibles con ./itc images"
+    || die "$missing imagen(es) sin cargar. Cárgalas con ./itc load <archivo> y revisa las disponibles con ./itc images$(see imagenes)"
 }
 
 # Con imágenes locales una etiqueta se puede reconstruir y apuntar a otra imagen: si la etiqueta
@@ -130,7 +130,7 @@ warn_changed_images() { # instancia servicio...
       ref="$(service_image_ref "$name" "$svc")"
       cur_id="$(image_id "$ref")"
       if [ -n "$cur_id" ] && [ "$cur_id" != "$dep_id" ]; then
-        warn "$svc: la etiqueta $cur ahora apunta a otra imagen ($(short_id "$cur_id")) distinta de la desplegada ($(short_id "$dep_id")); no reutilices etiquetas"
+        warn "$svc: la etiqueta $cur ahora apunta a otra imagen ($(short_id "$cur_id")) distinta de la desplegada ($(short_id "$dep_id")); no reutilices etiquetas$(see imagenes)"
       fi
     fi
   done
@@ -211,7 +211,7 @@ cmd_deploy() {
   check_images "$name" "${SELECTED[@]}"
   warn_changed_images "$name" "${SELECTED[@]}"
   if [ ! -f "$(marker_file "$name")" ] && [ "${ITC_SUPPRESS_INIT_WARN:-0}" != "1" ]; then
-    warn "'$name' no está inicializada: si es una municipalidad NUEVA ejecuta ./itc init $name; si YA tiene datos, ./itc adopt $name (deploy nunca siembra)"
+    warn "'$name' no está inicializada: si es una municipalidad NUEVA ejecuta ./itc init $name; si YA tiene datos, ./itc adopt $name (deploy nunca siembra)$(see datos)"
   fi
   record_previous "$name" "${SELECTED[@]}"
 
