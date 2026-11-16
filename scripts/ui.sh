@@ -62,11 +62,13 @@ ui_init() {
     E_RED=''; E_YEL=''; E_OFF=''
   fi
 
-  if [ "$UI_UTF8" -eq 1 ]; then
-    UI_S_OK='●' UI_S_WARN='▲' UI_S_ERR='✖' UI_S_INFO='ℹ' UI_S_DOT='·' UI_S_ARROW='→' UI_S_RULE='─' UI_S_ELL='…'
+  # Símbolos Unicode solo en modo rico (terminal); en pipes y logs siempre ASCII.
+  if [ "$UI_UTF8" -eq 1 ] && [ "$UI_RICH" -eq 1 ]; then
+    UI_S_OK='●' UI_S_WARN='▲' UI_S_ERR='✖' UI_S_INFO='ℹ' UI_S_DOT='·' UI_S_ARROW='→' UI_S_RULE='─'
   else
-    UI_S_OK='*' UI_S_WARN='!' UI_S_ERR='x' UI_S_INFO='i' UI_S_DOT='.' UI_S_ARROW='->' UI_S_RULE='-' UI_S_ELL='~'
+    UI_S_OK='*' UI_S_WARN='!' UI_S_ERR='x' UI_S_INFO='i' UI_S_DOT='.' UI_S_ARROW='->' UI_S_RULE='-'
   fi
+  if [ "$UI_UTF8" -eq 1 ]; then UI_S_ELL='…'; else UI_S_ELL='~'; fi
 }
 
 ui_init
@@ -91,7 +93,10 @@ ui_hint() { printf '  %s%s %s%s\n' "$C_CYN" "$UI_S_ARROW" "$*" "$C_OFF"; }
 
 # Clave: valor alineado (clave en gris).
 ui_kv() { # clave valor [ancho]
-  printf '  %s%-*s%s %s\n' "$C_GRY" "${3:-14}" "$1" "$C_OFF" "$2"
+  # El relleno se calcula en caracteres (printf %-Ns cuenta bytes y descuadra con acentos).
+  local pad=$((${3:-14} - ${#1}))
+  [ "$pad" -ge 0 ] || pad=0
+  printf '  %s%s%*s%s %s\n' "$C_GRY" "$1" "$pad" "" "$C_OFF" "$2"
 }
 
 # Símbolo coloreado según el estado: ok | warn | err | info | dim.
@@ -142,7 +147,8 @@ ui_cell() {
   esac
   col="$(ui_state_color "$kind")"
   shown="$text"
-  if [ $((${#text} + extra)) -gt "$w" ] && [ "$w" -gt 1 ]; then
+  # La última columna no se trunca ni se rellena: ocupa lo que necesite.
+  if [ "$last" != "1" ] && [ $((${#text} + extra)) -gt "$w" ] && [ "$w" -gt 1 ]; then
     shown="${text:0:$((w - extra - 1))}$UI_S_ELL"
   fi
   if [ "$last" = "1" ]; then
@@ -158,7 +164,12 @@ ui_th() {
   i=0
   for a in "$@"; do
     i=$((i + 1))
-    if [ "$i" -eq "$n" ]; then printf '%s' "$a"; else printf '%-*s  ' "${UI_COLS_W[$((i - 1))]:-12}" "$a"; fi
+    if [ "$i" -eq "$n" ]; then
+      printf '%s' "$a"
+    else
+      # Relleno en caracteres (no en bytes) para que las cabeceras con acentos no descuadren.
+      printf '%s%*s  ' "$a" "$((${UI_COLS_W[$((i - 1))]:-12} - ${#a}))" ""
+    fi
   done
   printf '%s\n' "$C_OFF"
 }
