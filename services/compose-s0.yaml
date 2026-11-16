@@ -2,7 +2,7 @@
 services:
   s0:
     # REGISTRY vacío = imagen local (auth-backend:<tag>); con valor se antepone (<registry>/auth-backend:<tag>).
-    image: ${REGISTRY:+${REGISTRY}/}auth-backend:${S0_TAG:?define S0_TAG en .env.instance}
+    image: ${REGISTRY:+${REGISTRY}/}${S0_IMAGE:-auth-backend}:${S0_TAG:?define S0_TAG en .env.instance}
     # ./itc fija PULL_POLICY=never cuando REGISTRY está vacío: si falta la imagen local, Docker no
     # debe bajar de Docker Hub una imagen homónima que no es la nuestra.
     pull_policy: ${PULL_POLICY:-missing}

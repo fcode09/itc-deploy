@@ -31,7 +31,7 @@ cmd_rollback() {
 
     # Con imágenes locales no hay de dónde bajarla: debe seguir cargada, con el mismo ID.
     if uses_local_images "$name"; then
-      ref_prev="$(service_repo "$svc"):$prev"
+      ref_prev="$(service_repo "$svc" "$name"):$prev"
       if ! image_exists "$ref_prev"; then
         warn "la imagen previa $ref_prev ($svc) ya no está en este servidor (¿se borró?)"
         missing=$((missing + 1))

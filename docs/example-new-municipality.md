@@ -28,7 +28,7 @@ Compara tus archivos con los de [`examples/colorado/`](../examples/colorado/):
 
 | Archivo | Qué completar |
 |---|---|
-| `.env.instance` | `S0_TAG` y `S1_TAG` (una etiqueta por versión), `REGISTRY`, y revisar `COMPOSE_PROFILES` y puertos |
+| `.env.instance` | `S0_TAG` y `S1_TAG` (una etiqueta por versión), `S0_IMAGE` y `S1_IMAGE` (solo si construiste las imágenes con otro nombre), `REGISTRY`, y revisar `COMPOSE_PROFILES` y puertos |
 | `.env.s0` | `IP_SERVER`, `JWT_SECRET`, `MONGO_URI`, `GOOGLE_KEY` |
 | `.env.s1` | `IP_SERVER`, `AUTH_URL` (déjala en `http://s0:3200`), `JWT_SECRET`, las tres URI de Mongo, `FEDERATION_ENCRYPTION_KEY`, `DEEPGRAM_API_KEY`, `DELTA_UNIVERSITY_HANDOFF_SECRET` |
 
