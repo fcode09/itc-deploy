@@ -25,7 +25,7 @@ cmd_new() {
   done
   [ -n "$name" ] || die "uso: ./itc new <instancia> [--services s0,s1] [--existing]"
   valid_instance_name "$name" \
-    || die "nombre de instancia inválido: '$name' (minúsculas, números y guion; empieza con letra; 2 a 31 caracteres)"
+    || die "nombre de instancia inválido: '$name' (minúsculas, números y guion; empieza con letra; 2 a 31 caracteres)$(see new)"
 
   if [ -n "$services" ]; then
     local part
@@ -33,7 +33,7 @@ cmd_new() {
     IFS=',' read -ra parts <<< "$services"
     for part in "${parts[@]}"; do
       valid_service "${part// /}" \
-        || die "servicio desconocido en --services: '$part' (válidos: ${KNOWN_SERVICES[*]})"
+        || die "servicio desconocido en --services: '$part' (válidos: ${KNOWN_SERVICES[*]})$(see servicios)"
     done
   fi
 
@@ -46,7 +46,7 @@ cmd_new() {
   s1_port=$((s0_port + 1))
   for p in "$s0_port" "$s1_port"; do
     owner="$(port_owner "$p" "$name")"
-    [ -z "$owner" ] || die "el puerto $p ya lo usa la instancia '$owner'"
+    [ -z "$owner" ] || die "el puerto $p ya lo usa la instancia '$owner'$(see puertos)"
     if command -v ss >/dev/null 2>&1 && ss -ltn 2>/dev/null | grep -qE "[:.]$p[[:space:]]"; then
       warn "el puerto $p ya está en uso en este servidor; edita .env.instance antes de desplegar"
     fi

@@ -1,0 +1,3 @@
+# versions · alias de images
+
+`./itc versions` es lo mismo que `./itc images`. Ver `./itc help images`.

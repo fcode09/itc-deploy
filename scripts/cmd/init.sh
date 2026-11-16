@@ -94,7 +94,7 @@ cmd_init() {
     [ "$s" != "s1" ] || have1=1
   done
   [ "$have0" -eq 1 ] && [ "$have1" -eq 1 ] \
-    || die "init necesita s0 y s1 activos en COMPOSE_PROFILES de '$name' (el seed de s0 sincroniza usuarios con s1)"
+    || die "init necesita s0 y s1 activos en COMPOSE_PROFILES de '$name' (el seed de s0 sincroniza usuarios con s1)$(see servicios)"
 
   if [ -f "$(marker_file "$name")" ]; then
     die "'$name' ya está inicializada ($(get_var "$(marker_file "$name")" SOURCE), $(get_var "$(marker_file "$name")" INITIALIZED_AT)). init no se vuelve a ejecutar: los seeds borran datos."
@@ -108,9 +108,9 @@ cmd_init() {
   local n_auth n_gue
   n_auth="$(count_docs "$name" s0 MONGO_URI usuarios)"
   n_gue="$(count_docs "$name" s1 MONGO_DELTA_DISPATCH_URI users)"
-  [ "$n_auth" != "ERR" ] && [ "$n_gue" != "ERR" ] || die "no se pudo comprobar Mongo; revisa las URI de .env.s0 y .env.s1 y que Mongo sea alcanzable"
+  [ "$n_auth" != "ERR" ] && [ "$n_gue" != "ERR" ] || die "no se pudo comprobar Mongo; revisa las URI de .env.s0 y .env.s1 y que Mongo sea alcanzable$(see solucion-problemas)"
   if [ "$n_auth" -gt 0 ] || [ "$n_gue" -gt 0 ]; then
-    die "'$name' ya tiene datos (Auth usuarios=$n_auth, Gue users=$n_gue): los seeds los BORRARÍAN. Si es una municipalidad existente, usa: ./itc adopt $name"
+    die "'$name' ya tiene datos (Auth usuarios=$n_auth, Gue users=$n_gue): los seeds los BORRARÍAN. Si es una municipalidad existente, usa: ./itc adopt $name$(see instancia-existente)"
   fi
 
   info "Se sembrarán los datos iniciales de '$name' (operación única y destructiva sobre sus bases)."
@@ -141,7 +141,7 @@ cmd_init() {
   a_after="$(count_docs "$name" s0 MONGO_URI usuarios)"
   g_after="$(count_docs "$name" s1 MONGO_DELTA_DISPATCH_URI users)"
   [ "$g_after" != "ERR" ] && [ "$g_after" -gt 0 ] \
-    || warn "Gue quedó sin usuarios (users=$g_after): la sincronización s0 -> s1 no llegó; revisa TCP_LISTEN_HOST"
+    || warn "Gue quedó sin usuarios (users=$g_after): la sincronización s0 -> s1 no llegó; revisa TCP_LISTEN_HOST$(see red)"
 
   write_marker "$name" init
   ok "instancia '$name' inicializada (Auth usuarios=$a_after, Gue users=$g_after). Logs en $dir/init-logs/"

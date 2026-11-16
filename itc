@@ -20,6 +20,23 @@ CMD="${1:-help}"
 shift 2>/dev/null || true
 export CMD
 
+# <comando> --help | -h: ayuda de ese comando (la detección es previa a ejecutar nada).
+case "$CMD" in
+  help | -h | --help) ;;
+  *)
+    for _a in "$@"; do
+      case "$_a" in
+        -h | --help)
+          # shellcheck source=scripts/cmd/help.sh
+          source "$ROOT/scripts/cmd/help.sh"
+          cmd_help "$CMD"
+          exit $?
+          ;;
+      esac
+    done
+    ;;
+esac
+
 case "$CMD" in
   new | deploy | rollback | list | images | load | status)
     # shellcheck source=/dev/null
@@ -43,11 +60,13 @@ case "$CMD" in
     "cmd_$CMD" "$@"
     ;;
   help | -h | --help)
-    usage
+    # shellcheck source=scripts/cmd/help.sh
+    source "$ROOT/scripts/cmd/help.sh"
+    cmd_help "$@"
     ;;
   *)
     warn "comando desconocido: $CMD"
-    usage >&2
+    info "Prueba: ./itc help      (comandos y guías)   |   ./itc help buscar $CMD" >&2
     exit 1
     ;;
 esac

@@ -1,0 +1,32 @@
+# Servicios: s0, s1 y COMPOSE_PROFILES
+
+## Los servicios
+- `s0` auth-backend (NestJS): autenticación, usuarios, municipalidad y URLs de los sistemas. Puerto interno 3200.
+- `s1` gueo-back-end (NestJS + Chromium para los reportes PDF). Puerto interno 3000.
+- puertos en el host: bloques de 10 desde 4100; `s0` usa el puerto base y `s1` el siguiente (4100/4101, 4110/4111...)
+
+## COMPOSE_PROFILES
+Lista de servicios activos de la instancia, en `.env.instance`:
+- `COMPOSE_PROFILES=s0,s1` los dos
+- `COMPOSE_PROFILES=s1` solo Gue
+- `COMPOSE_PROFILES=s0` solo Auth
+Solo los servicios listados se validan, se descargan y se levantan.
+
+## Operar un solo servicio
+$ ./itc deploy colorado s1
+$ ./itc stop colorado s1
+$ ./itc logs colorado s1
+$ ./itc rollback colorado s1
+> El servicio debe estar en `COMPOSE_PROFILES`; si no, `itc` lo dice y no hace nada.
+
+## Dependencias entre servicios
+- `s1` espera a que `s0` esté healthy (si `s0` corre en la instancia)
+- `s0` llama a `s1` por TCP 5020 dentro de la red privada
+- `s1` llama a `s0` por HTTP con `AUTH_URL`
+- con solo `s1` activo, `AUTH_URL` debe apuntar al Auth que corresponda
+
+## Agregar un servicio nuevo (s2...)
+Los pasos están en `docs/services-catalog.md`.
+
+## Relacionado
+- `./itc help red`, `./itc help puertos`

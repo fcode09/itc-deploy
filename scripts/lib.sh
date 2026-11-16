@@ -18,35 +18,14 @@ info() { printf '%s\n' "$*"; }
 ok()   { printf '%sOK%s %s\n' "$C_GRN" "$C_OFF" "$*"; }
 warn() { printf '%sAVISO%s %s\n' "$E_YEL" "$E_OFF" "$*" >&2; }
 die()  { printf '%sERROR%s %s\n' "$E_RED" "$E_OFF" "$*" >&2; exit 1; }
+# Pista al final de un mensaje: "... (ayuda: ./itc help <tema>)". Se invoca por sustitución de comandos dentro del mensaje.
+see()  { printf ' (ayuda: ./itc help %s)' "$1"; }
 
 usage() {
-  cat <<'EOF'
-itc: despliegue y operación de instancias (Docker Compose).
-
-Uso: ./itc <comando> [instancia] [opciones]
-
-  new <instancia> [--services s0,s1] [--existing]   Crea instances/<instancia>/ desde las plantillas
-                                       (--existing: la municipalidad YA tiene datos; no se sembrará nunca)
-  init <instancia> [--yes]             Siembra los datos iniciales de una instancia NUEVA (una sola vez)
-  adopt <instancia>                    Marca como ya inicializada una instancia que YA tiene datos
-  deploy <instancia> [servicio]        Valida, comprueba las imágenes y levanta (espera a healthy)
-  rollback <instancia> [servicio] [--yes]  Vuelve a las etiquetas del despliegue anterior
-  stop <instancia> <servicio>          Detiene un servicio sin tocar los demás
-  load <archivo.tar|.tar.gz>           Carga imágenes en el Docker de este servidor
-  images [servicio]                    Versiones de imagen disponibles y qué instancias las usan
-  list                                 Instancias, servicios, puertos, etiquetas y estado
-  status [instancia] [--json|--stats]  Panel de estado: versiones, salud, desajustes y siguientes pasos
-  ps <instancia>                       Estado de los contenedores
-  logs <instancia> [servicio] [-f]     Logs (últimas 200 líneas)
-  down <instancia> [--yes]             Detiene y elimina los contenedores (los datos se conservan)
-  help                                 Esta ayuda
-
-Nombre de instancia: minúsculas, números y guion; empieza con letra (ej. colorado).
-Servicios: s0 (auth-backend), s1 (gueo-back-end). Sin [servicio], deploy y rollback actúan
-sobre los que la instancia tiene en COMPOSE_PROFILES (.env.instance).
-Imágenes: con REGISTRY vacío en .env.instance se usan las ya cargadas en este Docker
-(auth-backend:<tag>) y no se descarga nada; con REGISTRY, deploy hace pull.
-EOF
+  # La ayuda completa vive en scripts/help/ (ver scripts/cmd/help.sh).
+  # shellcheck source=scripts/cmd/help.sh
+  source "$ROOT/scripts/cmd/help.sh"
+  help_overview
 }
 
 valid_instance_name() { [[ "$1" =~ ^[a-z][a-z0-9-]{1,30}$ ]]; }
@@ -57,9 +36,9 @@ require_instance() {
   local name="${1:-}"
   [ -n "$name" ] || die "falta el nombre de la instancia. Uso: ./itc ${CMD:-<comando>} <instancia>"
   valid_instance_name "$name" \
-    || die "nombre de instancia inválido: '$name' (minúsculas, números y guion; empieza con letra; 2 a 31 caracteres)"
+    || die "nombre de instancia inválido: '$name' (minúsculas, números y guion; empieza con letra; 2 a 31 caracteres)$(see new)"
   [ -f "$(instance_dir "$name")/.env.instance" ] \
-    || die "la instancia '$name' no existe. Créala con: ./itc new $name"
+    || die "la instancia '$name' no existe. Créala con: ./itc new $name$(see nueva-instancia)"
 }
 
 # Lee el valor de una clave de un archivo .env sin ejecutarlo (tolera CRLF).
@@ -84,8 +63,8 @@ set_var() { # archivo clave valor
 
 check_docker() {
   command -v docker >/dev/null 2>&1 || die "docker no está instalado o no está en el PATH"
-  docker info >/dev/null 2>&1 || die "no se puede hablar con el daemon de Docker (¿servicio detenido o sin permisos?)"
-  docker compose version >/dev/null 2>&1 || die "falta el plugin 'docker compose' (se necesita v2.20 o superior)"
+  docker info >/dev/null 2>&1 || die "no se puede hablar con el daemon de Docker (¿servicio detenido o sin permisos?)$(see solucion-problemas)"
+  docker compose version >/dev/null 2>&1 || die "falta el plugin 'docker compose' (se necesita v2.20 o superior)$(see solucion-problemas)"
   local v
   v="$(docker compose version --short 2>/dev/null | sed 's/^v//')"
   if [ -n "$v" ] && [ "$(printf '%s\n%s\n' 2.20.0 "$v" | sort -V | head -n1)" != "2.20.0" ]; then
@@ -210,16 +189,16 @@ load_enabled() { # instancia
   local raw part
   local -a parts
   raw="$(get_var "$(instance_dir "$1")/.env.instance" COMPOSE_PROFILES)"
-  [ -n "$raw" ] || die ".env.instance: COMPOSE_PROFILES está vacío; indica los servicios activos (ej. s0,s1)"
+  [ -n "$raw" ] || die ".env.instance: COMPOSE_PROFILES está vacío; indica los servicios activos (ej. s0,s1)$(see servicios)"
   IFS=',' read -ra parts <<< "$raw"
   for part in "${parts[@]}"; do
     part="${part// /}"
     [ -n "$part" ] || continue
     valid_service "$part" \
-      || die ".env.instance: COMPOSE_PROFILES contiene '$part', que no es un servicio conocido (${KNOWN_SERVICES[*]})"
+      || die ".env.instance: COMPOSE_PROFILES contiene '$part', que no es un servicio conocido (${KNOWN_SERVICES[*]})$(see servicios)"
     ENABLED+=("$part")
   done
-  [ "${#ENABLED[@]}" -gt 0 ] || die ".env.instance: COMPOSE_PROFILES no contiene servicios"
+  [ "${#ENABLED[@]}" -gt 0 ] || die ".env.instance: COMPOSE_PROFILES no contiene servicios$(see servicios)"
 }
 
 # Deja en SELECTED los servicios sobre los que actúa un comando: el indicado, o todos los
@@ -232,10 +211,10 @@ select_services() { # instancia [servicio]
     SELECTED=("${ENABLED[@]}")
     return 0
   fi
-  valid_service "$want" || die "servicio desconocido: '$want' (válidos: ${KNOWN_SERVICES[*]})"
+  valid_service "$want" || die "servicio desconocido: '$want' (válidos: ${KNOWN_SERVICES[*]})$(see servicios)"
   for s in "${ENABLED[@]}"; do [ "$s" = "$want" ] && found=1; done
   [ "$found" -eq 1 ] \
-    || die "'$want' no está activo en '$name' (COMPOSE_PROFILES=$(IFS=,; echo "${ENABLED[*]}")); añádelo a .env.instance si debe correr ahí"
+    || die "'$want' no está activo en '$name' (COMPOSE_PROFILES=$(IFS=,; echo "${ENABLED[*]}")); añádelo a .env.instance si debe correr ahí$(see servicios)"
   SELECTED=("$want")
 }
 
