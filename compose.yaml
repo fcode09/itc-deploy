@@ -1,7 +1,7 @@
 # Un solo compose para todas las instancias. Se ejecuta siempre con
-#   --env-file instances/<instancia>/instance.env
+#   --env-file instances/<instancia>/.env.instance
 # (./itc lo hace por ti). El nombre del proyecto aísla redes y volúmenes por instancia.
-name: ${INSTANCE:?define INSTANCE en instances/<instancia>/instance.env}
+name: ${INSTANCE:?define INSTANCE en instances/<instancia>/.env.instance}
 
 # `include` no admite comodines: cada servicio nuevo añade su línea aquí.
 # project_directory fija que las rutas relativas (env_file, volúmenes) se resuelvan

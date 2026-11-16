@@ -22,7 +22,7 @@ cmd_rollback() {
   info "Instancia: $name"
   for svc in "${SELECTED[@]}"; do
     tag_name="$(tag_var "$svc")"
-    cur="$(get_var "$dir/instance.env" "$tag_name")"
+    cur="$(get_var "$dir/.env.instance" "$tag_name")"
     prev="$(get_var "$dir/.previous" "$tag_name")"
     if [ -z "$prev" ] || [ "$prev" = "$cur" ]; then
       [ -z "$only" ] || die "no hay una etiqueta previa registrada para $svc en '$name'"
@@ -56,7 +56,7 @@ cmd_rollback() {
   confirm "¿Volver a estas etiquetas?" || die "cancelado"
 
   for svc in "${roll[@]}"; do
-    set_var "$dir/instance.env" "$(tag_var "$svc")" "${prevs[$svc]}"
+    set_var "$dir/.env.instance" "$(tag_var "$svc")" "${prevs[$svc]}"
   done
 
   deploy_up 1 "$name" "${roll[@]}" || die "el rollback de '$name' no llegó a healthy"

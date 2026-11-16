@@ -22,27 +22,27 @@ check_required() { # archivo clave...
 
 # Validaciones propias de cada servicio. Un servicio nuevo define su preflight_<sN>.
 preflight_s0() { # carpeta_instancia
-  check_required "$1/s0.env" IP_SERVER JWT_SECRET MONGO_URI IP_INTERNAL_CONNECTION
+  check_required "$1/.env.s0" IP_SERVER JWT_SECRET MONGO_URI IP_INTERNAL_CONNECTION
 }
 
 preflight_s1() { # carpeta_instancia
   local dir="$1" f path listen s
   # Si s0 corre en esta instancia, necesita alcanzar el TCP 5020 de s1 (en otro contenedor):
   # con TCP_LISTEN_HOST vacío o en loopback, s1 solo escucha dentro de su propio contenedor.
-  listen="$(get_var "$dir/s1.env" TCP_LISTEN_HOST)"
+  listen="$(get_var "$dir/.env.s1" TCP_LISTEN_HOST)"
   for s in "${ENABLED[@]}"; do
     if [ "$s" = "s0" ] && { [ -z "$listen" ] || [ "$listen" = "127.0.0.1" ] || [ "$listen" = "localhost" ]; }; then
-      warn "s1.env: s0 está activo pero TCP_LISTEN_HOST es '${listen:-vacío}': s0 no podrá alcanzar el TCP 5020 de s1 (usa 0.0.0.0)"
+      warn ".env.s1: s0 está activo pero TCP_LISTEN_HOST es '${listen:-vacío}': s0 no podrá alcanzar el TCP 5020 de s1 (usa 0.0.0.0)"
     fi
   done
-  check_required "$dir/s1.env" IP_SERVER AUTH_URL JWT_SECRET FEDERATION_ENCRYPTION_KEY SERVERS_CONFIG \
+  check_required "$dir/.env.s1" IP_SERVER AUTH_URL JWT_SECRET FEDERATION_ENCRYPTION_KEY SERVERS_CONFIG \
     MONGO_DELTA_DISPATCH_URI MONGO_AUTHSOFTWARE_URI MONGO_ROBIN_URI \
     FCM_CERT KEEPER_FCM_CERT DEEPGRAM_API_KEY
   # Los JSON de Firebase referenciados con /run/secrets/... deben existir en secrets/.
   for f in FCM_CERT KEEPER_FCM_CERT; do
-    path="$(get_var "$dir/s1.env" "$f")"
+    path="$(get_var "$dir/.env.s1" "$f")"
     if [[ "$path" == /run/secrets/* ]] && [ ! -f "$dir/secrets/${path#/run/secrets/}" ]; then
-      warn "s1.env: $f apunta a $path, pero falta secrets/${path#/run/secrets/}"
+      warn ".env.s1: $f apunta a $path, pero falta secrets/${path#/run/secrets/}"
       PREFLIGHT_ERRORS=$((PREFLIGHT_ERRORS + 1))
     fi
   done
@@ -55,20 +55,20 @@ preflight() { # instancia servicio...
   dir="$(instance_dir "$name")"
   PREFLIGHT_ERRORS=0
 
-  check_required "$dir/instance.env" INSTANCE COMPOSE_PROFILES
-  if [ "$(get_var "$dir/instance.env" INSTANCE)" != "$name" ]; then
-    warn "instance.env: INSTANCE no coincide con el nombre de la carpeta ($name)"
+  check_required "$dir/.env.instance" INSTANCE COMPOSE_PROFILES
+  if [ "$(get_var "$dir/.env.instance" INSTANCE)" != "$name" ]; then
+    warn ".env.instance: INSTANCE no coincide con el nombre de la carpeta ($name)"
     PREFLIGHT_ERRORS=$((PREFLIGHT_ERRORS + 1))
   fi
 
   for svc in "$@"; do
     tag_name="$(tag_var "$svc")"
     port_name="${svc^^}_PORT"
-    check_required "$dir/instance.env" "$tag_name" "$port_name"
-    if [ "$(get_var "$dir/instance.env" "$tag_name")" = "latest" ]; then
-      warn "instance.env: $tag_name=latest; usa una etiqueta por versión o commit"
+    check_required "$dir/.env.instance" "$tag_name" "$port_name"
+    if [ "$(get_var "$dir/.env.instance" "$tag_name")" = "latest" ]; then
+      warn ".env.instance: $tag_name=latest; usa una etiqueta por versión o commit"
     fi
-    [ -f "$dir/$svc.env" ] || die "falta $dir/$svc.env"
+    [ -f "$dir/.env.$svc" ] || die "falta $dir/.env.$svc"
     "preflight_$svc" "$dir"
   done
 
@@ -107,7 +107,7 @@ warn_changed_images() { # instancia servicio...
   uses_local_images "$name" || return 0
   for svc in "$@"; do
     tag_name="$(tag_var "$svc")"
-    cur="$(get_var "$dir/instance.env" "$tag_name")"
+    cur="$(get_var "$dir/.env.instance" "$tag_name")"
     dep="$(get_var "$dir/.deployed" "$tag_name")"
     dep_id="$(get_var "$dir/.deployed" "${svc^^}_IMAGE_ID")"
     if [ -n "$dep_id" ] && [ "$cur" = "$dep" ]; then
@@ -129,7 +129,7 @@ record_previous() { # instancia servicio...
   for svc in "$@"; do
     tag_name="$(tag_var "$svc")"
     id_name="${svc^^}_IMAGE_ID"
-    cur="$(get_var "$dir/instance.env" "$tag_name")"
+    cur="$(get_var "$dir/.env.instance" "$tag_name")"
     dep="$(get_var "$dir/.deployed" "$tag_name")"
     if [ -n "$dep" ] && [ "$dep" != "$cur" ]; then
       set_var "$dir/.previous" "$tag_name" "$dep"
@@ -171,7 +171,7 @@ deploy_up() { # explicit instancia servicio...
 
   touch "$dir/.deployed"
   for svc in "$@"; do
-    set_var "$dir/.deployed" "$(tag_var "$svc")" "$(get_var "$dir/instance.env" "$(tag_var "$svc")")"
+    set_var "$dir/.deployed" "$(tag_var "$svc")" "$(get_var "$dir/.env.instance" "$(tag_var "$svc")")"
     set_var "$dir/.deployed" "${svc^^}_IMAGE_ID" "$(image_id "$(service_image_ref "$name" "$svc")")"
   done
   dc "$name" --profile '*' ps

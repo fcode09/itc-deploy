@@ -44,7 +44,7 @@ git clone <este-repo> && cd itc-deploy
 
 ./itc images                # versiones de imagen cargadas en este servidor y quién las usa
 ./itc new colorado          # crea instances/colorado/ desde las plantillas
-# Completa instances/colorado/{instance.env,s0.env,s1.env} (S0_TAG y S1_TAG = versiones de ./itc images)
+# Completa instances/colorado/{.env.instance,.env.s0,.env.s1} (S0_TAG y S1_TAG = versiones de ./itc images)
 # y copia los JSON de Firebase a secrets/
 ./itc deploy colorado       # comprueba las imágenes, levanta y espera a que estén healthy
 
@@ -55,10 +55,14 @@ git clone <este-repo> && cd itc-deploy
 ./itc down colorado         # detiene la instancia
 ```
 
+Los archivos de configuración de cada instancia siguen el mismo patrón que las plantillas:
+`instances/<instancia>/.env.instance`, `.env.s0` y `.env.s1`. Empiezan con punto, así que `ls` no los
+muestra: usa `ls -a`. Ninguno se versiona (`instances/*` está en `.gitignore`).
+
 Guía completa con valores de ejemplo: [`docs/example-new-municipality.md`](docs/example-new-municipality.md)
 (archivos completados en [`examples/colorado/`](examples/colorado/)).
 
-Para actualizar una instancia: cambia `S0_TAG` / `S1_TAG` en su `instance.env` y ejecuta
+Para actualizar una instancia: cambia `S0_TAG` / `S1_TAG` en su `.env.instance` y ejecuta
 `./itc deploy <instancia>`. Las etiquetas anteriores quedan guardadas para el rollback.
 **No uses `latest`**: usa una etiqueta por versión o commit.
 
@@ -68,7 +72,7 @@ Construir las imágenes, empaquetarlas y copiarlas al servidor **queda fuera de 
 repo empieza cuando la imagen ya está en el Docker del servidor.
 
 **Cómo funciona.** Docker lee las imágenes de su propio almacén (normalmente `/var/lib/docker`),
-no de una carpeta. Con `REGISTRY` vacío en `instance.env`, el compose usa `auth-backend:<S0_TAG>` y
+no de una carpeta. Con `REGISTRY` vacío en `.env.instance`, el compose usa `auth-backend:<S0_TAG>` y
 `gueo-back-end:<S1_TAG>` tal cual están en ese almacén, y **no descarga nada**. Cada instancia elige su
 versión con sus etiquetas, así que pueden convivir versiones distintas en el mismo servidor.
 
@@ -96,7 +100,7 @@ El resto no cambia.
 
 ## Elegir qué servicios corre cada instancia
 
-`COMPOSE_PROFILES` en `instance.env` lista los servicios activos de la instancia. Un servicio que
+`COMPOSE_PROFILES` en `.env.instance` lista los servicios activos de la instancia. Un servicio que
 no está en la lista no se descarga ni se levanta, y no se le exige configuración.
 
 ```
@@ -114,7 +118,7 @@ Sin argumento, `deploy` y `rollback` actúan sobre todos los servicios activos. 
 de un servicio, solo sobre ese; los demás no se descargan ni se reinician:
 
 ```bash
-./itc deploy colorado s1              # actualiza solo s1 (cambia antes S1_TAG en instance.env)
+./itc deploy colorado s1              # actualiza solo s1 (cambia antes S1_TAG en .env.instance)
 ./itc rollback colorado s1            # vuelve solo s1 a su etiqueta anterior
 ./itc stop colorado s0                # detiene s0 sin tocar los demás
 ./itc logs colorado s1 -f             # logs en vivo de s1
@@ -149,8 +153,8 @@ pudiendo salir al exterior y llegar a Mongo en el host.
 
 | Comunicación | Cómo viaja | ¿Red privada? |
 |---|---|---|
-| s0 → s1 (TCP, puerto fijo 5020) | `IP_INTERNAL_CONNECTION=s1` en `s0.env` **y** `TCP_LISTEN_HOST=0.0.0.0` en `s1.env` | Sí (el puerto no se publica) |
-| s1 → s0 (HTTP, 3200) | `AUTH_URL=http://s0:3200` en `s1.env` | Sí |
+| s0 → s1 (TCP, puerto fijo 5020) | `IP_INTERNAL_CONNECTION=s1` en `.env.s0` **y** `TCP_LISTEN_HOST=0.0.0.0` en `.env.s1` | Sí (el puerto no se publica) |
+| s1 → s0 (HTTP, 3200) | `AUTH_URL=http://s0:3200` en `.env.s1` | Sí |
 | Navegadores y apps → servicios | `127.0.0.1:<S0_PORT/S1_PORT>` detrás de un proxy | No (es lo público) |
 | Servicios → Mongo | `host.docker.internal` | No (sale al host) |
 
@@ -160,7 +164,7 @@ para `AUTH_URL` y `4ca9913b` para `TCP_LISTEN_HOST`, en la rama `feat/docker-bac
 - Una imagen anterior ignora `TCP_LISTEN_HOST` y su TCP 5020 queda solo en `127.0.0.1`: s0 no lo alcanza
   y la sincronización de ajustes hacia Gue se omite en silencio.
 
-`./itc deploy` exige `AUTH_URL` en `s1.env` y avisa si s0 está activo y `TCP_LISTEN_HOST` no lo está.
+`./itc deploy` exige `AUTH_URL` en `.env.s1` y avisa si s0 está activo y `TCP_LISTEN_HOST` no lo está.
 
 **Despliegues sin Docker (PM2):** no cambian. `TCP_LISTEN_HOST` sin definir deja el TCP en `127.0.0.1`,
 como siempre, y `AUTH_URL` sin definir usa `${IP_SERVER}:3200`. Ambas variables solo se definen en Docker.
