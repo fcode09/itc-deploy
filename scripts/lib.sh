@@ -2,11 +2,9 @@
 # Funciones comunes de ./itc. Se carga con `source`; no se ejecuta directamente.
 # Requiere que ROOT (raíz del repo) esté definida.
 
-if [ -t 1 ]; then
-  C_RED=$'\033[31m'; C_GRN=$'\033[32m'; C_YEL=$'\033[33m'; C_OFF=$'\033[0m'
-else
-  C_RED=''; C_GRN=''; C_YEL=''; C_OFF=''
-fi
+# Capa visual (colores, banner, tablas, ayuda). Fuera de una terminal la salida es texto plano.
+# shellcheck source=scripts/ui.sh
+source "$ROOT/scripts/ui.sh"
 
 INSTANCES_DIR="$ROOT/instances"
 BASE_PORT=4100        # primer bloque de puertos del host
@@ -18,8 +16,8 @@ KNOWN_SERVICES=(s0 s1)
 
 info() { printf '%s\n' "$*"; }
 ok()   { printf '%sOK%s %s\n' "$C_GRN" "$C_OFF" "$*"; }
-warn() { printf '%sAVISO%s %s\n' "$C_YEL" "$C_OFF" "$*" >&2; }
-die()  { printf '%sERROR%s %s\n' "$C_RED" "$C_OFF" "$*" >&2; exit 1; }
+warn() { printf '%sAVISO%s %s\n' "$E_YEL" "$E_OFF" "$*" >&2; }
+die()  { printf '%sERROR%s %s\n' "$E_RED" "$E_OFF" "$*" >&2; exit 1; }
 
 usage() {
   cat <<'EOF'
