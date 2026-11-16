@@ -149,14 +149,21 @@ pudiendo salir al exterior y llegar a Mongo en el host.
 
 | Comunicación | Cómo viaja | ¿Red privada? |
 |---|---|---|
-| s0 → s1 (TCP, puerto fijo 5020) | `IP_INTERNAL_CONNECTION=s1` en `s0.env` | Sí |
+| s0 → s1 (TCP, puerto fijo 5020) | `IP_INTERNAL_CONNECTION=s1` en `s0.env` **y** `TCP_LISTEN_HOST=0.0.0.0` en `s1.env` | Sí (el puerto no se publica) |
 | s1 → s0 (HTTP, 3200) | `AUTH_URL=http://s0:3200` en `s1.env` | Sí |
 | Navegadores y apps → servicios | `127.0.0.1:<S0_PORT/S1_PORT>` detrás de un proxy | No (es lo público) |
 | Servicios → Mongo | `host.docker.internal` | No (sale al host) |
 
-**`AUTH_URL` requiere una imagen de gueo-back-end que la soporte** (rama `feat/auth-internal-url`
-del repo de Gue, commit `445533bc`). Una imagen anterior la ignora y llama a `${IP_SERVER}:3200`,
-que en este diseño no está publicado. `./itc deploy` exige que `AUTH_URL` esté definida en `s1.env`.
+**Estas dos variables requieren una imagen de gueo-back-end que las soporte** (commits `445533bc`
+para `AUTH_URL` y `4ca9913b` para `TCP_LISTEN_HOST`, en la rama `feat/docker-backend` del repo de Gue):
+- Una imagen anterior ignora `AUTH_URL` y llama a `${IP_SERVER}:3200`, que en este diseño no está publicado.
+- Una imagen anterior ignora `TCP_LISTEN_HOST` y su TCP 5020 queda solo en `127.0.0.1`: s0 no lo alcanza
+  y la sincronización de ajustes hacia Gue se omite en silencio.
+
+`./itc deploy` exige `AUTH_URL` en `s1.env` y avisa si s0 está activo y `TCP_LISTEN_HOST` no lo está.
+
+**Despliegues sin Docker (PM2):** no cambian. `TCP_LISTEN_HOST` sin definir deja el TCP en `127.0.0.1`,
+como siempre, y `AUTH_URL` sin definir usa `${IP_SERVER}:3200`. Ambas variables solo se definen en Docker.
 
 ## Qué es por instancia
 
