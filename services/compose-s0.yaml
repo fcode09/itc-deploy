@@ -1,0 +1,28 @@
+# s0 = auth-backend (NestJS). Puerto interno 3200; se publica solo en 127.0.0.1:${S0_PORT}.
+services:
+  s0:
+    image: ${REGISTRY:?define REGISTRY en instance.env}/auth-backend:${S0_TAG:?define S0_TAG en instance.env}
+    container_name: s0_${INSTANCE}
+    restart: unless-stopped
+    # La imagen no trae init (a diferencia de s1, que usa tini): Docker aporta uno.
+    init: true
+    env_file:
+      - ./instances/${INSTANCE}/s0.env
+    environment:
+      # Fijo: debe coincidir con el puerto interno publicado abajo. Pisa lo que diga s0.env.
+      SERVER_PORT: "3200"
+    ports:
+      - "127.0.0.1:${S0_PORT:?define S0_PORT en instance.env}:3200"
+    volumes:
+      # Las subcarpetas (user, loginSettings, file, certificate-settings) las crea `./itc new`.
+      - ${DATA_DIR:-./instances/${INSTANCE}/data}/s0/media:/app/src/media
+      - ${DATA_DIR:-./instances/${INSTANCE}/data}/s0/backups:/app/backups
+    # Para llegar a servicios que corren en el host (por ejemplo MongoDB).
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    mem_limit: ${S0_MEM_LIMIT:-512m}
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
