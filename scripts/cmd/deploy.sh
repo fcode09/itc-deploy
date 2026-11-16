@@ -26,7 +26,15 @@ preflight_s0() { # carpeta_instancia
 }
 
 preflight_s1() { # carpeta_instancia
-  local dir="$1" f path
+  local dir="$1" f path listen s
+  # Si s0 corre en esta instancia, necesita alcanzar el TCP 5020 de s1 (en otro contenedor):
+  # con TCP_LISTEN_HOST vacío o en loopback, s1 solo escucha dentro de su propio contenedor.
+  listen="$(get_var "$dir/s1.env" TCP_LISTEN_HOST)"
+  for s in "${ENABLED[@]}"; do
+    if [ "$s" = "s0" ] && { [ -z "$listen" ] || [ "$listen" = "127.0.0.1" ] || [ "$listen" = "localhost" ]; }; then
+      warn "s1.env: s0 está activo pero TCP_LISTEN_HOST es '${listen:-vacío}': s0 no podrá alcanzar el TCP 5020 de s1 (usa 0.0.0.0)"
+    fi
+  done
   check_required "$dir/s1.env" IP_SERVER AUTH_URL JWT_SECRET FEDERATION_ENCRYPTION_KEY SERVERS_CONFIG \
     MONGO_DELTA_DISPATCH_URI MONGO_AUTHSOFTWARE_URI MONGO_ROBIN_URI \
     FCM_CERT KEEPER_FCM_CERT DEEPGRAM_API_KEY
