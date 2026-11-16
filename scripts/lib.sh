@@ -20,33 +20,10 @@ warn() { printf '%sAVISO%s %s\n' "$E_YEL" "$E_OFF" "$*" >&2; }
 die()  { printf '%sERROR%s %s\n' "$E_RED" "$E_OFF" "$*" >&2; exit 1; }
 
 usage() {
-  cat <<'EOF'
-itc: despliegue y operación de instancias (Docker Compose).
-
-Uso: ./itc <comando> [instancia] [opciones]
-
-  new <instancia> [--services s0,s1] [--existing]   Crea instances/<instancia>/ desde las plantillas
-                                       (--existing: la municipalidad YA tiene datos; no se sembrará nunca)
-  init <instancia> [--yes]             Siembra los datos iniciales de una instancia NUEVA (una sola vez)
-  adopt <instancia>                    Marca como ya inicializada una instancia que YA tiene datos
-  deploy <instancia> [servicio]        Valida, comprueba las imágenes y levanta (espera a healthy)
-  rollback <instancia> [servicio] [--yes]  Vuelve a las etiquetas del despliegue anterior
-  stop <instancia> <servicio>          Detiene un servicio sin tocar los demás
-  load <archivo.tar|.tar.gz>           Carga imágenes en el Docker de este servidor
-  images [servicio]                    Versiones de imagen disponibles y qué instancias las usan
-  list                                 Instancias, servicios, puertos, etiquetas y estado
-  status [instancia] [--json|--stats]  Panel de estado: versiones, salud, desajustes y siguientes pasos
-  ps <instancia>                       Estado de los contenedores
-  logs <instancia> [servicio] [-f]     Logs (últimas 200 líneas)
-  down <instancia> [--yes]             Detiene y elimina los contenedores (los datos se conservan)
-  help                                 Esta ayuda
-
-Nombre de instancia: minúsculas, números y guion; empieza con letra (ej. colorado).
-Servicios: s0 (auth-backend), s1 (gueo-back-end). Sin [servicio], deploy y rollback actúan
-sobre los que la instancia tiene en COMPOSE_PROFILES (.env.instance).
-Imágenes: con REGISTRY vacío en .env.instance se usan las ya cargadas en este Docker
-(auth-backend:<tag>) y no se descarga nada; con REGISTRY, deploy hace pull.
-EOF
+  # La ayuda completa vive en scripts/help/ (ver scripts/cmd/help.sh).
+  # shellcheck source=scripts/cmd/help.sh
+  source "$ROOT/scripts/cmd/help.sh"
+  help_overview
 }
 
 valid_instance_name() { [[ "$1" =~ ^[a-z][a-z0-9-]{1,30}$ ]]; }
