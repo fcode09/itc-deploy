@@ -245,6 +245,7 @@ ui_banner() { # [subtítulo]
 #   ! texto              advertencia
 #   > texto              nota
 #   - texto              viñeta
+#   | comando | texto    fila de tabla (comando en verde, descripción alineada)
 #   `código`             resaltado en línea
 # Cualquier otra línea se imprime tal cual (con el resaltado en línea).
 ui_inline() { # texto
@@ -261,9 +262,16 @@ ui_inline() { # texto
 }
 
 ui_render_file() { # archivo
-  local line
+  local line rest cmd desc pad blank=1
   while IFS= read -r line || [ -n "$line" ]; do
     line="${line%$'\r'}"
+    # Las secciones ya llevan una línea en blanco antes: si el archivo ya la trae, no se duplica.
+    if [ "${line:0:3}" = "## " ] && [ "$blank" -eq 1 ]; then
+      printf '%s%s%s\n' "$C_BLD" "${line#\#\# }" "$C_OFF"
+      blank=0
+      continue
+    fi
+    if [ -z "$line" ]; then blank=1; else blank=0; fi
     case "$line" in
       '# '*) ui_h1 "${line#\# }" ;;
       '## '*) ui_h2 "${line#\#\# }" ;;
@@ -271,6 +279,16 @@ ui_render_file() { # archivo
       '! '*) printf '  %s %s\n' "$(ui_sym warn)" "$(ui_inline "${line#! }")" ;;
       '> '*) printf '  %s %s\n' "$(ui_sym info)" "$(ui_inline "${line#> }")" ;;
       '- '*) printf '  %s%s%s %s\n' "$C_GRY" "$UI_S_DOT" "$C_OFF" "$(ui_inline "${line#- }")" ;;
+      '| '*)
+        # Fila de tabla "| comando | descripción": el comando en verde y alineado a 50 columnas.
+        rest="${line#| }"
+        cmd="${rest%% | *}"
+        desc="${rest#* | }"
+        [ "$rest" != "$cmd" ] || desc=""
+        pad=$((50 - ${#cmd}))
+        [ "$pad" -ge 1 ] || pad=1
+        printf '  %s%s%s%*s%s\n' "$C_GRN" "$cmd" "$C_OFF" "$pad" "" "$(ui_inline "$desc")"
+        ;;
       *) printf '%s\n' "$(ui_inline "$line")" ;;
     esac
   done < "$1"
