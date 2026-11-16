@@ -1,0 +1,34 @@
+# s1 = gueo-back-end (NestJS + Chromium para reportes PDF). Puerto interno 3000;
+# se publica solo en 127.0.0.1:${S1_PORT}.
+services:
+  s1:
+    image: ${REGISTRY:?define REGISTRY en instance.env}/gueo-back-end:${S1_TAG:?define S1_TAG en instance.env}
+    container_name: s1_${INSTANCE}
+    restart: unless-stopped
+    # s0 llama a s1 por TCP (5020) y s1 llama a s0 por HTTP (3200): se arranca s0 primero.
+    depends_on:
+      s0:
+        condition: service_healthy
+    env_file:
+      - ./instances/${INSTANCE}/s1.env
+    environment:
+      # Fijo: debe coincidir con el puerto interno publicado abajo. Pisa lo que diga s1.env.
+      SERVER_PORT: "3000"
+    ports:
+      - "127.0.0.1:${S1_PORT:?define S1_PORT en instance.env}:3000"
+    volumes:
+      - ${DATA_DIR:-./instances/${INSTANCE}/data}/s1/media:/app/src/media
+      - ${DATA_DIR:-./instances/${INSTANCE}/data}/s1/uploads:/app/uploads
+      - ${DATA_DIR:-./instances/${INSTANCE}/data}/s1/fileIncidentsResolved:/app/fileIncidentsResolved
+      - ${DATA_DIR:-./instances/${INSTANCE}/data}/s1/imageIncidentsResolved:/app/imageIncidentsResolved
+      # JSON de cuentas de servicio de Firebase (FCM_CERT / KEEPER_FCM_CERT), solo lectura.
+      - ./instances/${INSTANCE}/secrets:/run/secrets:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    # Cada instancia puede abrir hasta 2 Chromium a la vez: ajusta según la carga real.
+    mem_limit: ${S1_MEM_LIMIT:-2g}
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"

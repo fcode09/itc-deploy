@@ -1,0 +1,13 @@
+# Un solo compose para todas las instancias. Se ejecuta siempre con
+#   --env-file instances/<instancia>/instance.env
+# (./itc lo hace por ti). El nombre del proyecto aísla redes y volúmenes por instancia.
+name: ${INSTANCE:?define INSTANCE en instances/<instancia>/instance.env}
+
+# `include` no admite comodines: cada servicio nuevo añade su línea aquí.
+# project_directory fija que las rutas relativas (env_file, volúmenes) se resuelvan
+# desde la raíz de este repo y no desde la carpeta services/.
+include:
+  - path: services/compose-s0.yaml
+    project_directory: .
+  - path: services/compose-s1.yaml
+    project_directory: .
