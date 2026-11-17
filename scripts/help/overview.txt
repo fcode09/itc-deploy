@@ -27,6 +27,7 @@ $ ./itc help <tema>           guía completa paso a paso
 
 ## Información
 | status [instancia] [--json|--stats] | Panel de estado: versiones, salud, desajustes y siguientes pasos
+| doctor | Diagnóstico del servidor: Docker, disco, memoria, Mongo y permisos
 | list | Instancias, servicios, puertos, etiquetas y estado
 | ps <instancia> | Estado de los contenedores
 | logs <instancia> [servicio] [-f] | Logs (últimas 200 líneas)
