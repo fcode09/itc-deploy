@@ -1,93 +1,95 @@
 #!/usr/bin/env bash
-# ./deltactl new <instancia> [--services s0,s1] [--existing] [--wizard]: crea instances/<instancia>/ desde las plantillas.
-# Sin nombre y en una terminal (o con --wizard) abre un asistente que pregunta lo esencial.
+# ./deltactl new <instance> [--services s0,s1] [--existing] [--wizard]: creates instances/<instance>/ from the templates.
+# Without a name and in a terminal (or with --wizard) it opens a wizard that asks the essentials.
 
-# REQUIRED_* y check_required vienen de deploy.sh
+# REQUIRED_* and check_required come from deploy.sh
 source "$ROOT/lib/cmd/deploy.sh"
 
 W_S0IMG="" W_S1IMG="" W_S0TAG="" W_S1TAG="" W_IP="" W_GEN=0
 
-# Pregunta con valor por defecto. Resultado en REPLY_VAL.
-new_ask() { # pregunta [defecto]
+# Asks with a default value. The result is in REPLY_VAL.
+new_ask() { # question [default]
   local def="${2:-}" ans=""
   printf '  %s?%s %s%s%s ' "$C_CYN" "$C_OFF" "$1" "${def:+ [$def]}" ":" >&2
   IFS= read -r ans || true
   REPLY_VAL="${ans:-$def}"
 }
 
-# Pregunta sí/no. Devuelve 0 si la respuesta es sí. $2 = s | n (defecto).
-new_ask_yn() { # pregunta [s|n]
-  local def="${2:-n}" ans="" hint="s/N"
-  [ "$def" != "s" ] || hint="S/n"
+# Yes/no question. Returns 0 if the answer is yes. $2 = y | n (the default; "s" is accepted as a synonym of y).
+# The hint ([y/N] or [s/N]...) and the accepted letters (y, Y, s, S) are the same in every language.
+new_ask_yn() { # question [y|n]
+  local def="${2:-n}" ans="" hint
+  case "$def" in y | s) def=y; hint="$(t prompt.hint_yes)" ;; *) def=n; hint="$(t prompt.hint_no)" ;; esac
   printf '  %s?%s %s [%s]: ' "$C_CYN" "$C_OFF" "$1" "$hint" >&2
   IFS= read -r ans || true
   ans="${ans:-$def}"
   [[ "$ans" =~ ^[sSyY]$ ]]
 }
 
-# Etiquetas ya cargadas en este Docker para una imagen (una por línea, sin <none>).
-new_loaded_tags() { # nombre_de_imagen
+# Tags already loaded in this Docker for an image (one per line, without <none>).
+new_loaded_tags() { # image_name
   dk_ready || return 0
   dk_images_tags \
     | awk -F'|' -v r="$1" '($1 == r || $1 ~ ("/" r "$")) && $2 != "<none>" { print $2 }'
 }
 
-# Asistente: rellena name, services, existing y los W_*.
+# Wizard: fills name, services, existing and the W_* variables.
 new_wizard() {
   local svc img tags
-  ui_h1 "Asistente: crear una instancia"
-  printf '  %sResponde con Enter para aceptar el valor entre corchetes.%s\n\n' "$C_GRY" "$C_OFF" >&2
+  ui_h1 "$(t new.wiz_title)"
+  printf '  %s%s%s\n\n' "$C_GRY" "$(t new.wiz_hint)" "$C_OFF" >&2
 
-  new_ask "Nombre de la instancia (minúsculas, números y guion; ej. colorado)"
+  new_ask "$(t new.ask_name)"
   name="$REPLY_VAL"
   valid_instance_name "$name" \
-    || die "nombre de instancia inválido: '$name' (minúsculas, números y guion; empieza con letra; 2 a 31 caracteres)$(see new)"
-  [ ! -e "$(instance_dir "$name")" ] || die "la instancia '$name' ya existe en $(instance_dir "$name")"
+    || die "$(t err.instance_name_invalid "$name")$(see new)"
+  [ ! -e "$(instance_dir "$name")" ] || die "$(t new.err_exists "$name" "$(instance_dir "$name")")"
 
-  new_ask "Servicios activos (s0 = Auth, s1 = Gue)" "s0,s1"
+  new_ask "$(t new.ask_services)" "s0,s1"
   services="${REPLY_VAL// /}"
 
-  if new_ask_yn "¿La municipalidad YA tiene datos (viene de PM2 u otro despliegue)?" n; then
+  if new_ask_yn "$(t new.ask_existing)" n; then
     existing=1
-    printf '  %sSe marcará como existente: init no podrá sembrarla. Usa sus mismas bases y secretos.%s\n' "$C_GRY" "$C_OFF" >&2
+    printf '  %s%s%s\n' "$C_GRY" "$(t new.existing_note)" "$C_OFF" >&2
   fi
 
   local -a parts
   IFS=',' read -ra parts <<< "$services"
   for svc in "${parts[@]}"; do
-    valid_service "$svc" || die "servicio desconocido en el asistente: '$svc' (válidos: ${KNOWN_SERVICES[*]})$(see servicios)"
-    new_ask "Nombre de la imagen de $svc" "$(default_repo "$svc")"
+    valid_service "$svc" || die "$(t new.err_wiz_service "$svc" "${KNOWN_SERVICES[*]}")$(see services)"
+    new_ask "$(t new.ask_image "$svc")" "$(default_repo "$svc")"
     img="$REPLY_VAL"
-    valid_image_name "$img" || die "'$img' no es un nombre de imagen válido$(see imagenes)"
+    valid_image_name "$img" || die "$(t new.err_image_invalid "$img")$(see local-images)"
     tags="$(new_loaded_tags "$img" | tr '\n' ' ')"
-    [ -z "$tags" ] || printf '  %sEtiquetas cargadas de %s: %s%s\n' "$C_GRY" "$img" "$tags" "$C_OFF" >&2
-    new_ask "Etiqueta de $svc (versión a desplegar; puedes dejarla vacía y completarla después)"
+    [ -z "$tags" ] || printf '  %s%s%s\n' "$C_GRY" "$(t new.loaded_tags "$img" "$tags")" "$C_OFF" >&2
+    new_ask "$(t new.ask_tag "$svc")"
     case "$svc" in
       s0) W_S0IMG="$img"; W_S0TAG="$REPLY_VAL" ;;
       s1) W_S1IMG="$img"; W_S1TAG="$REPLY_VAL" ;;
     esac
   done
 
-  new_ask "URL pública del sistema, con esquema (IP_SERVER; ej. http://203.0.113.10)"
+  new_ask "$(t new.ask_url)"
   W_IP="$REPLY_VAL"
   if [ "$existing" -eq 0 ]; then
     if command -v openssl >/dev/null 2>&1; then
-      if new_ask_yn "¿Generar automáticamente los secretos únicos (JWT, claves de cifrado)?" s; then W_GEN=1; fi
+      if new_ask_yn "$(t new.ask_generate)" y; then W_GEN=1; fi
     else
-      printf '  %sopenssl no está instalado: los secretos habrá que generarlos a mano.%s\n' "$C_GRY" "$C_OFF" >&2
+      printf '  %s%s%s\n' "$C_GRY" "$(t new.no_openssl)" "$C_OFF" >&2
     fi
   fi
 
-  printf '\n  %sResumen%s\n' "$C_BLD" "$C_OFF" >&2
-  printf '    instancia   %s\n    servicios   %s\n    datos       %s\n    versiones   s0=%s s1=%s\n    URL pública %s\n    secretos    %s\n\n' \
-    "$name" "$services" "$([ "$existing" -eq 1 ] && echo "ya existentes" || echo "nueva (se sembrará con ./deltactl init)")" \
-    "${W_S0TAG:-(pendiente)}" "${W_S1TAG:-(pendiente)}" "${W_IP:-(pendiente)}" \
-    "$([ "$W_GEN" -eq 1 ] && echo "se generarán" || echo "a completar a mano")" >&2
-  new_ask_yn "¿Crear la instancia con estos valores?" s || die "cancelado"
+  local pending data secrets
+  pending="$(t new.pending_word)"
+  if [ "$existing" -eq 1 ]; then data="$(t new.data_existing)"; else data="$(t new.data_new)"; fi
+  if [ "$W_GEN" -eq 1 ]; then secrets="$(t new.secrets_generated)"; else secrets="$(t new.secrets_manual)"; fi
+  printf '\n  %s%s%s\n' "$C_BLD" "$(t new.summary_title)" "$C_OFF" >&2
+  printf '%s\n\n' "$(t new.summary "$name" "$services" "$data" "${W_S0TAG:-$pending}" "${W_S1TAG:-$pending}" "${W_IP:-$pending}" "$secrets")" >&2
+  new_ask_yn "$(t new.ask_create)" y || die "$(t err.cancelled)"
 }
 
-# Aplica a los .env recién creados lo que respondió el asistente.
-new_apply_wizard() { # instancia existing
+# Applies to the newly created .env files what the wizard answered.
+new_apply_wizard() { # instance existing
   local name="$1" existing="$2" dir f secret
   dir="$(instance_dir "$name")"
   [ -z "$W_S0IMG" ] || [ "$W_S0IMG" = "$(default_repo s0)" ] || set_var "$dir/.env.instance" S0_IMAGE "$W_S0IMG"
@@ -97,12 +99,13 @@ new_apply_wizard() { # instancia existing
   if [ -n "$W_IP" ]; then
     for f in "$dir/.env.s0" "$dir/.env.s1"; do set_var "$f" IP_SERVER "$W_IP"; done
   fi
-  # Municipalidad nueva: bases con el nombre de la instancia (en una existente las URI las pone el usuario).
+  # New municipality: databases named after the instance (for an existing one the user sets the URIs).
+  # CAMBIAR_..._INSTANCIA is the placeholder written in the Spanish .env templates.
   if [ "$existing" -eq 0 ]; then
     sed -i "s/CAMBIAR_\\(authsoftware\\|deltadispatch\\|robin\\)_INSTANCIA/\\1_$name/g" "$dir/.env.s0" "$dir/.env.s1"
   fi
   if [ "$W_GEN" -eq 1 ]; then
-    # Un mismo JWT_SECRET en s0 y s1: es seguro dentro de una misma instancia y evita rechazos entre servicios.
+    # The same JWT_SECRET in s0 and s1: it is safe inside one instance and avoids rejections between services.
     secret="$(openssl rand -hex 32)"
     for f in "$dir/.env.s0" "$dir/.env.s1"; do set_var "$f" JWT_SECRET "$secret"; done
     set_var "$dir/.env.s1" FEDERATION_ENCRYPTION_KEY "$(openssl rand -base64 32)"
@@ -111,8 +114,8 @@ new_apply_wizard() { # instancia existing
   fi
 }
 
-# Lista lo que falta completar antes de ./deltactl deploy, por archivo.
-new_pending() { # instancia
+# Lists what is still missing before ./deltactl deploy, per file.
+new_pending() { # instance
   local name="$1" dir svc key val miss path any=0
   local -a svcs=()
   dir="$(instance_dir "$name")"
@@ -149,10 +152,10 @@ new_pending() { # instancia
     done
   done
   new_pending_line "secrets/" "$miss" && any=1
-  [ "$any" -eq 1 ] || printf '  %s Nada pendiente: puedes ejecutar ./deltactl check %s\n' "$(ui_sym ok)" "$name"
+  [ "$any" -eq 1 ] || printf '  %s %s\n' "$(ui_sym ok)" "$(t new.nothing_pending "$name")"
 }
 
-new_pending_line() { # archivo "A, B, "
+new_pending_line() { # file "A, B, "
   [ -n "$2" ] || return 1
   printf '  %s %s%-16s%s %s\n' "$(ui_sym warn)" "$C_BLD" "$1" "$C_OFF" "${2%, }"
 }
@@ -163,7 +166,7 @@ cmd_new() {
     a="$1"
     case "$a" in
       --services)
-        [ "$#" -ge 2 ] || die "--services requiere un valor (ej. --services s1)"
+        [ "$#" -ge 2 ] || die "$(t new.opt_services)"
         services="$2"
         shift 2
         ;;
@@ -175,24 +178,24 @@ cmd_new() {
         wizard=1
         shift
         ;;
-      -*) die "opción desconocida: $a" ;;
+      -*) die "$(t new.unknown_option "$a")" ;;
       *)
-        [ -z "$name" ] || die "sobra el argumento '$a'"
+        [ -z "$name" ] || die "$(t new.extra_arg "$a")"
         name="$a"
         shift
         ;;
     esac
   done
 
-  # Asistente: con --wizard, o sin nombre cuando hay una terminal interactiva.
+  # Wizard: with --wizard, or without a name when there is an interactive terminal.
   if [ "$wizard" -eq 1 ] || { [ -z "$name" ] && [ -t 0 ] && [ -t 1 ]; }; then
-    [ -z "$name" ] || die "con el asistente no se indica el nombre: se pregunta (./deltactl new --wizard)"
+    [ -z "$name" ] || die "$(t new.wizard_no_name)"
     new_wizard
   fi
 
-  [ -n "$name" ] || die "uso: ./deltactl new <instancia> [--services s0,s1] [--existing]   (o ./deltactl new --wizard)"
+  [ -n "$name" ] || die "$(t new.usage)"
   valid_instance_name "$name" \
-    || die "nombre de instancia inválido: '$name' (minúsculas, números y guion; empieza con letra; 2 a 31 caracteres)$(see new)"
+    || die "$(t err.instance_name_invalid "$name")$(see new)"
 
   if [ -n "$services" ]; then
     local part
@@ -200,22 +203,22 @@ cmd_new() {
     IFS=',' read -ra parts <<< "$services"
     for part in "${parts[@]}"; do
       valid_service "${part// /}" \
-        || die "servicio desconocido en --services: '$part' (válidos: ${KNOWN_SERVICES[*]})$(see servicios)"
+        || die "$(t new.err_services_opt "$part" "${KNOWN_SERVICES[*]}")$(see services)"
     done
   fi
 
   local dir
   dir="$(instance_dir "$name")"
-  [ ! -e "$dir" ] || die "la instancia '$name' ya existe en $dir"
+  [ ! -e "$dir" ] || die "$(t new.err_exists "$name" "$dir")"
 
   local s0_port s1_port owner
   s0_port="$(next_s0_port)"
   s1_port=$((s0_port + 1))
   for p in "$s0_port" "$s1_port"; do
     owner="$(port_owner "$p" "$name")"
-    [ -z "$owner" ] || die "el puerto $p ya lo usa la instancia '$owner'$(see puertos)"
+    [ -z "$owner" ] || die "$(t new.port_used "$p" "$owner")$(see ports)"
     if host_port_in_use "$p"; then
-      warn "el puerto $p ya está en uso en este servidor; edita .env.instance antes de desplegar"
+      warn "$(t new.port_busy "$p")"
     fi
   done
 
@@ -240,30 +243,30 @@ cmd_new() {
   chmod 700 "$dir/secrets"
   new_apply_wizard "$name" "$existing"
 
-  # Los contenedores corren como uid 1000: data/ debe pertenecerle para poder escribir.
+  # The containers run as uid 1000: data/ must belong to it so they can write.
   local me
   me="$(host_uid)"
   if [ "$me" = "0" ]; then
     chown -R "$RUNTIME_UID:$RUNTIME_UID" "$dir/data"
   elif [ "$me" != "$RUNTIME_UID" ]; then
-    warn "data/ pertenece al uid $me y los contenedores usan el uid $RUNTIME_UID; ejecuta:"
-    warn "  sudo chown -R $RUNTIME_UID:$RUNTIME_UID $dir/data"
+    warn "$(t new.data_uid_1 "$me" "$RUNTIME_UID")"
+    warn "$(t new.data_uid_2 "$RUNTIME_UID" "$RUNTIME_UID" "$dir")"
   fi
 
   if [ "$existing" -eq 1 ]; then
     write_marker "$name" existing
-    info "Marcada como EXISTENTE: ./deltactl init no podrá ejecutarse sobre ella (apunta sus URI a las bases actuales)."
+    info "$(t new.marked_existing)"
   fi
-  ok "instancia '$name' creada en $dir (puertos $s0_port/$s1_port)"
+  ok "$(t new.created "$name" "$dir" "$s0_port" "$s1_port")"
   info ""
-  info "Pendiente de completar antes de ./deltactl deploy:"
+  info "$(t new.pending_title)"
   new_pending "$name"
   info ""
-  info "Siguientes pasos:"
-  info "  1. Completa $dir/.env.instance (S0_TAG, S1_TAG, REGISTRY)"
-  info "  2. Completa $dir/.env.s0 y $dir/.env.s1 (secretos, URI de Mongo, IP_SERVER)"
-  info "  3. Copia los JSON de Firebase a $dir/secrets/ (fcm.json y keeper-fcm.json)"
-  info "  4. ./deltactl check $name   (comprueba todo sin levantar nada)"
-  info "  5. ./deltactl deploy $name"
-  info "Detalle de cada variable: ./deltactl help variable <NOMBRE>   ·   guía completa: ./deltactl help nueva-instancia"
+  info "$(t new.next_title)"
+  info "$(t new.step1 "$dir")"
+  info "$(t new.step2 "$dir")"
+  info "$(t new.step3 "$dir")"
+  info "$(t new.step4 "$name")"
+  info "$(t new.step5 "$name")"
+  info "$(t new.more "$(topic_label new-instance)")"
 }

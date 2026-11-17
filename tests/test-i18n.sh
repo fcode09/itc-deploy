@@ -60,7 +60,7 @@ section "4. every key used in the code exists in the catalog"
 used_keys() {
   # t <key> / t "<key>" with a literal key (dynamic ones, like topic.$id, are skipped)
   grep -rhoE "\bt[[:space:]]+[\"']?[a-z_]+\.[a-z0-9_.-]+" lib deltactl --include='*.sh' --include=deltactl \
-    | sed -E "s/^t[[:space:]]+[\"']?//" | sort -u
+    | sed -E "s/^t[[:space:]]+[\"']?//" | grep -vE '[.-]$' | sort -u
 }
 check "the scan finds the keys in use" '[ "$(used_keys | wc -l)" -ge 20 ]'
 check "every key used with t exists in es.sh" 'missing=0; for k in $(used_keys); do bash -c "ROOT=\"\$PWD\"; source lib/i18n/i18n.sh; [ -n \"\${MSG_es[$k]+x}\" ]" || { echo "missing: $k"; missing=1; }; done; [ "$missing" -eq 0 ]'
@@ -102,5 +102,12 @@ check "adopt: English messages (done, then already marked)" 'bash ./deltactl new
 check "adopt: Spanish messages are unchanged" 'bash ./deltactl new i18n-ad >/dev/null 2>&1; a="$(DELTACTL_LANG=es bash ./deltactl adopt i18n-ad 2>&1)"; rm -rf instances/i18n-ad; echo "$a" | grep -q "^OK instancia .i18n-ad. marcada como existente"'
 check "preflight validations: English warnings" 'printf "A=\nB=CAMBIAR_X\n" > "$CFG/e"; out="$(DELTACTL_LANG=en bash -c '"'"'ROOT="$PWD"; source lib/bootstrap.sh; source lib/cmd/deploy.sh; check_required "$1" A B'"'"' _ "$CFG/e" 2>&1)"; echo "$out" | grep -q "^WARN e: A is empty (help: ./deltactl help variable A)" && echo "$out" | grep -q "^WARN e: B still has the example value"'
 check "check strips the English labels from captured messages" 'out="$(printf "WARN one\nERROR two\n" | DELTACTL_LANG=en bash -c '"'"'ROOT="$PWD"; source lib/bootstrap.sh; source lib/cmd/check.sh; ck_lines'"'"')"; [ "$out" = "$(printf "one\ntwo")" ]'
+
+check "the dynamic doctor tool keys exist in both languages" 'for k in ss openssl gunzip; do for l in es en; do bash -c "ROOT=\"\$PWD\"; source lib/i18n/i18n.sh; i18n_load_lang $l; [ -n \"\${MSG_$l[doctor.tool_missing.$k]+x}\" ] && [ -n \"\${MSG_$l[doctor.tool_missing_hint.$k]+x}\" ]" || exit 1; done; done'
+check "doctor with an argument: English message" 'DELTACTL_LANG=en bash ./deltactl doctor extra 2>&1 | grep -q "^ERROR doctor takes no arguments (see ./deltactl help doctor)"'
+check "new with a bad option: English message" 'DELTACTL_LANG=en bash ./deltactl new --bogus 2>&1 | grep -q "^ERROR unknown option: --bogus"'
+check "new without a name: English usage" 'DELTACTL_LANG=en bash ./deltactl new < /dev/null 2>&1 | grep -q "^ERROR usage: ./deltactl new <instance>"'
+check "new creates an instance and prints the English next steps" 'out="$(DELTACTL_LANG=en bash ./deltactl new i18n-nw 2>&1)"; rm -rf instances/i18n-nw; echo "$out" | grep -q "^OK instance .i18n-nw. created in .* (ports [0-9]*/[0-9]*)" && echo "$out" | grep -q "^Next steps:" && echo "$out" | grep -q "full guide: ./deltactl help new-instance"'
+check "new: the Spanish output is unchanged" 'out="$(DELTACTL_LANG=es bash ./deltactl new i18n-nw 2>&1)"; rm -rf instances/i18n-nw; echo "$out" | grep -q "^OK instancia .i18n-nw. creada en" && echo "$out" | grep -q "^Siguientes pasos:" && echo "$out" | grep -q "guía completa: ./deltactl help nueva-instancia"'
 
 finish
