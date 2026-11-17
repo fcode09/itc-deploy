@@ -40,17 +40,22 @@ dash_texts_build() {
   DASH_KEYS[output]="$(t tui.keys.output "$DASH_UD" "$DASH_LR")"
 }
 
-# A usage bar in a variable: dash_bar <percent> [cells]  (green below 70 %, yellow below 85 %, red above).
+# A usage bar in a variable: dash_bar <percent> [cells]  (green below 70 %, yellow below 85 %, red above). Remembered.
+declare -gA DASH_BARS=()
 dash_bar() {
-  local pct="$1" cells="${2:-10}" on i out="" col
+  local pct="$1" cells="${2:-10}" on i out="" col k
   [[ "$pct" =~ ^[0-9]+$ ]] || pct=0
   [ "$pct" -le 100 ] || pct=100
-  on=$(((pct * cells + 50) / 100))
-  if [ "$pct" -lt 70 ]; then col="$C_GRN"; elif [ "$pct" -lt 85 ]; then col="$C_YEL"; else col="$C_RED"; fi
-  for ((i = 0; i < cells; i++)); do
-    if [ "$i" -lt "$on" ]; then out+="$UI_S_BAR_ON"; else out+="$UI_S_BAR_OFF"; fi
-  done
-  DASH_BAR="$C_GRY$UI_S_BAR_L$col$out$C_GRY$UI_S_BAR_R$C_OFF"
+  k="$pct/$cells"
+  if [ -z "${DASH_BARS[$k]+x}" ]; then
+    on=$(((pct * cells + 50) / 100))
+    if [ "$pct" -lt 70 ]; then col="$C_GRN"; elif [ "$pct" -lt 85 ]; then col="$C_YEL"; else col="$C_RED"; fi
+    for ((i = 0; i < cells; i++)); do
+      if [ "$i" -lt "$on" ]; then out+="$UI_S_BAR_ON"; else out+="$UI_S_BAR_OFF"; fi
+    done
+    DASH_BARS[$k]="$C_GRY$UI_S_BAR_L$col$out$C_GRY$UI_S_BAR_R$C_OFF"
+  fi
+  DASH_BAR="${DASH_BARS[$k]}"
 }
 
 # Kilobytes as gigabytes with one decimal, in DASH_GB.
@@ -667,12 +672,14 @@ dash_key_line() {
   esac
 }
 
-# Builds the whole frame for the current state and draws it.
-dash_render() {
-  local bh total i
-  bh=$((TUI_ROWS - 4))
-  dash_tabs_line
-  TUI_FRAME=("$DASH_HOSTLINE" "$TUI_TABS")
+# The body of the last frame and the state it was built from: when only the message or the command line changed (typing,
+# a clock tick) the body is reused instead of being built again.
+DASH_BODY=() DASH_BODY_SIG=""
+DASH_REFRESH_N=0 DASH_ERRS_N=0 DASH_LANG_N=0
+
+# Builds the body (everything between the tab line and the message line) into TUI_FRAME.
+dash_build_body() { # body_height
+  local bh="$1" total i
   if [ "$TUI_ROWS" -lt 14 ] || [ "$TUI_COLS" -lt 60 ]; then
     # Too small to draw anything useful: say so instead of drawing broken boxes.
     dt tui.too_small
@@ -698,6 +705,25 @@ dash_render() {
   total=$((${#TUI_FRAME[@]} - 2))
   while [ "$total" -lt "$bh" ]; do TUI_FRAME+=(""); total=$((total + 1)); done
   TUI_FRAME=("${TUI_FRAME[@]:0:$((bh + 2))}")
+}
+
+# Builds the whole frame for the current state and draws it.
+dash_render() {
+  local bh i sig
+  bh=$((TUI_ROWS - 4))
+  dash_tabs_line
+  TUI_FRAME=("$DASH_HOSTLINE" "$TUI_TABS")
+  sig="$DASH_VIEW|$DASH_MODE|$DASH_SEL|$DASH_SVC|$DASH_RES_SEL|$DASH_RES_SORT|$MT_SAMPLES|$DASH_REFRESH_N|$DASH_ERRS_N|$DASH_LANG_N"
+  sig+="|$JOB_SEQ|$JOB_TOTAL|${JOB_RC-r}|$JOB_CANCELLED|$DASH_OUT_SCROLL|$DASH_OUT_ERRORS|$TUI_ROWS|$TUI_COLS|$DASH_MENU_SEL|$DASH_CONF_TEXT|$DASH_NAME_TARGET"
+  [ "$DASH_MODE" != "name" ] || sig+="|$DASH_BUF"
+  if job_running; then sig+="|$SECONDS"; fi
+  if [ "$sig" = "$DASH_BODY_SIG" ]; then
+    TUI_FRAME+=("${DASH_BODY[@]}")
+  else
+    dash_build_body "$bh"
+    DASH_BODY=("${TUI_FRAME[@]:2:$bh}")
+    DASH_BODY_SIG="$sig"
+  fi
   dash_msg_line
   dash_key_line
   # The lines that are not boxes can be wider than the screen: cut them.

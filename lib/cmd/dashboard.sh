@@ -45,8 +45,8 @@ dash_msg() { # kind text
 
 # --- State ------------------------------------------------------------------------------------------------
 
-# Collects the state of every instance (a few queries to Docker) and prepares what the views show.
-dash_refresh() {
+# Collects the state of every instance (a few queries to Docker) into the DASH_*, DSV_* and ST_* tables of this shell.
+dash_collect() {
   local f name svc n m kind key any
   HINTS=() HINT_SEEN=()
   st_collect
@@ -81,24 +81,140 @@ dash_refresh() {
     DASH_SVCS[$name]="${ST_ENABLED[*]:-}"
     DASH_DATA[$name]="$(data_state "$name")"
   done
+  if [ "$ST_DOCKER" -eq 1 ] && [ -z "$DASH_DOCKER_VER" ]; then DASH_DOCKER_VER="$(dk_info ServerVersion)"; fi
+}
+
+# What the panel does once fresh data is in place.
+dash_after_collect() {
   [ "$DASH_SEL" -lt "${#DASH_NAMES[@]}" ] || DASH_SEL=$((${#DASH_NAMES[@]} - 1))
   [ "$DASH_SEL" -ge 0 ] || DASH_SEL=0
-  if [ "$ST_DOCKER" -eq 1 ] && [ -z "$DASH_DOCKER_VER" ]; then DASH_DOCKER_VER="$(dk_info ServerVersion)"; fi
-  DASH_REFRESH_AT="$SECONDS" DASH_FORCE_REFRESH=0 DASH_EV_PENDING=0
+  [ "$ST_DOCKER" -ne 1 ] || DK_READY_AT="$SECONDS"
+  DASH_REFRESH_AT="$SECONDS" DASH_FORCE_REFRESH=0 DASH_REFRESH_N=$((DASH_REFRESH_N + 1))
   # The pids may have changed: read the figures again at the next tick.
   MT_LAST_US=0
   DASH_DIRTY=1
 }
 
+# Synchronous refresh (start-up, the test mode).
+dash_refresh() {
+  DASH_EV_PENDING=0
+  dash_collect
+  dash_after_collect
+}
+
 # Counts the error lines of the last 10 minutes of the running services of an instance (one `docker logs` each).
-dash_errors_refresh() { # instance
+# It prints "<instance/service> <count>" lines.
+dash_errors_collect() { # instance
   local name="$1" svc key
   for svc in ${DASH_SVCS[$name]:-}; do
     key="$name/$svc"
-    if [ "${ST_STATE[$key]:-}" = "running" ]; then DASH_ERRS[$key]="$(dk_log_error_count "${ST_CNAME[$key]}")"; else unset "DASH_ERRS[$key]"; fi
+    if [ "${ST_STATE[$key]:-}" = "running" ]; then printf '%s %s\n' "$key" "$(dk_log_error_count "${ST_CNAME[$key]}")"; fi
   done
-  DASH_ERRS_AT[$name]="$SECONDS"
+}
+
+dash_errors_apply() { # instance text
+  local name="$1" key n line
+  for key in "${!DASH_ERRS[@]}"; do [ "${key%%/*}" != "$name" ] || unset "DASH_ERRS[$key]"; done
+  while read -r key n; do
+    [ -n "$key" ] && [[ "$n" =~ ^[0-9]+$ ]] && DASH_ERRS[$key]="$n"
+  done <<< "$2"
+  DASH_ERRS_AT[$name]="$SECONDS" DASH_ERRS_N=$((DASH_ERRS_N + 1))
   DASH_DIRTY=1
+}
+
+dash_errors_refresh() { # instance (synchronous)
+  dash_errors_apply "$1" "$(dash_errors_collect "$1")"
+}
+
+# --- Background work ----------------------------------------------------------------------------------------
+# Querying Docker takes a moment (from tens of milliseconds to seconds on a loaded host). The panel never waits for it: a
+# producer runs in a background process, writes its result to a file, and the loop picks it up on a later tick.
+
+declare -gA DASH_AS_PID=() DASH_AS_FILE=() DASH_AS_AT=() DASH_AS_ARG=()
+DASH_AS_SEQ=0 DASH_AS_TEXT=""
+
+# dash_async <slot> <argument> <function> [args...]: runs the function in the background. Fails if the slot is busy.
+dash_async() {
+  local slot="$1" arg="$2"
+  shift 2
+  [ -z "${DASH_AS_PID[$slot]:-}" ] || return 1
+  job_init
+  DASH_AS_SEQ=$((DASH_AS_SEQ + 1))
+  DASH_AS_FILE[$slot]="$JOB_DIR/as.$slot.$DASH_AS_SEQ"
+  DASH_AS_ARG[$slot]="$arg" DASH_AS_AT[$slot]="$SECONDS"
+  ( "$@" > "${DASH_AS_FILE[$slot]}.tmp" 2> /dev/null && mv "${DASH_AS_FILE[$slot]}.tmp" "${DASH_AS_FILE[$slot]}" ) &
+  DASH_AS_PID[$slot]=$!
+}
+
+# dash_async_take <slot>: when the result is ready it is left in DASH_AS_TEXT and the call returns 0.
+dash_async_take() {
+  local slot="$1" f="${DASH_AS_FILE[$slot]:-}" pid="${DASH_AS_PID[$slot]:-}"
+  [ -n "$pid" ] || return 1
+  if [ -f "$f" ]; then
+    wait "$pid" 2> /dev/null
+    DASH_AS_TEXT="$(<"$f")"
+    rm -f "$f"
+    DASH_AS_PID[$slot]=""
+    return 0
+  fi
+  # A producer that died, or that has been stuck for a minute, is forgotten.
+  if ! kill -0 "$pid" 2> /dev/null; then
+    DASH_AS_PID[$slot]=""
+  elif [ $((SECONDS - DASH_AS_AT[$slot])) -ge 60 ]; then
+    kill "$pid" 2> /dev/null
+    DASH_AS_PID[$slot]=""
+  fi
+  return 1
+}
+
+dash_async_stop() {
+  local slot
+  for slot in "${!DASH_AS_PID[@]}"; do
+    [ -z "${DASH_AS_PID[$slot]}" ] || kill "${DASH_AS_PID[$slot]}" 2> /dev/null || true
+    DASH_AS_PID[$slot]=""
+  done
+}
+
+# The state producer prints the tables as `declare -p` lines.
+dash_state_dump() {
+  dash_collect
+  declare -p ST_DOCKER ST_STATE ST_HEALTH ST_CIMAGE ST_STARTED ST_CNAME ST_PID ST_RESTARTS ST_IMG ST_IMG_LOADED ST_PORTS \
+    HINT_SEEN HINTS DASH_NAMES DASH_KIND DASH_NM DASH_DATA DASH_SVCS DSV_KIND DSV_TEXT DSV_UP DSV_PORT DSV_REF DSV_CODES \
+    DSV_NOTE DASH_DOCKER_VER
+}
+
+# Loads the `declare -p` lines into the global tables.
+dash_state_apply() { # text
+  local line
+  while IFS= read -r line; do
+    case "$line" in declare\ *) eval "declare -g${line#declare}" ;; esac
+  done <<< "$1"
+  dash_after_collect
+}
+
+# Asks for a state refresh without waiting for it (the synchronous one in the test mode).
+dash_refresh_request() {
+  if tui_test_mode; then dash_refresh; return 0; fi
+  DASH_REFRESH_WANT=1
+}
+DASH_REFRESH_WANT=0
+
+# Error counts of an instance, in the background (the synchronous one in the test mode).
+dash_errors_request() { # instance
+  if tui_test_mode; then dash_errors_refresh "$1"; return 0; fi
+  dash_async errors "$1" dash_errors_collect "$1" || true
+}
+
+# Starts what was asked and applies what finished. Returns 0 when something was applied.
+dash_async_tick() {
+  local changed=1
+  if [ "$DASH_REFRESH_WANT" -eq 1 ] && [ -z "${DASH_AS_PID[state]:-}" ]; then
+    DASH_REFRESH_WANT=0 DASH_EV_PENDING=0
+    dash_async state "" dash_state_dump
+  fi
+  if dash_async_take state; then dash_state_apply "$DASH_AS_TEXT"; changed=0; fi
+  if dash_async_take errors; then dash_errors_apply "${DASH_AS_ARG[errors]}" "$DASH_AS_TEXT"; changed=0; fi
+  return "$changed"
 }
 
 # --- Docker events ----------------------------------------------------------------------------------------
@@ -134,6 +250,7 @@ dash_events_drain() {
 dash_shutdown() {
   tui_leave
   [ -z "$DASH_EV_PID" ] || kill "$DASH_EV_PID" 2>/dev/null || true
+  dash_async_stop
   DASH_EV_PID=""
   job_cleanup
 }
@@ -161,7 +278,7 @@ dash_terminal() { # args...
   "$ROOT/deltactl" "$@" || printf '\n  %s %s\n' "$(ui_sym err)" "$(t menu.cmd_failed "$?")"
   menu_pause
   tui_enter
-  dash_refresh
+  dash_refresh_request
 }
 
 # Notices that the command ended: message, and a state refresh because it probably changed something.
@@ -179,7 +296,7 @@ dash_job_tick() {
     if [ "$JOB_CANCELLED" -eq 1 ]; then dash_msg warn "$(t tui.msg.cancelled)"
     elif [ "$JOB_RC" -eq 0 ]; then dash_msg ok "$(t tui.msg.finished_ok "./deltactl $JOB_TITLE" "$secs")"
     else dash_msg err "$(t tui.msg.finished_err "./deltactl $JOB_TITLE" "$JOB_RC" "$secs")"; fi
-    DASH_FORCE_REFRESH=1
+    dash_refresh_request
   fi
 }
 
@@ -189,12 +306,13 @@ dash_tick() {
   local interval
   dash_job_tick
   if dash_events_drain; then DASH_EV_PENDING=1; fi
+  # What finished in the background is applied at once, even while paused (it was already asked for).
+  if dash_async_tick; then DASH_DIRTY=1; fi
   if [ "$DASH_PAUSED" -eq 0 ]; then
-    if [ "$DASH_FORCE_REFRESH" -eq 1 ]; then
-      dash_refresh
-    elif [ "$DASH_IDLE" -eq 1 ]; then
-      if [ -n "$DASH_EV_FD" ]; then interval="$DASH_SAFETY_SECONDS"; else interval="$DASH_REFRESH_SECONDS"; fi
-      if [ "$DASH_EV_PENDING" -eq 1 ] || [ $((SECONDS - DASH_REFRESH_AT)) -ge "$interval" ]; then dash_refresh; fi
+    if [ -n "$DASH_EV_FD" ]; then interval="$DASH_SAFETY_SECONDS"; else interval="$DASH_REFRESH_SECONDS"; fi
+    if [ "$DASH_EV_PENDING" -eq 1 ] || [ $((SECONDS - DASH_REFRESH_AT)) -ge "$interval" ]; then
+      # In the test mode (synchronous) it waits for an idle tick, so a key press never blocks on Docker.
+      if ! tui_test_mode || [ "$DASH_IDLE" -eq 1 ]; then dash_refresh_request; fi
     fi
     if mt_due; then
       mt_sample
@@ -204,7 +322,7 @@ dash_tick() {
     # Error counts of the selected instance: when the user pauses on it, then every 30 s.
     if [ "$DASH_IDLE" -eq 1 ] && [ "$DASH_VIEW" = "instances" ] && [ "${#DASH_NAMES[@]}" -gt 0 ]; then
       local sel="${DASH_NAMES[$DASH_SEL]}"
-      if [ -z "${DASH_ERRS_AT[$sel]:-}" ] || [ $((SECONDS - DASH_ERRS_AT[$sel])) -ge 30 ]; then dash_errors_refresh "$sel"; fi
+      if [ -z "${DASH_ERRS_AT[$sel]:-}" ] || [ $((SECONDS - DASH_ERRS_AT[$sel])) -ge 30 ]; then dash_errors_request "$sel"; fi
     fi
   fi
   if [ -n "$DASH_MSG" ] && [ "$SECONDS" -ge "$DASH_MSG_UNTIL" ]; then DASH_MSG=""; DASH_DIRTY=1; fi
@@ -293,7 +411,8 @@ dash_toggle_language() {
   export DELTACTL_LANG
   i18n_init
   dash_texts_build
-  dash_refresh
+  DASH_LANG_N=$((DASH_LANG_N + 1))
+  dash_refresh_request
   dash_host_build
   dash_msg info "$(t tui.msg.lang_set "$(t tui.lang_name)")"
 }
@@ -311,7 +430,7 @@ dash_key_global() { # key ; returns 0 when handled
       ;;
     '?') DASH_MODE=help ;;
     L) dash_toggle_language ;;
-    r) dash_refresh; DASH_ERRS_AT=(); dash_msg info "$(t tui.msg.refreshed)" ;;
+    r) dash_refresh_request; DASH_ERRS_AT=(); dash_msg info "$(t tui.msg.refreshed)" ;;
     p)
       if [ "$DASH_PAUSED" -eq 0 ]; then DASH_PAUSED=1; dash_msg info "$(t tui.msg.paused)"; else DASH_PAUSED=0; dash_msg info "$(t tui.msg.resumed)"; fi
       ;;
@@ -338,7 +457,7 @@ dash_key_instances() {
     u) [ "${#DASH_NAMES[@]}" -eq 0 ] || dash_start_job stay deploy "${DASH_NAMES[$DASH_SEL]}" ;;
     c) [ "${#DASH_NAMES[@]}" -eq 0 ] || dash_start_job stay check "${DASH_NAMES[$DASH_SEL]}" ;;
     s) [ "${#DASH_NAMES[@]}" -eq 0 ] || dash_start_job output status "${DASH_NAMES[$DASH_SEL]}" ;;
-    e) [ "${#DASH_NAMES[@]}" -eq 0 ] || dash_errors_refresh "${DASH_NAMES[$DASH_SEL]}" ;;
+    e) [ "${#DASH_NAMES[@]}" -eq 0 ] || dash_errors_request "${DASH_NAMES[$DASH_SEL]}" ;;
   esac
 }
 
@@ -538,8 +657,10 @@ dash_loop() {
 dash_init() {
   DASH_HOST="$(host_name)"
   [ -n "$DASH_HOST" ] || DASH_HOST="$(t ui.host_fallback)"
+  DK_READY_TTL=10   # `docker info` is not repeated at every refresh
   dash_symbols_init
   dash_texts_build
+  DASH_LANG_N=$((DASH_LANG_N + 1))
 }
 
 cmd_dashboard() {

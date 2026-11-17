@@ -128,17 +128,23 @@ tui_key() { # [timeout]
   esac
 }
 
+# Blank padding for tui_fit (cut from this string instead of building it each time).
+printf -v TUI_SPACES '%*s' 400 ''
+
 # Visible length of a text (color sequences do not count) into TUI_VL.
 tui_vlen() { # text
+  if [[ "$1" != *$'\033'* ]]; then TUI_VL="${#1}"; return 0; fi
   local s="${1//$'\033'\[+([0-9;])m/}"
   TUI_VL="${#s}"
 }
 
 # Cuts a text to $2 visible cells keeping its color sequences, into TUI_OUT.
 tui_clip() { # text width
-  local s="$1" w="$2" out="" vis=0 rest seq final
+  local s="$1" w="$2" out="" vis=0 chunk rest seq final room
   tui_vlen "$s"
   if [ "$TUI_VL" -le "$w" ]; then TUI_OUT="$s"; return 0; fi
+  # Without colors it is a plain cut.
+  if [[ "$s" != *$'\033'* ]]; then TUI_OUT="${s:0:$w}"; return 0; fi
   while [ -n "$s" ] && [ "$vis" -lt "$w" ]; do
     if [[ "$s" == $'\033['* ]]; then
       rest="${s#$'\033['}"
@@ -147,32 +153,44 @@ tui_clip() { # text width
       out+=$'\033['"$seq$final"
       s="${rest:$((${#seq} + 1))}"
     else
-      out+="${s:0:1}"
-      s="${s:1}"
-      vis=$((vis + 1))
+      # Text up to the next color sequence, taken whole when it fits.
+      chunk="${s%%$'\033'*}"
+      room=$((w - vis))
+      if [ "${#chunk}" -le "$room" ]; then
+        out+="$chunk"
+        vis=$((vis + ${#chunk}))
+        s="${s:${#chunk}}"
+      else
+        out+="${chunk:0:$room}"
+        vis="$w"
+        s=""
+      fi
     fi
   done
-  # Close any color left open by the cut (only when the text had colors at all).
-  case "$1" in *$'\033'*) TUI_OUT="$out"$'\033[0m' ;; *) TUI_OUT="$out" ;; esac
+  # Close any color left open by the cut.
+  TUI_OUT="$out"$'\033[0m'
 }
 
 # Fits a text to exactly $2 visible cells (cut or padded with spaces) into TUI_OUT.
 tui_fit() { # text width
-  local w="$2" pad
+  local w="$2"
   tui_vlen "$1"
   if [ "$TUI_VL" -gt "$w" ]; then
     tui_clip "$1" "$w"
   else
-    printf -v pad '%*s' $((w - TUI_VL)) ''
-    TUI_OUT="$1$pad"
+    TUI_OUT="$1${TUI_SPACES:0:$((w - TUI_VL))}"
   fi
 }
 
-# A line of $2 copies of the character $1 into TUI_OUT.
+# A line of $2 copies of the character $1 into TUI_OUT (remembered: the same borders repeat in every frame).
+declare -gA TUI_REPS=()
 tui_rep() { # char count
-  local s
-  printf -v s '%*s' "$2" ''
-  TUI_OUT="${s// /$1}"
+  local k="$1$2" s
+  if [ -z "${TUI_REPS[$k]+x}" ]; then
+    printf -v s '%*s' "$2" ''
+    TUI_REPS[$k]="${s// /$1}"
+  fi
+  TUI_OUT="${TUI_REPS[$k]}"
 }
 
 # Draws a box of $2 x $3 cells around the lines of the array named $4 (it must hold at most $3 - 2 lines; missing ones are

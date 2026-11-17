@@ -267,6 +267,17 @@ check "a small screen still draws every view" 'for r in 14 20; do for v in insta
 check "a terminal that is too small says so instead of drawing broken boxes" 'run_lib "DELTACTL_TUI_ROWS=10; tui_size; $CPU_SCRIPT; dash_render" | last_frame | grep -q "demasiado pequeña" && run_lib "COLUMNS=50; tui_size; $CPU_SCRIPT; dash_render" | last_frame | grep -q "demasiado pequeña"'
 check "the frame never has more lines than the screen" '[ "$(run_lib "$CPU_SCRIPT" | last_frame | wc -l)" -le 31 ]'
 
+section "10b. work in the background"
+ASYNC='dash_init; tui_size; DASH_SEL=0; '
+check "the state producer prints declare lines and the consumer loads them" '[ "$(run_lib "$ASYNC dash_state_dump > $FIX/dump.txt; DASH_NAMES=(); DASH_NM=(); dash_state_apply \"\$(cat $FIX/dump.txt)\"; echo \${#DASH_NAMES[@]} \${DASH_NM[tui-a]} \${DASH_NM[tui-c]}")" = "3 2/2 1/2" ]'
+check "an asynchronous refresh ends with the same state as a synchronous one" '[ "$(run_lib "$ASYNC dash_async state \"\" dash_state_dump; for i in \$(seq 1 50); do dash_async_take state && break; sleep 0.1; done; dash_state_apply \"\$DASH_AS_TEXT\"; echo \${DASH_NM[tui-a]} \${DSV_KIND[tui-a/s0]} \${ST_PID[tui-a/s0]}")" = "2/2 ok 1234" ]'
+check "a slot runs one thing at a time" '[ "$(run_lib "$ASYNC dash_async x a sleep 1; dash_async x b sleep 1 && echo started || echo busy; dash_async_stop")" = "busy" ]'
+check "a producer that fails leaves no result and frees the slot" '[ "$(run_lib "$ASYNC dash_async x a false; for i in \$(seq 1 30); do dash_async_take x && break; sleep 0.1; done; echo [\${DASH_AS_PID[x]}]")" = "[]" ]'
+check "the loop starts the refresh without waiting and applies it later" '[ "$(run_lib "$ASYNC DELTACTL_TUI_KEYS=; unset DELTACTL_TUI_KEYS; DASH_REFRESH_WANT=1; dash_async_tick; started=\${DASH_AS_PID[state]:+yes}; for i in \$(seq 1 50); do dash_async_tick && break; sleep 0.1; done; echo \$started \${DASH_NM[tui-a]}")" = "yes 2/2" ]'
+check "the error counts are collected and applied per instance" '[ "$(run_lib "$ASYNC dash_refresh; dash_errors_apply tui-a \"\$(dash_errors_collect tui-a)\"; echo \${DASH_ERRS[tui-a/s0]} \${DASH_ERRS[tui-a/s1]} \${DASH_ERRS_AT[tui-a]:+set}")" = "1 1 set" ]'
+check "typing in the command line reuses the body of the frame" '[ "$(run_lib "$ASYNC dash_refresh; DASH_MODE=cmd; DASH_BUF=x; dash_render >/dev/null; s=\$DASH_BODY_SIG; DASH_BUF=xy; dash_render > /dev/null; [ \"\$s\" = \"\$DASH_BODY_SIG\" ] && echo same || echo rebuilt")" = "same" ]'
+check "the body is reused when nothing that it shows changed" '[ "$(run_lib "$ASYNC dash_refresh; dash_render >/dev/null; DASH_BUF=x; DASH_MSG=hello; s=\$DASH_BODY_SIG; dash_render > /dev/null; [ \"\$s\" = \"\$DASH_BODY_SIG\" ] && echo same || echo rebuilt")" = "same" ]'
+
 section "11. without a terminal the panel is not used"
 check "tui_interactive is false in a pipe and true in test mode" '! ROOT="$PWD" bash -c "source lib/bootstrap.sh; source lib/ui/tui.sh; tui_interactive" < /dev/null && DELTACTL_TUI_KEYS=/dev/null ROOT="$PWD" bash -c "source lib/bootstrap.sh; source lib/ui/tui.sh; tui_interactive"'
 check "the menu keeps the numbered menu when it is not a terminal" 'printf "0\n" | DELTACTL_UI=plain bash ./deltactl menu 2>&1 | grep -q "1) Ver estado"'

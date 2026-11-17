@@ -152,7 +152,7 @@ mt_spark_v() { # history scale [cells] [floor] -> MT_S (floor: the smallest valu
   local h="$1" scale="${2:-0}" cells="${3:-20}" floor="${4:-0}" x max=0 out="" i n idx
   MT_S=""
   [ -n "$h" ] || return 0
-  read -ra v <<< "$h"
+  v=($h)
   n="${#v[@]}"
   [ "$n" -le "$cells" ] || { v=("${v[@]:$((n - cells))}"); n="$cells"; }
   max="$scale"
