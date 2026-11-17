@@ -147,4 +147,45 @@ check "an untranslated guide falls back to the Spanish file" '[ "$(hf en topic n
 check "a page that does not exist is an error" '! hf es cmd zzz >/dev/null && ! hf en topic zzz >/dev/null'
 check "help for an unknown page in English" 'DELTACTL_LANG=en bash ./deltactl help nosuchpage 2>&1 | grep -q "there is no help for .nosuchpage."'
 
+
+section "9. English help pages match their Spanish originals"
+# Spanish page that corresponds to an English one (guide files are named by English id in lib/help/en).
+es_page() { # english page path
+  local name id es
+  name="$(basename "$1")"
+  case "$name" in
+    topic-*)
+      id="${name#topic-}"
+      id="${id%.txt}"
+      es="$(bash -c 'ROOT="$PWD"; source lib/i18n/i18n.sh; topic_file_id "$1"' _ "$id")"
+      printf 'lib/help/topic-%s.txt' "$es"
+      ;;
+    *) printf 'lib/help/%s' "$name" ;;
+  esac
+}
+# Command words of the "$ ./deltactl <word>" lines and of the "| <word>" rows, in order, plus every option mentioned.
+help_signature() { # file
+  grep -oE '^(\$ \./deltactl [a-z]+|\| [a-z]+)' "$1" | sed -E 's/^\$ \.\/deltactl //; s/^\| //' | tr '\n' ' '
+  echo
+  grep -oE -- '--[a-z][a-z-]*' "$1" | sort -u | tr '\n' ' '
+  echo
+}
+en_pages="$(ls lib/help/en/*.txt 2>/dev/null)"
+check "there are English pages to compare" '[ -n "$en_pages" ]'
+check "every English page has a Spanish original" 'for p in $en_pages; do [ -f "$(es_page "$p")" ] || { echo "no original for $p"; exit 1; }; done'
+check "commands and options match the Spanish page" 'for p in $en_pages; do case "$(basename "$p")" in variables.txt) continue ;; esac; diff <(help_signature "$p") <(help_signature "$(es_page "$p")") >/dev/null || { echo "differs: $p"; exit 1; }; done'
+glossary_keys() { grep -E "^@ " "$1" | awk -F" [|] " "{ sub(/^@ /, \"\", \$1); print \$1 \" \" \$2 }"; }
+check "the English glossary has the same variables, files and order" '[ ! -f lib/help/en/variables.txt ] || diff <(glossary_keys lib/help/en/variables.txt) <(glossary_keys lib/help/variables.txt) >/dev/null'
+glossary_types() { grep -E "^@ " "$1" | awk -F" [|] " "{ print \$3 }" | sed -e "s/obligatoria/required/" -e "s/opcional/optional/" -e "s/fija/fixed/"; }
+check "the English glossary types are required, optional or fixed, as in Spanish" '[ ! -f lib/help/en/variables.txt ] || diff <(glossary_types lib/help/en/variables.txt) <(glossary_types lib/help/variables.txt) >/dev/null'
+check "English pages fit in 130 columns" '! awk "length(\$0) > 130 { exit 1 }" lib/help/en/*.txt'
+check "English pages have no accented letters or inverted punctuation" '! LC_ALL=C.UTF-8 grep -nE "[áéíóúñÁÉÍÓÚÑ¿¡]" lib/help/en/*.txt'
+check "English pages refer to guides by English id" '! grep -nE "help (nueva-instancia|instancia-existente|actualizar|imagenes|servicios|red|datos|secretos|archivos|puertos|solucion-problemas|glosario)\b" lib/help/en/*.txt'
+
+check "the English help overview is shown in English" 'out="$(DELTACTL_LANG=en DELTACTL_UI=plain bash ./deltactl help 2>&1)"; echo "$out" | grep -q "DELTACTL · help" && echo "$out" | grep -q "Deploys and operates one instance per municipality" && ! echo "$out" | grep -q "Despliega y opera"'
+check "the English glossary answers help variable" 'out="$(DELTACTL_LANG=en DELTACTL_UI=plain bash ./deltactl help variable S0_TAG 2>&1)"; echo "$out" | grep -qE "^  type +required" && echo "$out" | grep -q "Tag (version) of the s0 image"'
+check "the English glossary table uses English type words" 'DELTACTL_LANG=en DELTACTL_UI=plain bash ./deltactl help variable 2>&1 | grep "S0_TAG" | grep -q "required"'
+check "the Spanish glossary is unchanged" 'DELTACTL_LANG=es DELTACTL_UI=plain bash ./deltactl help variable S0_TAG 2>&1 | grep -qE "^  tipo +obligatoria"'
+check "help search finds English text in English" 'DELTACTL_LANG=en DELTACTL_UI=plain bash ./deltactl help search "private network" 2>&1 | grep -q "private network"'
+
 finish

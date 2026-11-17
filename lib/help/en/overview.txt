@@ -1,0 +1,45 @@
+# DELTACTL · help
+
+Deploys and operates one instance per municipality with Docker Compose.
+Each instance has its own private network, ports, data, secrets and databases.
+Services: `s0` = auth-backend (Auth) and `s1` = gueo-back-end (Gue).
+
+## Usage
+$ ./deltactl <command> [instance] [options]
+$ ./deltactl help <command>        detailed help for a command (or ./deltactl <command> --help)
+$ ./deltactl help <topic>          full step-by-step guide
+
+## Instances
+| new <instance> [--services s0,s1] [--existing] | Creates instances/<instance>/ from the templates (--existing: the municipality ALREADY has data; it will never be seeded)
+| new --wizard | Interactive wizard: asks the essentials and lists what is still missing
+| init <instance> [--yes] | Seeds the initial data of a NEW instance (only once)
+| adopt <instance> | Marks as already initialized an instance that ALREADY has data
+
+## Deployment
+| check <instance> [service] [--mongo] | Checks everything deploy would require, without starting anything
+| deploy <instance> [service] | Validates, checks the images and starts (waits for healthy)
+| rollback <instance> [service] [--yes] | Goes back to the tags of the previous deploy
+| stop <instance> <service> | Stops a service without touching the others
+| down <instance> [--yes] | Stops and removes the containers (the data is kept)
+
+## Images
+| load <file.tar|.tar.gz> | Loads images into this server's Docker
+| images [service] [--json] | Available image versions and which instances use them (alias: versions)
+
+## Information
+| status [instance] [--json|--stats] | Status panel: versions, health, mismatches and next steps
+| doctor | Server diagnosis: Docker, disk, memory, Mongo and permissions
+| list | Instances, services, ports, tags and state
+| ps <instance> | State of the containers
+| logs <instance> [service] [-f] | Logs (last 200 lines)
+| menu | Interactive menu with every action, numbered and with confirmations
+| completion bash | Tab completion (source <(./deltactl completion bash))
+| help [command|topic] | This help
+
+## Quick start (new instance)
+- 1. `./deltactl load s0.tar.gz` and `./deltactl load s1.tar.gz`: load the images into the server
+- 2. `./deltactl new colorado`: create the instance
+- 3. edit `instances/colorado/.env.instance`, `.env.s0` and `.env.s1`, and copy the Firebase JSON files to `secrets/`
+- 4. `./deltactl deploy colorado`: start it
+- 5. `./deltactl init colorado`: seed the initial data (only once, only on new instances)
+> Complete guide with every detail: `./deltactl help new-instance`
