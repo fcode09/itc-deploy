@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
-# ./deltactl init <instancia> [--yes]: siembra los datos iniciales de una instancia NUEVA, una sola vez.
-# ./deltactl adopt <instancia>: marca como inicializada una instancia que YA tiene datos (no siembra nada).
+# ./deltactl init <instance> [--yes]: seeds the initial data of a NEW instance, only once.
+# ./deltactl adopt <instance>: marks as initialized an instance that ALREADY has data (it seeds nothing).
 #
-# Los seeds son DESTRUCTIVOS: hacen drop de colecciones, y el seed de s0 le ordena a s1, por TCP, que
-# vacíe su tabla de usuarios. Por eso init se niega si ya hay marcador o datos, y no tiene --force.
+# The seeds are DESTRUCTIVE: they drop collections, and the s0 seed tells s1, over TCP, to empty its users
+# table. That is why init refuses to run if there is a marker or data already, and has no --force.
 #
-# Secuencia (verificada con contenedores reales):
-#   1. seed de s1 (catálogos)              2. levantar s1 y esperar healthy (debe estar ARRIBA para el seed de s0)
-#   3. seed de s0: populating_data_s0 (vacía los usuarios de s1 y los vuelve a enviar), create_root_user,
-#      url_systems                          4. levantar s0
-# Los seeds terminan siempre con código 0 aunque fallen: se lee su log.
+# Sequence (verified with real containers):
+#   1. seed of s1 (catalogs)               2. start s1 and wait for healthy (it must be UP for the s0 seed)
+#   3. seed of s0: populating_data_s0 (empties the users of s1 and sends them again), create_root_user,
+#      url_systems                          4. start s0
+# The seeds always exit with code 0 even when they fail: their log is read.
 
-# cmd_deploy viene de deploy.sh
+# cmd_deploy comes from deploy.sh
 source "$ROOT/lib/cmd/deploy.sh"
 
 MIN_STEPS_S1=30
@@ -19,8 +19,8 @@ MIN_STEPS_S0=17
 SEED_OUT=""
 SEED_LOG=""
 
-# Cuenta documentos de una colección con un contenedor de un solo uso (usa mongoose de la propia imagen).
-count_docs() { # instancia servicio variable_con_la_uri coleccion
+# Counts the documents of a collection with a one-off container (uses the image's own mongoose).
+count_docs() { # instance service uri_variable collection
   local name="$1" svc="$2" uri_var="$3" coll="$4" dir ref out
   dir="$(instance_dir "$name")"
   ref="$(service_image_ref "$name" "$svc")"
@@ -37,12 +37,12 @@ count_docs() { # instancia servicio variable_con_la_uri coleccion
     printf '%s' "${BASH_REMATCH[1]}"
   else
     printf 'ERR'
-    warn "no se pudo comprobar $svc ($uri_var): $(printf '%s' "$out" | grep -a 'ERR=' | head -1)"
+    warn "$(t init.count_failed "$svc" "$uri_var" "$(printf '%s' "$out" | grep -a 'ERR=' | head -1)")"
   fi
 }
 
-# Ejecuta un comando de la CLI de una imagen en un contenedor de un solo uso. Deja el log en SEED_OUT/SEED_LOG.
-run_seed() { # instancia servicio red|- comando...
+# Runs a command of an image's CLI in a one-off container. It leaves the log in SEED_OUT/SEED_LOG.
+run_seed() { # instance service network|- command...
   local name="$1" svc="$2" net="$3" dir ref
   shift 3
   dir="$(instance_dir "$name")"
@@ -57,26 +57,27 @@ run_seed() { # instancia servicio red|- comando...
   chmod 600 "$SEED_LOG"
 }
 
+# The phrases below are what the seeds themselves print (they are English, typo included).
 seed_steps() { printf '%s\n' "$SEED_OUT" | grep -acE 'populated|has been created|initial data' || true; }
 seed_errors() { printf '%s\n' "$SEED_OUT" | grep -ac 'Ocurred an error' || true; }
 
-fail_incomplete() { # paso motivo
-  warn "siembra INCOMPLETA en '$1': $2"
-  warn "log completo: $SEED_LOG"
-  die "la instancia NO se marcó como inicializada. Las bases pueden haber quedado a medias: límpialas a mano (drop de sus bases) antes de reintentar, y nunca reintentes sobre datos reales."
+fail_incomplete() { # step reason
+  warn "$(t init.incomplete "$1" "$2")"
+  warn "$(t init.full_log "$SEED_LOG")"
+  die "$(t init.not_marked)"
 }
 
-# Verifica un seed: sin 'Ocurred an error', con al menos N pasos y, si se pide, con una frase concreta.
-check_seed() { # paso minimo_de_pasos [frase_obligatoria]
+# Verifies a seed: without 'Ocurred an error', with at least N steps and, if asked, with a given phrase.
+check_seed() { # step minimum_steps [required_phrase]
   local step="$1" min="$2" must="${3:-}" errs steps
   errs="$(seed_errors)"
   steps="$(seed_steps)"
-  [ "$errs" -eq 0 ] || fail_incomplete "$step" "el log trae $errs 'Ocurred an error'"
-  [ "$steps" -ge "$min" ] || fail_incomplete "$step" "solo $steps pasos completados (se esperaban al menos $min)"
+  [ "$errs" -eq 0 ] || fail_incomplete "$step" "$(t init.err_in_log "$errs")"
+  [ "$steps" -ge "$min" ] || fail_incomplete "$step" "$(t init.few_steps "$steps" "$min")"
   if [ -n "$must" ] && ! printf '%s\n' "$SEED_OUT" | grep -aq "$must"; then
-    fail_incomplete "$step" "no aparece '$must' en el log"
+    fail_incomplete "$step" "$(t init.missing_phrase "$must")"
   fi
-  info "  $step: $steps pasos, sin errores"
+  info "$(t init.step_ok "$step" "$steps")"
 }
 
 cmd_init() {
@@ -85,7 +86,7 @@ cmd_init() {
   require_instance "$name"
   local dir s have0=0 have1=0
   dir="$(instance_dir "$name")"
-  # Los deploy internos de init no deben avisar de que la instancia "no está inicializada".
+  # The internal deploys of init must not warn that the instance "is not initialized".
   export DELTACTL_SUPPRESS_INIT_WARN=1
 
   select_services "$name"
@@ -94,39 +95,39 @@ cmd_init() {
     [ "$s" != "s1" ] || have1=1
   done
   [ "$have0" -eq 1 ] && [ "$have1" -eq 1 ] \
-    || die "init necesita s0 y s1 activos en COMPOSE_PROFILES de '$name' (el seed de s0 sincroniza usuarios con s1)$(see servicios)"
+    || die "$(t init.needs_both "$name")$(see services)"
 
   if [ -f "$(marker_file "$name")" ]; then
-    die "'$name' ya está inicializada ($(get_var "$(marker_file "$name")" SOURCE), $(get_var "$(marker_file "$name")" INITIALIZED_AT)). init no se vuelve a ejecutar: los seeds borran datos."
+    die "$(t init.already "$name" "$(get_var "$(marker_file "$name")" SOURCE)" "$(get_var "$(marker_file "$name")" INITIALIZED_AT)")"
   fi
 
   check_docker
   preflight "$name" s0 s1
   check_images "$name" s0 s1
 
-  info "Comprobando que las bases no tengan datos (los seeds los borrarían)..."
+  info "$(t init.checking_empty)"
   local n_auth n_gue
   n_auth="$(count_docs "$name" s0 MONGO_URI usuarios)"
   n_gue="$(count_docs "$name" s1 MONGO_DELTA_DISPATCH_URI users)"
-  [ "$n_auth" != "ERR" ] && [ "$n_gue" != "ERR" ] || die "no se pudo comprobar Mongo; revisa las URI de .env.s0 y .env.s1 y que Mongo sea alcanzable$(see solucion-problemas)"
+  [ "$n_auth" != "ERR" ] && [ "$n_gue" != "ERR" ] || die "$(t init.mongo_unreachable)$(see troubleshooting)"
   if [ "$n_auth" -gt 0 ] || [ "$n_gue" -gt 0 ]; then
-    die "'$name' ya tiene datos (Auth usuarios=$n_auth, Gue users=$n_gue): los seeds los BORRARÍAN. Si es una municipalidad existente, usa: ./deltactl adopt $name$(see instancia-existente)"
+    die "$(t init.has_data "$name" "$n_auth" "$n_gue")$(see existing-instance)"
   fi
 
-  info "Se sembrarán los datos iniciales de '$name' (operación única y destructiva sobre sus bases)."
-  confirm "¿Continuar?" || die "cancelado"
+  info "$(t init.will_seed "$name")"
+  confirm "$(t prompt.continue)" || die "$(t err.cancelled)"
 
-  info "1/4 Seed de s1 (catálogos)..."
+  info "$(t init.step1)"
   run_seed "$name" s1 - populating_data_s1
   check_seed "populating_data_s1" "$MIN_STEPS_S1"
 
-  info "2/4 Levantando s1 (debe estar arriba para que el seed de s0 sincronice usuarios)..."
+  info "$(t init.step2)"
   cmd_deploy "$name" s1
 
-  info "3/4 Seeds de s0 (en la red privada de la instancia)..."
+  info "$(t init.step3)"
   run_seed "$name" s0 "${name}_net" populating_data_s0
   if printf '%s\n' "$SEED_OUT" | grep -aq 'GUEP SERVER IS DOWN'; then
-    fail_incomplete "populating_data_s0" "s0 no alcanzó a s1 por TCP (¿TCP_LISTEN_HOST=0.0.0.0 en .env.s1 y una imagen de gueo con esa variable?): no se sincronizaron usuarios con s1"
+    fail_incomplete "populating_data_s0" "$(t init.s0_unreachable)"
   fi
   check_seed "populating_data_s0" "$MIN_STEPS_S0"
   run_seed "$name" s0 "${name}_net" create_root_user
@@ -134,26 +135,26 @@ cmd_init() {
   run_seed "$name" s0 "${name}_net" url_systems "$(get_var "$dir/.env.s0" IP_SERVER)"
   check_seed "url_systems" 0 "Url of server has created successfully"
 
-  info "4/4 Levantando s0..."
+  info "$(t init.step4)"
   cmd_deploy "$name" s0
 
   local a_after g_after
   a_after="$(count_docs "$name" s0 MONGO_URI usuarios)"
   g_after="$(count_docs "$name" s1 MONGO_DELTA_DISPATCH_URI users)"
   [ "$g_after" != "ERR" ] && [ "$g_after" -gt 0 ] \
-    || warn "Gue quedó sin usuarios (users=$g_after): la sincronización s0 -> s1 no llegó; revisa TCP_LISTEN_HOST$(see red)"
+    || warn "$(t init.gue_no_users "$g_after")$(see network)"
 
   write_marker "$name" init
-  ok "instancia '$name' inicializada (Auth usuarios=$a_after, Gue users=$g_after). Logs en $dir/init-logs/"
-  warn "Los usuarios root/superuser tienen contraseñas fijas en el código de Auth: cámbialas tras el primer login."
+  ok "$(t init.done "$name" "$a_after" "$g_after" "$dir")"
+  warn "$(t init.fixed_passwords)"
 }
 
 cmd_adopt() {
   local name="${1:-}"
   require_instance "$name"
   if [ -f "$(marker_file "$name")" ]; then
-    die "'$name' ya está marcada ($(get_var "$(marker_file "$name")" SOURCE)): nada que hacer"
+    die "$(t adopt.already "$name" "$(get_var "$(marker_file "$name")" SOURCE)")"
   fi
   write_marker "$name" existing
-  ok "instancia '$name' marcada como existente: ./deltactl init no podrá ejecutarse sobre ella (no se sembró nada)"
+  ok "$(t adopt.done "$name")"
 }

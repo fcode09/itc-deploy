@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# shellcheck disable=SC2034  # MSG_es is read by t through a nameref
+# init messages: Spanish. Sourced by lib/i18n/i18n.sh; not executed.
+
+MSG_es["init.count_failed"]="no se pudo comprobar {1} ({2}): {3}"
+MSG_es["init.incomplete"]="siembra INCOMPLETA en '{1}': {2}"
+MSG_es["init.full_log"]="log completo: {1}"
+MSG_es["init.not_marked"]="la instancia NO se marcó como inicializada. Las bases pueden haber quedado a medias: límpialas a mano (drop de sus bases) antes de reintentar, y nunca reintentes sobre datos reales."
+MSG_es["init.err_in_log"]="el log trae {1} 'Ocurred an error'"
+MSG_es["init.few_steps"]="solo {1} pasos completados (se esperaban al menos {2})"
+MSG_es["init.missing_phrase"]="no aparece '{1}' en el log"
+MSG_es["init.step_ok"]="  {1}: {2} pasos, sin errores"
+MSG_es["init.needs_both"]="init necesita s0 y s1 activos en COMPOSE_PROFILES de '{1}' (el seed de s0 sincroniza usuarios con s1)"
+MSG_es["init.already"]="'{1}' ya está inicializada ({2}, {3}). init no se vuelve a ejecutar: los seeds borran datos."
+MSG_es["init.checking_empty"]="Comprobando que las bases no tengan datos (los seeds los borrarían)..."
+MSG_es["init.mongo_unreachable"]="no se pudo comprobar Mongo; revisa las URI de .env.s0 y .env.s1 y que Mongo sea alcanzable"
+MSG_es["init.has_data"]="'{1}' ya tiene datos (Auth usuarios={2}, Gue users={3}): los seeds los BORRARÍAN. Si es una municipalidad existente, usa: ./deltactl adopt {1}"
+MSG_es["init.will_seed"]="Se sembrarán los datos iniciales de '{1}' (operación única y destructiva sobre sus bases)."
+MSG_es["init.step1"]="1/4 Seed de s1 (catálogos)..."
+MSG_es["init.step2"]="2/4 Levantando s1 (debe estar arriba para que el seed de s0 sincronice usuarios)..."
+MSG_es["init.step3"]="3/4 Seeds de s0 (en la red privada de la instancia)..."
+MSG_es["init.step4"]="4/4 Levantando s0..."
+MSG_es["init.s0_unreachable"]="s0 no alcanzó a s1 por TCP (¿TCP_LISTEN_HOST=0.0.0.0 en .env.s1 y una imagen de gueo con esa variable?): no se sincronizaron usuarios con s1"
+MSG_es["init.gue_no_users"]="Gue quedó sin usuarios (users={1}): la sincronización s0 -> s1 no llegó; revisa TCP_LISTEN_HOST"
+MSG_es["init.done"]="instancia '{1}' inicializada (Auth usuarios={2}, Gue users={3}). Logs en {4}/init-logs/"
+MSG_es["init.fixed_passwords"]="Los usuarios root/superuser tienen contraseñas fijas en el código de Auth: cámbialas tras el primer login."
+MSG_es["adopt.already"]="'{1}' ya está marcada ({2}): nada que hacer"
+MSG_es["adopt.done"]="instancia '{1}' marcada como existente: ./deltactl init no podrá ejecutarse sobre ella (no se sembró nada)"

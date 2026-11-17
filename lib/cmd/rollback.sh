@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# ./deltactl rollback <instancia> [servicio] [--yes]: vuelve a las etiquetas del despliegue anterior.
-# Sin servicio, revierte todos los activos que tengan una etiqueta previa distinta de la actual.
-# Con imágenes locales, la imagen previa debe seguir cargada en este Docker.
+# ./deltactl rollback <instance> [service] [--yes]: goes back to the tags of the previous deploy.
+# Without a service, it reverts every active one whose previous tag differs from the current one.
+# With local images, the previous image must still be loaded in this Docker.
 
-# deploy_up viene de deploy.sh
+# deploy_up comes from deploy.sh
 source "$ROOT/lib/cmd/deploy.sh"
 
 cmd_rollback() {
@@ -19,27 +19,27 @@ cmd_rollback() {
 
   check_docker
 
-  info "Instancia: $name"
+  info "$(t rollback.instance "$name")"
   for svc in "${SELECTED[@]}"; do
     tag_name="$(tag_var "$svc")"
     cur="$(get_var "$dir/.env.instance" "$tag_name")"
     prev="$(get_var "$dir/.previous" "$tag_name")"
     if [ -z "$prev" ] || [ "$prev" = "$cur" ]; then
-      [ -z "$only" ] || die "no hay una etiqueta previa registrada para $svc en '$name'$(see actualizar)"
+      [ -z "$only" ] || die "$(t rollback.no_prev_tag "$svc" "$name")$(see update)"
       continue
     fi
 
-    # Con imágenes locales no hay de dónde bajarla: debe seguir cargada, con el mismo ID.
+    # With local images there is nowhere to pull it from: it must still be loaded, with the same ID.
     if uses_local_images "$name"; then
       ref_prev="$(service_repo "$svc" "$name"):$prev"
       if ! dk_image_exists "$ref_prev"; then
-        warn "la imagen previa $ref_prev ($svc) ya no está en este servidor (¿se borró?)"
+        warn "$(t rollback.prev_missing "$ref_prev" "$svc")"
         missing=$((missing + 1))
         continue
       fi
       prev_id="$(get_var "$dir/.previous" "${svc^^}_IMAGE_ID")"
       if [ -n "$prev_id" ] && [ "$(dk_image_id "$ref_prev")" != "$prev_id" ]; then
-        warn "$svc: la etiqueta $prev ahora apunta a otra imagen ($(short_id "$(dk_image_id "$ref_prev")")) distinta de la que estaba desplegada ($(short_id "$prev_id"))"
+        warn "$(t rollback.prev_changed "$svc" "$prev" "$(short_id "$(dk_image_id "$ref_prev")")" "$(short_id "$prev_id")")"
       fi
     fi
 
@@ -50,23 +50,23 @@ cmd_rollback() {
     info "  $svc: $cur -> $prev"
   done
 
-  [ "$missing" -eq 0 ] || die "faltan imágenes previas en este servidor: no se cambió nada. Revisa ./deltactl images$(see actualizar)"
-  [ "${#roll[@]}" -gt 0 ] || die "no hay nada que revertir en '$name'"
+  [ "$missing" -eq 0 ] || die "$(t rollback.missing_images)$(see update)"
+  [ "${#roll[@]}" -gt 0 ] || die "$(t rollback.nothing "$name")"
 
-  confirm "¿Volver a estas etiquetas?" || die "cancelado"
+  confirm "$(t rollback.confirm)" || die "$(t err.cancelled)"
 
   for svc in "${roll[@]}"; do
     set_var "$dir/.env.instance" "$(tag_var "$svc")" "${prevs[$svc]}"
   done
 
-  deploy_up 1 "$name" "${roll[@]}" || die "el rollback de '$name' no llegó a healthy"
+  deploy_up 1 "$name" "${roll[@]}" || die "$(t rollback.not_healthy "$name")"
 
-  # Lo que estaba desplegado pasa a ser "previo", así un segundo rollback lo restaura.
+  # What was deployed becomes "previous", so a second rollback restores it.
   for svc in "${roll[@]}"; do
     if [ -n "${deployed[$svc]}" ]; then
       set_var "$dir/.previous" "$(tag_var "$svc")" "${deployed[$svc]}"
       set_var "$dir/.previous" "${svc^^}_IMAGE_ID" "${deployed_ids[$svc]}"
     fi
   done
-  ok "rollback de '$name' completado (${roll[*]})"
+  ok "$(t rollback.done "$name" "${roll[*]}")"
 }
