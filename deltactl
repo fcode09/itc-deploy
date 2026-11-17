@@ -8,11 +8,12 @@ export ROOT
 # shellcheck source=lib/bootstrap.sh
 source "$ROOT/lib/bootstrap.sh"
 
-# No arguments: in a terminal, the home screen (banner + status); in a pipe or script, the help.
+# No arguments: in a terminal, the interactive panel (the static home screen when the terminal cannot run it);
+# in a pipe or script, the help.
 if [ "$#" -eq 0 ] && [ "$UI_RICH" -eq 1 ]; then
-  # shellcheck source=lib/cmd/status.sh
-  source "$ROOT/lib/cmd/status.sh"
-  cmd_home
+  # shellcheck source=lib/cmd/dashboard.sh
+  source "$ROOT/lib/cmd/dashboard.sh"
+  cmd_dashboard
   exit 0
 fi
 

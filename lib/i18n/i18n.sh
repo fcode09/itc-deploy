@@ -59,6 +59,16 @@ i18n_load_lang() { # code
   done
 }
 
+# Remembers the language in the config file (UI_LANG=<code>), creating it if needed. A failure to write is
+# ignored: the choice then lasts only for the current run.
+i18n_save_lang() { # code
+  local f
+  f="$(i18n_config_file)"
+  mkdir -p "$(dirname "$f")" 2>/dev/null || return 0
+  [ -f "$f" ] || : > "$f" 2>/dev/null || return 0
+  set_var "$f" UI_LANG "$1" 2>/dev/null || true
+}
+
 # Chooses the language (see the order above) and loads its catalog. Spanish is always loaded: it is the
 # fallback for keys missing in another language.
 i18n_init() {

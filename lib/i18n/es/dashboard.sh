@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# shellcheck disable=SC2034  # MSG_es is read by t through a nameref
+# dashboard messages: Spanish. Sourced by lib/i18n/i18n.sh; not executed.
+
+MSG_es["tui.instances"]="Instancias"
+MSG_es["tui.none"]="(no hay instancias; pulsa n para crear una)"
+MSG_es["tui.keys"]="↑↓ mover · Enter acciones · r refrescar · n nueva · d diagnóstico · i imágenes · L idioma · ? ayuda · q salir"
+MSG_es["tui.keys.ascii"]="Arriba/Abajo mover - Enter acciones - r refrescar - n nueva - d diagnóstico - i imágenes - L idioma - ? ayuda - q salir"
+MSG_es["tui.choose_keys"]="↑↓ mover · Enter elegir · Esc volver"
+MSG_es["tui.choose_keys.ascii"]="Arriba/Abajo mover - Enter elegir - Esc volver"
+MSG_es["tui.actions_title"]="Acciones de {1} ({2})"
+MSG_es["tui.pick_service"]="¿Qué servicio de {1}?"
+MSG_es["tui.act.details"]="Ver detalle"
+MSG_es["tui.act.check"]="Comprobar antes de desplegar"
+MSG_es["tui.act.deploy"]="Desplegar"
+MSG_es["tui.act.rollback"]="Volver a la versión anterior"
+MSG_es["tui.act.logs"]="Ver logs"
+MSG_es["tui.act.follow"]="Seguir los logs en vivo"
+MSG_es["tui.act.stop"]="Detener un servicio"
+MSG_es["tui.act.down"]="Bajar la instancia"
+MSG_es["tui.act.init"]="Sembrar datos iniciales"
+MSG_es["tui.act.help"]="Ayuda del panel de estado"
+MSG_es["tui.help_title"]="Teclas"
+MSG_es["tui.help"]="↑ ↓ (o k j)   mover la selección\nEnter           abrir las acciones de la instancia\nr               refrescar ahora (también cada pocos segundos)\nn               crear una instancia (asistente)\nd               diagnóstico del servidor\ni               versiones de imágenes\nL               cambiar el idioma (español / inglés)\n?               esta ayuda\nq o Esc         salir"
+MSG_es["tui.help_close"]="Pulsa cualquier tecla para volver"

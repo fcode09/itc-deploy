@@ -7,6 +7,7 @@
     - `im-uno(previa)` es la versión anterior guardada para rollback
 
 ./deltactl help menu
+    comprobar, desplegar, rollback, logs, detener, bajar, sembrar) y `?` muestra todas las teclas. Se refresca solo cada
     - 6. Volver a la versión anterior: `./deltactl rollback`
     - las operaciones destructivas (init, down, rollback) piden confirmación en el propio menú
 

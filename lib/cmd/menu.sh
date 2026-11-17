@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# ./deltactl menu: interactive numbered menu. Every option asks what it needs (instance, service...),
+# ./deltactl menu [--classic]: the numbered menu. In a real terminal it opens the arrow-key panel instead
+# (lib/cmd/dashboard.sh); --classic, a pipe or a script keep the numbered menu. Every option asks what it needs (instance, service...),
 # shows the equivalent command and runs it with ./deltactl: the menu does nothing the command line does not do.
 # Destructive operations ask for confirmation here (init requires typing the instance name).
 # With "?" before a number (for example "?4") it shows the help of that option.
@@ -230,8 +231,18 @@ menu_dispatch() { # option
 }
 
 cmd_menu() {
+  local classic=0 choice help_page
+  case "${1:-}" in --classic) classic=1; shift ;; esac
   [ "$#" -eq 0 ] || die "$(t menu.args)"
-  local choice help_page
+  # In a real terminal the arrow-key panel opens; --classic, a pipe or a script keep the numbered menu.
+  if [ "$classic" -eq 0 ]; then
+    source "$ROOT/lib/ui/tui.sh"
+    if tui_interactive; then
+      source "$ROOT/lib/cmd/dashboard.sh"
+      cmd_dashboard
+      return 0
+    fi
+  fi
   ui_banner
   while true; do
     menu_show

@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# shellcheck disable=SC2034  # MSG_en is read by t through a nameref
+# dashboard messages: English. Sourced by lib/i18n/i18n.sh; not executed.
+
+MSG_en["tui.instances"]="Instances"
+MSG_en["tui.none"]="(no instances; press n to create one)"
+MSG_en["tui.keys"]="↑↓ move · Enter actions · r refresh · n new · d diagnosis · i images · L language · ? help · q quit"
+MSG_en["tui.keys.ascii"]="Up/Down move - Enter actions - r refresh - n new - d diagnosis - i images - L language - ? help - q quit"
+MSG_en["tui.choose_keys"]="↑↓ move · Enter choose · Esc back"
+MSG_en["tui.choose_keys.ascii"]="Up/Down move - Enter choose - Esc back"
+MSG_en["tui.actions_title"]="Actions of {1} ({2})"
+MSG_en["tui.pick_service"]="Which service of {1}?"
+MSG_en["tui.act.details"]="View details"
+MSG_en["tui.act.check"]="Check before deploying"
+MSG_en["tui.act.deploy"]="Deploy"
+MSG_en["tui.act.rollback"]="Go back to the previous version"
+MSG_en["tui.act.logs"]="View logs"
+MSG_en["tui.act.follow"]="Follow the logs live"
+MSG_en["tui.act.stop"]="Stop a service"
+MSG_en["tui.act.down"]="Take the instance down"
+MSG_en["tui.act.init"]="Seed initial data"
+MSG_en["tui.act.help"]="Help about the status panel"
+MSG_en["tui.help_title"]="Keys"
+MSG_en["tui.help"]="↑ ↓ (or k j)   move the selection\nEnter           open the actions of the instance\nr               refresh now (it also refreshes every few seconds)\nn               create an instance (wizard)\nd               server diagnosis\ni               image versions\nL               switch the language (Spanish / English)\n?               this help\nq or Esc        quit"
+MSG_en["tui.help_close"]="Press any key to go back"

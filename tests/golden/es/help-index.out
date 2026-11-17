@@ -34,7 +34,7 @@ Información
   list                                              Instancias, servicios, puertos, etiquetas y estado
   ps <instancia>                                    Estado de los contenedores
   logs <instancia> [servicio] [-f]                  Logs (últimas 200 líneas)
-  menu                                              Menú interactivo con todas las acciones, con numeración y confirmaciones
+  menu [--classic]                                  Panel interactivo con flechas (o menú numerado sin terminal) con todas las acciones y confirmaciones
   completion bash                                   Autocompletado con Tab (source <(./deltactl completion bash))
   help [comando|tema]                               Esta ayuda
 
