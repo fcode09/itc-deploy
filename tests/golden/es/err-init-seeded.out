@@ -1,0 +1,2 @@
+ERROR 'gold-ok' ya está inicializada (init, <DATE>). init no se vuelve a ejecutar: los seeds borran datos.
+[exit=1]

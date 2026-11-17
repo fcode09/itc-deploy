@@ -10,11 +10,16 @@ DST="$(mktemp -d)"
 trap 'rm -rf "$DST"' EXIT
 
 mkdir -p "$DST/instances"
-for p in itc scripts services templates examples docs tests compose.yaml README.md; do
+for p in deltactl lib services templates examples docs tests compose.yaml README.md; do
   [ -e "$SRC/$p" ] && cp -r "$SRC/$p" "$DST/"
 done
 : > "$DST/instances/.gitkeep"
-find "$DST" -name '*.sh' -o -name itc | xargs sed -i 's/\r$//' 2>/dev/null || true
+# Golden snapshots live in the real tree: test-golden reads them from here, or writes them when recording.
+export DELTACTL_GOLDEN_DIR="$SRC/tests/golden"
+# The UI language comes from the environment, never from the developer's own config file.
+export DELTACTL_LANG="${DELTACTL_LANG:-es}"
+export DELTACTL_CONFIG="$DST/.deltactl-config-absent"
+find "$DST" -name '*.sh' -o -name deltactl | xargs sed -i 's/\r$//' 2>/dev/null || true
 
 if [ "$#" -gt 0 ]; then
   suites=("$@")

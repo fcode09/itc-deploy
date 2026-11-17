@@ -1,0 +1,66 @@
+
+Poner en marcha una instancia nueva, paso a paso
+--------------------------------------------------
+
+Una instancia es una municipalidad: sus contenedores, su red privada, sus puertos, sus datos y sus bases.
+
+Antes de empezar
+  . Docker con Compose v2.20 o superior en el servidor (`docker compose version`)
+  . MongoDB accesible desde el servidor (compartido por todas las instancias; no va dentro de este compose)
+  . las imágenes de s0 y s1 (archivos `.tar.gz` creados con `docker save`)
+  . los JSON de cuenta de servicio de Firebase de la municipalidad
+  . un nombre de base de datos propio para esta instancia (nunca reutilices los de otra)
+
+1. Cargar las imágenes
+  $ ./deltactl load s0-1.2.0.tar.gz
+  $ ./deltactl load s1-1.2.0.tar.gz
+  $ ./deltactl images
+  i Anota las etiquetas exactas (por ejemplo `1.2.0`): las usarás en el paso 3.
+
+2. Crear la instancia
+  $ ./deltactl new colorado
+  i Crea `instances/colorado/` con puertos propios. Los archivos `.env.*` empiezan con punto: `ls -a`.
+  i Con `./deltactl new --wizard` el asistente te pregunta lo esencial (versiones, URL, secretos) y rellena esos archivos.
+  i Antes de empezar, `./deltactl doctor` revisa que el servidor esté listo (Docker, disco, Mongo).
+
+3. Versiones: `.env.instance`
+  $ nano instances/colorado/.env.instance
+  . `S0_TAG` y `S1_TAG`: las etiquetas del paso 1
+  . `S0_IMAGE` y `S1_IMAGE`: solo si construiste las imágenes con otro nombre (por defecto auth-backend y gueo-back-end)
+  . `REGISTRY`: déjalo vacío (imágenes cargadas en este servidor)
+  i Qué significa cada variable: `./deltactl help variable S0_TAG`
+
+4. Servicios: `.env.s0` y `.env.s1`
+  $ nano instances/colorado/.env.s0
+  $ nano instances/colorado/.env.s1
+  . reemplaza cada valor `CAMBIAR...`; `deploy` no arranca mientras queden
+  . usa bases de datos propias de la instancia (`..._colorado`)
+  . los secretos deben ser únicos por instancia: `openssl rand -hex 32` (y `openssl rand -base64 32` para `FEDERATION_ENCRYPTION_KEY`)
+  i `./deltactl help variable` lista todas las variables; las obligatorias salen marcadas.
+
+5. Firebase: `secrets/`
+  $ cp fcm.json instances/colorado/secrets/fcm.json
+  $ cp keeper-fcm.json instances/colorado/secrets/keeper-fcm.json
+  ! En `.env.s1` las rutas deben empezar con `/run/secrets/` (así se ve la carpeta dentro del contenedor). Ver `./deltactl help secretos`.
+
+6. Comprobar y levantar
+  $ ./deltactl check colorado
+  i Revisa configuración, imágenes, puertos y compose sin levantar nada. Con `--mongo` prueba también las bases.
+  $ ./deltactl deploy colorado
+  i Valida todo, comprueba las imágenes y espera a que los servicios estén healthy. No siembra datos.
+
+7. Sembrar los datos iniciales (solo instancias NUEVAS)
+  $ ./deltactl init colorado
+  ! Es destructivo y se hace una sola vez. Si la municipalidad ya tiene datos: `./deltactl help instancia-existente`.
+
+8. Verificar
+  $ ./deltactl status colorado
+
+9. Después
+  . cambia las contraseñas de `root`, `superuser` y `deltadispatch`
+  . en Auth, Configuración → Sistemas, revisa la URL de cada sistema: `init` las rellenó todas con el valor de `IP_SERVER`
+  . publica los puertos locales (4100, 4101...) con tu proxy y TLS: este repositorio no lo configura
+
+Si algo falla
+  $ ./deltactl help solucion-problemas
+[exit=0]

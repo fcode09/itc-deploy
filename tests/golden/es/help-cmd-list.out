@@ -1,0 +1,21 @@
+
+list · resumen de instancias
+------------------------------
+
+Una línea por instancia: servicios activos, puertos, etiquetas, estado de los datos y si está arriba.
+
+Uso
+  $ ./deltactl list
+
+Columnas
+  . `SERVICIOS` los de `COMPOSE_PROFILES`
+  . `S0`, `S1` puertos publicados en 127.0.0.1
+  . `S0_TAG`, `S1_TAG` etiquetas configuradas en `.env.instance`
+  . `DATOS` `init` (sembrada), `existente` (ya tenía datos) o `sin sembrar`
+  . `ESTADO` `arriba (N contenedores)` o `detenida`
+
+  i Para ver la versión que realmente corre, la salud y los desajustes usa `./deltactl status`.
+
+Relacionado
+  . `./deltactl help status`
+[exit=0]

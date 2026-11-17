@@ -1,0 +1,41 @@
+
+Menú
+------
+    1) Ver estado                         versiones, salud y desajustes
+    2) Crear una instancia                asistente paso a paso
+    3) Comprobar una instancia            todo lo que deploy exigiría, sin levantar nada
+    4) Desplegar                          levantar una instancia o un servicio
+    5) Actualizar a una versión nueva    cambia la etiqueta y despliega
+    6) Volver a la versión anterior      rollback
+    7) Sembrar datos iniciales            solo municipalidades NUEVAS (destructivo)
+    8) Ver logs                           de una instancia o un servicio
+    9) Detener un servicio                sin tocar los demás
+   10) Bajar una instancia                elimina los contenedores, conserva los datos
+   11) Versiones de imágenes             qué hay cargado y quién lo usa
+   12) Cargar imágenes                   desde un archivo .tar o .tar.gz
+   13) Diagnóstico del servidor          Docker, disco, memoria, Mongo
+   14) Ayuda                              índice de comandos y guías
+    0) Salir                              
+
+  Elige una opción (con ? delante, ayuda: ?4): AVISO opción no válida: '99' (elige un número del menú o 0 para salir)
+
+Menú
+------
+    1) Ver estado                         versiones, salud y desajustes
+    2) Crear una instancia                asistente paso a paso
+    3) Comprobar una instancia            todo lo que deploy exigiría, sin levantar nada
+    4) Desplegar                          levantar una instancia o un servicio
+    5) Actualizar a una versión nueva    cambia la etiqueta y despliega
+    6) Volver a la versión anterior      rollback
+    7) Sembrar datos iniciales            solo municipalidades NUEVAS (destructivo)
+    8) Ver logs                           de una instancia o un servicio
+    9) Detener un servicio                sin tocar los demás
+   10) Bajar una instancia                elimina los contenedores, conserva los datos
+   11) Versiones de imágenes             qué hay cargado y quién lo usa
+   12) Cargar imágenes                   desde un archivo .tar o .tar.gz
+   13) Diagnóstico del servidor          Docker, disco, memoria, Mongo
+   14) Ayuda                              índice de comandos y guías
+    0) Salir                              
+
+  Elige una opción (con ? delante, ayuda: ?4): 
+[exit=0]

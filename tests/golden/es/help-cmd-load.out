@@ -1,0 +1,24 @@
+
+load · cargar imágenes en este servidor
+-----------------------------------------
+
+Atajo de `docker load`: carga las imágenes de un archivo creado con `docker save` (también `.tar.gz`).
+
+Uso
+  $ ./deltactl load <archivo.tar|archivo.tar.gz>
+
+Flujo completo (construyes en tu PC, copias al servidor)
+  $ docker build -t s0:1.2.0 .
+  $ docker save s0:1.2.0 | gzip > s0-1.2.0.tar.gz
+  $ scp s0-1.2.0.tar.gz usuario@servidor:/ruta/deltactl/
+  $ ./deltactl load s0-1.2.0.tar.gz
+
+Qué hace
+  . carga el archivo y lista las imágenes que contenía
+  . avisa si la arquitectura de la imagen (amd64/arm64) no es la del servidor: no arrancaría
+  . el archivo solo se usa para cargar; luego puedes borrarlo
+
+Relacionado
+  . `./deltactl images` para ver lo cargado
+  . `./deltactl help imagenes`, `./deltactl help actualizar`
+[exit=0]

@@ -1,0 +1,33 @@
+
+status · panel de estado
+--------------------------
+
+Muestra por instancia y servicio la versión configurada y la que corre, la salud, el puerto, el
+uptime y el estado de los datos, avisa de los desajustes y sugiere el siguiente paso.
+Es solo lectura: nunca modifica nada.
+
+Uso
+  $ ./deltactl status [instancia] [--json] [--stats] [--strict] [--watch [segundos]]
+
+Opciones
+  . `instancia` vista de detalle: imagen, versión previa, memoria/CPU y errores recientes en los logs
+  . `--stats` añade memoria y CPU a la tabla (tarda 1-2 s)
+  . `--json` salida para scripts
+  . `--strict` termina con código 2 si hay avisos (útil en monitoreo)
+  . `--watch [N]` se repinta cada N segundos (2 por defecto); necesita una terminal
+
+Desajustes que detecta
+  . `configurada X pero corre Y`: cambiaste la etiqueta y falta `./deltactl deploy`
+  . `la etiqueta X apunta a otra imagen`: reconstruiste una imagen con la misma etiqueta
+  . `falta la imagen`: no está cargada en este servidor (`./deltactl load`)
+  . `unhealthy`, `detenido`, `reiniciando`: revisa `./deltactl logs`
+  . `fuera de perfil`: corre un servicio que ya no está en `COMPOSE_PROFILES`
+  . `puerto repetido`: dos servicios usan el mismo puerto
+  . `sin sembrar`: falta `./deltactl init` o `./deltactl adopt`
+
+Sin argumentos
+Ejecutar `./deltactl` solo, en una terminal, abre este mismo panel con el banner.
+
+Relacionado
+  . `./deltactl help glosario` para el significado de cada término
+[exit=0]

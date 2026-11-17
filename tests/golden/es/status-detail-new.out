@@ -1,0 +1,26 @@
+
+Instancia gold-new
+--------------------
+  servicios      s0,s1
+  datos          sin sembrar
+  imágenes       locales (REGISTRY vacío)
+  carpeta        instances/gold-new
+
+Servicio s0
+  estado         no creado
+  versión        configurada 1.0 · corriendo - · desplegada -
+  imagen         auth-backend:1.0
+  puerto         http://127.0.0.1:4120 (solo local; publícalo con tu proxy)
+
+Servicio s1
+  estado         no creado
+  versión        configurada 1.0 · corriendo - · desplegada -
+  imagen         gueo-back-end:1.0
+  puerto         http://127.0.0.1:4121 (solo local; publícalo con tu proxy)
+
+  * 1 instancia(s) · 2 servicio(s) · todo en orden
+
+  Siguientes pasos sugeridos
+  -> ./deltactl init gold-new  # gold-new no tiene datos iniciales (si ya tiene datos: ./deltactl adopt gold-new)
+  -> ./deltactl deploy gold-new  # gold-new no tiene contenedores creados
+[exit=0]

@@ -1,0 +1,11 @@
+
+S0_TAG  (.env.instance)
+-------------------------
+  archivo      .env.instance
+  tipo         obligatoria
+  por defecto  ninguno
+
+  Etiqueta (versión) de la imagen de s0 que se despliega. Una por versión o commit; evita `latest` y nunca
+  reutilices una etiqueta. Las disponibles: `./deltactl images`.
+  
+[exit=0]

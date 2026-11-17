@@ -1,0 +1,5 @@
+[1m[90mINSTANCIA         SERVICIOS  S0      S1      S0_TAG        S1_TAG        DATOS         ESTADO[0m
+[1mgold-drift[0m        s0,s1[0m      4110[0m    4111[0m    1.0[0m           1.0[0m           init[0m          [32m●[0m [32marriba (4 contenedores)[0m
+[1mgold-new[0m          s0,s1[0m      4120[0m    4121[0m    1.0[0m           1.0[0m           [33msin sembrar[0m   [32m●[0m [32marriba (4 contenedores)[0m
+[1mgold-ok[0m           s0,s1[0m      4100[0m    4101[0m    1.0[0m           1.0[0m           init[0m          [32m●[0m [32marriba (4 contenedores)[0m
+[exit=0]

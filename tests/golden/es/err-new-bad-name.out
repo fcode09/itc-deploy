@@ -1,0 +1,2 @@
+ERROR nombre de instancia inválido: 'Mala_Instancia' (minúsculas, números y guion; empieza con letra; 2 a 31 caracteres) (ayuda: ./deltactl help new)
+[exit=1]

@@ -1,0 +1,17 @@
+
+[1m[36mComprobación de 'gold-new'[0m
+[90m────────────────────────────[0m
+  [90mservicios   [0m s0 s1
+
+  [32m●[0m Configuración completa (variables obligatorias, nombres de imagen y secretos)
+  [32m●[0m El compose de la instancia es válido
+  [32m●[0m s0: imagen auth-backend:1.0 cargada (aaaaaaaaaaaa, amd64)
+  [32m●[0m s1: imagen gueo-back-end:1.0 cargada (bbbbbbbbbbbb, amd64)
+  [32m●[0m s0: puerto 4120 libre
+  [32m●[0m s1: puerto 4121 libre
+  [36mℹ[0m Datos: sin sembrar. Municipalidad NUEVA: ./deltactl init gold-new · con datos: ./deltactl adopt gold-new
+  [36mℹ[0m Bases de datos: no probadas. Añade --mongo para comprobar la conexión de cada servicio
+
+  [32m●[0m [32mTodo en orden: listo para desplegar[0m
+  [36m→ ./deltactl deploy gold-new[0m
+[exit=0]

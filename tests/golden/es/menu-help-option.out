@@ -1,0 +1,87 @@
+
+[38;5;51m██████╗ ███████╗██╗     ████████╗ █████╗  ██████╗████████╗██╗     [0m
+[38;5;45m██╔══██╗██╔════╝██║     ╚══██╔══╝██╔══██╗██╔════╝╚══██╔══╝██║     [0m
+[38;5;39m██║  ██║█████╗  ██║        ██║   ███████║██║        ██║   ██║     [0m
+[38;5;33m██║  ██║██╔══╝  ██║        ██║   ██╔══██║██║        ██║   ██║     [0m
+[38;5;27m██████╔╝███████╗███████╗   ██║   ██║  ██║╚██████╗   ██║   ███████╗[0m
+[38;5;63m╚═════╝ ╚══════╝╚══════╝   ╚═╝   ╚═╝  ╚═╝ ╚═════╝   ╚═╝   ╚══════╝[0m
+  [90mDespliegue de instancias por municipalidad  ·  v0.2.0  ·  <HOST>[0m
+
+
+[1m[36mMenú[0m
+[90m──────[0m
+  [1m[36m  1)[0m Ver estado                         [90mversiones, salud y desajustes[0m
+  [1m[36m  2)[0m Crear una instancia                [90masistente paso a paso[0m
+  [1m[36m  3)[0m Comprobar una instancia            [90mtodo lo que deploy exigiría, sin levantar nada[0m
+  [1m[36m  4)[0m Desplegar                          [90mlevantar una instancia o un servicio[0m
+  [1m[36m  5)[0m Actualizar a una versión nueva    [90mcambia la etiqueta y despliega[0m
+  [1m[36m  6)[0m Volver a la versión anterior      [90mrollback[0m
+  [1m[36m  7)[0m Sembrar datos iniciales            [90msolo municipalidades NUEVAS (destructivo)[0m
+  [1m[36m  8)[0m Ver logs                           [90mde una instancia o un servicio[0m
+  [1m[36m  9)[0m Detener un servicio                [90msin tocar los demás[0m
+  [1m[36m 10)[0m Bajar una instancia                [90melimina los contenedores, conserva los datos[0m
+  [1m[36m 11)[0m Versiones de imágenes             [90mqué hay cargado y quién lo usa[0m
+  [1m[36m 12)[0m Cargar imágenes                   [90mdesde un archivo .tar o .tar.gz[0m
+  [1m[36m 13)[0m Diagnóstico del servidor          [90mDocker, disco, memoria, Mongo[0m
+  [1m[36m 14)[0m Ayuda                              [90míndice de comandos y guías[0m
+  [1m[36m  0)[0m Salir                              [90m[0m
+
+  Elige una opción (con ? delante, ayuda: ?4): 
+  [90m→ ./deltactl help deploy[0m
+
+
+[1m[36mdeploy · levantar o actualizar una instancia[0m
+[90m──────────────────────────────────────────────[0m
+
+Valida la configuración, comprueba que las imágenes existan y levanta los servicios esperando a que
+estén healthy. Con servicio, solo toca ese servicio. NUNCA siembra datos.
+
+[1mUso[0m
+  [90m$[0m [32m./deltactl deploy <instancia> [servicio][0m
+
+[1mQué hace, en orden[0m
+  [90m·[0m 1. exige que las variables obligatorias estén completas (sin valores [36mCAMBIAR...[0m)
+  [90m·[0m 2. valida el compose de la instancia
+  [90m·[0m 3. con imágenes locales comprueba que existan en este Docker (si falta alguna, no cambia nada)
+  [90m·[0m 4. avisa si una etiqueta apunta ahora a otra imagen distinta de la desplegada
+  [90m·[0m 5. guarda las etiquetas anteriores para poder hacer rollback
+  [90m·[0m 6. levanta (con REGISTRY descarga las imágenes antes) y espera a healthy
+  [90m·[0m 7. registra las etiquetas desplegadas en [36m.deployed[0m
+
+[1mEjemplos[0m
+  [90m$[0m [32m./deltactl deploy colorado          # todos los servicios activos de la instancia[0m
+  [90m$[0m [32m./deltactl deploy colorado s1       # solo s1 (no toca s0)[0m
+
+  [36mℹ[0m Con imágenes locales (REGISTRY vacío) nunca se descarga nada de internet.
+  [36mℹ[0m Si cambias [36mS1_TAG[0m y despliegas, Compose recrea solo el contenedor que cambió.
+
+[1mErrores típicos[0m
+  [90m·[0m [36mfalta la imagen X:tag[0m → cárgala ([36m./deltactl load[0m) o corrige la etiqueta ([36m./deltactl images[0m)
+  [90m·[0m [36mFCM_CERT apunta a ... pero falta secrets/...[0m → copia el JSON a [36msecrets/[0m ([36m./deltactl help secretos[0m)
+  [90m·[0m [36mno llegó a healthy[0m → [36m./deltactl logs <instancia> <servicio>[0m; para volver atrás [36m./deltactl rollback[0m
+  [90m·[0m [36mno está inicializada[0m (aviso) → [36m./deltactl init[0m si es nueva, [36m./deltactl adopt[0m si ya tiene datos
+
+[1mRelacionado[0m
+  [90m·[0m [36m./deltactl help actualizar[0m, [36m./deltactl help imagenes[0m, [36m./deltactl help solucion-problemas[0m
+
+
+[1m[36mMenú[0m
+[90m──────[0m
+  [1m[36m  1)[0m Ver estado                         [90mversiones, salud y desajustes[0m
+  [1m[36m  2)[0m Crear una instancia                [90masistente paso a paso[0m
+  [1m[36m  3)[0m Comprobar una instancia            [90mtodo lo que deploy exigiría, sin levantar nada[0m
+  [1m[36m  4)[0m Desplegar                          [90mlevantar una instancia o un servicio[0m
+  [1m[36m  5)[0m Actualizar a una versión nueva    [90mcambia la etiqueta y despliega[0m
+  [1m[36m  6)[0m Volver a la versión anterior      [90mrollback[0m
+  [1m[36m  7)[0m Sembrar datos iniciales            [90msolo municipalidades NUEVAS (destructivo)[0m
+  [1m[36m  8)[0m Ver logs                           [90mde una instancia o un servicio[0m
+  [1m[36m  9)[0m Detener un servicio                [90msin tocar los demás[0m
+  [1m[36m 10)[0m Bajar una instancia                [90melimina los contenedores, conserva los datos[0m
+  [1m[36m 11)[0m Versiones de imágenes             [90mqué hay cargado y quién lo usa[0m
+  [1m[36m 12)[0m Cargar imágenes                   [90mdesde un archivo .tar o .tar.gz[0m
+  [1m[36m 13)[0m Diagnóstico del servidor          [90mDocker, disco, memoria, Mongo[0m
+  [1m[36m 14)[0m Ayuda                              [90míndice de comandos y guías[0m
+  [1m[36m  0)[0m Salir                              [90m[0m
+
+  Elige una opción (con ? delante, ayuda: ?4): 
+[exit=0]

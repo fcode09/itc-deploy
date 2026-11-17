@@ -1,0 +1,17 @@
+
+Comprobación de 'gold-ok'
+---------------------------
+  servicios    s0 s1
+
+  * Configuración completa (variables obligatorias, nombres de imagen y secretos)
+  * El compose de la instancia es válido
+  * s0: imagen auth-backend:1.0 cargada (aaaaaaaaaaaa, amd64)
+  * s1: imagen gueo-back-end:1.0 cargada (bbbbbbbbbbbb, amd64)
+  * s0: puerto 4100 libre
+  * s1: puerto 4101 libre
+  * Datos: init (marcador .initialized presente)
+  i Bases de datos: no probadas. Añade --mongo para comprobar la conexión de cada servicio
+
+  * Todo en orden: listo para desplegar
+  -> ./deltactl deploy gold-ok
+[exit=0]

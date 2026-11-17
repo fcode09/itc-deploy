@@ -1,0 +1,5 @@
+INSTANCIA         SERVICIOS  S0      S1      S0_TAG        S1_TAG        DATOS         ESTADO
+gold-drift        s0,s1      4110    4111    1.0           1.0           init          arriba (4 contenedores)
+gold-new          s0,s1      4120    4121    1.0           1.0           sin sembrar   arriba (4 contenedores)
+gold-ok           s0,s1      4100    4101    1.0           1.0           init          arriba (4 contenedores)
+[exit=0]

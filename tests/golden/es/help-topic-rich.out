@@ -1,0 +1,66 @@
+
+[1m[36mPoner en marcha una instancia nueva, paso a paso[0m
+[90m──────────────────────────────────────────────────[0m
+
+Una instancia es una municipalidad: sus contenedores, su red privada, sus puertos, sus datos y sus bases.
+
+[1mAntes de empezar[0m
+  [90m·[0m Docker con Compose v2.20 o superior en el servidor ([36mdocker compose version[0m)
+  [90m·[0m MongoDB accesible desde el servidor (compartido por todas las instancias; no va dentro de este compose)
+  [90m·[0m las imágenes de s0 y s1 (archivos [36m.tar.gz[0m creados con [36mdocker save[0m)
+  [90m·[0m los JSON de cuenta de servicio de Firebase de la municipalidad
+  [90m·[0m un nombre de base de datos propio para esta instancia (nunca reutilices los de otra)
+
+[1m1. Cargar las imágenes[0m
+  [90m$[0m [32m./deltactl load s0-1.2.0.tar.gz[0m
+  [90m$[0m [32m./deltactl load s1-1.2.0.tar.gz[0m
+  [90m$[0m [32m./deltactl images[0m
+  [36mℹ[0m Anota las etiquetas exactas (por ejemplo [36m1.2.0[0m): las usarás en el paso 3.
+
+[1m2. Crear la instancia[0m
+  [90m$[0m [32m./deltactl new colorado[0m
+  [36mℹ[0m Crea [36minstances/colorado/[0m con puertos propios. Los archivos [36m.env.*[0m empiezan con punto: [36mls -a[0m.
+  [36mℹ[0m Con [36m./deltactl new --wizard[0m el asistente te pregunta lo esencial (versiones, URL, secretos) y rellena esos archivos.
+  [36mℹ[0m Antes de empezar, [36m./deltactl doctor[0m revisa que el servidor esté listo (Docker, disco, Mongo).
+
+[1m3. Versiones: `.env.instance`[0m
+  [90m$[0m [32mnano instances/colorado/.env.instance[0m
+  [90m·[0m [36mS0_TAG[0m y [36mS1_TAG[0m: las etiquetas del paso 1
+  [90m·[0m [36mS0_IMAGE[0m y [36mS1_IMAGE[0m: solo si construiste las imágenes con otro nombre (por defecto auth-backend y gueo-back-end)
+  [90m·[0m [36mREGISTRY[0m: déjalo vacío (imágenes cargadas en este servidor)
+  [36mℹ[0m Qué significa cada variable: [36m./deltactl help variable S0_TAG[0m
+
+[1m4. Servicios: `.env.s0` y `.env.s1`[0m
+  [90m$[0m [32mnano instances/colorado/.env.s0[0m
+  [90m$[0m [32mnano instances/colorado/.env.s1[0m
+  [90m·[0m reemplaza cada valor [36mCAMBIAR...[0m; [36mdeploy[0m no arranca mientras queden
+  [90m·[0m usa bases de datos propias de la instancia ([36m..._colorado[0m)
+  [90m·[0m los secretos deben ser únicos por instancia: [36mopenssl rand -hex 32[0m (y [36mopenssl rand -base64 32[0m para [36mFEDERATION_ENCRYPTION_KEY[0m)
+  [36mℹ[0m [36m./deltactl help variable[0m lista todas las variables; las obligatorias salen marcadas.
+
+[1m5. Firebase: `secrets/`[0m
+  [90m$[0m [32mcp fcm.json instances/colorado/secrets/fcm.json[0m
+  [90m$[0m [32mcp keeper-fcm.json instances/colorado/secrets/keeper-fcm.json[0m
+  [33m▲[0m En [36m.env.s1[0m las rutas deben empezar con [36m/run/secrets/[0m (así se ve la carpeta dentro del contenedor). Ver [36m./deltactl help secretos[0m.
+
+[1m6. Comprobar y levantar[0m
+  [90m$[0m [32m./deltactl check colorado[0m
+  [36mℹ[0m Revisa configuración, imágenes, puertos y compose sin levantar nada. Con [36m--mongo[0m prueba también las bases.
+  [90m$[0m [32m./deltactl deploy colorado[0m
+  [36mℹ[0m Valida todo, comprueba las imágenes y espera a que los servicios estén healthy. No siembra datos.
+
+[1m7. Sembrar los datos iniciales (solo instancias NUEVAS)[0m
+  [90m$[0m [32m./deltactl init colorado[0m
+  [33m▲[0m Es destructivo y se hace una sola vez. Si la municipalidad ya tiene datos: [36m./deltactl help instancia-existente[0m.
+
+[1m8. Verificar[0m
+  [90m$[0m [32m./deltactl status colorado[0m
+
+[1m9. Después[0m
+  [90m·[0m cambia las contraseñas de [36mroot[0m, [36msuperuser[0m y [36mdeltadispatch[0m
+  [90m·[0m en Auth, Configuración → Sistemas, revisa la URL de cada sistema: [36minit[0m las rellenó todas con el valor de [36mIP_SERVER[0m
+  [90m·[0m publica los puertos locales (4100, 4101...) con tu proxy y TLS: este repositorio no lo configura
+
+[1mSi algo falla[0m
+  [90m$[0m [32m./deltactl help solucion-problemas[0m
+[exit=0]

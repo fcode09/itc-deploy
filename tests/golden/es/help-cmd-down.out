@@ -1,0 +1,18 @@
+
+down · detener y eliminar los contenedores
+--------------------------------------------
+
+Detiene y elimina los contenedores de la instancia. Los datos (`data/`), los secretos y la
+configuración se conservan: un `./deltactl deploy` posterior la levanta otra vez.
+
+Uso
+  $ ./deltactl down <instancia> [--yes]
+
+Qué NO hace
+  . no borra `data/`, `secrets/` ni los `.env.*`
+  . no borra las bases de datos de Mongo
+  . no borra imágenes
+
+Relacionado
+  . `./deltactl stop` para detener un solo servicio
+[exit=0]
