@@ -113,8 +113,8 @@ dk_container_rows() { # ids...
 
 # Stream of container lifecycle events, one action per line (start, die, health_status, ...). It never ends:
 # the panel reads it through a coprocess to refresh only when something changes.
-dk_events_stream() {
-  docker events --filter type=container --filter event=start --filter event=die --filter event=stop \
+dk_events_stream() { # run it in a coprocess: it replaces that process with `docker events`
+  exec docker events --filter type=container --filter event=start --filter event=die --filter event=stop \
     --filter event=restart --filter event=oom --filter event=destroy --filter event=health_status \
     --format '{{.Action}}' 2>/dev/null
 }

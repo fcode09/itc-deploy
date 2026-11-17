@@ -121,30 +121,36 @@ mt_instance_sum() { # instance service...
 }
 
 # Bytes in a short human form (512K, 82M, 1.2G) printed without forking.
-mt_bytes() { # bytes
+MT_B=""
+mt_bytes_v() { # bytes -> MT_B
   local b="$1" t
-  [[ "$b" =~ ^[0-9]+$ ]] || { printf -- '-'; return 0; }
+  [[ "$b" =~ ^[0-9]+$ ]] || { MT_B="-"; return 0; }
   if [ "$b" -ge 1073741824 ]; then
-    t=$((b * 10 / 1073741824)); printf '%d.%dG' $((t / 10)) $((t % 10))
+    t=$((b * 10 / 1073741824)); MT_B="$((t / 10)).$((t % 10))G"
   elif [ "$b" -ge 1048576 ]; then
-    printf '%dM' $((b / 1048576))
+    MT_B="$((b / 1048576))M"
   else
-    printf '%dK' $((b / 1024))
+    MT_B="$((b / 1024))K"
   fi
 }
+mt_bytes() { mt_bytes_v "$1"; printf '%s' "$MT_B"; }
 
 # Tenths of a percent as "12.3" ("-" when there is no reading yet).
-mt_tenths() { # tenths
+MT_T=""
+mt_tenths_v() { # tenths -> MT_T
   local t="$1"
-  [[ "$t" =~ ^[0-9]+$ ]] || { printf -- '-'; return 0; }
-  printf '%d.%d' $((t / 10)) $((t % 10))
+  [[ "$t" =~ ^[0-9]+$ ]] || { MT_T="-"; return 0; }
+  MT_T="$((t / 10)).$((t % 10))"
 }
+mt_tenths() { mt_tenths_v "$1"; printf '%s' "$MT_T"; }
 
 # Sparkline of a history string, scaled to $2 (a value that fills the whole height; 0 = the history's own maximum).
-# $3 is the number of cells (the last ones are kept). Prints nothing for an empty history.
-mt_spark() { # history scale [cells]
+# $3 is the number of cells (the last ones are kept). The result is empty for an empty history.
+MT_S=""
+mt_spark_v() { # history scale [cells] [floor] -> MT_S (floor: the smallest value that fills the height)
   local -a v
-  local h="$1" scale="${2:-0}" cells="${3:-20}" x max=0 out="" i n idx
+  local h="$1" scale="${2:-0}" cells="${3:-20}" floor="${4:-0}" x max=0 out="" i n idx
+  MT_S=""
   [ -n "$h" ] || return 0
   read -ra v <<< "$h"
   n="${#v[@]}"
@@ -153,6 +159,7 @@ mt_spark() { # history scale [cells]
   if [ "$max" -le 0 ]; then
     for x in "${v[@]}"; do [ "$x" -le "$max" ] || max="$x"; done
   fi
+  [ "$max" -ge "$floor" ] || max="$floor"
   [ "$max" -gt 0 ] || max=1
   for ((i = 0; i < n; i++)); do
     x="${v[$i]}"
@@ -160,5 +167,6 @@ mt_spark() { # history scale [cells]
     idx=$((x * 7 / max))
     out+="${UI_SPARK[$idx]}"
   done
-  printf '%s' "$out"
+  MT_S="$out"
 }
+mt_spark() { mt_spark_v "$@"; printf '%s' "$MT_S"; }
