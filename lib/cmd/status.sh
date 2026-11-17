@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# ./itc status [instancia] [--json] [--stats] [--strict] [--watch [segundos]]
+# ./deltactl status [instancia] [--json] [--stats] [--strict] [--watch [segundos]]
 # Panel de estado: por cada instancia y servicio activo muestra la etiqueta configurada, la que corre,
 # la salud, el puerto, el uptime, el estado de los datos y los desajustes detectados.
 # Es SOLO LECTURA: nunca modifica instancias ni contenedores.
@@ -18,11 +18,11 @@ STATUS_INSTANCES=0
 st_collect() {
   ST_STATE=() ST_HEALTH=() ST_CIMAGE=() ST_STARTED=() ST_CNAME=() ST_STATS=()
   ST_DOCKER=0
-  command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1 || return 0
+  dk_ready || return 0
   ST_DOCKER=1
   local -a ids=()
   local proj svc state health image started cname
-  mapfile -t ids < <(docker ps -aq --filter label=com.docker.compose.project 2>/dev/null)
+  mapfile -t ids < <(dk_project_container_ids)
   [ "${#ids[@]}" -gt 0 ] || return 0
   while IFS='|' read -r proj svc state health image started cname; do
     [ -n "$proj" ] && [ -n "$svc" ] || continue
@@ -31,9 +31,7 @@ st_collect() {
     ST_CIMAGE["$proj/$svc"]="$image"
     ST_STARTED["$proj/$svc"]="$started"
     ST_CNAME["$proj/$svc"]="${cname#/}"
-  done < <(docker inspect --format \
-    '{{index .Config.Labels "com.docker.compose.project"}}|{{index .Config.Labels "com.docker.compose.service"}}|{{.State.Status}}|{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}|{{.Config.Image}}|{{.State.StartedAt}}|{{.Name}}' \
-    "${ids[@]}" 2>/dev/null)
+  done < <(dk_container_rows "${ids[@]}")
 }
 
 # Uso de memoria y CPU de los contenedores en marcha (tarda 1-2 s: solo con --stats o en el detalle).
@@ -44,7 +42,7 @@ st_collect_stats() {
   while IFS='|' read -r name mem cpu; do
     [ -n "$name" ] || continue
     ST_STATS["$name"]="${mem// /}|$cpu"
-  done < <(docker stats --no-stream --format '{{.Name}}|{{.MemUsage}}|{{.CPUPerc}}' 2>/dev/null)
+  done < <(dk_stats_rows)
 }
 
 # 3725 -> 1h02m
@@ -183,13 +181,13 @@ st_eval() { # instancia servicio
 
   # Imagen local: debe existir, y su etiqueta no debe haber cambiado de imagen desde el despliegue.
   if uses_local_images "$name" && [ -n "$E_CFG" ]; then
-    if ! image_exists "$E_REF"; then
+    if ! dk_image_exists "$E_REF"; then
       E_CODES+=" image-missing"
       [ "$E_KIND" = "err" ] || E_KIND=warn
     else
       dep_id="$(get_var "$dir/.deployed" "${svc^^}_IMAGE_ID")"
       if [ -n "$dep_id" ] && [ "$E_DEP" = "$E_CFG" ]; then
-        cur_id="$(image_id "$E_REF")"
+        cur_id="$(dk_image_id "$E_REF")"
         if [ -n "$cur_id" ] && [ "$cur_id" != "$dep_id" ]; then
           E_CODES+=" image-rebuilt"
           [ "$E_KIND" = "err" ] || E_KIND=warn
@@ -217,15 +215,15 @@ st_notes() { # instancia servicio
     case "$code" in
       tag-drift)
         notes+="configurada $E_CFG pero corre $E_RUN; "
-        st_hint "./itc deploy $name $svc" "$name/$svc corre $E_RUN y está configurada $E_CFG"
+        st_hint "./deltactl deploy $name $svc" "$name/$svc corre $E_RUN y está configurada $E_CFG"
         ;;
       image-rebuilt)
         notes+="la etiqueta $E_CFG apunta a otra imagen que la desplegada; "
-        st_hint "./itc deploy $name $svc" "$name/$svc: recrear con la imagen reconstruida (no reutilices etiquetas)"
+        st_hint "./deltactl deploy $name $svc" "$name/$svc: recrear con la imagen reconstruida (no reutilices etiquetas)"
         ;;
       image-missing)
         notes+="falta la imagen $E_REF; "
-        st_hint "./itc load <archivo.tar>" "cargar $E_REF en este servidor"
+        st_hint "./deltactl load <archivo.tar>" "cargar $E_REF en este servidor"
         ;;
       port-conflict)
         owners=""
@@ -235,14 +233,14 @@ st_notes() { # instancia servicio
         ;;
       stopped)
         notes+="detenido; "
-        st_hint "./itc deploy $name $svc" "levantar de nuevo $name/$svc"
+        st_hint "./deltactl deploy $name $svc" "levantar de nuevo $name/$svc"
         ;;
       unhealthy | restarting)
         notes+="no está sano; "
-        st_hint "./itc logs $name $svc" "revisar por qué $name/$svc no está sano"
+        st_hint "./deltactl logs $name $svc" "revisar por qué $name/$svc no está sano"
         ;;
       not-created)
-        st_hint "./itc deploy $name" "$name no tiene contenedores creados"
+        st_hint "./deltactl deploy $name" "$name no tiene contenedores creados"
         ;;
     esac
   done
@@ -255,7 +253,7 @@ st_instance_hints() { # instancia
   local name="$1" marker
   marker="$(marker_file "$name")"
   if [ ! -f "$marker" ]; then
-    st_hint "./itc init $name" "$name no tiene datos iniciales (si ya tiene datos: ./itc adopt $name)"
+    st_hint "./deltactl init $name" "$name no tiene datos iniciales (si ya tiene datos: ./deltactl adopt $name)"
   fi
 }
 
@@ -273,8 +271,9 @@ st_orphans() { # instancia
   done
 }
 
-st_stats_cells() { # instancia servicio -> "mem|cpu"
+st_stats_cells() { # instancia servicio -> "mem|cpu" ("-|-" si el contenedor no existe)
   local cn="${ST_CNAME[$1/$2]:-}"
+  [ -n "$cn" ] || { printf '%s' '-|-'; return 0; }
   printf '%s' "${ST_STATS[$cn]:--|-}"
 }
 
@@ -326,13 +325,13 @@ status_table() { # [instancia]
       ui_tr "dim:$name" "$svc" "-" "-" "st-warn:fuera de perfil" "-" "-" "-" "warn:corre pero no está en COMPOSE_PROFILES"
       STATUS_ISSUES=$((STATUS_ISSUES + 1))
       STATUS_SERVICES=$((STATUS_SERVICES + 1))
-      st_hint "./itc stop $name $svc" "$svc corre en $name sin estar en COMPOSE_PROFILES (o añádelo a .env.instance)"
+      st_hint "./deltactl stop $name $svc" "$svc corre en $name sin estar en COMPOSE_PROFILES (o añádelo a .env.instance)"
     done
   done
   if [ "$STATUS_INSTANCES" -eq 0 ]; then
-    if [ -n "$only" ]; then die "la instancia '$only' no existe. Créala con: ./itc new $only"; fi
-    info "(no hay instancias; crea una con ./itc new <instancia>)"
-    st_hint "./itc new <instancia>" "crear la primera instancia"
+    if [ -n "$only" ]; then die "la instancia '$only' no existe. Créala con: ./deltactl new $only"; fi
+    info "(no hay instancias; crea una con ./deltactl new <instancia>)"
+    st_hint "./deltactl new <instancia>" "crear la primera instancia"
   fi
 }
 
@@ -399,14 +398,14 @@ status_detail() { # instancia
     ui_kv "versión" "configurada ${E_CFG:-(vacía)} · corriendo $E_RUN · desplegada ${E_DEP:--}"
     ui_kv "imagen" "$E_REF"
     if [ -n "$E_PREV" ] && [ "$E_PREV" != "$E_CFG" ]; then
-      ui_kv "previa" "$E_PREV (volver: ./itc rollback $name $svc)"
+      ui_kv "previa" "$E_PREV (volver: ./deltactl rollback $name $svc)"
     fi
     ui_kv "puerto" "http://127.0.0.1:$E_PORT (solo local; publícalo con tu proxy)"
     if [ "$ST_DOCKER" -eq 1 ] && [ "$E_STATE" = "running" ]; then
       raw="$(st_stats_cells "$name" "$svc")"
       ui_kv "recursos" "memoria ${raw%%|*} · cpu ${raw#*|}"
-      errs="$(docker logs --since 10m "${ST_CNAME[$name/$svc]}" 2>&1 | grep -acE 'ERROR|ECONNREFUSED|Unable to connect' || true)"
-      ui_kv "errores 10m" "${errs:-0} línea(s) con ERROR/ECONNREFUSED en los logs (./itc logs $name $svc)"
+      errs="$(dk_log_error_count "${ST_CNAME[$name/$svc]}")"
+      ui_kv "errores 10m" "${errs:-0} línea(s) con ERROR/ECONNREFUSED en los logs (./deltactl logs $name $svc)"
     fi
     [ -z "$E_NOTES" ] || ui_kv "notas" "$E_NOTES"
   done
@@ -466,7 +465,7 @@ cmd_status() {
         watch=1
         if [ "$#" -ge 2 ] && [[ "$2" =~ ^[0-9]+$ ]]; then interval="$2"; shift; fi
         ;;
-      -*) die "opción desconocida: $a (ver ./itc help status)" ;;
+      -*) die "opción desconocida: $a (ver ./deltactl help status)" ;;
       *)
         [ -z "$name" ] || die "sobra el argumento '$a'"
         name="$a"
@@ -492,11 +491,11 @@ cmd_status() {
   return 0
 }
 
-# Pantalla de inicio: ./itc sin argumentos en una terminal.
+# Pantalla de inicio: ./deltactl sin argumentos en una terminal.
 cmd_home() {
   ui_banner
   STATUS_FORMAT=table STATUS_STATS=0
   status_once ""
-  printf '\n  %sAyuda:%s ./itc help   %sMenú:%s ./itc menu   %sGuía:%s ./itc help nueva-instancia\n\n' \
+  printf '\n  %sAyuda:%s ./deltactl help   %sMenú:%s ./deltactl menu   %sGuía:%s ./deltactl help nueva-instancia\n\n' \
     "$C_GRY" "$C_OFF" "$C_GRY" "$C_OFF" "$C_GRY" "$C_OFF"
 }

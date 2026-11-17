@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# ./itc deploy <instancia> [servicio]: valida, descarga imágenes y levanta la instancia
+# ./deltactl deploy <instancia> [servicio]: valida, descarga imágenes y levanta la instancia
 # (o solo el servicio indicado).
 
 PREFLIGHT_ERRORS=0
@@ -22,7 +22,7 @@ check_required() { # archivo clave...
 
 # Validaciones propias de cada servicio. Un servicio nuevo define su preflight_<sN>.
 # Variables obligatorias (única fuente de verdad: las usan los preflight y tests/test-help.sh las compara
-# con el glosario de ./itc help variable). Las de etiqueta y puerto de cada servicio se suman en preflight().
+# con el glosario de ./deltactl help variable). Las de etiqueta y puerto de cada servicio se suman en preflight().
 REQUIRED_INSTANCE=(INSTANCE COMPOSE_PROFILES)
 REQUIRED_S0=(IP_SERVER JWT_SECRET MONGO_URI IP_INTERNAL_CONNECTION)
 REQUIRED_S1=(IP_SERVER AUTH_URL JWT_SECRET FEDERATION_ENCRYPTION_KEY SERVERS_CONFIG
@@ -89,7 +89,7 @@ preflight() { # instancia servicio...
   done
 
   # Permisos de data/: solo aviso (puede que el despliegue lo haga otro usuario).
-  if [ -d "$dir/data" ] && [ "$(stat -c %u "$dir/data" 2>/dev/null || echo "$RUNTIME_UID")" != "$RUNTIME_UID" ]; then
+  if [ -d "$dir/data" ] && [ "$(host_owner_uid "$dir/data" "$RUNTIME_UID")" != "$RUNTIME_UID" ]; then
     warn "data/ no pertenece al uid $RUNTIME_UID: la app podría no poder escribir. Ejecuta: sudo chown -R $RUNTIME_UID:$RUNTIME_UID $dir/data"
   fi
 
@@ -103,7 +103,7 @@ check_images() { # instancia servicio...
   uses_local_images "$name" || return 0
   for svc in "$@"; do
     ref="$(service_image_ref "$name" "$svc")"
-    if image_exists "$ref"; then
+    if dk_image_exists "$ref"; then
       warn_arch_mismatch "$ref"
     else
       warn "falta la imagen $ref ($svc) en este servidor"
@@ -111,7 +111,7 @@ check_images() { # instancia servicio...
     fi
   done
   [ "$missing" -eq 0 ] \
-    || die "$missing imagen(es) sin cargar. Cárgalas con ./itc load <archivo> y revisa las disponibles con ./itc images$(see imagenes)"
+    || die "$missing imagen(es) sin cargar. Cárgalas con ./deltactl load <archivo> y revisa las disponibles con ./deltactl images$(see imagenes)"
 }
 
 # Con imágenes locales una etiqueta se puede reconstruir y apuntar a otra imagen: si la etiqueta
@@ -128,7 +128,7 @@ warn_changed_images() { # instancia servicio...
     dep_id="$(get_var "$dir/.deployed" "${svc^^}_IMAGE_ID")"
     if [ -n "$dep_id" ] && [ "$cur" = "$dep" ]; then
       ref="$(service_image_ref "$name" "$svc")"
-      cur_id="$(image_id "$ref")"
+      cur_id="$(dk_image_id "$ref")"
       if [ -n "$cur_id" ] && [ "$cur_id" != "$dep_id" ]; then
         warn "$svc: la etiqueta $cur ahora apunta a otra imagen ($(short_id "$cur_id")) distinta de la desplegada ($(short_id "$dep_id")); no reutilices etiquetas$(see imagenes)"
       fi
@@ -174,23 +174,23 @@ deploy_up() { # explicit instancia servicio...
     info "Imágenes locales (REGISTRY vacío): no se descarga nada."
   else
     info "Descargando imágenes..."
-    dc "$name" ${pargs[@]+"${pargs[@]}"} pull ${svcs[@]+"${svcs[@]}"}
+    dk_compose "$name" ${pargs[@]+"${pargs[@]}"} pull ${svcs[@]+"${svcs[@]}"}
   fi
 
   info "Levantando servicios (espera a que estén healthy)..."
-  if ! dc "$name" ${pargs[@]+"${pargs[@]}"} up -d ${upflags[@]+"${upflags[@]}"} \
+  if ! dk_compose "$name" ${pargs[@]+"${pargs[@]}"} up -d ${upflags[@]+"${upflags[@]}"} \
       --wait --wait-timeout "${WAIT_TIMEOUT:-300}" ${svcs[@]+"${svcs[@]}"}; then
     warn "los servicios no llegaron a healthy"
-    warn "revisa: ./itc logs $name   |   para volver atrás: ./itc rollback $name"
+    warn "revisa: ./deltactl logs $name   |   para volver atrás: ./deltactl rollback $name"
     return 1
   fi
 
   touch "$dir/.deployed"
   for svc in "$@"; do
     set_var "$dir/.deployed" "$(tag_var "$svc")" "$(get_var "$dir/.env.instance" "$(tag_var "$svc")")"
-    set_var "$dir/.deployed" "${svc^^}_IMAGE_ID" "$(image_id "$(service_image_ref "$name" "$svc")")"
+    set_var "$dir/.deployed" "${svc^^}_IMAGE_ID" "$(dk_image_id "$(service_image_ref "$name" "$svc")")"
   done
-  dc "$name" --profile '*' ps
+  dk_compose "$name" --profile '*' ps
 }
 
 cmd_deploy() {
@@ -203,15 +203,15 @@ cmd_deploy() {
 
   info "Validando compose..."
   if [ -n "$only" ]; then
-    dc "$name" --profile "$only" config -q || die "el compose no es válido para '$name'"
+    dk_compose "$name" --profile "$only" config -q || die "el compose no es válido para '$name'"
   else
-    dc "$name" config -q || die "el compose no es válido para '$name'"
+    dk_compose "$name" config -q || die "el compose no es válido para '$name'"
   fi
 
   check_images "$name" "${SELECTED[@]}"
   warn_changed_images "$name" "${SELECTED[@]}"
-  if [ ! -f "$(marker_file "$name")" ] && [ "${ITC_SUPPRESS_INIT_WARN:-0}" != "1" ]; then
-    warn "'$name' no está inicializada: si es una municipalidad NUEVA ejecuta ./itc init $name; si YA tiene datos, ./itc adopt $name (deploy nunca siembra)$(see datos)"
+  if [ ! -f "$(marker_file "$name")" ] && [ "${DELTACTL_SUPPRESS_INIT_WARN:-0}" != "1" ]; then
+    warn "'$name' no está inicializada: si es una municipalidad NUEVA ejecuta ./deltactl init $name; si YA tiene datos, ./deltactl adopt $name (deploy nunca siembra)$(see datos)"
   fi
   record_previous "$name" "${SELECTED[@]}"
 

@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# ./itc check <instancia> [servicio] [--mongo]
-# Comprueba, SIN levantar nada, todo lo que ./itc deploy exigiría, y lo muestra como un informe:
+# ./deltactl check <instancia> [servicio] [--mongo]
+# Comprueba, SIN levantar nada, todo lo que ./deltactl deploy exigiría, y lo muestra como un informe:
 # configuración, compose, imágenes, etiquetas, puertos y datos. Con --mongo también prueba que cada
 # servicio llegue a sus bases (con un contenedor de un solo uso). Es solo lectura.
 
 # preflight, check_images y warn_changed_images viene de deploy.sh
-source "$ROOT/scripts/cmd/deploy.sh"
+source "$ROOT/lib/cmd/deploy.sh"
 
 CK_ERR=0
 CK_WARN=0
@@ -31,7 +31,7 @@ ck_mongo() { # instancia servicio variable
   local name="$1" svc="$2" var="$3" dir ref out
   dir="$(instance_dir "$name")"
   ref="$(service_image_ref "$name" "$svc")"
-  out="$(docker run --rm --add-host host.docker.internal:host-gateway --env-file "$dir/.env.$svc" "$ref" node -e '
+  out="$(dk_run_once "$dir/.env.$svc" "$ref" -- node -e '
     const m = require("mongoose");
     (async () => {
       const uri = process.env[process.argv[1]];
@@ -63,7 +63,7 @@ cmd_check() {
     a="$1"
     case "$a" in
       --mongo) mongo=1 ;;
-      -*) die "opción desconocida: $a (ver ./itc help check)" ;;
+      -*) die "opción desconocida: $a (ver ./deltactl help check)" ;;
       *)
         if [ -z "$name" ]; then name="$a"
         elif [ -z "$only" ]; then only="$a"
@@ -82,7 +82,7 @@ cmd_check() {
   ui_kv "servicios" "${SELECTED[*]}" 12
   printf '\n'
 
-  # 1. Configuración (las mismas validaciones que ./itc deploy).
+  # 1. Configuración (las mismas validaciones que ./deltactl deploy).
   out="$( (preflight "$name" "${SELECTED[@]}") 2>&1 )" && rc=0 || rc=$?
   out="$(printf '%s\n' "$out" | ck_lines)"
   if [ "$rc" -ne 0 ]; then
@@ -97,9 +97,9 @@ cmd_check() {
 
   # 2. Compose.
   if [ -n "$only" ]; then
-    out="$(dc "$name" --profile "$only" config -q 2>&1)" && rc=0 || rc=$?
+    out="$(dk_compose "$name" --profile "$only" config -q 2>&1)" && rc=0 || rc=$?
   else
-    out="$(dc "$name" config -q 2>&1)" && rc=0 || rc=$?
+    out="$(dk_compose "$name" config -q 2>&1)" && rc=0 || rc=$?
   fi
   if [ "$rc" -eq 0 ]; then
     ck ok "El compose de la instancia es válido"
@@ -113,16 +113,17 @@ cmd_check() {
     ref="$(service_image_ref "$name" "$svc")"
     if ! uses_local_images "$name"; then
       ck info "$svc: se descargará $ref del registry al desplegar"
-    elif image_exists "$ref"; then
-      arch="$(docker image inspect --format '{{.Architecture}}' "$ref" 2>/dev/null || echo '?')"
+    elif dk_image_exists "$ref"; then
+      arch="$(dk_image_arch "$ref")"
+      [ -n "$arch" ] || arch='?'
       if [ -n "$srv" ] && [ "$arch" != "$srv" ] && [ "$arch" != "?" ]; then
         ck err "$svc: la imagen $ref es $arch y este servidor es $srv" "No podrá arrancar: constrúyela para $srv"
       else
-        ck ok "$svc: imagen $ref cargada ($(short_id "$(image_id "$ref")"), $arch)"
+        ck ok "$svc: imagen $ref cargada ($(short_id "$(dk_image_id "$ref")"), $arch)"
       fi
     else
       ck err "$svc: falta la imagen $ref en este servidor" \
-        "Cárgala con ./itc load <archivo>  ·  etiquetas disponibles: ./itc images"
+        "Cárgala con ./deltactl load <archivo>  ·  etiquetas disponibles: ./deltactl images"
     fi
   done
 
@@ -139,8 +140,8 @@ cmd_check() {
     owner="$(port_owner "$p" "$name")"
     if [ -n "$owner" ]; then
       ck err "$svc: el puerto $p ya lo usa la instancia '$owner'" "Cambia ${svc^^}_PORT en .env.instance"
-    elif command -v ss >/dev/null 2>&1 && ss -ltn 2>/dev/null | grep -qE "[:.]$p[[:space:]]"; then
-      if docker ps --filter "label=com.docker.compose.project=$name" --format '{{.Ports}}' 2>/dev/null | grep -q ":$p->"; then
+    elif host_port_in_use "$p"; then
+      if dk_project_publishes_port "$name" "$p"; then
         ck ok "$svc: puerto $p ocupado por esta misma instancia (ya está desplegada)"
       else
         ck warn "$svc: el puerto $p ya está en uso en este servidor" "Compruébalo con: ss -ltnp | grep :$p"
@@ -154,14 +155,14 @@ cmd_check() {
   if [ -f "$(marker_file "$name")" ]; then
     ck ok "Datos: $(get_var "$(marker_file "$name")" SOURCE) (marcador .initialized presente)"
   else
-    ck info "Datos: sin sembrar. Municipalidad NUEVA: ./itc init $name · con datos: ./itc adopt $name"
+    ck info "Datos: sin sembrar. Municipalidad NUEVA: ./deltactl init $name · con datos: ./deltactl adopt $name"
   fi
 
   # 7. Mongo (opcional: tarda y necesita las imágenes).
   if [ "$mongo" -eq 1 ]; then
     for svc in "${SELECTED[@]}"; do
       ref="$(service_image_ref "$name" "$svc")"
-      if uses_local_images "$name" && ! image_exists "$ref"; then
+      if uses_local_images "$name" && ! dk_image_exists "$ref"; then
         ck warn "$svc: no se pueden probar las bases sin la imagen $ref"
         continue
       fi
@@ -173,9 +174,9 @@ cmd_check() {
 
   printf '\n'
   if [ "$CK_ERR" -gt 0 ]; then
-    printf '  %s %s%d error(es), %d aviso(s): corrige los errores antes de ./itc deploy %s%s\n' \
+    printf '  %s %s%d error(es), %d aviso(s): corrige los errores antes de ./deltactl deploy %s%s\n' \
       "$(ui_sym err)" "$C_RED" "$CK_ERR" "$CK_WARN" "$name" "$C_OFF"
-    ui_hint "Ayuda: ./itc help solucion-problemas   ·   variables: ./itc help variable"
+    ui_hint "Ayuda: ./deltactl help solucion-problemas   ·   variables: ./deltactl help variable"
     return 1
   fi
   if [ "$CK_WARN" -gt 0 ]; then
@@ -183,5 +184,5 @@ cmd_check() {
   else
     printf '  %s %sTodo en orden: listo para desplegar%s\n' "$(ui_sym ok)" "$C_GRN" "$C_OFF"
   fi
-  ui_hint "./itc deploy $name"
+  ui_hint "./deltactl deploy $name"
 }

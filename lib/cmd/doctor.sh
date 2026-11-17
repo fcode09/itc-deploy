@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# ./itc doctor
+# ./deltactl doctor
 # Diagnóstico del servidor, SOLO LECTURA: Docker y Compose, disco, memoria, Mongo, permisos de las
 # instancias y herramientas auxiliares. Cada fallo dice cómo arreglarlo. Termina con código 1 si hay errores.
 
 # ck (informe con símbolos) viene de check.sh; st_enabled (servicios activos) de status.sh
-source "$ROOT/scripts/cmd/check.sh"
-source "$ROOT/scripts/cmd/status.sh"
+source "$ROOT/lib/cmd/check.sh"
+source "$ROOT/lib/cmd/status.sh"
 
 # 512m -> 512, 2g -> 2048, 1.5g -> 1536 (megabytes)
 dr_mem_mb() { # valor
@@ -35,22 +35,22 @@ dr_mongo_hostport() { # uri -> "host puerto"
 dr_kb_to_gb() { awk -v k="$1" 'BEGIN { printf "%.1f", k / 1048576 }'; }
 
 cmd_doctor() {
-  [ "$#" -eq 0 ] || die "doctor no recibe argumentos (ver ./itc help doctor)"
+  [ "$#" -eq 0 ] || die "doctor no recibe argumentos (ver ./deltactl help doctor)"
   local v cv root free total avail line f name svc raw mb sum=0 gw h p seen="" uri var pid lim
 
   ui_h1 "Diagnóstico del servidor"
 
   # --- Docker ------------------------------------------------------------------------------
   ui_h2 "Docker"
-  if ! command -v docker >/dev/null 2>&1; then
+  if ! dk_installed; then
     ck err "Docker no está instalado o no está en el PATH" "Instálalo: https://docs.docker.com/engine/install/"
-  elif ! docker info >/dev/null 2>&1; then
+  elif ! dk_daemon_ok; then
     ck err "No se puede hablar con el daemon de Docker" \
       "¿Servicio detenido? sudo systemctl start docker" "¿Sin permisos? Añade tu usuario al grupo docker y vuelve a entrar"
   else
-    v="$(docker info --format '{{.ServerVersion}}' 2>/dev/null)"
+    v="$(dk_info ServerVersion)"
     ck ok "Docker $v (arquitectura $(server_arch))"
-    cv="$(docker compose version --short 2>/dev/null | sed 's/^v//')"
+    cv="$(dk_compose_version)"
     if [ -z "$cv" ]; then
       ck err "Falta el plugin 'docker compose'" "Se necesita Compose v2.20 o superior (por 'include')"
     elif [ "$(printf '%s\n%s\n' 2.20.0 "$cv" | sort -V | head -n1)" != "2.20.0" ]; then
@@ -62,9 +62,9 @@ cmd_doctor() {
 
   # --- Recursos ----------------------------------------------------------------------------
   ui_h2 "Recursos"
-  root="$(docker info --format '{{.DockerRootDir}}' 2>/dev/null || true)"
+  root="$(dk_info DockerRootDir)"
   [ -n "$root" ] && [ -d "$root" ] || root="$ROOT"
-  free="$(df -Pk "$root" 2>/dev/null | awk 'NR == 2 { print $4 }')"
+  free="$(host_free_kb "$root")"
   if [[ "${free:-}" =~ ^[0-9]+$ ]]; then
     if [ "$free" -lt 3145728 ]; then
       ck err "Poco disco libre en $root: $(dr_kb_to_gb "$free") GB" "Las imágenes y los logs necesitan espacio. Libera disco o mueve Docker."
@@ -105,8 +105,8 @@ cmd_doctor() {
   # --- MongoDB -----------------------------------------------------------------------------
   ui_h2 "MongoDB"
   gw=""
-  if docker info >/dev/null 2>&1; then
-    gw="$(docker network inspect bridge --format '{{(index .IPAM.Config 0).Gateway}}' 2>/dev/null || true)"
+  if dk_daemon_ok; then
+    gw="$(dk_network_gateway)"
   fi
   for f in "$INSTANCES_DIR"/*/.env.s0 "$INSTANCES_DIR"/*/.env.s1; do
     [ -f "$f" ] || continue
@@ -146,7 +146,7 @@ cmd_doctor() {
     fi
   else
     ck info "No se pudo comprobar el límite de archivos abiertos de Mongo (no corre aquí o no es visible)" \
-      "Con muchas instancias conviene 64000 o más: ./itc help solucion-problemas"
+      "Con muchas instancias conviene 64000 o más: ./deltactl help solucion-problemas"
   fi
 
   # --- Instancias --------------------------------------------------------------------------
@@ -159,8 +159,8 @@ cmd_doctor() {
     name="$(basename "$dir")"
     bad=""
     # Windows montado en WSL (/mnt/c...) y otros sistemas sin permisos Unix muestran todo como 777:
-    # no se puede comprobar nada y avisar sería un falso positivo. ITC_FSTYPE permite forzarlo en tests.
-    fstype="${ITC_FSTYPE:-$(stat -f -c %T "$dir" 2>/dev/null || echo unknown)}"
+    # no se puede comprobar nada y avisar sería un falso positivo. DELTACTL_FSTYPE permite forzarlo en tests.
+    fstype="$(host_fs_type "$dir")"
     case "$fstype" in
       9p | drvfs | ntfs | fuseblk | vfat | msdos | exfat)
         ck info "$name: el sistema de archivos ($fstype) no maneja permisos Unix (¿WSL sobre Windows?): no se comprueban"
@@ -169,10 +169,10 @@ cmd_doctor() {
     esac
     for v in .env.instance .env.s0 .env.s1; do
       [ -f "$dir/$v" ] || continue
-      p="$(stat -c %a "$dir/$v" 2>/dev/null || echo 600)"
+      p="$(host_file_mode "$dir/$v" 600)"
       case "$p" in *00) ;; *) bad+="$v ($p) " ;; esac
     done
-    uid="$(stat -c %u "$dir/data" 2>/dev/null || echo "$RUNTIME_UID")"
+    uid="$(host_owner_uid "$dir/data" "$RUNTIME_UID")"
     if [ -n "$bad" ]; then
       ck warn "$name: archivos con secretos legibles por otros usuarios: $bad" "Corrige con: chmod 600 $dir/.env.*"
     elif [ "$uid" != "$RUNTIME_UID" ]; then
@@ -182,18 +182,18 @@ cmd_doctor() {
       ck ok "$name: permisos correctos"
     fi
   done
-  [ "$n" -gt 0 ] || ck info "No hay instancias todavía: crea la primera con ./itc new <instancia>"
+  [ "$n" -gt 0 ] || ck info "No hay instancias todavía: crea la primera con ./deltactl new <instancia>"
 
   # --- Herramientas ------------------------------------------------------------------------
   ui_h2 "Herramientas"
   for v in ss openssl gunzip; do
-    if command -v "$v" >/dev/null 2>&1; then
+    if host_has "$v"; then
       ck ok "$v disponible"
     else
       case "$v" in
         ss) ck warn "Falta 'ss'" "Sin ella no se detectan puertos ocupados por otros procesos (paquete iproute2)" ;;
         openssl) ck warn "Falta 'openssl'" "Sin ella el asistente no puede generar secretos por ti" ;;
-        gunzip) ck warn "Falta 'gunzip'" "Sin ella ./itc load no puede leer archivos .tar.gz" ;;
+        gunzip) ck warn "Falta 'gunzip'" "Sin ella ./deltactl load no puede leer archivos .tar.gz" ;;
       esac
     fi
   done
