@@ -4,9 +4,8 @@
 # Destructive operations ask for confirmation here (init requires typing the instance name).
 # With "?" before a number (for example "?4") it shows the help of that option.
 
-# new_ask, new_ask_yn and new_loaded_tags come from new.sh; st_enabled from status.sh
+# new_ask, new_ask_yn and new_loaded_tags come from new.sh
 source "$ROOT/lib/cmd/new.sh"
-source "$ROOT/lib/cmd/status.sh"
 
 PICK=""
 

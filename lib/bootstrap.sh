@@ -4,7 +4,7 @@
 #
 #   i18n/       language selection and message catalogs        (what the user reads)
 #   ui/         colors, tables, banner, messages, prompts      (how it is shown)
-#   core/       rules: instances, services, images, ports      (what is true, no I/O of its own)
+#   core/       rules: instances, services, images, ports, state (what is true)
 #   adapters/   docker, state on disk, host                    (the only code that touches the outside)
 #   cmd/        the commands, loaded on demand by the entry point
 #
@@ -31,3 +31,5 @@ source "$ROOT/lib/core/instance.sh"
 source "$ROOT/lib/core/services.sh"
 # shellcheck source=lib/core/ports.sh
 source "$ROOT/lib/core/ports.sh"
+# shellcheck source=lib/core/status.sh
+source "$ROOT/lib/core/status.sh"
