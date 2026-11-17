@@ -64,7 +64,7 @@ section "3. --json"
 js="$(bash ./deltactl images --json 2>&1)"
 check "es JSON válido" 'if command -v python3 >/dev/null; then echo "$js" | python3 -c "import json,sys; json.load(sys.stdin)"; else true; fi'
 check "incluye uso y estado" \
-  'echo "$js" | grep "\"tag\":\"1.0\"" | grep -q "\"used_by\":\"im-one(actual)\"" && echo "$js" | grep "\"tag\":\"0.5\"" | grep -q "\"in_use\":false"'
+  'echo "$js" | grep "\"tag\":\"1.0\"" | grep -q "\"used_by\":\"im-one(current)\"" && echo "$js" | grep "\"tag\":\"0.5\"" | grep -q "\"in_use\":false"'
 check "sin escapes ni cabeceras" '! echo "$js" | has_ansi && [ "$(echo "$js" | head -n1)" = "[" ]'
 check "--json respeta el filtro de servicio" '! bash ./deltactl images s1 --json | grep -q "auth-backend"'
 
