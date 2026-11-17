@@ -38,7 +38,7 @@ case "$CMD" in
 esac
 
 case "$CMD" in
-  new | deploy | rollback | list | images | load | status)
+  new | deploy | rollback | list | images | load | status | check)
     # shellcheck source=/dev/null
     source "$ROOT/scripts/cmd/$CMD.sh"
     "cmd_$CMD" "$@"

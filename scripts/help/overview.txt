@@ -15,6 +15,7 @@ $ ./itc help <tema>           guía completa paso a paso
 | adopt <instancia> | Marca como ya inicializada una instancia que YA tiene datos
 
 ## Despliegue
+| check <instancia> [servicio] [--mongo] | Comprueba todo lo que deploy exigiría, sin levantar nada
 | deploy <instancia> [servicio] | Valida, comprueba las imágenes y levanta (espera a healthy)
 | rollback <instancia> [servicio] [--yes] | Vuelve a las etiquetas del despliegue anterior
 | stop <instancia> <servicio> | Detiene un servicio sin tocar los demás
