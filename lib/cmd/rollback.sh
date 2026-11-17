@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# ./itc rollback <instancia> [servicio] [--yes]: vuelve a las etiquetas del despliegue anterior.
+# ./deltactl rollback <instancia> [servicio] [--yes]: vuelve a las etiquetas del despliegue anterior.
 # Sin servicio, revierte todos los activos que tengan una etiqueta previa distinta de la actual.
 # Con imágenes locales, la imagen previa debe seguir cargada en este Docker.
 
 # deploy_up viene de deploy.sh
-source "$ROOT/scripts/cmd/deploy.sh"
+source "$ROOT/lib/cmd/deploy.sh"
 
 cmd_rollback() {
   parse_yes "$@"
@@ -32,14 +32,14 @@ cmd_rollback() {
     # Con imágenes locales no hay de dónde bajarla: debe seguir cargada, con el mismo ID.
     if uses_local_images "$name"; then
       ref_prev="$(service_repo "$svc" "$name"):$prev"
-      if ! image_exists "$ref_prev"; then
+      if ! dk_image_exists "$ref_prev"; then
         warn "la imagen previa $ref_prev ($svc) ya no está en este servidor (¿se borró?)"
         missing=$((missing + 1))
         continue
       fi
       prev_id="$(get_var "$dir/.previous" "${svc^^}_IMAGE_ID")"
-      if [ -n "$prev_id" ] && [ "$(image_id "$ref_prev")" != "$prev_id" ]; then
-        warn "$svc: la etiqueta $prev ahora apunta a otra imagen ($(short_id "$(image_id "$ref_prev")")) distinta de la que estaba desplegada ($(short_id "$prev_id"))"
+      if [ -n "$prev_id" ] && [ "$(dk_image_id "$ref_prev")" != "$prev_id" ]; then
+        warn "$svc: la etiqueta $prev ahora apunta a otra imagen ($(short_id "$(dk_image_id "$ref_prev")")) distinta de la que estaba desplegada ($(short_id "$prev_id"))"
       fi
     fi
 
@@ -50,7 +50,7 @@ cmd_rollback() {
     info "  $svc: $cur -> $prev"
   done
 
-  [ "$missing" -eq 0 ] || die "faltan imágenes previas en este servidor: no se cambió nada. Revisa ./itc images$(see actualizar)"
+  [ "$missing" -eq 0 ] || die "faltan imágenes previas en este servidor: no se cambió nada. Revisa ./deltactl images$(see actualizar)"
   [ "${#roll[@]}" -gt 0 ] || die "no hay nada que revertir en '$name'"
 
   confirm "¿Volver a estas etiquetas?" || die "cancelado"

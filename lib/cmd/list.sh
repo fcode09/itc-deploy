@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# ./itc list: instancias, servicios activos, puertos, etiquetas y estado.
+# ./deltactl list: instancias, servicios activos, puertos, etiquetas y estado.
 # Las columnas de puerto y etiqueta salen de KNOWN_SERVICES: un servicio nuevo aparece solo.
 
 cmd_list() {
@@ -19,8 +19,8 @@ cmd_list() {
     name="$(basename "$(dirname "$f")")"
     state="(docker no disponible)"
     st="st-warn"
-    if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
-      n="$(docker ps -q --filter "label=com.docker.compose.project=$name" | wc -l | tr -d ' ')"
+    if dk_ready; then
+      n="$(dk_project_running_count "$name")"
       if [ "$n" -gt 0 ]; then
         state="arriba ($n contenedores)"
         st="st-ok"
@@ -29,7 +29,7 @@ cmd_list() {
         st="st-dim"
       fi
     fi
-    # DATOS: init = sembrada con ./itc init; existente = ya tenía datos; sin sembrar = falta ./itc init
+    # DATOS: init = sembrada con ./deltactl init; existente = ya tenía datos; sin sembrar = falta ./deltactl init
     if [ -f "$(marker_file "$name")" ]; then
       data="$(get_var "$(marker_file "$name")" SOURCE)"
       [ "$data" != "existing" ] || data="existente"
@@ -44,6 +44,6 @@ cmd_list() {
     ui_tr "${row[@]}"
   done
   if [ "$found" -eq 0 ]; then
-    info "(no hay instancias; crea una con ./itc new <instancia>)"
+    info "(no hay instancias; crea una con ./deltactl new <instancia>)"
   fi
 }

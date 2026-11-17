@@ -1,23 +1,16 @@
 #!/usr/bin/env bash
-# ./itc load <archivo.tar|archivo.tar.gz>: carga imágenes en el Docker de este servidor.
+# ./deltactl load <archivo.tar|archivo.tar.gz>: carga imágenes en el Docker de este servidor.
 # Es un atajo de `docker load`; el archivo solo se usa para cargar y luego se puede borrar.
 
 cmd_load() {
   local file="${1:-}" out ref
-  [ -n "$file" ] || die "uso: ./itc load <archivo.tar|archivo.tar.gz>"
+  [ -n "$file" ] || die "uso: ./deltactl load <archivo.tar|archivo.tar.gz>"
   [ -f "$file" ] || die "no existe el archivo: $file"
   check_docker
 
   info "Cargando $file ..."
   # `docker load` lee tar; los .gz se descomprimen al vuelo.
-  case "$file" in
-    *.gz | *.tgz)
-      out="$(gunzip -c -- "$file" | docker load 2>&1)" || { printf '%s\n' "$out" >&2; die "no se pudo cargar $file"; }
-      ;;
-    *)
-      out="$(docker load -i "$file" 2>&1)" || { printf '%s\n' "$out" >&2; die "no se pudo cargar $file"; }
-      ;;
-  esac
+  out="$(dk_load "$file")" || { printf '%s\n' "$out" >&2; die "no se pudo cargar $file"; }
 
   local -a loaded=()
   while IFS= read -r ref; do
@@ -30,5 +23,5 @@ cmd_load() {
     info "  $ref"
     warn_arch_mismatch "$ref"
   done
-  ok "${#loaded[@]} imagen(es) disponibles. Usa estas etiquetas en S0_TAG / S1_TAG y revisa con ./itc images"
+  ok "${#loaded[@]} imagen(es) disponibles. Usa estas etiquetas en S0_TAG / S1_TAG y revisa con ./deltactl images"
 }

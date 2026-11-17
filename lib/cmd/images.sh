@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# ./itc images [servicio] [--json]  (alias: ./itc versions)
+# ./deltactl images [servicio] [--json]  (alias: ./deltactl versions)
 # Versiones de imagen cargadas en este Docker y qué instancias las usan.
 # Si alguna instancia usa un nombre propio (<SN>_IMAGE en .env.instance), también se lista.
 # Solo lista: nunca borra imágenes.
@@ -10,7 +10,7 @@ cmd_images() {
     a="$1"
     case "$a" in
       --json) json=1 ;;
-      -*) die "opción desconocida: $a (ver ./itc help images)" ;;
+      -*) die "opción desconocida: $a (ver ./deltactl help images)" ;;
       *)
         [ -z "$only" ] || die "sobra el argumento '$a'"
         only="$a"
@@ -59,7 +59,8 @@ cmd_images() {
       fi
       while IFS='|' read -r full tag id created size; do
         [ -n "$tag" ] && [ "$tag" != "<none>" ] || continue
-        arch="$(docker image inspect --format '{{.Architecture}}' "$full:$tag" 2>/dev/null || echo '?')"
+        arch="$(dk_image_arch "$full:$tag")"
+        [ -n "$arch" ] || arch='?'
         use="${used["$repo:$tag"]:-}"
         use="${use% }"
         total=$((total + 1))
@@ -83,10 +84,10 @@ cmd_images() {
           ui_tr "bold:$tag" "$(short_id "$id")" "$arch" "$created" "$size" "$kind:${use:-sin uso (candidata a borrar)}"
         fi
         found=1
-      done < <(docker image ls --format '{{.Repository}}|{{.Tag}}|{{.ID}}|{{.CreatedSince}}|{{.Size}}' \
+      done < <(dk_images_detail \
         | awk -F'|' -v r="$repo" '$1 == r || (length($1) > length(r) && substr($1, length($1) - length(r)) == "/" r)')
       if [ "$json" -eq 0 ] && [ "$found" -eq 0 ]; then
-        info "  (sin imágenes cargadas; cárgalas con ./itc load <archivo>)"
+        info "  (sin imágenes cargadas; cárgalas con ./deltactl load <archivo>)"
       fi
     done
   done

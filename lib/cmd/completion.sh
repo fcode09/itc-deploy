@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
-# ./itc completion bash: imprime el autocompletado de bash (Tab) para ./itc.
+# ./deltactl completion bash: imprime el autocompletado de bash (Tab) para ./deltactl.
 # Completa comandos, instancias, servicios, opciones, temas de ayuda y variables del glosario.
 #
-# Activarlo en la sesión actual:     source <(./itc completion bash)
-# Dejarlo permanente (una vez):      ./itc completion bash > ~/.itc-completion.bash
-#                                    echo 'source ~/.itc-completion.bash' >> ~/.bashrc
+# Activarlo en la sesión actual:     source <(./deltactl completion bash)
+# Dejarlo permanente (una vez):      ./deltactl completion bash > ~/.deltactl-completion.bash
+#                                    echo 'source ~/.deltactl-completion.bash' >> ~/.bashrc
 # Los nombres de comandos, temas, servicios y variables se toman del propio código en el momento de
 # generarlo, así que no se desactualizan; las instancias se leen en cada Tab.
 
 # help.sh aporta HELP_COMMANDS y HELP_TOPICS
-source "$ROOT/scripts/cmd/help.sh"
+source "$ROOT/lib/cmd/help.sh"
 
 # Opciones de cada comando (tests/test-completion.sh comprueba que figuren en su página de ayuda).
 COMPLETION_FLAGS=(
@@ -26,16 +26,16 @@ COMPLETION_FLAGS=(
 
 cmd_completion() {
   local shell="${1:-}" tmpl flags f vars
-  [ -n "$shell" ] || die "uso: ./itc completion bash   (ver ./itc help completion)"
+  [ -n "$shell" ] || die "uso: ./deltactl completion bash   (ver ./deltactl help completion)"
   [ "$shell" = "bash" ] || die "solo hay autocompletado para bash (recibido: '$shell')"
 
   flags=""
   for f in "${COMPLETION_FLAGS[@]}"; do flags+="    ${f%%:*}) flags=\"${f#*:}\" ;;"$'\n'; done
-  vars="$(grep -E '^@ ' "$ROOT/scripts/help/variables.txt" | sed 's/^@ //; s/ .*//' | sort -u | tr '\n' ' ')"
+  vars="$(grep -E '^@ ' "$ROOT/lib/help/variables.txt" | sed 's/^@ //; s/ .*//' | sort -u | tr '\n' ' ')"
 
   IFS= read -r -d '' tmpl <<'EOF' || true
-# itc: autocompletado para bash (generado por ./itc completion bash)
-_itc_complete() {
+# deltactl: autocompletado para bash (generado por ./deltactl completion bash)
+_deltactl_complete() {
   local cur="${COMP_WORDS[COMP_CWORD]}" cmd="${COMP_WORDS[1]:-}" prev="${COMP_WORDS[COMP_CWORD-1]}"
   local cmds="@COMMANDS@" topics="@TOPICS@" services="@SERVICES@" vars="@VARS@"
   local insts="" f flags=""
@@ -77,7 +77,7 @@ _itc_complete() {
   esac
   return 0
 }
-complete -F _itc_complete itc ./itc "@ROOT@/itc"
+complete -F _deltactl_complete deltactl ./deltactl "@ROOT@/deltactl"
 EOF
   tmpl="${tmpl//@COMMANDS@/${HELP_COMMANDS[*]}}"
   tmpl="${tmpl//@TOPICS@/${HELP_TOPICS[*]}}"
