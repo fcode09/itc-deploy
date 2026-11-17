@@ -8,3 +8,4 @@ deltactl text eol=lf
 *.md text eol=lf
 *.example text eol=lf
 *.txt text eol=lf
+*.out text eol=lf
