@@ -1,0 +1,15 @@
+# stop · detener un servicio
+
+Detiene un servicio sin tocar los demás y sin eliminarlo. `./deltactl deploy` lo vuelve a levantar.
+
+## Uso
+$ ./deltactl stop <instancia> <servicio>
+
+## Ejemplo
+$ ./deltactl stop colorado s1
+
+> Para detener todos los servicios de la instancia usa `./deltactl down <instancia>`.
+> `./deltactl status` mostrará el servicio como `detenido`.
+
+## Relacionado
+- `./deltactl help servicios`, `./deltactl down --help`

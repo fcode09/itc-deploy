@@ -1,4 +1,4 @@
-# itc-deploy
+# deltactl
 
 Despliegue con Docker Compose de los backends de ITC (auth-backend y gueo-back-end).
 Usa imágenes ya construidas (cargadas en el Docker del servidor, o bajadas de un registry);
@@ -22,37 +22,56 @@ Walle, Robin y Link todavía no están dockerizados: ver [`docs/services-catalog
 - Las imágenes de `s0` y `s1` ya disponibles: **cargadas en el Docker del servidor** (ver "Imágenes locales")
   o, si usas un registry, con sesión iniciada (`docker login`; recomendado un *deploy token* de solo lectura).
 - MongoDB ya disponible en el servidor. **Este repo no levanta Mongo.**
+- Bash 4.3 o superior (el código usa arrays asociativos y `nameref`).
 - Usuario con permisos para ejecutar `docker` y `chown` sobre `instances/` (los contenedores corren como uid 1000).
 
 ## Estructura
 
 ```
-itc-deploy/
-├─ itc                  # CLI: ./itc help
+deltactl/
+├─ deltactl             # CLI: ./deltactl help
 ├─ compose.yaml         # name: ${INSTANCE}; include de services/
 ├─ services/            # compose-s0.yaml, compose-s1.yaml
 ├─ templates/           # plantillas versionadas: .env.instance.example, .env.s0.example, .env.s1.example
 ├─ instances/           # instancias reales: NO se versionan
-├─ scripts/             # lib.sh, ui.sh (colores, banner, tablas), cmd/*.sh y help/ (la ayuda)
-├─ tests/               # suites de pruebas (tests/run.sh)
+├─ lib/                 # el código, por capas (ver abajo)
+├─ tests/               # suites de pruebas (tests/run.sh) y snapshots de la interfaz (tests/golden/)
 └─ docs/                # catálogo de servicios
 ```
 
+### Arquitectura de `lib/`
+
+Cada capa solo conoce a las de abajo; lo único que toca el exterior son los adaptadores.
+
+```
+lib/
+├─ bootstrap.sh    # carga todas las capas en orden
+├─ i18n/           # idioma (es por defecto, en) y catálogos de mensajes: lo que lee el usuario
+├─ ui/             # colores, tablas, banner, mensajes y confirmaciones: cómo se muestra
+├─ core/           # reglas: instancias, servicios, imágenes, puertos (sin entrada/salida propia)
+├─ adapters/       # docker.sh, state.sh (archivos de la instancia), host.sh (puertos, permisos, disco)
+├─ cmd/            # un archivo por comando; se cargan al usarlos
+└─ help/           # las páginas de ayuda
+```
+
+El código y los comentarios están en inglés; el español es el idioma de la interfaz (se cambia con
+`DELTACTL_LANG=en` o con `UI_LANG=en` en `~/.config/deltactl/config`).
+
 ## La consola
 
-`./itc` es una consola con colores, tablas y ayuda integrada. Todo lo que hace está también en la línea
+`./deltactl` es una consola con colores, tablas y ayuda integrada. Todo lo que hace está también en la línea
 de comandos; el menú y el asistente solo preguntan por ti y te muestran el comando equivalente.
 
 ```bash
-./itc                        # en una terminal: banner + panel de estado de todas las instancias
-./itc menu                   # menú interactivo con todas las acciones (con ?4 ves la ayuda de la opción 4)
-./itc status                 # versión configurada vs la que corre, salud, puertos, uptime y siguientes pasos
-./itc status colorado        # detalle de una instancia: imagen, previa, memoria/CPU y errores recientes
-./itc images                 # versiones cargadas, quién las usa, previas para rollback y las que sobran
-./itc check colorado         # comprueba todo lo que deploy exigiría, sin levantar nada (--mongo prueba las bases)
-./itc doctor                 # diagnóstico del servidor: Docker, disco, memoria, Mongo, permisos
-./itc new --wizard           # asistente: pregunta lo esencial y lista lo que falta completar
-./itc completion bash        # autocompletado con Tab (source <(./itc completion bash))
+./deltactl                        # en una terminal: banner + panel de estado de todas las instancias
+./deltactl menu                   # menú interactivo con todas las acciones (con ?4 ves la ayuda de la opción 4)
+./deltactl status                 # versión configurada vs la que corre, salud, puertos, uptime y siguientes pasos
+./deltactl status colorado        # detalle de una instancia: imagen, previa, memoria/CPU y errores recientes
+./deltactl images                 # versiones cargadas, quién las usa, previas para rollback y las que sobran
+./deltactl check colorado         # comprueba todo lo que deploy exigiría, sin levantar nada (--mongo prueba las bases)
+./deltactl doctor                 # diagnóstico del servidor: Docker, disco, memoria, Mongo, permisos
+./deltactl new --wizard           # asistente: pregunta lo esencial y lista lo que falta completar
+./deltactl completion bash        # autocompletado con Tab (source <(./deltactl completion bash))
 ```
 
 El panel `status` avisa de lo que no cuadra y sugiere el comando para arreglarlo: etiqueta configurada distinta
@@ -63,44 +82,44 @@ sale en formato para scripts y con `--strict` termina con código 2 si hay aviso
 ### Ayuda
 
 ```bash
-./itc help                       # índice de comandos y guías
-./itc help deploy                # qué hace, ejemplos y errores típicos (también: ./itc deploy --help)
-./itc help nueva-instancia       # guía paso a paso para una instancia nueva
-./itc help variable S0_TAG       # qué significa cada variable de los .env (sin nombre: todas)
-./itc help buscar rollback       # busca un texto en toda la ayuda
+./deltactl help                       # índice de comandos y guías
+./deltactl help deploy                # qué hace, ejemplos y errores típicos (también: ./deltactl deploy --help)
+./deltactl help nueva-instancia       # guía paso a paso para una instancia nueva
+./deltactl help variable S0_TAG       # qué significa cada variable de los .env (sin nombre: todas)
+./deltactl help buscar rollback       # busca un texto en toda la ayuda
 ```
 
 Guías: `nueva-instancia`, `instancia-existente`, `actualizar`, `imagenes`, `servicios`, `red`, `datos`,
 `secretos`, `archivos`, `puertos`, `solucion-problemas` y `glosario`. Los mensajes de error terminan con una
-pista como `(ayuda: ./itc help secretos)`.
+pista como `(ayuda: ./deltactl help secretos)`.
 
-La ayuda vive en `scripts/help/*.txt` (una página por comando, una guía por tema y el glosario de variables).
+La ayuda vive en `lib/help/*.txt` (una página por comando, una guía por tema y el glosario de variables).
 Las pruebas fallan si un comando, tema o variable de las plantillas no está documentado, si el glosario
 difiere de lo que valida `deploy`, o si una página recomienda algo que no existe.
 
 ### Salida plana y colores
 
 Fuera de una terminal (pipes, scripts, logs) la salida es texto plano sin códigos de escape. `NO_COLOR=1`
-desactiva los colores, `ITC_COLOR=always|never` los fuerza y `ITC_ASCII=1` evita los caracteres Unicode.
+desactiva los colores, `DELTACTL_COLOR=always|never` los fuerza y `DELTACTL_ASCII=1` evita los caracteres Unicode.
 
 ## Uso
 
 ```bash
-git clone <este-repo> && cd itc-deploy
+git clone <este-repo> && cd deltactl
 
-./itc images                # versiones de imagen cargadas en este servidor y quién las usa
-./itc new colorado          # crea instances/colorado/ desde las plantillas (o ./itc new --wizard)
-# Completa instances/colorado/{.env.instance,.env.s0,.env.s1} (S0_TAG y S1_TAG = versiones de ./itc images)
+./deltactl images                # versiones de imagen cargadas en este servidor y quién las usa
+./deltactl new colorado          # crea instances/colorado/ desde las plantillas (o ./deltactl new --wizard)
+# Completa instances/colorado/{.env.instance,.env.s0,.env.s1} (S0_TAG y S1_TAG = versiones de ./deltactl images)
 # y copia los JSON de Firebase a secrets/
-./itc check colorado        # comprueba la configuración, las imágenes y los puertos sin levantar nada
-./itc init colorado         # SOLO si es una municipalidad NUEVA: siembra los datos iniciales y levanta s1 y s0
-# (si YA tiene datos: ./itc new colorado --existing, o ./itc adopt colorado, y luego ./itc deploy colorado)
+./deltactl check colorado        # comprueba la configuración, las imágenes y los puertos sin levantar nada
+./deltactl init colorado         # SOLO si es una municipalidad NUEVA: siembra los datos iniciales y levanta s1 y s0
+# (si YA tiene datos: ./deltactl new colorado --existing, o ./deltactl adopt colorado, y luego ./deltactl deploy colorado)
 
-./itc list                  # instancias, servicios, puertos, etiquetas, datos y estado
-./itc ps colorado           # estado
-./itc logs colorado s1      # logs de un servicio
-./itc rollback colorado     # vuelve a las etiquetas anteriores
-./itc down colorado         # detiene la instancia
+./deltactl list                  # instancias, servicios, puertos, etiquetas, datos y estado
+./deltactl ps colorado           # estado
+./deltactl logs colorado s1      # logs de un servicio
+./deltactl rollback colorado     # vuelve a las etiquetas anteriores
+./deltactl down colorado         # detiene la instancia
 ```
 
 Los archivos de configuración de cada instancia siguen el mismo patrón que las plantillas:
@@ -111,17 +130,17 @@ Guía completa con valores de ejemplo: [`docs/example-new-municipality.md`](docs
 (archivos completados en [`examples/colorado/`](examples/colorado/)).
 
 Para actualizar una instancia: cambia `S0_TAG` / `S1_TAG` en su `.env.instance` y ejecuta
-`./itc deploy <instancia>`. Las etiquetas anteriores quedan guardadas para el rollback.
+`./deltactl deploy <instancia>`. Las etiquetas anteriores quedan guardadas para el rollback.
 **No uses `latest`**: usa una etiqueta por versión o commit.
 
 ## Datos iniciales de una instancia nueva
 
 Los datos iniciales salen de comandos de la CLI que ya vienen en las imágenes (`populating_data_s1`,
 `populating_data_s0`, `create_root_user`, `url_systems`). Son **destructivos**: hacen `drop` de colecciones
-y el seed de s0 le ordena a s1, por TCP, que **vacíe su tabla de usuarios**. Por eso `./itc deploy` **nunca
+y el seed de s0 le ordena a s1, por TCP, que **vacíe su tabla de usuarios**. Por eso `./deltactl deploy` **nunca
 siembra**: sembrar y actualizar son cosas separadas.
 
-**`./itc init <instancia>`** (solo para municipalidades **nuevas**, una sola vez) hace, en este orden:
+**`./deltactl init <instancia>`** (solo para municipalidades **nuevas**, una sola vez) hace, en este orden:
 1. Comprueba que las tablas de usuarios de Auth (`usuarios`) y Gue (`users`) estén vacías; si tienen datos, **se niega**.
 2. Seed de s1 (catálogos).
 3. Levanta s1 y espera a que esté `healthy`: **s1 tiene que estar arriba** cuando corre el seed de s0, o no se
@@ -137,11 +156,11 @@ esperados: 30 en s1 y al menos 17 en s0); si algo falla, **no marca la instancia
 `SPIDER SERVER IS DOWN!` es normal (no hay servidor Spider en este despliegue).
 
 **Municipalidades que ya existen con datos reales** (por ejemplo las que hoy corren con PM2): nunca se les
-hace `init`. Usa `./itc new <x> --existing` al crearlas, o `./itc adopt <x>` si la instancia ya estaba
-creada, apunta sus URI a las bases actuales y despliega con `./itc deploy`.
+hace `init`. Usa `./deltactl new <x> --existing` al crearlas, o `./deltactl adopt <x>` si la instancia ya estaba
+creada, apunta sus URI a las bases actuales y despliega con `./deltactl deploy`.
 
-**Actualizar** una instancia sembrada es solo `./itc deploy`: no repuebla ni borra datos (verificado). La
-columna `DATOS` de `./itc list` muestra `init`, `existente` o `sin sembrar`.
+**Actualizar** una instancia sembrada es solo `./deltactl deploy`: no repuebla ni borra datos (verificado). La
+columna `DATOS` de `./deltactl list` muestra `init`, `existente` o `sin sembrar`.
 
 **Requisitos:** imágenes de gueo-back-end con `TCP_LISTEN_HOST` (para que s0 alcance a s1) y
 `TCP_LISTEN_HOST=0.0.0.0` en `.env.s1`. Los usuarios root y superuser salen con contraseñas **fijas en el
@@ -165,18 +184,18 @@ nombre: `docker build -t s1:1.0.0 .`. Formato: minúsculas, números y `. _ - `;
 `:`** (la etiqueta va en `S1_TAG`). Cada instancia puede usar nombres distintos. Con un `REGISTRY` se
 antepone: `<registry>/<S1_IMAGE>:<S1_TAG>`.
 
-**Solo cuenta el archivo.** `itc` ignora las variables de la instancia (`S0_IMAGE`, `S1_TAG`, `REGISTRY`,
+**Solo cuenta el archivo.** `deltactl` ignora las variables de la instancia (`S0_IMAGE`, `S1_TAG`, `REGISTRY`,
 puertos, límites, `DATA_DIR`, `COMPOSE_PROFILES`, `COMPOSE_FILE`...) aunque estén exportadas en tu shell,
 para que lo que valida sea siempre lo que Docker despliega. Escríbelas en `.env.instance`.
 
 **Cargar una imagen que llegó como archivo** (el resultado de `docker save`, comprimido o no):
 
 ```bash
-./itc load imagenes-2026-11-16.tar.gz   # equivale a docker load; el archivo se puede borrar después
-./itc images                            # ver qué etiquetas quedaron y cuáles usa cada instancia
+./deltactl load imagenes-2026-11-16.tar.gz   # equivale a docker load; el archivo se puede borrar después
+./deltactl images                            # ver qué etiquetas quedaron y cuáles usa cada instancia
 ```
 
-**Comprobaciones de `./itc deploy` (con `REGISTRY` vacío):**
+**Comprobaciones de `./deltactl deploy` (con `REGISTRY` vacío):**
 - Que cada imagen exista en este Docker; si falta, dice cuál y cómo cargarla.
 - Que su arquitectura sea la del servidor (aviso).
 - Con `PULL_POLICY=never`, para que si falta una imagen Docker no baje de Docker Hub una imagen
@@ -185,7 +204,7 @@ para que lo que valida sea siempre lo que Docker despliega. Escríbelas en `.env
   local se puede reconstruir. **No reutilices etiquetas**; usa una versión nueva por build.
 
 **Rollback:** exige que la imagen previa siga cargada, y avisa si su ID cambió. Por eso **no borres
-versiones viejas**: `./itc images` marca las que ninguna instancia usa (ni como actual ni como previa)
+versiones viejas**: `./deltactl images` marca las que ninguna instancia usa (ni como actual ni como previa)
 como candidatas a borrar, pero solo lista. Evita `docker image prune -a` y `docker system prune -a`.
 
 **Con registry:** pon su ruta en `REGISTRY` (ej. `registry.ejemplo.com/itc`) y `deploy` hará `pull`.
@@ -202,7 +221,7 @@ COMPOSE_PROFILES=s1          # solo Gue (Auth corre en otro lugar)
 COMPOSE_PROFILES=s0,s1,s3    # "todos menos s2": listas los que sí quieres
 ```
 
-`./itc new <instancia> --services s1` crea la instancia ya con esa lista. Un servicio nuevo que se
+`./deltactl new <instancia> --services s1` crea la instancia ya con esa lista. Un servicio nuevo que se
 añada al repo **no** se activa solo en instancias existentes: hay que sumarlo a su lista.
 
 ## Actuar sobre un solo servicio
@@ -211,16 +230,16 @@ Sin argumento, `deploy` y `rollback` actúan sobre todos los servicios activos. 
 de un servicio, solo sobre ese; los demás no se descargan ni se reinician:
 
 ```bash
-./itc deploy colorado s1              # actualiza solo s1 (cambia antes S1_TAG en .env.instance)
-./itc rollback colorado s1            # vuelve solo s1 a su etiqueta anterior
-./itc stop colorado s0                # detiene s0 sin tocar los demás
-./itc logs colorado s1 -f             # logs en vivo de s1
+./deltactl deploy colorado s1              # actualiza solo s1 (cambia antes S1_TAG en .env.instance)
+./deltactl rollback colorado s1            # vuelve solo s1 a su etiqueta anterior
+./deltactl stop colorado s0                # detiene s0 sin tocar los demás
+./deltactl logs colorado s1 -f             # logs en vivo de s1
 ```
 
 Las etiquetas desplegadas y las previas se guardan por servicio, así que el rollback de uno no
 afecta al otro. Sin servicio, `rollback` solo revierte los que tengan una etiqueta previa distinta
 de la actual. **Quitar un servicio de `COMPOSE_PROFILES` no lo detiene** si ya está corriendo:
-usa `./itc stop <instancia> <servicio>`.
+usa `./deltactl stop <instancia> <servicio>`.
 
 ## Puertos por instancia
 
@@ -235,7 +254,7 @@ Cada instancia ocupa un bloque de 10 puertos desde `4100`, y la clave `sN` usa `
 | 2.ª | 4110 | 4110 | 4111 |
 | n-ésima | 4100 + 10·(n−1) | base | base + 1 |
 
-`./itc new` propone el siguiente bloque libre y avisa si un puerto ya lo usa otra instancia.
+`./deltactl new` propone el siguiente bloque libre y avisa si un puerto ya lo usa otra instancia.
 
 ## Red privada por instancia
 
@@ -257,7 +276,7 @@ para `AUTH_URL` y `4ca9913b` para `TCP_LISTEN_HOST`, en la rama `feat/docker-bac
 - Una imagen anterior ignora `TCP_LISTEN_HOST` y su TCP 5020 queda solo en `127.0.0.1`: s0 no lo alcanza
   y la sincronización de ajustes hacia Gue se omite en silencio.
 
-`./itc deploy` exige `AUTH_URL` en `.env.s1` y avisa si s0 está activo y `TCP_LISTEN_HOST` no lo está.
+`./deltactl deploy` exige `AUTH_URL` en `.env.s1` y avisa si s0 está activo y `TCP_LISTEN_HOST` no lo está.
 
 **Despliegues sin Docker (PM2):** no cambian. `TCP_LISTEN_HOST` sin definir deja el TCP en `127.0.0.1`,
 como siempre, y `AUTH_URL` sin definir usa `${IP_SERVER}:3200`. Ambas variables solo se definen en Docker.

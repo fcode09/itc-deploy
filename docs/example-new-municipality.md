@@ -7,8 +7,8 @@ Cada municipalidad es una **instancia** de este repo (ver el README).
 ## 0. Antes de empezar
 
 - Las imágenes `auth-backend` (s0) y `gueo-back-end` (s1) ya están **cargadas en el Docker del servidor**
-  (`./itc load <archivo>` si llegaron como archivo de `docker save`), con la etiqueta que vas a desplegar.
-  Compruébalo con `./itc images`. Con un registry, déjalas publicadas y pon su ruta en `REGISTRY`.
+  (`./deltactl load <archivo>` si llegaron como archivo de `docker save`), con la etiqueta que vas a desplegar.
+  Compruébalo con `./deltactl images`. Con un registry, déjalas publicadas y pon su ruta en `REGISTRY`.
 - El servidor tiene Docker Compose 2.20 o superior.
 - Existe un MongoDB en el servidor. Decide los **nombres de base** de esta municipalidad (el ejemplo usa `colorado_authsoftware`, `colorado_deltadispatch` y `colorado_robin`); no compartas bases entre instancias.
 - Tienes los dos JSON de cuenta de servicio de Firebase **de esa municipalidad**.
@@ -16,11 +16,11 @@ Cada municipalidad es una **instancia** de este repo (ver el README).
 ## 1. Crear la instancia
 
 ```bash
-./itc new colorado
+./deltactl new colorado
 ```
 
 Crea `instances/colorado/` con `.env.instance`, `.env.s0`, `.env.s1`, `secrets/` y `data/`, y propone el
-siguiente bloque de puertos libre. Para una municipalidad que solo usará Gue: `./itc new colorado --services s1`.
+siguiente bloque de puertos libre. Para una municipalidad que solo usará Gue: `./deltactl new colorado --services s1`.
 
 ## 2. Completar la configuración
 
@@ -61,7 +61,7 @@ chmod 600 instances/colorado/secrets/*.json
 **Municipalidad nueva** (sin datos): una sola vez,
 
 ```bash
-./itc init colorado
+./deltactl init colorado
 ```
 
 Comprueba que las bases estén vacías, siembra los datos iniciales en el orden correcto (seed de s1, s1
@@ -69,10 +69,10 @@ arriba, seeds de s0 con su sincronización de usuarios) y deja s1 y s0 corriendo
 las bases ya tienen datos. Tras el primer login, cambia las contraseñas de `root` y `superuser`.
 
 **Municipalidad que ya existe con datos**: apunta sus URI a las bases actuales, crea la instancia con
-`./itc new colorado --existing` (o `./itc adopt colorado` si ya estaba creada) y despliega:
+`./deltactl new colorado --existing` (o `./deltactl adopt colorado` si ya estaba creada) y despliega:
 
 ```bash
-./itc deploy colorado
+./deltactl deploy colorado
 ```
 
 `deploy` valida la configuración (avisa de variables vacías, valores de ejemplo y JSON faltantes),
@@ -82,28 +82,28 @@ descarga), levanta los servicios y espera a que estén `healthy`. **Nunca siembr
 ## 5. Comprobar
 
 ```bash
-./itc list                # servicios, puertos, etiquetas y estado
-./itc ps colorado         # contenedores s0_colorado y s1_colorado
-./itc logs colorado s1    # logs de Gue
+./deltactl list                # servicios, puertos, etiquetas y estado
+./deltactl ps colorado         # contenedores s0_colorado y s1_colorado
+./deltactl logs colorado s1    # logs de Gue
 ```
 
 ## 6. Operar después
 
 ```bash
 # actualizar solo Gue: cambia S1_TAG en .env.instance y
-./itc deploy colorado s1
+./deltactl deploy colorado s1
 
 # volver atrás solo ese servicio
-./itc rollback colorado s1
+./deltactl rollback colorado s1
 
 # detener un servicio sin tocar el otro
-./itc stop colorado s0
+./deltactl stop colorado s0
 ```
 
 ## Segunda municipalidad en el mismo servidor
 
 ```bash
-./itc new tarapoto
+./deltactl new tarapoto
 ```
 
 | Instancia | Contenedores | Puertos (`S0`/`S1`) | Bases de Mongo |

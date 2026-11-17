@@ -1,9 +1,0 @@
-# ps · contenedores de una instancia
-
-Atajo de `docker compose ps` para la instancia (incluye servicios fuera de `COMPOSE_PROFILES`).
-
-## Uso
-$ ./itc ps <instancia>
-
-## Relacionado
-- `./itc status <instancia>` da más información (versiones, salud, avisos)
