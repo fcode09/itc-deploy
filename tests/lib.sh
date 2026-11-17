@@ -7,8 +7,9 @@ pass=0
 fail=0
 
 # check "descripción" 'comando evaluado con eval'
+# Se evalúa en un subshell: un `exit` dentro de la comprobación solo la hace fallar, no aborta la suite.
 check() {
-  if eval "$2"; then
+  if ( eval "$2" ); then
     echo "  PASS $1"
     pass=$((pass + 1))
   else
