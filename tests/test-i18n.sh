@@ -83,4 +83,10 @@ check "unknown instance: English message with the help hint" 'DELTACTL_LANG=en b
 check "the Spanish interface is unchanged" 'DELTACTL_LANG=es bash ./deltactl deploy 2>&1 | grep -q "^ERROR falta el nombre de la instancia. Uso: ./deltactl deploy <instancia>"'
 check "the default (no DELTACTL_LANG) is Spanish" 'env -u DELTACTL_LANG DELTACTL_CONFIG=/nonexistent bash ./deltactl deploy 2>&1 | grep -q "^ERROR falta el nombre"'
 
+check "load without a file: English usage" 'DELTACTL_LANG=en bash ./deltactl load 2>&1 | grep -q "^ERROR usage: ./deltactl load <file.tar|file.tar.gz>"'
+check "load of a missing file: English message" 'DELTACTL_LANG=en bash ./deltactl load /no/such.tar 2>&1 | grep -q "^ERROR the file does not exist: /no/such.tar"'
+check "list without instances: English hint" 'DELTACTL_LANG=en bash ./deltactl list 2>&1 | grep -q "(no instances; create one with ./deltactl new <instance>)"'
+check "list header is translated" 'DELTACTL_LANG=en bash ./deltactl list 2>&1 | grep -q "^INSTANCE .*SERVICES"'
+check "stop without a service: English usage" 'bash ./deltactl new i18n-tmp >/dev/null 2>&1; out="$(DELTACTL_LANG=en bash ./deltactl stop i18n-tmp 2>&1)"; rm -rf instances/i18n-tmp; echo "$out" | grep -q "usage: ./deltactl stop <instance> <service>"'
+
 finish

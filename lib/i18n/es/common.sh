@@ -52,3 +52,10 @@ MSG_es["err.service_inactive"]="'{1}' no está activo en '{2}' (COMPOSE_PROFILES
 
 MSG_es["err.confirm_needed"]="se requiere confirmación: ejecuta de forma interactiva o añade --yes"
 MSG_es["prompt.confirm"]="{1} [s/N] "
+
+# --- Shared by several commands ----------------------------------------------------------------------
+MSG_es["prompt.continue"]="¿Continuar?"
+MSG_es["err.cancelled"]="cancelado"
+MSG_es["data.init"]="init"
+MSG_es["data.existing"]="existente"
+MSG_es["data.unseeded"]="sin sembrar"
