@@ -26,6 +26,10 @@ case "$1" in
   stats) cat "$FIX/stats.txt" ;;
   logs) echo "Nest ERROR de prueba"; echo "linea normal" ;;
   image)
+    if [ "$2" = "ls" ]; then
+      awk -F'|' '{ split($1, r, ":"); printf "%s|%s|%s\n", r[1], r[2], $2 }' "$FIX/images.txt"
+      exit 0
+    fi
     ref="${*: -1}"
     line="$(grep -F "$ref|" "$FIX/images.txt" | head -n1)"
     [ -n "$line" ] || exit 1
