@@ -1,44 +1,28 @@
 #!/usr/bin/env bash
-# ./deltactl menu: menú interactivo con numeración. Cada opción pregunta lo necesario (instancia, servicio...),
-# muestra el comando equivalente y lo ejecuta con ./deltactl: el menú no hace nada que la línea de comandos no haga.
-# Las operaciones destructivas piden confirmación aquí (init exige escribir el nombre de la instancia).
-# Con "?" delante de un número (por ejemplo "?4") muestra la ayuda de esa opción.
+# ./deltactl menu: interactive numbered menu. Every option asks what it needs (instance, service...),
+# shows the equivalent command and runs it with ./deltactl: the menu does nothing the command line does not do.
+# Destructive operations ask for confirmation here (init requires typing the instance name).
+# With "?" before a number (for example "?4") it shows the help of that option.
 
-# new_ask, new_ask_yn y new_loaded_tags vienen de new.sh; st_enabled de status.sh
+# new_ask, new_ask_yn and new_loaded_tags come from new.sh; st_enabled from status.sh
 source "$ROOT/lib/cmd/new.sh"
 source "$ROOT/lib/cmd/status.sh"
 
 PICK=""
 
-# Páginas de ayuda de cada opción del menú.
-declare -A MENU_HELP=([1]=status [2]=new [3]=check [4]=deploy [5]=actualizar [6]=rollback [7]=init
+# Help page of each menu option (English guide ids are accepted: update = the guide about updating).
+declare -A MENU_HELP=([1]=status [2]=new [3]=check [4]=deploy [5]=update [6]=rollback [7]=init
   [8]=logs [9]=stop [10]=down [11]=images [12]=load [13]=doctor [14]=help)
 
 menu_show() {
-  local k label desc
-  ui_h1 "Menú"
-  while IFS='|' read -r k label desc; do
-    printf '  %s%3s)%s %-34s %s%s%s\n' "$C_BLD$C_CYN" "$k" "$C_OFF" "$label" "$C_GRY" "$desc" "$C_OFF"
-  done <<'EOF'
-1|Ver estado|versiones, salud y desajustes
-2|Crear una instancia|asistente paso a paso
-3|Comprobar una instancia|todo lo que deploy exigiría, sin levantar nada
-4|Desplegar|levantar una instancia o un servicio
-5|Actualizar a una versión nueva|cambia la etiqueta y despliega
-6|Volver a la versión anterior|rollback
-7|Sembrar datos iniciales|solo municipalidades NUEVAS (destructivo)
-8|Ver logs|de una instancia o un servicio
-9|Detener un servicio|sin tocar los demás
-10|Bajar una instancia|elimina los contenedores, conserva los datos
-11|Versiones de imágenes|qué hay cargado y quién lo usa
-12|Cargar imágenes|desde un archivo .tar o .tar.gz
-13|Diagnóstico del servidor|Docker, disco, memoria, Mongo
-14|Ayuda|índice de comandos y guías
-0|Salir|
-EOF
+  local k
+  ui_h1 "$(t menu.title)"
+  for k in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 0; do
+    printf '  %s%3s)%s %-34s %s%s%s\n' "$C_BLD$C_CYN" "$k" "$C_OFF" "$(t "menu.opt.$k.label")" "$C_GRY" "$(t "menu.opt.$k.desc")" "$C_OFF"
+  done
 }
 
-# Elige una instancia (por número o nombre). Resultado en PICK; con "all" admite "0 = todas" (PICK vacío).
+# Picks an instance (by number or name). The result is in PICK; with "all" it accepts "0 = all" (empty PICK).
 menu_pick_instance() { # [all]
   local -a names=()
   local f n i ans
@@ -46,17 +30,17 @@ menu_pick_instance() { # [all]
     [ -f "$f" ] && names+=("$(basename "$(dirname "$f")")")
   done
   if [ "${#names[@]}" -eq 0 ]; then
-    warn "no hay instancias todavía: crea una con la opción 2"
+    warn "$(t menu.no_instances)"
     return 1
   fi
-  printf '\n  %sInstancia%s\n' "$C_BLD" "$C_OFF"
+  printf '\n  %s%s%s\n' "$C_BLD" "$(t menu.instance)" "$C_OFF"
   i=0
   for n in "${names[@]}"; do
     i=$((i + 1))
     printf '    %s%d)%s %s %s(%s)%s\n' "$C_CYN" "$i" "$C_OFF" "$n" "$C_GRY" "$(get_var "$INSTANCES_DIR/$n/.env.instance" COMPOSE_PROFILES)" "$C_OFF"
   done
-  [ "${1:-}" != "all" ] || printf '    %s0)%s todas\n' "$C_CYN" "$C_OFF"
-  new_ask "Número o nombre"
+  [ "${1:-}" != "all" ] || printf '    %s0)%s %s\n' "$C_CYN" "$C_OFF" "$(t menu.all_instances)"
+  new_ask "$(t menu.ask_pick)"
   ans="$REPLY_VAL"
   if [ "${1:-}" = "all" ] && [ "$ans" = "0" ]; then PICK=""; return 0; fi
   if [[ "$ans" =~ ^[0-9]+$ ]] && [ "$ans" -ge 1 ] && [ "$ans" -le "${#names[@]}" ]; then
@@ -64,26 +48,26 @@ menu_pick_instance() { # [all]
     return 0
   fi
   for n in "${names[@]}"; do [ "$n" != "$ans" ] || { PICK="$n"; return 0; }; done
-  warn "instancia no válida: '$ans'"
+  warn "$(t menu.bad_instance "$ans")"
   return 1
 }
 
-# Elige un servicio activo de la instancia. Resultado en PICK; con "all" admite "0 = todos" (PICK vacío).
-menu_pick_service() { # instancia [all]
+# Picks an active service of the instance. The result is in PICK; with "all" it accepts "0 = all" (empty PICK).
+menu_pick_service() { # instance [all]
   local inst="$1" i ans s
   st_enabled "$inst"
   if [ "${#ST_ENABLED[@]}" -eq 0 ]; then
-    warn "'$inst' no tiene servicios válidos en COMPOSE_PROFILES"
+    warn "$(t menu.no_services "$inst")"
     return 1
   fi
-  printf '\n  %sServicio%s\n' "$C_BLD" "$C_OFF"
+  printf '\n  %s%s%s\n' "$C_BLD" "$(t menu.service)" "$C_OFF"
   i=0
   for s in "${ST_ENABLED[@]}"; do
     i=$((i + 1))
     printf '    %s%d)%s %s %s(%s)%s\n' "$C_CYN" "$i" "$C_OFF" "$s" "$C_GRY" "$(service_repo "$s" "$inst")" "$C_OFF"
   done
-  [ "${2:-}" != "all" ] || printf '    %s0)%s todos\n' "$C_CYN" "$C_OFF"
-  new_ask "Número o nombre"
+  [ "${2:-}" != "all" ] || printf '    %s0)%s %s\n' "$C_CYN" "$C_OFF" "$(t menu.all_services)"
+  new_ask "$(t menu.ask_pick)"
   ans="$REPLY_VAL"
   if [ "${2:-}" = "all" ] && [ "$ans" = "0" ]; then PICK=""; return 0; fi
   if [[ "$ans" =~ ^[0-9]+$ ]] && [ "$ans" -ge 1 ] && [ "$ans" -le "${#ST_ENABLED[@]}" ]; then
@@ -91,22 +75,22 @@ menu_pick_service() { # instancia [all]
     return 0
   fi
   for s in "${ST_ENABLED[@]}"; do [ "$s" != "$ans" ] || { PICK="$s"; return 0; }; done
-  warn "servicio no válido: '$ans'"
+  warn "$(t menu.bad_service "$ans")"
   return 1
 }
 
 menu_pause() {
   [ -t 0 ] || return 0
-  printf '\n  %sEnter para volver al menú...%s' "$C_GRY" "$C_OFF" >&2
+  printf '\n  %s%s%s' "$C_GRY" "$(t menu.pause)" "$C_OFF" >&2
   IFS= read -r _ || true
 }
 
-# Ejecuta ./deltactl con los argumentos, mostrando el comando equivalente. Devuelve su código de salida.
+# Runs ./deltactl with the arguments, showing the equivalent command. Returns its exit code.
 menu_exec() {
   local rc=0
   printf '\n  %s%s ./deltactl %s%s\n\n' "$C_GRY" "$UI_S_ARROW" "$*" "$C_OFF"
   "$ROOT/deltactl" "$@" || rc=$?
-  [ "$rc" -eq 0 ] || printf '\n  %s El comando terminó con errores (código %d)\n' "$(ui_sym err)" "$rc"
+  [ "$rc" -eq 0 ] || printf '\n  %s %s\n' "$(ui_sym err)" "$(t menu.cmd_failed "$rc")"
   return "$rc"
 }
 
@@ -118,7 +102,7 @@ menu_new() { menu_run new --wizard; }
 menu_check() {
   menu_pick_instance || return 0
   local inst="$PICK"
-  if new_ask_yn "¿Probar también la conexión a las bases de datos? (tarda unos segundos)" n; then
+  if new_ask_yn "$(t menu.ask_mongo)" n; then
     menu_run check "$inst" --mongo
   else
     menu_run check "$inst"
@@ -132,7 +116,7 @@ menu_deploy() {
   menu_run deploy "$inst" ${PICK:+"$PICK"}
 }
 
-# Cambia la etiqueta de un servicio, comprueba y despliega solo ese servicio.
+# Changes the tag of a service, checks and deploys only that service.
 menu_update() {
   local inst svc repo cur tag tags f
   menu_pick_instance || return 0
@@ -143,23 +127,23 @@ menu_update() {
   repo="$(service_repo "$svc" "$inst")"
   cur="$(get_var "$f" "$(tag_var "$svc")")"
   tags="$(new_loaded_tags "$repo" | tr '\n' ' ')"
-  printf '\n  %s: etiqueta actual %s%s%s\n' "$svc" "$C_BLD" "${cur:-(vacía)}" "$C_OFF"
-  [ -z "$tags" ] || printf '  %sCargadas de %s: %s%s\n' "$C_GRY" "$repo" "$tags" "$C_OFF"
-  new_ask "Nueva etiqueta de $svc"
+  printf '\n  %s %s%s%s\n' "$(t menu.current_tag "$svc")" "$C_BLD" "${cur:-$(t menu.empty_paren)}" "$C_OFF"
+  [ -z "$tags" ] || printf '  %s%s%s\n' "$C_GRY" "$(t menu.loaded_of "$repo" "$tags")" "$C_OFF"
+  new_ask "$(t menu.ask_new_tag "$svc")"
   tag="$REPLY_VAL"
-  if [ -z "$tag" ]; then info "  cancelado"; return 0; fi
-  if [ "$tag" = "$cur" ]; then info "  ya está en esa etiqueta"; return 0; fi
+  if [ -z "$tag" ]; then info "$(t menu.cancelled)"; return 0; fi
+  if [ "$tag" = "$cur" ]; then info "$(t menu.same_tag)"; return 0; fi
   if [ -n "$tags" ] && [[ " $tags " != *" $tag "* ]]; then
-    warn "la etiqueta '$tag' no está entre las cargadas (¿falta ./deltactl load?)"
-    new_ask_yn "¿Continuar de todos modos?" n || return 0
+    warn "$(t menu.tag_not_loaded "$tag")"
+    new_ask_yn "$(t menu.ask_anyway)" n || return 0
   fi
-  new_ask_yn "Se cambiará $(tag_var "$svc") de '${cur:-vacía}' a '$tag' en .env.instance y se desplegará solo $svc. ¿Continuar?" s || return 0
+  new_ask_yn "$(t menu.confirm_update "$(tag_var "$svc")" "${cur:-$(t menu.empty_word)}" "$tag" "$svc")" y || return 0
   set_var "$f" "$(tag_var "$svc")" "$tag"
   if ! menu_exec check "$inst" "$svc"; then
-    warn "la comprobación falló: no se desplegó"
-    if new_ask_yn "¿Volver a la etiqueta anterior (${cur:-vacía})?" s; then
+    warn "$(t menu.check_failed)"
+    if new_ask_yn "$(t menu.ask_restore "${cur:-$(t menu.empty_word)}")" y; then
       set_var "$f" "$(tag_var "$svc")" "$cur"
-      info "  etiqueta restaurada"
+      info "$(t menu.tag_restored)"
     fi
     menu_pause
     return 0
@@ -172,16 +156,16 @@ menu_rollback() {
   local inst="$PICK"
   menu_pick_service "$inst" all || return 0
   local svc="$PICK"
-  new_ask_yn "Vuelve a la versión anterior de ${svc:-todos los servicios} de '$inst'. ¿Continuar?" n || return 0
+  new_ask_yn "$(t menu.confirm_rollback "${svc:-$(t menu.all_the_services)}" "$inst")" n || return 0
   menu_run rollback "$inst" ${svc:+"$svc"} --yes
 }
 
 menu_init() {
   menu_pick_instance || return 0
   local inst="$PICK"
-  printf '\n  %s Los seeds BORRAN datos (drop de colecciones). Solo para municipalidades NUEVAS, una vez.\n' "$(ui_sym warn)"
-  new_ask "Para confirmar, escribe el nombre de la instancia ($inst)"
-  if [ "$REPLY_VAL" != "$inst" ]; then info "  cancelado"; return 0; fi
+  printf '\n  %s %s\n' "$(ui_sym warn)" "$(t menu.init_warning)"
+  new_ask "$(t menu.ask_confirm_name "$inst")"
+  if [ "$REPLY_VAL" != "$inst" ]; then info "$(t menu.cancelled)"; return 0; fi
   menu_run init "$inst" --yes
 }
 
@@ -190,7 +174,7 @@ menu_logs() {
   local inst="$PICK"
   menu_pick_service "$inst" all || return 0
   local svc="$PICK"
-  if new_ask_yn "¿Seguir en vivo? (Ctrl+C para volver)" n; then
+  if new_ask_yn "$(t menu.ask_follow)" n; then
     menu_exec logs "$inst" ${svc:+"$svc"} -f || true
   else
     menu_run logs "$inst" ${svc:+"$svc"}
@@ -207,26 +191,26 @@ menu_stop() {
 menu_down() {
   menu_pick_instance || return 0
   local inst="$PICK"
-  new_ask_yn "Detiene y elimina los contenedores de '$inst' (los datos se conservan). ¿Continuar?" n || return 0
+  new_ask_yn "$(t menu.confirm_down "$inst")" n || return 0
   menu_run down "$inst" --yes
 }
 
 menu_images() { menu_run images; }
 
 menu_load() {
-  new_ask "Ruta del archivo .tar o .tar.gz"
-  if [ -z "$REPLY_VAL" ]; then info "  cancelado"; return 0; fi
+  new_ask "$(t menu.ask_file)"
+  if [ -z "$REPLY_VAL" ]; then info "$(t menu.cancelled)"; return 0; fi
   menu_run load "$REPLY_VAL"
 }
 
 menu_doctor() { menu_run doctor; }
 
 menu_help() {
-  new_ask "Tema o comando (Enter = índice)"
+  new_ask "$(t menu.ask_help)"
   if [ -n "$REPLY_VAL" ]; then menu_run help "$REPLY_VAL"; else menu_run help; fi
 }
 
-menu_dispatch() { # opción
+menu_dispatch() { # option
   case "$1" in
     1) menu_status ;;
     2) menu_new ;;
@@ -242,17 +226,17 @@ menu_dispatch() { # opción
     12) menu_load ;;
     13) menu_doctor ;;
     14) menu_help ;;
-    *) warn "opción no válida: '$1' (elige un número del menú o 0 para salir)" ;;
+    *) warn "$(t menu.bad_option "$1")" ;;
   esac
 }
 
 cmd_menu() {
-  [ "$#" -eq 0 ] || die "menu no recibe argumentos (ver ./deltactl help menu)"
+  [ "$#" -eq 0 ] || die "$(t menu.args)"
   local choice help_page
   ui_banner
   while true; do
     menu_show
-    printf '\n  Elige una opción (con ? delante, ayuda: ?4): ' >&2
+    printf '\n  %s ' "$(t menu.prompt)" >&2
     IFS= read -r choice || { printf '\n'; break; }
     choice="${choice// /}"
     case "$choice" in
@@ -261,7 +245,7 @@ cmd_menu() {
       \?*)
         help_page=""
         [[ "${choice#\?}" =~ ^[0-9]+$ ]] && help_page="${MENU_HELP[${choice#\?}]:-}"
-        if [ -n "$help_page" ]; then menu_run help "$help_page"; else warn "no hay ayuda para '${choice#\?}'"; fi
+        if [ -n "$help_page" ]; then menu_run help "$help_page"; else warn "$(t help.no_page "${choice#\?}")"; fi
         ;;
       *) menu_dispatch "$choice" ;;
     esac

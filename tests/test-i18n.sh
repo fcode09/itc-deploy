@@ -110,4 +110,10 @@ check "new without a name: English usage" 'DELTACTL_LANG=en bash ./deltactl new 
 check "new creates an instance and prints the English next steps" 'out="$(DELTACTL_LANG=en bash ./deltactl new i18n-nw 2>&1)"; rm -rf instances/i18n-nw; echo "$out" | grep -q "^OK instance .i18n-nw. created in .* (ports [0-9]*/[0-9]*)" && echo "$out" | grep -q "^Next steps:" && echo "$out" | grep -q "full guide: ./deltactl help new-instance"'
 check "new: the Spanish output is unchanged" 'out="$(DELTACTL_LANG=es bash ./deltactl new i18n-nw 2>&1)"; rm -rf instances/i18n-nw; echo "$out" | grep -q "^OK instancia .i18n-nw. creada en" && echo "$out" | grep -q "^Siguientes pasos:" && echo "$out" | grep -q "guía completa: ./deltactl help nueva-instancia"'
 
+check "every menu option has a label and a description in both languages" 'for k in 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14; do for l in es en; do bash -c "ROOT=\"\$PWD\"; source lib/i18n/i18n.sh; i18n_load_lang $l; [ -n \"\${MSG_$l[menu.opt.$k.label]+x}\" ] && [ -n \"\${MSG_$l[menu.opt.$k.desc]+x}\" ]" || exit 1; done; done'
+check "menu with an argument: English message" 'DELTACTL_LANG=en bash ./deltactl menu extra 2>&1 | grep -q "^ERROR menu takes no arguments (see ./deltactl help menu)"'
+check "menu: English title, options and prompt" 'out="$(printf "0\n" | DELTACTL_LANG=en DELTACTL_UI=plain bash ./deltactl menu 2>&1)"; echo "$out" | grep -q "^Menu" && echo "$out" | grep -q "1) View status" && echo "$out" | grep -q "0) Quit" && echo "$out" | grep -q "Choose an option (with ? first, help: ?4):"'
+check "menu: an invalid option is reported in English" 'printf "99\n0\n" | DELTACTL_LANG=en DELTACTL_UI=plain bash ./deltactl menu 2>&1 | grep -q "WARN invalid option: .99. (choose a number from the menu or 0 to quit)"'
+check "menu: the help of option 5 (update) resolves the English guide id" 'out="$(printf "?5\n0\n" | DELTACTL_LANG=en DELTACTL_UI=plain bash ./deltactl menu 2>&1)"; ! echo "$out" | grep -q "there is no help for"'
+
 finish
