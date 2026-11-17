@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC2034  # MSG_es is read by t through a nameref
-# Spanish catalog (default UI language). Sourced by lib/i18n/i18n.sh; not executed.
+# Spanish catalog (default UI language). Sourced by lib/i18n/i18n.sh with the other files of lib/i18n/es/; not executed.
 # Placeholders {1}..{9} are replaced by the arguments of t. Keep every key in sync with en.sh
 # (tests/test-i18n.sh fails if the key sets or the placeholders differ).
 

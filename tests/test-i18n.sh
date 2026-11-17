@@ -47,14 +47,14 @@ check "\\n in a message becomes a line break" '[ "$(i18n_run DELTACTL_LANG=es --
 
 section "3. both catalogs define the same keys and placeholders"
 keys_of() { # lang
-  bash -c 'ROOT="$PWD"; source lib/i18n/i18n.sh; DELTACTL_LANG='"$1"'; source "lib/i18n/'"$1"'.sh"; for k in "${!MSG_'"$1"'[@]}"; do echo "$k"; done' | sort
+  bash -c 'ROOT="$PWD"; source lib/i18n/i18n.sh; DELTACTL_LANG='"$1"'; i18n_load_lang '"$1"'; for k in "${!MSG_'"$1"'[@]}"; do echo "$k"; done' | sort
 }
 check "es and en have exactly the same keys" 'diff <(keys_of es) <(keys_of en)'
 placeholders_of() { # lang
-  bash -c 'ROOT="$PWD"; source lib/i18n/i18n.sh; source "lib/i18n/'"$1"'.sh"; for k in $(printf "%s\n" "${!MSG_'"$1"'[@]}" | sort); do v="${MSG_'"$1"'[$k]}"; printf "%s:" "$k"; grep -oE "\{[0-9]\}" <<<"$v" | sort -u | tr "\n" " "; echo; done'
+  bash -c 'ROOT="$PWD"; source lib/i18n/i18n.sh; i18n_load_lang '"$1"'; for k in $(printf "%s\n" "${!MSG_'"$1"'[@]}" | sort); do v="${MSG_'"$1"'[$k]}"; printf "%s:" "$k"; grep -oE "\{[0-9]\}" <<<"$v" | sort -u | tr "\n" " "; echo; done'
 }
 check "es and en use the same placeholders in every message" 'diff <(placeholders_of es) <(placeholders_of en)'
-check "no catalog message contains a printf-style %s (use {1})" '! grep -nE "MSG_(es|en)\[.*\]=.*%[sd]" lib/i18n/*.sh'
+check "no catalog message contains a printf-style %s (use {1})" '! grep -nE "MSG_(es|en)\[.*\]=.*%[sd]" lib/i18n/*/*.sh'
 
 section "4. every key used in the code exists in the catalog"
 used_keys() {
@@ -66,7 +66,7 @@ check "the scan finds the keys in use" '[ "$(used_keys | wc -l)" -ge 20 ]'
 check "every key used with t exists in es.sh" 'missing=0; for k in $(used_keys); do bash -c "ROOT=\"\$PWD\"; source lib/i18n/i18n.sh; [ -n \"\${MSG_es[$k]+x}\" ]" || { echo "missing: $k"; missing=1; }; done; [ "$missing" -eq 0 ]'
 
 section "5. help topic names (English ids with Spanish aliases)"
-check "every topic id has a name in both languages" 'for id in $(bash -c "ROOT=\"\$PWD\"; source lib/i18n/i18n.sh; echo \${TOPIC_IDS[*]}"); do for l in es en; do bash -c "ROOT=\"\$PWD\"; source lib/i18n/i18n.sh; source lib/i18n/$l.sh; [ -n \"\${MSG_$l[topic.$id]+x}\" ]" || exit 1; done; done'
+check "every topic id has a name in both languages" 'for id in $(bash -c "ROOT=\"\$PWD\"; source lib/i18n/i18n.sh; echo \${TOPIC_IDS[*]}"); do for l in es en; do bash -c "ROOT=\"\$PWD\"; source lib/i18n/i18n.sh; i18n_load_lang $l; [ -n \"\${MSG_$l[topic.$id]+x}\" ]" || exit 1; done; done'
 check "a Spanish alias maps to its English id" '[ "$(i18n_run -- "topic_canonical nueva-instancia")" = "new-instance" ]'
 check "an English id maps back to the page file id" '[ "$(i18n_run -- "topic_file_id new-instance")" = "nueva-instancia" ]'
 check "a command name is left alone" '[ "$(i18n_run -- "topic_label deploy")" = "deploy" ]'

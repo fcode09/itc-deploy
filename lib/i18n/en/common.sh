@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC2034  # MSG_en is read by t through a nameref
-# English catalog. Sourced by lib/i18n/i18n.sh; not executed.
-# Placeholders {1}..{9} are replaced by the arguments of t. Keep every key in sync with es.sh
+# English catalog. Sourced by lib/i18n/i18n.sh with the other files of lib/i18n/en/; not executed.
+# Placeholders {1}..{9} are replaced by the arguments of t. Keep every key in sync with the same area file of the other language
 # (tests/test-i18n.sh fails if the key sets or the placeholders differ).
 
 # --- Message labels ----------------------------------------------------------------------------------
