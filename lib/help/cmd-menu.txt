@@ -1,0 +1,36 @@
+# menu · menú interactivo
+
+Todo lo que hace `deltactl`, a golpe de números. Cada opción pregunta lo necesario (instancia, servicio...),
+muestra el comando equivalente que va a ejecutar y lo ejecuta: el menú no hace nada que la línea de
+comandos no haga, y te enseña cómo se escribe.
+
+## Uso
+$ ./deltactl menu
+
+## Opciones del menú
+- 1. Ver estado: `./deltactl status`
+- 2. Crear una instancia: `./deltactl new --wizard`
+- 3. Comprobar una instancia: `./deltactl check` (con la opción de probar las bases)
+- 4. Desplegar: `./deltactl deploy` (todos los servicios o uno)
+- 5. Actualizar a una versión nueva: cambia la etiqueta en `.env.instance`, comprueba y despliega solo ese servicio
+- 6. Volver a la versión anterior: `./deltactl rollback`
+- 7. Sembrar datos iniciales: `./deltactl init` (pide escribir el nombre de la instancia)
+- 8. Ver logs: `./deltactl logs` (también en vivo)
+- 9. Detener un servicio: `./deltactl stop`
+- 10. Bajar una instancia: `./deltactl down`
+- 11. Versiones de imágenes: `./deltactl images`
+- 12. Cargar imágenes: `./deltactl load`
+- 13. Diagnóstico del servidor: `./deltactl doctor`
+- 14. Ayuda: `./deltactl help`
+- 0. Salir
+
+## Ayuda dentro del menú
+Escribe `?` delante de un número: `?4` muestra la ayuda de "Desplegar".
+
+## Seguridad
+- las operaciones destructivas (init, down, rollback) piden confirmación en el propio menú
+- `init` exige escribir el nombre de la instancia
+- la opción 5 pregunta antes de cambiar la etiqueta y, si la comprobación falla, ofrece restaurar la anterior
+
+## Relacionado
+- `./deltactl help status`, `./deltactl help actualizar`

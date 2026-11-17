@@ -1,0 +1,10 @@
+# Normaliza finales de línea. Los scripts DEBEN ser LF: con CRLF fallan en Linux
+# ("bad interpreter"), y en Windows Git podría convertirlos al clonar.
+* text=auto
+deltactl text eol=lf
+*.sh text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.md text eol=lf
+*.example text eol=lf
+*.txt text eol=lf

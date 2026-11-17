@@ -1,0 +1,192 @@
+# Glosario de variables de entorno de deltactl.
+# Formato: "@ CLAVE | archivo | tipo | valor por defecto" y debajo la descripción hasta la siguiente "@".
+# tipo: obligatoria (la valida ./deltactl deploy) | opcional | fija (la fija el compose o la imagen: no va en el .env).
+# tests/test-help.sh comprueba que este archivo coincide con las plantillas y con las validaciones de deploy.sh.
+
+@ INSTANCE | .env.instance | obligatoria | lo pone ./deltactl new
+Nombre de la instancia. Define el proyecto Compose, los contenedores (`s0_<INSTANCE>`, `s1_<INSTANCE>`)
+y la red privada `<INSTANCE>_net`. Debe coincidir con el nombre de la carpeta (`deploy` lo comprueba).
+Solo minúsculas, números y guion; empieza con letra.
+
+@ REGISTRY | .env.instance | opcional | vacío
+Registry de las imágenes, sin barra final. VACÍO = imágenes ya cargadas en este Docker (`./deltactl load`):
+no se descarga nada. Con valor (por ejemplo `registry.ejemplo.com/itc`) `deploy` baja
+`<registry>/<nombre>:<etiqueta>`. Ver `./deltactl help imagenes`.
+
+@ COMPOSE_PROFILES | .env.instance | obligatoria | s0,s1
+Servicios activos de la instancia, separados por coma: `s0,s1`, `s1` o `s0`. Solo los listados se
+validan, se descargan y se levantan. Ver `./deltactl help servicios`.
+
+@ S0_IMAGE | .env.instance | opcional | auth-backend
+Nombre de la imagen de s0, SIN etiqueta ni registry. Cámbialo solo si construiste la imagen con otro
+nombre (por ejemplo `s0`). Minúsculas, números, `.` `_` `-`; admite `/`.
+
+@ S1_IMAGE | .env.instance | opcional | gueo-back-end
+Nombre de la imagen de s1, SIN etiqueta ni registry. Igual que `S0_IMAGE`.
+
+@ S0_TAG | .env.instance | obligatoria | ninguno
+Etiqueta (versión) de la imagen de s0 que se despliega. Una por versión o commit; evita `latest` y nunca
+reutilices una etiqueta. Las disponibles: `./deltactl images`.
+
+@ S1_TAG | .env.instance | obligatoria | ninguno
+Etiqueta (versión) de la imagen de s1 que se despliega. Igual que `S0_TAG`.
+
+@ S0_PORT | .env.instance | obligatoria | 4100
+Puerto del host donde se publica s0 (solo en 127.0.0.1). Cada instancia usa un bloque de 10 desde 4100.
+`./deltactl new` propone el siguiente libre. Ver `./deltactl help puertos`.
+
+@ S1_PORT | .env.instance | obligatoria | 4101
+Puerto del host donde se publica s1 (solo en 127.0.0.1). Normalmente `S0_PORT` + 1.
+
+@ S0_MEM_LIMIT | .env.instance | opcional | 512m
+Límite de memoria del contenedor de s0. Ajústalo según la carga real.
+
+@ S1_MEM_LIMIT | .env.instance | opcional | 2g
+Límite de memoria del contenedor de s1. Cada instancia puede abrir hasta 2 Chromium a la vez para los
+reportes PDF; con menos memoria pueden fallar.
+
+@ DATA_DIR | .env.instance | opcional | ./instances/<INSTANCE>/data
+Carpeta de datos de la instancia. Úsala solo si los datos deben vivir fuera del repositorio (otro disco).
+
+@ SERVER_PORT | .env.s0 | fija | 3200
+Puerto interno de s0. Lo fija el compose: no lo pongas en `.env.s0`.
+
+@ NODE_ENV | .env.s0 | fija | prod
+Lo fija la imagen. `prod` desactiva Swagger.
+
+@ IP_SERVER | .env.s0 | obligatoria | http://localhost
+URL pública base del sistema, con esquema (`http://` o `https://`), sin puerto ni barra final.
+Los seeds la usan: `url_systems` la guarda como URL de cada sistema (se ve en Auth, Configuración,
+Sistemas) y como base de las URLs de backend (`<IP_SERVER>:3000/3100/3200`). Tras `init`, revisa
+esas URLs: todas llevan el mismo valor.
+
+@ JWT_SECRET | .env.s0 | obligatoria | ninguno
+Clave con la que se firman los tokens JWT de Auth. Secreta y única por instancia
+(por ejemplo `openssl rand -hex 32`).
+
+@ JWT_EXPIRES_IN | .env.s0 | opcional | 8h
+Duración de los tokens JWT.
+
+@ MONGO_URI | .env.s0 | obligatoria | mongodb://127.0.0.1/authsoftware2021
+URI de MongoDB para Auth. Desde un contenedor usa `host.docker.internal` (el Mongo del servidor) y un
+nombre de base propio de la instancia. `127.0.0.1` dentro del contenedor es el propio contenedor.
+
+@ IP_INTERNAL_CONNECTION | .env.s0 | obligatoria | 127.0.0.1
+Host del servidor TCP de s1; el código usa el puerto fijo 5020. En la red privada de la instancia es `s1`.
+Auth también intenta contactar un servidor "Spider" en este host (puerto fijo 5050): no forma parte de este
+despliegue y verás `ECONNREFUSED` en los logs. Ver `./deltactl help red`.
+
+@ GOOGLE_KEY | .env.s0 | opcional | ninguno
+Clave de Google Maps (geocodificación de municipalidades). Secreta.
+
+@ PROFILE_PROPAGATION_ENABLED | .env.s0 | opcional | true
+Interruptor general de la propagación de perfiles de permisos hacia usuarios y sistemas externos.
+Solo el texto exacto `false` la desactiva.
+
+@ PROFILE_SYNC_CONCURRENCY | .env.s0 | opcional | 4
+Cuántas sincronizaciones de perfiles con sistemas externos se hacen a la vez.
+
+@ PROFILE_BACKUP_DIR | .env.s0 | opcional | ./backups
+Directorio del respaldo JSON que se escribe antes de `migrate_profiles apply`. Dentro del contenedor es
+`/app/backups`, que se guarda en `data/s0/backups`.
+
+@ SERVER_PORT | .env.s1 | fija | 3000
+Puerto interno de s1. Lo fija el compose: no lo pongas en `.env.s1`.
+
+@ NODE_ENV | .env.s1 | fija | prod
+Lo fija la imagen. `prod` desactiva Swagger.
+
+@ IP_SERVER | .env.s1 | obligatoria | http://localhost
+URL pública base del sistema, con esquema. Gue la usa para las URLs de las imágenes de notificaciones
+(le añade el puerto de `SERVER_PORT`), como respaldo en enlaces de correos y, si no defines `AUTH_URL`,
+para llamar a Auth (`<IP_SERVER>:3200`).
+
+@ AUTH_URL | .env.s1 | obligatoria | ${IP_SERVER}:3200
+URL con la que s1 llama a Auth, sin barra final. En la red privada de la instancia: `http://s0:3200`.
+Si s0 no corre en esta instancia, apunta al Auth que corresponda. Requiere una imagen de s1 con soporte de
+`AUTH_URL`. Ver `./deltactl help red`.
+
+@ JWT_SECRET | .env.s1 | obligatoria | ninguno
+Clave con la que se firman los tokens JWT de Gue. Secreta y única por instancia.
+
+@ DELTA_UNIVERSITY_HANDOFF_SECRET | .env.s1 | opcional | ninguno
+Secreto del handoff con Delta University. Mínimo 32 caracteres; sin él, el endpoint de handoff
+responde 503.
+
+@ MONGO_DELTA_DISPATCH_URI | .env.s1 | obligatoria | ninguno
+URI de la base de Delta Dispatch (una de las tres conexiones de s1). Usa una base propia de la instancia.
+
+@ MONGO_AUTHSOFTWARE_URI | .env.s1 | obligatoria | ninguno
+URI de la base de AuthSoftware. En los ejemplos lleva el mismo nombre de base que `MONGO_URI` de s0.
+
+@ MONGO_ROBIN_URI | .env.s1 | obligatoria | ninguno
+URI de la base de Robin (tercera conexión de s1).
+
+@ IP_INTERNAL_CONNECTION | .env.s1 | opcional | 127.0.0.1
+Reservada: en el código actual de Gue no se usa para escuchar ni para conectar. Para elegir en qué
+dirección escucha el TCP de s1 usa `TCP_LISTEN_HOST`.
+
+@ PORT_INTERNAL_CONNECTION | .env.s1 | opcional | 5020
+Reservada: `main.ts` ignora este valor; el puerto del TCP interno es fijo (5020).
+
+@ TCP_LISTEN_HOST | .env.s1 | opcional | 127.0.0.1
+Dirección en la que escucha el microservicio TCP (5020) que usa s0. Sin definirla escucha solo en
+loopback (como en PM2). En Docker, con s0 en otro contenedor, ponla en `0.0.0.0` para que lo alcance por
+la red privada de la instancia. Nunca publiques el puerto 5020: no tiene autenticación.
+
+@ FCM_CERT | .env.s1 | obligatoria | ninguno
+RUTA (no el contenido) al JSON de cuenta de servicio de Firebase, tal como la ve el contenedor:
+`/run/secrets/fcm.json`. El archivo va en `instances/<instancia>/secrets/`. Ver `./deltactl help secretos`.
+
+@ KEEPER_FCM_CERT | .env.s1 | obligatoria | ninguno
+Igual que `FCM_CERT`, para Keeper: `/run/secrets/keeper-fcm.json`.
+
+@ API_KEY_CLOUD_MESSAGING | .env.s1 | opcional | ninguno
+Cabecera de autorización FCM heredada (legacy). Secreta.
+
+@ FEDERATION_ENCRYPTION_KEY | .env.s1 | obligatoria | ninguno
+Clave de cifrado de la federación: base64 de exactamente 32 bytes (`openssl rand -base64 32`). Única por
+instancia. Si falta o está mal formada, el arranque falla; si cambia, lo cifrado con la anterior no se lee.
+
+@ FEDERATION_NODE_DISPLAY_NAME | .env.s1 | opcional | Delta Federation Node
+Nombre visible del nodo en la federación.
+
+@ SERVERS_CONFIG | .env.s1 | obligatoria | ninguno
+Texto JSON del webhook de WhatsApp, en UNA sola línea y SIN comillas alrededor. Con `[]` basta para arrancar.
+
+@ VERIFY_TOKEN | .env.s1 | opcional | keeper_wsp_bussiness_app
+Token de verificación del webhook de WhatsApp.
+
+@ GOOGLE_KEY | .env.s1 | opcional | ninguno
+Clave de Google Maps (geocodificación). Secreta.
+
+@ DEEPGRAM_API_KEY | .env.s1 | obligatoria | ninguno
+Clave de Deepgram (voz a texto). Obligatoria en el primer arranque con la base vacía: sin ella el proceso se
+cae. Cualquier valor basta para arrancar; la transcripción real necesita una clave válida.
+
+@ TRANSCRIPTOR_URL | .env.s1 | opcional | ninguno
+URL del servicio de transcripción Vosk. La usan la siembra de voz a texto y el proveedor de respaldo.
+
+@ LIVEKIT_URL | .env.s1 | opcional | ninguno
+URL del servidor LiveKit (push-to-talk). Vacía: crear una sesión PTT falla con "api-key and api-secret must
+be set"; el servicio arranca igual.
+
+@ LIVEKIT_API_KEY | .env.s1 | opcional | ninguno
+API key de LiveKit. Secreta.
+
+@ LIVEKIT_API_SECRET | .env.s1 | opcional | ninguno
+API secret de LiveKit. Secreto.
+
+@ LIVEKIT_TOKEN_TTL_SECONDS | .env.s1 | opcional | 600
+Vigencia, en segundos, de los tokens de LiveKit.
+
+@ SHIFT_UPDATE_BASELINE_SECRET | .env.s1 | opcional | shift-update-baseline
+Secreto con el que se firma la línea base oculta del Excel de "Actualizar mes" (exportación de turnos).
+Cámbialo en producción. OJO: el valor por defecto solo se aplica si la variable NO existe; con
+`SHIFT_UPDATE_BASELINE_SECRET=` (vacía) se usa la cadena vacía, no el valor por defecto.
+
+@ SUPERVISOR_REPORT_PARITY_CHECK | .env.s1 | opcional | desactivada
+Bandera de funcionalidad. `log` pausa el cambio de reporte y registra una comparación.
+
+@ SIPCOP_ALERT_RESYNC | .env.s1 | opcional | desactivada
+Bandera de funcionalidad. `on` activa la resincronización de alertas SIPCOP.

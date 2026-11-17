@@ -1,0 +1,21 @@
+# Un solo compose para todas las instancias. Se ejecuta siempre con
+#   --env-file instances/<instancia>/.env.instance
+# (./deltactl lo hace por ti). El nombre del proyecto aísla redes y volúmenes por instancia.
+name: ${INSTANCE:?define INSTANCE en instances/<instancia>/.env.instance}
+
+# `include` no admite comodines: cada servicio nuevo añade su línea aquí.
+# project_directory fija que las rutas relativas (env_file, volúmenes) se resuelvan
+# desde la raíz de este repo y no desde la carpeta services/.
+include:
+  - path: services/compose-s0.yaml
+    project_directory: .
+  - path: services/compose-s1.yaml
+    project_directory: .
+
+# Red privada de la instancia: todos sus servicios se conectan a ella (la red "default" de
+# Compose) y se resuelven por el nombre del servicio (s0, s1...). Cada instancia tiene su propia
+# red, así que los servicios de una municipalidad no ven a los de otra. No es "internal": los
+# contenedores siguen pudiendo salir al exterior y llegar a Mongo en el host.
+networks:
+  default:
+    name: ${INSTANCE}_net

@@ -1,0 +1,37 @@
+
+init · sembrar los datos iniciales
+------------------------------------
+
+Carga los datos de partida de una municipalidad NUEVA: los catálogos de Gue, los datos base de Auth
+(entre ellos los usuarios y las URLs de los sistemas) y los usuarios administrativos
+(root, superuser, deltadispatch).
+
+Uso
+  $ ./deltactl init <instancia> [--yes]
+
+Qué hace, en orden
+  . 1. comprueba que las bases estén vacías (si tienen datos, se detiene)
+  . 2. ejecuta el seed de s1 (catálogos)
+  . 3. levanta s1 y espera a que esté healthy: el seed de s0 necesita hablar con él por TCP
+  . 4. ejecuta los seeds de s0 (datos base, usuario root, URLs de sistemas) y sincroniza los usuarios con s1
+  . 5. levanta s0 y deja el marcador `.initialized`
+
+  ! Es DESTRUCTIVO: los seeds hacen drop de colecciones. Por eso solo corre en instancias nuevas, una vez, y no tiene --force.
+  ! Los usuarios root/superuser tienen contraseñas fijas en el código de Auth: cámbialas tras el primer login.
+
+Requisitos
+  . s0 y s1 activos en `COMPOSE_PROFILES`
+  . imágenes cargadas y configuración válida (las mismas comprobaciones que `deploy`)
+  . Mongo alcanzable desde los contenedores
+
+Si la municipalidad YA tiene datos
+No uses `init`: usa `./deltactl adopt <instancia>` (o crea la instancia con `./deltactl new --existing`).
+
+Registro
+Los logs de cada seed quedan en `instances/<instancia>/init-logs/`. Los seeds terminan siempre con
+código 0 aunque fallen, por eso `init` lee su log para saber si salieron bien.
+
+Relacionado
+  . `./deltactl help datos` qué siembra cada seed y por qué
+  . `./deltactl help instancia-existente`
+[exit=0]

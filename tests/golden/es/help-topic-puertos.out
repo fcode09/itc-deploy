@@ -1,0 +1,24 @@
+
+Puertos
+---------
+
+Cómo se reparten
+  . cada instancia usa un bloque de 10 puertos del host, desde 4100
+  . `s0` usa el puerto base y `s1` el siguiente: 4100/4101 la primera instancia, 4110/4111 la segunda...
+  . `./deltactl new` propone el siguiente bloque libre y comprueba que no lo use otra instancia
+
+Dónde se publican
+Solo en `127.0.0.1` (ver `S0_PORT` y `S1_PORT` en `.env.instance`): no son accesibles desde fuera del servidor.
+Para exponerlos, pon un proxy con TLS (nginx, Caddy...) delante; este repositorio no lo configura.
+
+Dentro del contenedor
+Fijos: `s0` escucha en 3200 y `s1` en 3000. No dependen de `.env.s0` ni `.env.s1`.
+
+Puerto repetido
+  . `./deltactl status` lo marca en rojo ("puerto N repetido")
+  . corrige `S0_PORT`/`S1_PORT` en `.env.instance` de una de las dos y vuelve a desplegar ese servicio
+  . si el puerto lo usa algo ajeno a `deltactl` en el servidor, `./deltactl new` solo avisa: compruébalo con `ss -ltn`
+
+Relacionado
+  . `./deltactl help red`, `./deltactl help servicios`
+[exit=0]

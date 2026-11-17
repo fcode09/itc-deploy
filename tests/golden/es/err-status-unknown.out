@@ -1,0 +1,2 @@
+ERROR la instancia 'no-existe' no existe. Créala con: ./deltactl new no-existe (ayuda: ./deltactl help nueva-instancia)
+[exit=1]

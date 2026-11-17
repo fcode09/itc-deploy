@@ -1,0 +1,19 @@
+
+Estado de las instancias
+--------------------------
+INSTANCIA         SVC   CONFIG      CORRIENDO   ESTADO             PUERTO  UPTIME    DATOS         NOTAS
+gold-drift        s0    1.0         1.0         unhealthy          4110    <UP>     init          no está sano
+gold-drift        s1    1.0         0.9         healthy            4111    <UP>     init          configurada 1.0 pero corre 0.9
+gold-new          s0    1.0         -           no creado          4120    -         sin sembrar   
+gold-new          s1    1.0         -           no creado          4121    -         sin sembrar   
+gold-ok           s0    1.0         1.0         healthy            4100    <UP>     init          
+gold-ok           s1    1.0         1.0         healthy            4101    <UP>     init          
+
+  ! 3 instancia(s) · 6 servicio(s) · 2 con avisos
+
+  Siguientes pasos sugeridos
+  -> ./deltactl logs gold-drift s0  # revisar por qué gold-drift/s0 no está sano
+  -> ./deltactl deploy gold-drift s1  # gold-drift/s1 corre 0.9 y está configurada 1.0
+  -> ./deltactl init gold-new  # gold-new no tiene datos iniciales (si ya tiene datos: ./deltactl adopt gold-new)
+  -> ./deltactl deploy gold-new  # gold-new no tiene contenedores creados
+[exit=2]

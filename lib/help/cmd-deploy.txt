@@ -1,0 +1,32 @@
+# deploy · levantar o actualizar una instancia
+
+Valida la configuración, comprueba que las imágenes existan y levanta los servicios esperando a que
+estén healthy. Con servicio, solo toca ese servicio. NUNCA siembra datos.
+
+## Uso
+$ ./deltactl deploy <instancia> [servicio]
+
+## Qué hace, en orden
+- 1. exige que las variables obligatorias estén completas (sin valores `CAMBIAR...`)
+- 2. valida el compose de la instancia
+- 3. con imágenes locales comprueba que existan en este Docker (si falta alguna, no cambia nada)
+- 4. avisa si una etiqueta apunta ahora a otra imagen distinta de la desplegada
+- 5. guarda las etiquetas anteriores para poder hacer rollback
+- 6. levanta (con REGISTRY descarga las imágenes antes) y espera a healthy
+- 7. registra las etiquetas desplegadas en `.deployed`
+
+## Ejemplos
+$ ./deltactl deploy colorado          # todos los servicios activos de la instancia
+$ ./deltactl deploy colorado s1       # solo s1 (no toca s0)
+
+> Con imágenes locales (REGISTRY vacío) nunca se descarga nada de internet.
+> Si cambias `S1_TAG` y despliegas, Compose recrea solo el contenedor que cambió.
+
+## Errores típicos
+- `falta la imagen X:tag` → cárgala (`./deltactl load`) o corrige la etiqueta (`./deltactl images`)
+- `FCM_CERT apunta a ... pero falta secrets/...` → copia el JSON a `secrets/` (`./deltactl help secretos`)
+- `no llegó a healthy` → `./deltactl logs <instancia> <servicio>`; para volver atrás `./deltactl rollback`
+- `no está inicializada` (aviso) → `./deltactl init` si es nueva, `./deltactl adopt` si ya tiene datos
+
+## Relacionado
+- `./deltactl help actualizar`, `./deltactl help imagenes`, `./deltactl help solucion-problemas`

@@ -1,0 +1,17 @@
+# help · cómo usar la ayuda
+
+## Uso
+$ ./deltactl help                       índice: comandos y guías
+$ ./deltactl help <comando>             ayuda de un comando (también: ./deltactl <comando> --help)
+$ ./deltactl help <tema>                guía completa (nueva-instancia, actualizar, ...)
+$ ./deltactl help variable <NOMBRE>     qué significa una variable de los .env
+$ ./deltactl help variable              todas las variables, por archivo
+$ ./deltactl help buscar <texto>        busca un texto en toda la ayuda
+$ ./deltactl help temas                 solo la lista de guías
+
+## Consejo
+Si no sabes por dónde empezar: `./deltactl help nueva-instancia`. Si algo falló: `./deltactl help solucion-problemas`.
+
+## Relacionado
+- `./deltactl menu` menú interactivo con ayuda en cada opción (`?4`)
+- `./deltactl completion bash` autocompletado con Tab de comandos, temas y variables

@@ -1,0 +1,19 @@
+
+logs · ver los logs
+---------------------
+
+Muestra las últimas 200 líneas de los servicios de la instancia.
+
+Uso
+  $ ./deltactl logs <instancia> [servicio] [-f]
+
+Ejemplos
+  $ ./deltactl logs colorado s1        # logs de s1
+  $ ./deltactl logs colorado s0 -f     # seguir en vivo (Ctrl+C para salir)
+
+  i `./deltactl status <instancia>` cuenta cuántas líneas con ERROR hubo en los últimos 10 minutos.
+  i Los logs rotan solos: 5 archivos de 10 MB por servicio.
+
+Relacionado
+  . `./deltactl help solucion-problemas`
+[exit=0]

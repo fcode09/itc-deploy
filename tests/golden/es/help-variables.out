@@ -1,0 +1,59 @@
+
+Variables de entorno
+----------------------
+VARIABLE                            ARCHIVO         TIPO
+INSTANCE                            .env.instance   obligatoria
+REGISTRY                            .env.instance   opcional
+COMPOSE_PROFILES                    .env.instance   obligatoria
+S0_IMAGE                            .env.instance   opcional
+S1_IMAGE                            .env.instance   opcional
+S0_TAG                              .env.instance   obligatoria
+S1_TAG                              .env.instance   obligatoria
+S0_PORT                             .env.instance   obligatoria
+S1_PORT                             .env.instance   obligatoria
+S0_MEM_LIMIT                        .env.instance   opcional
+S1_MEM_LIMIT                        .env.instance   opcional
+DATA_DIR                            .env.instance   opcional
+SERVER_PORT                         .env.s0         fija
+NODE_ENV                            .env.s0         fija
+IP_SERVER                           .env.s0         obligatoria
+JWT_SECRET                          .env.s0         obligatoria
+JWT_EXPIRES_IN                      .env.s0         opcional
+MONGO_URI                           .env.s0         obligatoria
+IP_INTERNAL_CONNECTION              .env.s0         obligatoria
+GOOGLE_KEY                          .env.s0         opcional
+PROFILE_PROPAGATION_ENABLED         .env.s0         opcional
+PROFILE_SYNC_CONCURRENCY            .env.s0         opcional
+PROFILE_BACKUP_DIR                  .env.s0         opcional
+SERVER_PORT                         .env.s1         fija
+NODE_ENV                            .env.s1         fija
+IP_SERVER                           .env.s1         obligatoria
+AUTH_URL                            .env.s1         obligatoria
+JWT_SECRET                          .env.s1         obligatoria
+DELTA_UNIVERSITY_HANDOFF_SECRET     .env.s1         opcional
+MONGO_DELTA_DISPATCH_URI            .env.s1         obligatoria
+MONGO_AUTHSOFTWARE_URI              .env.s1         obligatoria
+MONGO_ROBIN_URI                     .env.s1         obligatoria
+IP_INTERNAL_CONNECTION              .env.s1         opcional
+PORT_INTERNAL_CONNECTION            .env.s1         opcional
+TCP_LISTEN_HOST                     .env.s1         opcional
+FCM_CERT                            .env.s1         obligatoria
+KEEPER_FCM_CERT                     .env.s1         obligatoria
+API_KEY_CLOUD_MESSAGING             .env.s1         opcional
+FEDERATION_ENCRYPTION_KEY           .env.s1         obligatoria
+FEDERATION_NODE_DISPLAY_NAME        .env.s1         opcional
+SERVERS_CONFIG                      .env.s1         obligatoria
+VERIFY_TOKEN                        .env.s1         opcional
+GOOGLE_KEY                          .env.s1         opcional
+DEEPGRAM_API_KEY                    .env.s1         obligatoria
+TRANSCRIPTOR_URL                    .env.s1         opcional
+LIVEKIT_URL                         .env.s1         opcional
+LIVEKIT_API_KEY                     .env.s1         opcional
+LIVEKIT_API_SECRET                  .env.s1         opcional
+LIVEKIT_TOKEN_TTL_SECONDS           .env.s1         opcional
+SHIFT_UPDATE_BASELINE_SECRET        .env.s1         opcional
+SUPERVISOR_REPORT_PARITY_CHECK      .env.s1         opcional
+SIPCOP_ALERT_RESYNC                 .env.s1         opcional
+
+  -> Detalle de una variable: ./deltactl help variable <NOMBRE>
+[exit=0]

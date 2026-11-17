@@ -1,0 +1,21 @@
+# Glosario
+
+- **instancia**: una municipalidad desplegada. Tiene su carpeta `instances/<nombre>/`, su red, sus puertos y sus bases
+- **servicio**: una aplicación del ecosistema. Hoy `s0` (auth-backend) y `s1` (gueo-back-end)
+- **perfil** (`COMPOSE_PROFILES`): lista de servicios activos en una instancia
+- **etiqueta (tag)**: la versión de una imagen, por ejemplo `1.2.0`
+- **imagen**: el paquete con la aplicación; se construye en tu PC y se carga en el servidor con `./deltactl load`
+- **imagen local**: imagen ya cargada en este Docker (`REGISTRY` vacío); nunca se descarga
+- **registry**: servidor de imágenes; con `REGISTRY` definido, `deploy` baja las imágenes de ahí
+- **healthy**: el servicio respondió a su chequeo de salud; `deploy` espera a que lo esté
+- **desajuste (drift)**: lo configurado no coincide con lo que corre (etiqueta, imagen, perfil...)
+- **seed**: carga de datos iniciales; borra y vuelve a cargar, por eso se hace una sola vez
+- **marcador (`.initialized`)**: archivo que registra que la instancia ya tiene datos; `init` se niega si existe
+- **rollback**: volver a la etiqueta del despliegue anterior
+- **red privada**: la red `<instancia>_net` que aísla los contenedores de una instancia de los de otra
+- **drop**: borrar una colección entera de la base de datos
+- **proxy**: servidor (nginx, Caddy) que publica los puertos locales hacia internet con TLS
+- **Mongo compartido**: el MongoDB del servidor, usado por todas las instancias; cada una con sus bases
+
+## Relacionado
+- `./deltactl help` para el índice de comandos y guías

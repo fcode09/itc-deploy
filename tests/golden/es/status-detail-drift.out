@@ -1,0 +1,32 @@
+
+[1m[36mInstancia gold-drift[0m
+[90m──────────────────────[0m
+  [90mservicios     [0m s0,s1
+  [90mdatos         [0m init (desde <DATE>)
+  [90mimágenes      [0m locales (REGISTRY vacío)
+  [90mcarpeta       [0m instances/gold-drift
+
+[1mServicio s0[0m
+  [90mestado        [0m [31m✖[0m [31munhealthy[0m  desde hace <UP>
+  [90mversión       [0m configurada 1.0 · corriendo 1.0 · desplegada 1.0
+  [90mimagen        [0m auth-backend:1.0
+  [90mpuerto        [0m http://127.0.0.1:4110 (solo local; publícalo con tu proxy)
+  [90mrecursos      [0m memoria - · cpu -
+  [90merrores 10m   [0m 1 línea(s) con ERROR/ECONNREFUSED en los logs (./deltactl logs gold-drift s0)
+  [90mnotas         [0m no está sano
+
+[1mServicio s1[0m
+  [90mestado        [0m [33m▲[0m [33mhealthy[0m  desde hace <UP>
+  [90mversión       [0m configurada 1.0 · corriendo 0.9 · desplegada 0.9
+  [90mimagen        [0m gueo-back-end:1.0
+  [90mpuerto        [0m http://127.0.0.1:4111 (solo local; publícalo con tu proxy)
+  [90mrecursos      [0m memoria - · cpu -
+  [90merrores 10m   [0m 1 línea(s) con ERROR/ECONNREFUSED en los logs (./deltactl logs gold-drift s1)
+  [90mnotas         [0m configurada 1.0 pero corre 0.9
+
+  [33m▲[0m [33m1 instancia(s) · 2 servicio(s) · 2 con avisos[0m
+
+  [1mSiguientes pasos sugeridos[0m
+  [36m→[0m [32m./deltactl logs gold-drift s0[0m  [90m# revisar por qué gold-drift/s0 no está sano[0m
+  [36m→[0m [32m./deltactl deploy gold-drift s1[0m  [90m# gold-drift/s1 corre 0.9 y está configurada 1.0[0m
+[exit=0]
