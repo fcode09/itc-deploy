@@ -3,7 +3,7 @@ services:
   s0:
     # REGISTRY vacío = imagen local (auth-backend:<tag>); con valor se antepone (<registry>/auth-backend:<tag>).
     image: ${REGISTRY:+${REGISTRY}/}${S0_IMAGE:-auth-backend}:${S0_TAG:?define S0_TAG en .env.instance}
-    # ./itc fija PULL_POLICY=never cuando REGISTRY está vacío: si falta la imagen local, Docker no
+    # ./deltactl fija PULL_POLICY=never cuando REGISTRY está vacío: si falta la imagen local, Docker no
     # debe bajar de Docker Hub una imagen homónima que no es la nuestra.
     pull_policy: ${PULL_POLICY:-missing}
     container_name: s0_${INSTANCE}
@@ -20,7 +20,7 @@ services:
     ports:
       - "127.0.0.1:${S0_PORT:?define S0_PORT en .env.instance}:3200"
     volumes:
-      # Las subcarpetas (user, loginSettings, file, certificate-settings) las crea `./itc new`.
+      # Las subcarpetas (user, loginSettings, file, certificate-settings) las crea `./deltactl new`.
       - ${DATA_DIR:-./instances/${INSTANCE}/data}/s0/media:/app/src/media
       - ${DATA_DIR:-./instances/${INSTANCE}/data}/s0/backups:/app/backups
     # Para llegar a servicios que corren en el host (por ejemplo MongoDB).

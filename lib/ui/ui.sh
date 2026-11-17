@@ -1,20 +1,20 @@
 #!/usr/bin/env bash
-# Capa visual de ./itc: colores, banner, tablas y renderizado de la ayuda.
-# Se carga con `source` desde lib.sh; no se ejecuta directamente.
+# Visual layer of ./deltactl: colors, banner, tables and help rendering.
+# Sourced from lib.sh; not executed directly.
 #
-# Reglas que respeta (para no romper scripts, pipes ni tests):
-#   - Fuera de una terminal (stdout redirigido) la salida es texto plano, sin códigos de escape.
-#   - NO_COLOR (cualquier valor) o TERM=dumb desactivan los colores.
-#   - ITC_COLOR=always|never|auto fuerza el color. ITC_UI=rich|plain|auto fuerza el modo "rico"
-#     (banner, símbolos). ITC_ASCII=1 evita los caracteres Unicode.
+# Rules it follows (so scripts, pipes and tests do not break):
+#   - Outside a terminal (stdout redirected) the output is plain text, with no escape codes.
+#   - NO_COLOR (any value) or TERM=dumb disable colors.
+#   - DELTACTL_COLOR=always|never|auto forces color. DELTACTL_UI=rich|plain|auto forces "rich" mode
+#     (banner, symbols). DELTACTL_ASCII=1 avoids Unicode characters.
 
-ITC_VERSION="0.2.0"
+DELTACTL_VERSION="0.2.0"
 
-# Calcula el modo de salida. Se vuelve a llamar solo desde los tests.
+# Computes the output mode. Called again only from the tests.
 ui_init() {
   UI_RICH=0 UI_COLOR=0 UI_ERRCOLOR=0 UI_UTF8=0 UI_W=80 UI_256=0
 
-  case "${ITC_UI:-auto}" in
+  case "${DELTACTL_UI:-auto}" in
     rich) UI_RICH=1 ;;
     plain) UI_RICH=0 ;;
     *) [ -t 1 ] && UI_RICH=1 ;;
@@ -22,7 +22,7 @@ ui_init() {
 
   local dumb=0
   [ "${TERM:-}" != "dumb" ] || dumb=1
-  case "${ITC_COLOR:-auto}" in
+  case "${DELTACTL_COLOR:-auto}" in
     always) UI_COLOR=1 UI_ERRCOLOR=1 ;;
     never) ;;
     *)
@@ -33,7 +33,7 @@ ui_init() {
       ;;
   esac
 
-  if [ "${ITC_ASCII:-0}" != "1" ]; then
+  if [ "${DELTACTL_ASCII:-0}" != "1" ]; then
     case "${LC_ALL:-${LC_CTYPE:-${LANG:-}}}" in
       *[Uu][Tt][Ff]-8* | *[Uu][Tt][Ff]8*) UI_UTF8=1 ;;
     esac
@@ -55,14 +55,14 @@ ui_init() {
   else
     C_RED=''; C_GRN=''; C_YEL=''; C_BLU=''; C_MAG=''; C_CYN=''; C_GRY=''; C_BLD=''; C_DIM=''; C_OFF=''
   fi
-  # Colores para los mensajes que van a stderr (se deciden según stderr, no stdout).
+  # Colors for messages that go to stderr (decided by stderr, not stdout).
   if [ "$UI_ERRCOLOR" -eq 1 ]; then
     E_RED=$'\033[31m'; E_YEL=$'\033[33m'; E_OFF=$'\033[0m'
   else
     E_RED=''; E_YEL=''; E_OFF=''
   fi
 
-  # Símbolos Unicode solo en modo rico (terminal); en pipes y logs siempre ASCII.
+  # Unicode symbols only in rich mode (terminal); in pipes and logs always ASCII.
   if [ "$UI_UTF8" -eq 1 ] && [ "$UI_RICH" -eq 1 ]; then
     UI_S_OK='●' UI_S_WARN='▲' UI_S_ERR='✖' UI_S_INFO='ℹ' UI_S_DOT='·' UI_S_ARROW='→' UI_S_RULE='─'
   else
@@ -73,33 +73,33 @@ ui_init() {
 
 ui_init
 
-# Línea horizontal del ancho de la terminal (máx. 100).
+# Horizontal rule as wide as the terminal (max. 100).
 ui_rule() {
   local n="${1:-$UI_W}" i line=""
   for ((i = 0; i < n; i++)); do line+="$UI_S_RULE"; done
   printf '%s%s%s\n' "$C_GRY" "$line" "$C_OFF"
 }
 
-# Título de sección: texto en negrita y regla debajo.
-ui_h1() { # texto
+# Section title: bold text with a rule underneath.
+ui_h1() { # text
   printf '\n%s%s%s\n' "$C_BLD$C_CYN" "$1" "$C_OFF"
   ui_rule "$(( ${#1} > UI_W ? UI_W : ${#1} + 2 ))"
 }
 
 ui_h2() { printf '\n%s%s%s\n' "$C_BLD" "$1" "$C_OFF"; }
 
-# Pista de siguiente paso: "→ texto".
+# Next-step hint: "→ text".
 ui_hint() { printf '  %s%s %s%s\n' "$C_CYN" "$UI_S_ARROW" "$*" "$C_OFF"; }
 
-# Clave: valor alineado (clave en gris).
-ui_kv() { # clave valor [ancho]
-  # El relleno se calcula en caracteres (printf %-Ns cuenta bytes y descuadra con acentos).
+# Aligned key: value (key in gray).
+ui_kv() { # key value [width]
+  # Padding is computed in characters (printf %-Ns counts bytes and misaligns accented text).
   local pad=$((${3:-14} - ${#1}))
   [ "$pad" -ge 0 ] || pad=0
   printf '  %s%s%*s%s %s\n' "$C_GRY" "$1" "$pad" "" "$C_OFF" "$2"
 }
 
-# Símbolo coloreado según el estado: ok | warn | err | info | dim.
+# Symbol colored by state: ok | warn | err | info | dim.
 ui_sym() {
   case "$1" in
     ok) printf '%s%s%s' "$C_GRN" "$UI_S_OK" "$C_OFF" ;;
@@ -110,7 +110,7 @@ ui_sym() {
   esac
 }
 
-# Color asociado a un estado.
+# Color associated with a state.
 ui_state_color() {
   case "$1" in
     ok) printf '%s' "$C_GRN" ;;
@@ -123,17 +123,17 @@ ui_state_color() {
   esac
 }
 
-# --- Tablas -------------------------------------------------------------------------------------
-# Uso:  ui_table_cols 12 5 10      define los anchos (la última columna no se rellena)
-#       ui_th "INSTANCIA" "SVC"    cabecera
-#       ui_tr "colorado" "ok:s0"   fila; cada celda es "texto" o "<estado>:texto"
-# <estado> = ok | warn | err | info | dim | bold  (colorea la celda)
-#            st-ok | st-warn | st-err | st-dim     (celda de estado: símbolo + texto en modo rico)
-# El relleno se calcula con el texto SIN códigos de color, así las columnas no se descuadran.
+# --- Tables -------------------------------------------------------------------------------------
+# Usage:  ui_table_cols 12 5 10      defines the widths (the last column is not padded)
+#         ui_th "INSTANCE" "SVC"     header
+#         ui_tr "colorado" "ok:s0"   row; each cell is "text" or "<state>:text"
+# <state> = ok | warn | err | info | dim | bold  (colors the cell)
+#           st-ok | st-warn | st-err | st-dim    (state cell: symbol + text in rich mode)
+# Padding is computed on the text WITHOUT color codes, so columns do not misalign.
 UI_COLS_W=()
 ui_table_cols() { UI_COLS_W=("$@"); }
 
-# Imprime una celda de ancho w. $1=ancho $2=estado ("" = sin color) $3=texto $4=1 si es la última.
+# Prints one cell of width w. $1=width $2=state ("" = no color) $3=text $4=1 if it is the last one.
 ui_cell() {
   local w="$1" kind="$2" text="$3" last="${4:-0}" sym="" extra=0 col shown
   case "$kind" in
@@ -147,7 +147,7 @@ ui_cell() {
   esac
   col="$(ui_state_color "$kind")"
   shown="$text"
-  # La última columna no se trunca ni se rellena: ocupa lo que necesite.
+  # The last column is neither truncated nor padded: it takes what it needs.
   if [ "$last" != "1" ] && [ $((${#text} + extra)) -gt "$w" ] && [ "$w" -gt 1 ]; then
     shown="${text:0:$((w - extra - 1))}$UI_S_ELL"
   fi
@@ -167,7 +167,7 @@ ui_th() {
     if [ "$i" -eq "$n" ]; then
       printf '%s' "$a"
     else
-      # Relleno en caracteres (no en bytes) para que las cabeceras con acentos no descuadren.
+      # Padding in characters (not bytes) so headers with accents do not misalign.
       printf '%s%*s  ' "$a" "$((${UI_COLS_W[$((i - 1))]:-12} - ${#a}))" ""
     fi
   done
@@ -193,7 +193,7 @@ ui_tr() {
   printf '\n'
 }
 
-# Escapa un texto para JSON (comillas, barras y saltos de línea).
+# Escapes a text for JSON (quotes, backslashes and line breaks).
 ui_json_escape() {
   local s="$1"
   s="${s//\\/\\\\}"
@@ -205,19 +205,19 @@ ui_json_escape() {
 }
 
 # --- Banner -------------------------------------------------------------------------------------
-# Solo en modo rico (terminal). Con ancho < 78 o sin Unicode se usa una versión compacta.
-ui_banner() { # [subtítulo]
+# Rich mode only (terminal). With a width < 78 or without Unicode a compact version is used.
+ui_banner() { # [subtitle]
   [ "$UI_RICH" -eq 1 ] || return 0
-  local sub="${1:-Despliegue de instancias por municipalidad}" i line host
-  host="$(hostname 2>/dev/null || echo servidor)"
+  local sub="${1:-$(t ui.banner_subtitle)}" i line host
+  host="$(hostname 2>/dev/null || t ui.host_fallback)"
   if [ "$UI_UTF8" -eq 1 ] && [ "$UI_W" -ge 78 ]; then
     local -a art=(
-      '██╗████████╗ ██████╗      ██████╗ ███████╗██████╗ ██╗      ██████╗ ██╗   ██╗'
-      '██║╚══██╔══╝██╔════╝      ██╔══██╗██╔════╝██╔══██╗██║     ██╔═══██╗╚██╗ ██╔╝'
-      '██║   ██║   ██║     █████╗██║  ██║█████╗  ██████╔╝██║     ██║   ██║ ╚████╔╝ '
-      '██║   ██║   ██║     ╚════╝██║  ██║██╔══╝  ██╔═══╝ ██║     ██║   ██║  ╚██╔╝  '
-      '██║   ██║   ╚██████╗      ██████╔╝███████╗██║     ███████╗╚██████╔╝   ██║   '
-      '╚═╝   ╚═╝    ╚═════╝      ╚═════╝ ╚══════╝╚═╝     ╚══════╝ ╚═════╝    ╚═╝   '
+      '██████╗ ███████╗██╗     ████████╗ █████╗  ██████╗████████╗██╗     '
+      '██╔══██╗██╔════╝██║     ╚══██╔══╝██╔══██╗██╔════╝╚══██╔══╝██║     '
+      '██║  ██║█████╗  ██║        ██║   ███████║██║        ██║   ██║     '
+      '██║  ██║██╔══╝  ██║        ██║   ██╔══██║██║        ██║   ██║     '
+      '██████╔╝███████╗███████╗   ██║   ██║  ██║╚██████╗   ██║   ███████╗'
+      '╚═════╝ ╚══════╝╚══════╝   ╚═╝   ╚═╝  ╚═╝ ╚═════╝   ╚═╝   ╚══════╝'
     )
     local -a grad=(51 45 39 33 27 63)
     printf '\n'
@@ -231,24 +231,24 @@ ui_banner() { # [subtítulo]
       i=$((i + 1))
     done
   else
-    printf '\n  %sITC-DEPLOY%s\n' "$C_BLD$C_CYN" "$C_OFF"
+    printf '\n  %sDELTACTL%s\n' "$C_BLD$C_CYN" "$C_OFF"
   fi
-  printf '  %s%s  %s  v%s  %s  %s%s\n' "$C_GRY" "$sub" "$UI_S_DOT" "$ITC_VERSION" "$UI_S_DOT" "$host" "$C_OFF"
+  printf '  %s%s  %s  v%s  %s  %s%s\n' "$C_GRY" "$sub" "$UI_S_DOT" "$DELTACTL_VERSION" "$UI_S_DOT" "$host" "$C_OFF"
   printf '\n'
 }
 
-# --- Renderizado de la ayuda --------------------------------------------------------------------
-# Marcado de los archivos scripts/help/*.txt (una sola fuente de verdad para la ayuda):
-#   # Título             encabezado de la página
-#   ## Sección           subtítulo
-#   $ comando            comando para copiar (verde)
-#   ! texto              advertencia
-#   > texto              nota
-#   - texto              viñeta
-#   | comando | texto    fila de tabla (comando en verde, descripción alineada)
-#   `código`             resaltado en línea
-# Cualquier otra línea se imprime tal cual (con el resaltado en línea).
-ui_inline() { # texto
+# --- Help rendering -----------------------------------------------------------------------------
+# Markup of the lib/help/*.txt files (a single source of truth for the help):
+#   # Title              page heading
+#   ## Section           subheading
+#   $ command            command to copy (green)
+#   ! text               warning
+#   > text               note
+#   - text               bullet
+#   | command | text     table row (command in green, description aligned)
+#   `code`               inline highlight
+# Any other line is printed as is (with inline highlighting).
+ui_inline() { # text
   local s="$1" out="" re='^([^`]*)`([^`]+)`(.*)$'
   if [ "$UI_COLOR" -ne 1 ]; then
     printf '%s' "$s"
@@ -261,11 +261,11 @@ ui_inline() { # texto
   printf '%s' "$out$s"
 }
 
-ui_render_file() { # archivo
+ui_render_file() { # file
   local line rest cmd desc pad blank=1
   while IFS= read -r line || [ -n "$line" ]; do
     line="${line%$'\r'}"
-    # Las secciones ya llevan una línea en blanco antes: si el archivo ya la trae, no se duplica.
+    # Sections already get a blank line before them: if the file brings one, it is not duplicated.
     if [ "${line:0:3}" = "## " ] && [ "$blank" -eq 1 ]; then
       printf '%s%s%s\n' "$C_BLD" "${line#\#\# }" "$C_OFF"
       blank=0
@@ -280,7 +280,7 @@ ui_render_file() { # archivo
       '> '*) printf '  %s %s\n' "$(ui_sym info)" "$(ui_inline "${line#> }")" ;;
       '- '*) printf '  %s%s%s %s\n' "$C_GRY" "$UI_S_DOT" "$C_OFF" "$(ui_inline "${line#- }")" ;;
       '| '*)
-        # Fila de tabla "| comando | descripción": el comando en verde y alineado a 50 columnas.
+        # Table row "| command | description": command in green, aligned at column 50.
         rest="${line#| }"
         cmd="${rest%% | *}"
         desc="${rest#* | }"
