@@ -65,10 +65,10 @@ ui_init() {
   # Unicode symbols only in rich mode (terminal); in pipes and logs always ASCII.
   if [ "$UI_UTF8" -eq 1 ] && [ "$UI_RICH" -eq 1 ]; then
     UI_S_OK='●' UI_S_WARN='▲' UI_S_ERR='✖' UI_S_INFO='ℹ' UI_S_DOT='·' UI_S_ARROW='→' UI_S_RULE='─'
-    UI_S_BAR_L='▕' UI_S_BAR_R='▏' UI_S_BAR_ON='█' UI_S_BAR_OFF='░'
+    UI_S_BAR_L='▕' UI_S_BAR_R='▏' UI_S_BAR_ON='█' UI_S_BAR_OFF='░' UI_S_SEL='▸'
   else
     UI_S_OK='*' UI_S_WARN='!' UI_S_ERR='x' UI_S_INFO='i' UI_S_DOT='.' UI_S_ARROW='->' UI_S_RULE='-'
-    UI_S_BAR_L='[' UI_S_BAR_R=']' UI_S_BAR_ON='#' UI_S_BAR_OFF='.'
+    UI_S_BAR_L='[' UI_S_BAR_R=']' UI_S_BAR_ON='#' UI_S_BAR_OFF='.' UI_S_SEL='>'
   fi
   if [ "$UI_UTF8" -eq 1 ]; then UI_S_ELL='…'; else UI_S_ELL='~'; fi
 }

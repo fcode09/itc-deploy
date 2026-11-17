@@ -23,6 +23,7 @@ _deltactl_complete() {
     versions) flags="--json" ;;
     check) flags="--mongo" ;;
     logs) flags="-f" ;;
+    menu) flags="--classic" ;;
   esac
   if [[ "$cur" == -* ]]; then
     COMPREPLY=($(compgen -W "$flags" -- "$cur"))

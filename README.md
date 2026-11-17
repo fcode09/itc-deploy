@@ -64,8 +64,8 @@ El código y los comentarios están en inglés; el español es el idioma de la i
 de comandos; el menú y el asistente solo preguntan por ti y te muestran el comando equivalente.
 
 ```bash
-./deltactl                        # en una terminal: banner + panel de estado de todas las instancias
-./deltactl menu                   # menú interactivo con todas las acciones (con ?4 ves la ayuda de la opción 4)
+./deltactl                        # en una terminal: el panel con flechas (↑↓, Enter = acciones, ? = teclas, L = idioma, q = salir)
+./deltactl menu --classic         # el menú numerado con todas las acciones (con ?4 ves la ayuda de la opción 4); es el que se usa sin terminal
 ./deltactl status                 # versión configurada vs la que corre, salud, puertos, uptime y siguientes pasos
 ./deltactl status colorado        # detalle de una instancia: imagen, previa, memoria/CPU y errores recientes
 ./deltactl images                 # versiones cargadas, quién las usa, previas para rollback y las que sobran

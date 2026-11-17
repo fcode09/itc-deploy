@@ -22,6 +22,7 @@ COMPLETION_FLAGS=(
   "versions:--json"
   "check:--mongo"
   "logs:-f"
+  "menu:--classic"
 )
 
 cmd_completion() {

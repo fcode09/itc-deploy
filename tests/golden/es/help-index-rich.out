@@ -43,7 +43,7 @@ Servicios: [36ms0[0m = auth-backend (Auth) y [36ms1[0m = gueo-back-end (Gue)
   [32mlist[0m                                              Instancias, servicios, puertos, etiquetas y estado
   [32mps <instancia>[0m                                    Estado de los contenedores
   [32mlogs <instancia> [servicio] [-f][0m                  Logs (últimas 200 líneas)
-  [32mmenu[0m                                              Menú interactivo con todas las acciones, con numeración y confirmaciones
+  [32mmenu [--classic][0m                                  Panel interactivo con flechas (o menú numerado sin terminal) con todas las acciones y confirmaciones
   [32mcompletion bash[0m                                   Autocompletado con Tab (source <(./deltactl completion bash))
   [32mhelp [comando|tema][0m                               Esta ayuda
 

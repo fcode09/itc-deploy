@@ -7,9 +7,16 @@ muestra el comando equivalente que va a ejecutar y lo ejecuta: el menú no hace 
 comandos no haga, y te enseña cómo se escribe.
 
 Uso
-  $ ./deltactl menu
+  $ ./deltactl menu [--classic]
 
-Opciones del menú
+El panel con flechas
+En una terminal real (también al ejecutar `./deltactl` sin argumentos) abre un panel: arriba la memoria del servidor
+y el estado `n/m` de cada instancia. Muévete con ↑ ↓, Enter abre las acciones de la instancia seleccionada (detalle,
+comprobar, desplegar, rollback, logs, detener, bajar, sembrar) y `?` muestra todas las teclas. Se refresca solo cada
+pocos segundos; `L` cambia entre español e inglés y `q` sale. Sin terminal (un pipe, un script) o con `--classic` se
+usa el menú numerado que sigue.
+
+Opciones del menú numerado
   . 1. Ver estado: `./deltactl status`
   . 2. Crear una instancia: `./deltactl new --wizard`
   . 3. Comprobar una instancia: `./deltactl check` (con la opción de probar las bases)

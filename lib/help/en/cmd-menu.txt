@@ -5,9 +5,16 @@ shows the equivalent command it is going to run and runs it: the menu does nothi
 line does not do, and it teaches you how to type it.
 
 ## Usage
-$ ./deltactl menu
+$ ./deltactl menu [--classic]
 
-## Menu options
+## The arrow-key panel
+In a real terminal (also when you run `./deltactl` without arguments) it opens a panel: at the top the server memory
+and the `n/m` state of every instance. Move with ↑ ↓, Enter opens the actions of the selected instance (details,
+check, deploy, rollback, logs, stop, take down, seed) and `?` shows all the keys. It refreshes by itself every few
+seconds; `L` switches between Spanish and English and `q` quits. Without a terminal (a pipe, a script) or with
+`--classic` the numbered menu below is used.
+
+## Numbered menu options
 - 1. View status: `./deltactl status`
 - 2. Create an instance: `./deltactl new --wizard`
 - 3. Check an instance: `./deltactl check` (with the option to test the databases)

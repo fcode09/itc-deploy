@@ -32,7 +32,7 @@ $ ./deltactl help <topic>          full step-by-step guide
 | list | Instances, services, ports, tags and state
 | ps <instance> | State of the containers
 | logs <instance> [service] [-f] | Logs (last 200 lines)
-| menu | Interactive menu with every action, numbered and with confirmations
+| menu [--classic] | Interactive arrow-key panel (or numbered menu without a terminal) with every action and confirmations
 | completion bash | Tab completion (source <(./deltactl completion bash))
 | help [command|topic] | This help
 
