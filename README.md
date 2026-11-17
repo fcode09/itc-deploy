@@ -33,9 +33,55 @@ itc-deploy/
 ├─ services/            # compose-s0.yaml, compose-s1.yaml
 ├─ templates/           # plantillas versionadas: .env.instance.example, .env.s0.example, .env.s1.example
 ├─ instances/           # instancias reales: NO se versionan
-├─ scripts/             # lib.sh y cmd/*.sh que usa ./itc
+├─ scripts/             # lib.sh, ui.sh (colores, banner, tablas), cmd/*.sh y help/ (la ayuda)
+├─ tests/               # suites de pruebas (tests/run.sh)
 └─ docs/                # catálogo de servicios
 ```
+
+## La consola
+
+`./itc` es una consola con colores, tablas y ayuda integrada. Todo lo que hace está también en la línea
+de comandos; el menú y el asistente solo preguntan por ti y te muestran el comando equivalente.
+
+```bash
+./itc                        # en una terminal: banner + panel de estado de todas las instancias
+./itc menu                   # menú interactivo con todas las acciones (con ?4 ves la ayuda de la opción 4)
+./itc status                 # versión configurada vs la que corre, salud, puertos, uptime y siguientes pasos
+./itc status colorado        # detalle de una instancia: imagen, previa, memoria/CPU y errores recientes
+./itc images                 # versiones cargadas, quién las usa, previas para rollback y las que sobran
+./itc check colorado         # comprueba todo lo que deploy exigiría, sin levantar nada (--mongo prueba las bases)
+./itc doctor                 # diagnóstico del servidor: Docker, disco, memoria, Mongo, permisos
+./itc new --wizard           # asistente: pregunta lo esencial y lista lo que falta completar
+./itc completion bash        # autocompletado con Tab (source <(./itc completion bash))
+```
+
+El panel `status` avisa de lo que no cuadra y sugiere el comando para arreglarlo: etiqueta configurada distinta
+de la que corre, imagen reconstruida con la misma etiqueta, imagen que falta, servicio `unhealthy` o detenido,
+servicio que corre fuera de `COMPOSE_PROFILES`, puerto repetido o instancia sin sembrar. Con `--json`
+sale en formato para scripts y con `--strict` termina con código 2 si hay avisos (útil en monitoreo).
+
+### Ayuda
+
+```bash
+./itc help                       # índice de comandos y guías
+./itc help deploy                # qué hace, ejemplos y errores típicos (también: ./itc deploy --help)
+./itc help nueva-instancia       # guía paso a paso para una instancia nueva
+./itc help variable S0_TAG       # qué significa cada variable de los .env (sin nombre: todas)
+./itc help buscar rollback       # busca un texto en toda la ayuda
+```
+
+Guías: `nueva-instancia`, `instancia-existente`, `actualizar`, `imagenes`, `servicios`, `red`, `datos`,
+`secretos`, `archivos`, `puertos`, `solucion-problemas` y `glosario`. Los mensajes de error terminan con una
+pista como `(ayuda: ./itc help secretos)`.
+
+La ayuda vive en `scripts/help/*.txt` (una página por comando, una guía por tema y el glosario de variables).
+Las pruebas fallan si un comando, tema o variable de las plantillas no está documentado, si el glosario
+difiere de lo que valida `deploy`, o si una página recomienda algo que no existe.
+
+### Salida plana y colores
+
+Fuera de una terminal (pipes, scripts, logs) la salida es texto plano sin códigos de escape. `NO_COLOR=1`
+desactiva los colores, `ITC_COLOR=always|never` los fuerza y `ITC_ASCII=1` evita los caracteres Unicode.
 
 ## Uso
 
@@ -43,9 +89,10 @@ itc-deploy/
 git clone <este-repo> && cd itc-deploy
 
 ./itc images                # versiones de imagen cargadas en este servidor y quién las usa
-./itc new colorado          # crea instances/colorado/ desde las plantillas
+./itc new colorado          # crea instances/colorado/ desde las plantillas (o ./itc new --wizard)
 # Completa instances/colorado/{.env.instance,.env.s0,.env.s1} (S0_TAG y S1_TAG = versiones de ./itc images)
 # y copia los JSON de Firebase a secrets/
+./itc check colorado        # comprueba la configuración, las imágenes y los puertos sin levantar nada
 ./itc init colorado         # SOLO si es una municipalidad NUEVA: siembra los datos iniciales y levanta s1 y s0
 # (si YA tiene datos: ./itc new colorado --existing, o ./itc adopt colorado, y luego ./itc deploy colorado)
 
@@ -230,6 +277,18 @@ Todo lo que podría chocar entre instancias es una variable:
 - `instances/*` está en `.gitignore`: ningún `.env` ni secreto entra al git.
 - Las imágenes no incluyen `.env`; las variables se inyectan al arrancar.
 - Respalda `instances/` aparte: la configuración de cada instancia solo existe en el servidor.
+
+## Pruebas
+
+```bash
+tests/run.sh                       # todas las suites
+tests/run.sh test-help test-menu   # algunas
+```
+
+`tests/run.sh` copia el repositorio a una carpeta temporal con `instances/` vacío antes de ejecutar cada suite:
+ninguna prueba puede tocar instancias reales. Usan un `docker` simulado (`tests/fake-docker.sh`), así que no
+levantan contenedores ni necesitan Docker: cubren la capa visual, `status`, `images`, la ayuda y su coherencia
+con el código, `check`, `doctor`, el asistente, el menú y el autocompletado.
 
 ## Riesgos y pendientes conocidos
 
