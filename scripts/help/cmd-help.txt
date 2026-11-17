@@ -11,3 +11,6 @@ $ ./itc help temas                 solo la lista de guías
 
 ## Consejo
 Si no sabes por dónde empezar: `./itc help nueva-instancia`. Si algo falló: `./itc help solucion-problemas`.
+
+## Relacionado
+- `./itc menu` menú interactivo con ayuda en cada opción (`?4`)

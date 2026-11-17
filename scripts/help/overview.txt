@@ -32,6 +32,7 @@ $ ./itc help <tema>           guía completa paso a paso
 | list | Instancias, servicios, puertos, etiquetas y estado
 | ps <instancia> | Estado de los contenedores
 | logs <instancia> [servicio] [-f] | Logs (últimas 200 líneas)
+| menu | Menú interactivo con todas las acciones, con numeración y confirmaciones
 | help [comando|tema] | Esta ayuda
 
 ## Inicio rápido (instancia nueva)
