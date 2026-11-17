@@ -28,6 +28,7 @@ cmd_images() {
 
   # Usage per image and tag: "<name>:<tag>" -> instances that have it as current or as previous (rollback).
   # Names in use per service: the default one plus each instance's own.
+  # The codes (current)/(previous) are language neutral: they go to --json as they are and are translated for the table.
   local use_current use_previous
   use_current="$(t images.use_current)"
   use_previous="$(t images.use_previous)"
@@ -41,8 +42,8 @@ cmd_images() {
       case " ${repos[$svc]} " in *" $r "*) ;; *) repos[$svc]+=" $r" ;; esac
       cur="$(get_var "$f" "$(tag_var "$svc")")"
       prev="$(get_var "$(dirname "$f")/.previous" "$(tag_var "$svc")")"
-      [ -z "$cur" ] || used["$r:$cur"]+="$name($use_current) "
-      if [ -n "$prev" ] && [ "$prev" != "$cur" ]; then used["$r:$prev"]+="$name($use_previous) "; fi
+      [ -z "$cur" ] || used["$r:$cur"]+="$name(current) "
+      if [ -n "$prev" ] && [ "$prev" != "$cur" ]; then used["$r:$prev"]+="$name(previous) "; fi
     done
   done
 
@@ -73,7 +74,7 @@ cmd_images() {
         if [ -z "$use" ]; then
           kind=dim
           unused=$((unused + 1))
-        elif [[ "$use" == *"($use_current)"* ]]; then
+        elif [[ "$use" == *"(current)"* ]]; then
           kind=ok
         else
           kind=warn
@@ -90,7 +91,10 @@ cmd_images() {
             ui_th "$(t images.col.tag)" "$(t images.col.id)" "$(t images.col.arch)" "$(t images.col.created)" \
               "$(t images.col.size)" "$(t images.col.used_by)"
           fi
-          ui_tr "bold:$tag" "$(short_id "$id")" "$arch" "$created" "$size" "$kind:${use:-$(t images.unused)}"
+          local label="$use"
+          label="${label//(current)/($use_current)}"
+          label="${label//(previous)/($use_previous)}"
+          ui_tr "bold:$tag" "$(short_id "$id")" "$arch" "$created" "$size" "$kind:${label:-$(t images.unused)}"
         fi
         found=1
       done < <(dk_images_detail \

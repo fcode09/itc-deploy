@@ -3,6 +3,12 @@
 # Las suites se ejecutan SIEMPRE sobre una copia aislada del repo (ver tests/run.sh), con instances/ vacío:
 # nunca tocan las instancias reales.
 
+# Refuse to run outside tests/run.sh: it is the only thing that guarantees the isolated copy with an empty instances/.
+if [ -z "${DELTACTL_TEST_ISOLATED:-}" ]; then
+  echo "ERROR: run the suites through tests/run.sh (it uses an isolated copy and never touches real instances)" >&2
+  exit 2
+fi
+
 pass=0
 fail=0
 

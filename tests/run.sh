@@ -19,6 +19,7 @@ export DELTACTL_GOLDEN_DIR="$SRC/tests/golden"
 # The UI language comes from the environment, never from the developer's own config file.
 export DELTACTL_LANG="${DELTACTL_LANG:-es}"
 export DELTACTL_CONFIG="$DST/.deltactl-config-absent"
+export DELTACTL_TEST_ISOLATED=1
 find "$DST" -name '*.sh' -o -name deltactl | xargs sed -i 's/\r$//' 2>/dev/null || true
 
 if [ "$#" -gt 0 ]; then

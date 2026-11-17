@@ -95,8 +95,10 @@ printf 's0_gold-ok|82MiB / 512MiB|0.2%%\ns1_gold-ok|410MiB / 1GiB|1.5%%\n' > "$F
 
 # --- Normalization: remove everything that changes between runs or machines -------------------------
 HOST_NAME="$(hostname 2>/dev/null || echo servidor)"
+# Escapes a literal text for a sed pattern delimited by # (a hostname or path may hold . [ ] * ^ $ \ or #).
+sed_lit() { printf '%s' "$1" | sed -e 's/[][\.*^$#/]/\\&/g'; }
 normalize() {
-  sed -e "s#$PWD#<ROOT>#g" -e "s#$FIX#<FIX>#g" -e "s#$HOST_NAME#<HOST>#g" \
+  sed -e "s#$(sed_lit "$PWD")#<ROOT>#g" -e "s#$(sed_lit "$FIX")#<FIX>#g" -e "s#$(sed_lit "$HOST_NAME")#<HOST>#g" \
     -e 's#/tmp/tmp\.[A-Za-z0-9]*#<TMP>#g' \
     -e 's/"uptime_seconds":[0-9][0-9]*/"uptime_seconds":<N>/g' \
     -e 's/[0-9][0-9]*d[0-9][0-9]h/<UP>/g' -e 's/[0-9][0-9]*h[0-9][0-9]m/<UP>/g' \
