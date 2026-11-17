@@ -116,4 +116,16 @@ check "menu: English title, options and prompt" 'out="$(printf "0\n" | DELTACTL_
 check "menu: an invalid option is reported in English" 'printf "99\n0\n" | DELTACTL_LANG=en DELTACTL_UI=plain bash ./deltactl menu 2>&1 | grep -q "WARN invalid option: .99. (choose a number from the menu or 0 to quit)"'
 check "menu: the help of option 5 (update) resolves the English guide id" 'out="$(printf "?5\n0\n" | DELTACTL_LANG=en DELTACTL_UI=plain bash ./deltactl menu 2>&1)"; ! echo "$out" | grep -q "there is no help for"'
 
+check "status without instances: English title and hint" 'out="$(DELTACTL_LANG=en DELTACTL_UI=plain bash ./deltactl status 2>&1)"; echo "$out" | grep -q "^Status of the instances" && echo "$out" | grep -q "(no instances; create one with ./deltactl new <instance>)"'
+check "status with a bad option: English message" 'DELTACTL_LANG=en bash ./deltactl status --bogus 2>&1 | grep -q "^ERROR unknown option: --bogus (see ./deltactl help status)"'
+check "status --watch with --json: English message" 'DELTACTL_LANG=en bash ./deltactl status --watch --json 2>&1 | grep -q "^ERROR --watch needs a terminal and cannot be combined with --json"'
+check "status table: English headers and data labels" 'bash ./deltactl new i18n-st >/dev/null 2>&1; bash ./deltactl adopt i18n-st >/dev/null 2>&1; en="$(DELTACTL_LANG=en DELTACTL_UI=plain bash ./deltactl status 2>&1)"; es="$(DELTACTL_LANG=es DELTACTL_UI=plain bash ./deltactl status 2>&1)"; rm -rf instances/i18n-st; echo "$en" | grep -q "^INSTANCE .*RUNNING" && echo "$en" | grep "i18n-st" | grep -q "existing" && echo "$es" | grep -q "^INSTANCIA .*CORRIENDO" && echo "$es" | grep "i18n-st" | grep -q "existente"'
+check "status --json does not depend on the language" 'bash ./deltactl new i18n-st >/dev/null 2>&1; a="$(DELTACTL_LANG=es bash ./deltactl status --json 2>&1)"; b="$(DELTACTL_LANG=en bash ./deltactl status --json 2>&1)"; rm -rf instances/i18n-st; [ "$a" = "$b" ] && echo "$a" | grep -q "\"data\":\"unseeded\""'
+check "status detail: English labels" 'bash ./deltactl new i18n-st >/dev/null 2>&1; out="$(DELTACTL_LANG=en DELTACTL_UI=plain bash ./deltactl status i18n-st 2>&1)"; rm -rf instances/i18n-st; echo "$out" | grep -q "^Instance i18n-st" && echo "$out" | grep -q "Service s0" && echo "$out" | grep -qE "^  version +configured"'
+
+
+section "7. the code is English: Spanish lives only in the catalogs, the help pages and the templates"
+check "no accented letters or inverted punctuation in the code" '! LC_ALL=C.UTF-8 grep -rnE "[áéíóúñÁÉÍÓÚÑ¿¡]" deltactl lib/bootstrap.sh lib/cmd lib/core lib/ui lib/adapters lib/i18n/i18n.sh'
+check "every lib/cmd command has a catalog file in both languages (or needs none)" 'for c in ops load list rollback images completion help check deploy init doctor new menu status; do for l in es en; do [ -f "lib/i18n/$l/$c.sh" ] || { echo "missing lib/i18n/$l/$c.sh"; exit 1; }; done; done'
+
 finish

@@ -10,7 +10,7 @@ $ ./deltactl status [instancia] [--json] [--stats] [--strict] [--watch [segundos
 ## Opciones
 - `instancia` vista de detalle: imagen, versión previa, memoria/CPU y errores recientes en los logs
 - `--stats` añade memoria y CPU a la tabla (tarda 1-2 s)
-- `--json` salida para scripts
+- `--json` salida para scripts; sus valores no se traducen (`data` es `init`, `existing` o `unseeded`)
 - `--strict` termina con código 2 si hay avisos (útil en monitoreo)
 - `--watch [N]` se repinta cada N segundos (2 por defecto); necesita una terminal
 
