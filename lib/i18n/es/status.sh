@@ -75,3 +75,6 @@ MSG_es["status.detail.errors"]="{1} línea(s) con ERROR/ECONNREFUSED en los logs
 MSG_es["status.footer.ok"]="{1} instancia(s) · {2} servicio(s) · todo en orden"
 MSG_es["status.footer.issues"]="{1} instancia(s) · {2} servicio(s) · {3} con avisos"
 MSG_es["status.footer.next_steps"]="Siguientes pasos sugeridos"
+MSG_es["status.hdr.memory"]="Memoria"
+MSG_es["status.hdr.load"]="Carga"
+MSG_es["status.hdr.instances"]="Instancias:"

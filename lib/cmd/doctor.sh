@@ -3,9 +3,8 @@
 # Server diagnosis, READ-ONLY: Docker and Compose, disk, memory, Mongo, instance permissions and helper
 # tools. Every failure says how to fix it. It exits with code 1 if there are errors.
 
-# ck (report with symbols) comes from check.sh; st_enabled (active services) from status.sh
+# ck (report with symbols) comes from check.sh
 source "$ROOT/lib/cmd/check.sh"
-source "$ROOT/lib/cmd/status.sh"
 
 # 512m -> 512, 2g -> 2048, 1.5g -> 1536 (megabytes)
 dr_mem_mb() { # value
