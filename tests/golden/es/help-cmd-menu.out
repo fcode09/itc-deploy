@@ -9,12 +9,15 @@ comandos no haga, y te enseña cómo se escribe.
 Uso
   $ ./deltactl menu [--classic]
 
-El panel con flechas
-En una terminal real (también al ejecutar `./deltactl` sin argumentos) abre un panel: arriba la memoria del servidor
-y el estado `n/m` de cada instancia. Muévete con ↑ ↓, Enter abre las acciones de la instancia seleccionada (detalle,
-comprobar, desplegar, rollback, logs, detener, bajar, sembrar) y `?` muestra todas las teclas. Se refresca solo cada
-pocos segundos; `L` cambia entre español e inglés y `q` sale. Sin terminal (un pipe, un script) o con `--classic` se
-usa el menú numerado que sigue.
+El panel en vivo
+En una terminal real (también al ejecutar `./deltactl` sin argumentos) abre un panel de una sola pantalla con tres vistas
+(teclas `1`, `2`, `3` o Tab): Instancias (la lista, el detalle de la seleccionada con su memoria y CPU en vivo, y la salida
+del último comando), Recursos (cada servicio con memoria, CPU y tendencia) y Salida (la salida completa del último comando,
+con desplazamiento). Muévete con ↑ ↓ ← → y Enter abre las acciones de la instancia. Los comandos corren dentro del panel,
+sin salir: `:` escribe cualquier comando de `deltactl` (Tab completa, ↑ repite el anterior), `!` lo ejecuta en el terminal
+(asistentes como `new --wizard`) y `x` cancela el que está en marcha. Las cifras se leen del kernel cada segundo y el estado
+se actualiza cuando Docker avisa de un cambio. `L` cambia entre español e inglés, `?` muestra todas las teclas y `q` sale.
+Sin terminal (un pipe, un script) o con `--classic` se usa el menú numerado que sigue.
 
 Opciones del menú numerado
   . 1. Ver estado: `./deltactl status`

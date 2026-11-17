@@ -16,7 +16,7 @@ case "$1" in
   ps) exit 0 ;;
   image)
     case "$2" in
-      ls) awk -F'[:|]' '{ printf "%s|%s|%s|1 hour ago|300MB\n", $1, $2, $3 }' "$FIX/images.txt" ;;
+      ls) awk -F'|' '{ split($1, r, ":"); printf "%s|%s|%s|1 hour ago|300MB\n", r[1], r[2], $2 }' "$FIX/images.txt" ;;
       inspect)
         ref="${*: -1}"
         line="$(grep -F "$ref|" "$FIX/images.txt" | head -n1)"

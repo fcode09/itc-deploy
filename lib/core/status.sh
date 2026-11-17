@@ -10,6 +10,8 @@
 # State of the containers indexed by "<project>/<service>". The Compose project is the name of the
 # instance, so they are not mixed with other projects of the server.
 declare -gA ST_STATE=() ST_HEALTH=() ST_CIMAGE=() ST_STARTED=() ST_CNAME=() ST_STATS=()
+declare -gA ST_PID=() ST_RESTARTS=() ST_IMG=()
+ST_IMG_LOADED=0
 declare -gA ST_PORTS=() HINT_SEEN=()
 ST_DOCKER=0
 HINTS=()
@@ -17,23 +19,46 @@ STATUS_ISSUES=0
 STATUS_SERVICES=0
 STATUS_INSTANCES=0
 
+# Every loaded image in ONE query: st_eval then asks this table instead of running `docker image inspect` per service.
+st_load_images() {
+  local repo tag id
+  ST_IMG=() ST_IMG_LOADED=0
+  while IFS='|' read -r repo tag id _; do
+    [ -n "$repo" ] && [ "$tag" != "<none>" ] || continue
+    ST_IMG["$repo:$tag"]="$id"
+  done < <(dk_images_ids)
+  ST_IMG_LOADED=1
+}
+
+# Is the image loaded, and what is its id? They use the table when st_collect filled it, and Docker otherwise.
+st_image_exists() { # reference
+  if [ "$ST_IMG_LOADED" -eq 1 ]; then [ -n "${ST_IMG[$1]+x}" ]; else dk_image_exists "$1"; fi
+}
+st_image_id() { # reference
+  if [ "$ST_IMG_LOADED" -eq 1 ]; then printf '%s' "${ST_IMG[$1]:-}"; else dk_image_id "$1"; fi
+}
+
 # A single query to Docker for all the containers of Compose projects.
 st_collect() {
-  ST_STATE=() ST_HEALTH=() ST_CIMAGE=() ST_STARTED=() ST_CNAME=() ST_STATS=()
+  ST_STATE=() ST_HEALTH=() ST_CIMAGE=() ST_STARTED=() ST_CNAME=() ST_STATS=() ST_PID=() ST_RESTARTS=()
+  ST_IMG=() ST_IMG_LOADED=0
   ST_DOCKER=0
   dk_ready || return 0
   ST_DOCKER=1
+  st_load_images
   local -a ids=()
-  local proj svc state health image started cname
+  local proj svc state health image started cname pid restarts
   mapfile -t ids < <(dk_project_container_ids)
   [ "${#ids[@]}" -gt 0 ] || return 0
-  while IFS='|' read -r proj svc state health image started cname; do
+  while IFS='|' read -r proj svc state health image started cname pid restarts; do
     [ -n "$proj" ] && [ -n "$svc" ] || continue
     ST_STATE["$proj/$svc"]="$state"
     ST_HEALTH["$proj/$svc"]="$health"
     ST_CIMAGE["$proj/$svc"]="$image"
     ST_STARTED["$proj/$svc"]="$started"
     ST_CNAME["$proj/$svc"]="${cname#/}"
+    ST_PID["$proj/$svc"]="${pid:-0}"
+    ST_RESTARTS["$proj/$svc"]="${restarts:-0}"
   done < <(dk_container_rows "${ids[@]}")
 }
 
@@ -178,13 +203,13 @@ st_eval() { # instance service
 
   # Local image: it must exist, and its tag must not have moved to another image since the deploy.
   if uses_local_images "$name" && [ -n "$E_CFG" ]; then
-    if ! dk_image_exists "$E_REF"; then
+    if ! st_image_exists "$E_REF"; then
       E_CODES+=" image-missing"
       [ "$E_KIND" = "err" ] || E_KIND=warn
     else
       dep_id="$(get_var "$dir/.deployed" "${svc^^}_IMAGE_ID")"
       if [ -n "$dep_id" ] && [ "$E_DEP" = "$E_CFG" ]; then
-        cur_id="$(dk_image_id "$E_REF")"
+        cur_id="$(st_image_id "$E_REF")"
         if [ -n "$cur_id" ] && [ "$cur_id" != "$dep_id" ]; then
           E_CODES+=" image-rebuilt"
           [ "$E_KIND" = "err" ] || E_KIND=warn
