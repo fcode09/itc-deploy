@@ -104,11 +104,19 @@ dk_run_once() {
 # Ids of every container (running or not) that belongs to a Compose project.
 dk_project_container_ids() { docker ps -aq --filter label=com.docker.compose.project 2>/dev/null; }
 
-# One "project|service|state|health|image|started|name" row per container id.
+# One "project|service|state|health|image|started|name|pid|restarts" row per container id.
 dk_container_rows() { # ids...
   docker inspect --format \
-    '{{index .Config.Labels "com.docker.compose.project"}}|{{index .Config.Labels "com.docker.compose.service"}}|{{.State.Status}}|{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}|{{.Config.Image}}|{{.State.StartedAt}}|{{.Name}}' \
+    '{{index .Config.Labels "com.docker.compose.project"}}|{{index .Config.Labels "com.docker.compose.service"}}|{{.State.Status}}|{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}|{{.Config.Image}}|{{.State.StartedAt}}|{{.Name}}|{{.State.Pid}}|{{.RestartCount}}' \
     "$@" 2>/dev/null
+}
+
+# Stream of container lifecycle events, one action per line (start, die, health_status, ...). It never ends:
+# the panel reads it through a coprocess to refresh only when something changes.
+dk_events_stream() {
+  docker events --filter type=container --filter event=start --filter event=die --filter event=stop \
+    --filter event=restart --filter event=oom --filter event=destroy --filter event=health_status \
+    --format '{{.Action}}' 2>/dev/null
 }
 
 # "name|memory|cpu" rows for the running containers (takes 1-2 s).

@@ -66,9 +66,13 @@ ui_init() {
   if [ "$UI_UTF8" -eq 1 ] && [ "$UI_RICH" -eq 1 ]; then
     UI_S_OK='●' UI_S_WARN='▲' UI_S_ERR='✖' UI_S_INFO='ℹ' UI_S_DOT='·' UI_S_ARROW='→' UI_S_RULE='─'
     UI_S_BAR_L='▕' UI_S_BAR_R='▏' UI_S_BAR_ON='█' UI_S_BAR_OFF='░' UI_S_SEL='▸'
+    UI_S_TL='┌' UI_S_TR='┐' UI_S_BL='└' UI_S_BR='┘' UI_S_H='─' UI_S_V='│' UI_S_TJ='┬' UI_S_BJ='┴'
+    UI_SPARK=(▁ ▂ ▃ ▄ ▅ ▆ ▇ █)
   else
     UI_S_OK='*' UI_S_WARN='!' UI_S_ERR='x' UI_S_INFO='i' UI_S_DOT='.' UI_S_ARROW='->' UI_S_RULE='-'
     UI_S_BAR_L='[' UI_S_BAR_R=']' UI_S_BAR_ON='#' UI_S_BAR_OFF='.' UI_S_SEL='>'
+    UI_S_TL='+' UI_S_TR='+' UI_S_BL='+' UI_S_BR='+' UI_S_H='-' UI_S_V='|' UI_S_TJ='+' UI_S_BJ='+'
+    UI_SPARK=(_ . : - = + '*' '#')
   fi
   if [ "$UI_UTF8" -eq 1 ]; then UI_S_ELL='…'; else UI_S_ELL='~'; fi
 }

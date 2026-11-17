@@ -10,6 +10,7 @@
 # State of the containers indexed by "<project>/<service>". The Compose project is the name of the
 # instance, so they are not mixed with other projects of the server.
 declare -gA ST_STATE=() ST_HEALTH=() ST_CIMAGE=() ST_STARTED=() ST_CNAME=() ST_STATS=()
+declare -gA ST_PID=() ST_RESTARTS=()
 declare -gA ST_PORTS=() HINT_SEEN=()
 ST_DOCKER=0
 HINTS=()
@@ -19,21 +20,23 @@ STATUS_INSTANCES=0
 
 # A single query to Docker for all the containers of Compose projects.
 st_collect() {
-  ST_STATE=() ST_HEALTH=() ST_CIMAGE=() ST_STARTED=() ST_CNAME=() ST_STATS=()
+  ST_STATE=() ST_HEALTH=() ST_CIMAGE=() ST_STARTED=() ST_CNAME=() ST_STATS=() ST_PID=() ST_RESTARTS=()
   ST_DOCKER=0
   dk_ready || return 0
   ST_DOCKER=1
   local -a ids=()
-  local proj svc state health image started cname
+  local proj svc state health image started cname pid restarts
   mapfile -t ids < <(dk_project_container_ids)
   [ "${#ids[@]}" -gt 0 ] || return 0
-  while IFS='|' read -r proj svc state health image started cname; do
+  while IFS='|' read -r proj svc state health image started cname pid restarts; do
     [ -n "$proj" ] && [ -n "$svc" ] || continue
     ST_STATE["$proj/$svc"]="$state"
     ST_HEALTH["$proj/$svc"]="$health"
     ST_CIMAGE["$proj/$svc"]="$image"
     ST_STARTED["$proj/$svc"]="$started"
     ST_CNAME["$proj/$svc"]="${cname#/}"
+    ST_PID["$proj/$svc"]="${pid:-0}"
+    ST_RESTARTS["$proj/$svc"]="${restarts:-0}"
   done < <(dk_container_rows "${ids[@]}")
 }
 

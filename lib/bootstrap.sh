@@ -33,3 +33,5 @@ source "$ROOT/lib/core/services.sh"
 source "$ROOT/lib/core/ports.sh"
 # shellcheck source=lib/core/status.sh
 source "$ROOT/lib/core/status.sh"
+# shellcheck source=lib/core/metrics.sh
+source "$ROOT/lib/core/metrics.sh"
