@@ -1,60 +1,61 @@
 #!/usr/bin/env bash
-# ./deltactl deploy <instancia> [servicio]: valida, descarga imágenes y levanta la instancia
-# (o solo el servicio indicado).
+# ./deltactl deploy <instance> [service]: validates, pulls images and starts the instance
+# (or only the given service).
 
 PREFLIGHT_ERRORS=0
 
-# Exige que cada clave exista, no esté vacía y no conserve el valor de ejemplo (CAMBIAR...).
-check_required() { # archivo clave...
+# Requires that every key exists, is not empty and does not keep the example value (CAMBIAR...).
+# CAMBIAR is the placeholder written in the Spanish .env templates (templates/*.example).
+check_required() { # file key...
   local file="$1" key val
   shift
   for key in "$@"; do
     val="$(get_var "$file" "$key")"
     if [ -z "$val" ]; then
-      warn "$(basename "$file"): $key está vacía$(see "variable $key")"
+      warn "$(t deploy.var_empty "$(basename "$file")" "$key")$(see "variable $key")"
       PREFLIGHT_ERRORS=$((PREFLIGHT_ERRORS + 1))
     elif [[ "$val" == *CAMBIAR* ]]; then
-      warn "$(basename "$file"): $key aún tiene el valor de ejemplo (CAMBIAR...)$(see "variable $key")"
+      warn "$(t deploy.var_example "$(basename "$file")" "$key")$(see "variable $key")"
       PREFLIGHT_ERRORS=$((PREFLIGHT_ERRORS + 1))
     fi
   done
 }
 
-# Validaciones propias de cada servicio. Un servicio nuevo define su preflight_<sN>.
-# Variables obligatorias (única fuente de verdad: las usan los preflight y tests/test-help.sh las compara
-# con el glosario de ./deltactl help variable). Las de etiqueta y puerto de cada servicio se suman en preflight().
+# Validations of each service. A new service defines its preflight_<sN>.
+# Required variables (single source of truth: the preflights use them and tests/test-help.sh compares them
+# with the glossary of ./deltactl help variable). The tag and port variables of each service are added in preflight().
 REQUIRED_INSTANCE=(INSTANCE COMPOSE_PROFILES)
 REQUIRED_S0=(IP_SERVER JWT_SECRET MONGO_URI IP_INTERNAL_CONNECTION)
 REQUIRED_S1=(IP_SERVER AUTH_URL JWT_SECRET FEDERATION_ENCRYPTION_KEY SERVERS_CONFIG
   MONGO_DELTA_DISPATCH_URI MONGO_AUTHSOFTWARE_URI MONGO_ROBIN_URI FCM_CERT KEEPER_FCM_CERT DEEPGRAM_API_KEY)
 
-preflight_s0() { # carpeta_instancia
+preflight_s0() { # instance_dir
   check_required "$1/.env.s0" "${REQUIRED_S0[@]}"
 }
 
-preflight_s1() { # carpeta_instancia
+preflight_s1() { # instance_dir
   local dir="$1" f path listen s
-  # Si s0 corre en esta instancia, necesita alcanzar el TCP 5020 de s1 (en otro contenedor):
-  # con TCP_LISTEN_HOST vacío o en loopback, s1 solo escucha dentro de su propio contenedor.
+  # If s0 runs in this instance, it needs to reach the TCP 5020 of s1 (in another container):
+  # with TCP_LISTEN_HOST empty or on loopback, s1 only listens inside its own container.
   listen="$(get_var "$dir/.env.s1" TCP_LISTEN_HOST)"
   for s in "${ENABLED[@]}"; do
     if [ "$s" = "s0" ] && { [ -z "$listen" ] || [ "$listen" = "127.0.0.1" ] || [ "$listen" = "localhost" ]; }; then
-      warn ".env.s1: s0 está activo pero TCP_LISTEN_HOST es '${listen:-vacío}': s0 no podrá alcanzar el TCP 5020 de s1 (usa 0.0.0.0)$(see red)"
+      warn "$(t deploy.tcp_listen "${listen:-$(t deploy.empty_word)}")$(see network)"
     fi
   done
   check_required "$dir/.env.s1" "${REQUIRED_S1[@]}"
-  # Los JSON de Firebase referenciados con /run/secrets/... deben existir en secrets/.
+  # The Firebase JSON files referenced with /run/secrets/... must exist in secrets/.
   for f in FCM_CERT KEEPER_FCM_CERT; do
     path="$(get_var "$dir/.env.s1" "$f")"
     if [[ "$path" == /run/secrets/* ]] && [ ! -f "$dir/secrets/${path#/run/secrets/}" ]; then
-      warn ".env.s1: $f apunta a $path, pero falta secrets/${path#/run/secrets/}$(see secretos)"
+      warn "$(t deploy.secret_missing "$f" "$path" "${path#/run/secrets/}")$(see secrets)"
       PREFLIGHT_ERRORS=$((PREFLIGHT_ERRORS + 1))
     fi
   done
 }
 
-# Valida solo los servicios indicados: un servicio inactivo en la instancia no se exige.
-preflight() { # instancia servicio...
+# Validates only the given services: a service that is not active in the instance is not required.
+preflight() { # instance service...
   local name="$1" dir svc tag_name port_name img_name
   shift
   dir="$(instance_dir "$name")"
@@ -62,7 +63,7 @@ preflight() { # instancia servicio...
 
   check_required "$dir/.env.instance" "${REQUIRED_INSTANCE[@]}"
   if [ "$(get_var "$dir/.env.instance" INSTANCE)" != "$name" ]; then
-    warn ".env.instance: INSTANCE no coincide con el nombre de la carpeta ($name)"
+    warn "$(t deploy.instance_mismatch "$name")"
     PREFLIGHT_ERRORS=$((PREFLIGHT_ERRORS + 1))
   fi
 
@@ -70,34 +71,34 @@ preflight() { # instancia servicio...
     tag_name="$(tag_var "$svc")"
     port_name="${svc^^}_PORT"
     check_required "$dir/.env.instance" "$tag_name" "$port_name"
-    # Nombre de imagen propio (opcional): sin etiqueta y con formato válido.
+    # Custom image name (optional): without a tag and with a valid format.
     img_name="$(get_var "$dir/.env.instance" "${svc^^}_IMAGE")"
     if [ -n "$img_name" ]; then
       if [[ "$img_name" == *:* ]]; then
-        warn ".env.instance: ${svc^^}_IMAGE='$img_name' lleva ':'; el nombre va sin etiqueta (la etiqueta va en $tag_name)$(see imagenes)"
+        warn "$(t deploy.image_colon "${svc^^}_IMAGE" "$img_name" "$tag_name")$(see local-images)"
         PREFLIGHT_ERRORS=$((PREFLIGHT_ERRORS + 1))
       elif ! valid_image_name "$img_name"; then
-        warn ".env.instance: ${svc^^}_IMAGE='$img_name' no es un nombre de imagen válido (minúsculas, números y . _ - ; admite /)$(see imagenes)"
+        warn "$(t deploy.image_invalid "${svc^^}_IMAGE" "$img_name")$(see local-images)"
         PREFLIGHT_ERRORS=$((PREFLIGHT_ERRORS + 1))
       fi
     fi
     if [ "$(get_var "$dir/.env.instance" "$tag_name")" = "latest" ]; then
-      warn ".env.instance: $tag_name=latest; usa una etiqueta por versión o commit"
+      warn "$(t deploy.tag_latest "$tag_name")"
     fi
-    [ -f "$dir/.env.$svc" ] || die "falta $dir/.env.$svc"
+    [ -f "$dir/.env.$svc" ] || die "$(t deploy.env_missing "$dir/.env.$svc")"
     "preflight_$svc" "$dir"
   done
 
-  # Permisos de data/: solo aviso (puede que el despliegue lo haga otro usuario).
+  # Permissions of data/: only a warning (the deploy may be done by another user).
   if [ -d "$dir/data" ] && [ "$(host_owner_uid "$dir/data" "$RUNTIME_UID")" != "$RUNTIME_UID" ]; then
-    warn "data/ no pertenece al uid $RUNTIME_UID: la app podría no poder escribir. Ejecuta: sudo chown -R $RUNTIME_UID:$RUNTIME_UID $dir/data"
+    warn "$(t deploy.data_owner "$RUNTIME_UID" "$dir")"
   fi
 
-  [ "$PREFLIGHT_ERRORS" -eq 0 ] || die "$PREFLIGHT_ERRORS problema(s) en la configuración de '$name'; corrígelos y reintenta$(see nueva-instancia)"
+  [ "$PREFLIGHT_ERRORS" -eq 0 ] || die "$(t deploy.preflight_problems "$PREFLIGHT_ERRORS" "$name")$(see new-instance)"
 }
 
-# Con imágenes locales, comprueba que cada imagen exista en este Docker antes de tocar nada.
-check_images() { # instancia servicio...
+# With local images, checks that every image exists in this Docker before touching anything.
+check_images() { # instance service...
   local name="$1" svc ref missing=0
   shift
   uses_local_images "$name" || return 0
@@ -106,17 +107,17 @@ check_images() { # instancia servicio...
     if dk_image_exists "$ref"; then
       warn_arch_mismatch "$ref"
     else
-      warn "falta la imagen $ref ($svc) en este servidor"
+      warn "$(t deploy.image_not_loaded "$ref" "$svc")"
       missing=$((missing + 1))
     fi
   done
   [ "$missing" -eq 0 ] \
-    || die "$missing imagen(es) sin cargar. Cárgalas con ./deltactl load <archivo> y revisa las disponibles con ./deltactl images$(see imagenes)"
+    || die "$(t deploy.images_missing "$missing")$(see local-images)"
 }
 
-# Con imágenes locales una etiqueta se puede reconstruir y apuntar a otra imagen: si la etiqueta
-# desplegada ahora apunta a un ID distinto del desplegado, solo se avisa.
-warn_changed_images() { # instancia servicio...
+# With local images a tag can be rebuilt and point to another image: if the tag being deployed now
+# points to a different ID than the deployed one, it only warns.
+warn_changed_images() { # instance service...
   local name="$1" dir svc tag_name cur dep dep_id ref cur_id
   shift
   dir="$(instance_dir "$name")"
@@ -130,14 +131,14 @@ warn_changed_images() { # instancia servicio...
       ref="$(service_image_ref "$name" "$svc")"
       cur_id="$(dk_image_id "$ref")"
       if [ -n "$cur_id" ] && [ "$cur_id" != "$dep_id" ]; then
-        warn "$svc: la etiqueta $cur ahora apunta a otra imagen ($(short_id "$cur_id")) distinta de la desplegada ($(short_id "$dep_id")); no reutilices etiquetas$(see imagenes)"
+        warn "$(t deploy.tag_rebuilt "$svc" "$cur" "$(short_id "$cur_id")" "$(short_id "$dep_id")")$(see local-images)"
       fi
     fi
   done
 }
 
-# Guarda como "previas" las etiquetas (y el ID de imagen) desplegadas que van a cambiar (para el rollback).
-record_previous() { # instancia servicio...
+# Saves as "previous" the deployed tags (and image ID) that are going to change (for the rollback).
+record_previous() { # instance service...
   local name="$1" dir svc tag_name id_name cur dep
   shift
   dir="$(instance_dir "$name")"
@@ -154,10 +155,10 @@ record_previous() { # instancia servicio...
   done
 }
 
-# Descarga y levanta. explicit=0: todo lo activo según COMPOSE_PROFILES. explicit=1: solo los
-# servicios dados; --profile reemplaza COMPOSE_PROFILES, así que los demás no se tocan.
-# Registra las etiquetas desplegadas solo si todo queda healthy.
-deploy_up() { # explicit instancia servicio...
+# Pulls and starts. explicit=0: everything active according to COMPOSE_PROFILES. explicit=1: only the given
+# services; --profile replaces COMPOSE_PROFILES, so the others are not touched.
+# It records the deployed tags only if everything ends up healthy.
+deploy_up() { # explicit instance service...
   local explicit="$1" name="$2" dir svc
   shift 2
   dir="$(instance_dir "$name")"
@@ -166,22 +167,22 @@ deploy_up() { # explicit instancia servicio...
   if [ "$explicit" = "1" ]; then
     svcs=("$@")
     for svc in "$@"; do pargs+=(--profile "$svc"); done
-    # Un solo servicio: sin dependencias, para no tocar nada más.
+    # A single service: without dependencies, so nothing else is touched.
     [ "$#" -eq 1 ] && upflags+=(--no-deps)
   fi
 
   if uses_local_images "$name"; then
-    info "Imágenes locales (REGISTRY vacío): no se descarga nada."
+    info "$(t deploy.local_images)"
   else
-    info "Descargando imágenes..."
+    info "$(t deploy.pulling)"
     dk_compose "$name" ${pargs[@]+"${pargs[@]}"} pull ${svcs[@]+"${svcs[@]}"}
   fi
 
-  info "Levantando servicios (espera a que estén healthy)..."
+  info "$(t deploy.starting)"
   if ! dk_compose "$name" ${pargs[@]+"${pargs[@]}"} up -d ${upflags[@]+"${upflags[@]}"} \
       --wait --wait-timeout "${WAIT_TIMEOUT:-300}" ${svcs[@]+"${svcs[@]}"}; then
-    warn "los servicios no llegaron a healthy"
-    warn "revisa: ./deltactl logs $name   |   para volver atrás: ./deltactl rollback $name"
+    warn "$(t deploy.not_healthy)"
+    warn "$(t deploy.not_healthy_hint "$name")"
     return 1
   fi
 
@@ -201,25 +202,25 @@ cmd_deploy() {
   check_docker
   preflight "$name" "${SELECTED[@]}"
 
-  info "Validando compose..."
+  info "$(t deploy.validating)"
   if [ -n "$only" ]; then
-    dk_compose "$name" --profile "$only" config -q || die "el compose no es válido para '$name'"
+    dk_compose "$name" --profile "$only" config -q || die "$(t deploy.compose_invalid "$name")"
   else
-    dk_compose "$name" config -q || die "el compose no es válido para '$name'"
+    dk_compose "$name" config -q || die "$(t deploy.compose_invalid "$name")"
   fi
 
   check_images "$name" "${SELECTED[@]}"
   warn_changed_images "$name" "${SELECTED[@]}"
   if [ ! -f "$(marker_file "$name")" ] && [ "${DELTACTL_SUPPRESS_INIT_WARN:-0}" != "1" ]; then
-    warn "'$name' no está inicializada: si es una municipalidad NUEVA ejecuta ./deltactl init $name; si YA tiene datos, ./deltactl adopt $name (deploy nunca siembra)$(see datos)"
+    warn "$(t deploy.not_initialized "$name")$(see data)"
   fi
   record_previous "$name" "${SELECTED[@]}"
 
   if [ -n "$only" ]; then
-    deploy_up 1 "$name" "${SELECTED[@]}" || die "el despliegue de $only en '$name' falló"
-    ok "$only desplegado en '$name'"
+    deploy_up 1 "$name" "${SELECTED[@]}" || die "$(t deploy.failed_service "$only" "$name")"
+    ok "$(t deploy.service_done "$only" "$name")"
   else
-    deploy_up 0 "$name" "${SELECTED[@]}" || die "el despliegue de '$name' falló"
-    ok "instancia '$name' desplegada (${SELECTED[*]})"
+    deploy_up 0 "$name" "${SELECTED[@]}" || die "$(t deploy.failed "$name")"
+    ok "$(t deploy.done "$name" "${SELECTED[*]}")"
   fi
 }

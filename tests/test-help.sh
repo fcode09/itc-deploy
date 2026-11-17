@@ -146,7 +146,7 @@ while IFS= read -r t; do
   # The code uses English topic ids; the page files are still named after the Spanish ids.
   page="$(ROOT="$PWD" bash -c 'source lib/i18n/i18n.sh; topic_file_id "$1"' _ "$t")"
   { echo "$cmds"; echo "$topics"; } | grep -qx "$page" || bad_see+="$t "
-done < <(grep -ohE '\$\(see [^)]*\)' lib/bootstrap.sh lib/cmd/*.sh | sed -E 's/^\$\(see "?//; s/"?\)$//' | sort -u)
+done < <(grep -ohE '\$\(see [^)]*\)' lib/core/*.sh lib/ui/*.sh lib/cmd/*.sh | sed -E 's/^\$\(see "?//; s/"?\)$//' | sort -u)
 check "cada pista \$(see ...) del código señala una página existente (${bad_see:-ok})" '[ -z "$bad_see" ]'
 
 # docker mínimo para llegar a las validaciones sin Docker real
@@ -169,7 +169,7 @@ check "servicio desconocido apunta a la guía de servicios" 'bash ./deltactl sto
 check "servicio inactivo apunta a la guía de servicios" \
   'sed -i "s/^COMPOSE_PROFILES=.*/COMPOSE_PROFILES=s0/" instances/hp-test/.env.instance; bash ./deltactl deploy hp-test s1 2>&1 | grep -q "(ayuda: ./deltactl help servicios)"'
 check "el aviso de imagen faltante nombra la guía de imágenes" \
-  'sed -i "s/^COMPOSE_PROFILES=.*/COMPOSE_PROFILES=s0,s1/" instances/hp-test/.env.instance; grep -q "see imagenes" lib/cmd/deploy.sh'
+  'sed -i "s/^COMPOSE_PROFILES=.*/COMPOSE_PROFILES=s0,s1/" instances/hp-test/.env.instance; grep -q "see local-images" lib/cmd/deploy.sh'
 check "los mensajes siguen mostrando su texto original" 'echo "$out" | grep -q "está vacía" && echo "$out" | grep -q "problema(s) en la configuración"'
 check "las pistas también salen sin color" '! echo "$out" | has_ansi'
 rm -rf instances/hp-test

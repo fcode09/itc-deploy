@@ -97,4 +97,10 @@ check "help guide names are English in the English index" 'DELTACTL_LANG=en DELT
 check "help variable: unknown variable in English" 'DELTACTL_LANG=en bash ./deltactl help variable NO_SUCH_VAR 2>&1 | grep -q "there is no variable named .NO_SUCH_VAR. in the glossary"'
 check "help search: English usage" 'DELTACTL_LANG=en bash ./deltactl help search 2>&1 | grep -q "^ERROR usage: ./deltactl help search <text>"'
 
+check "check with a bad option: English message" 'DELTACTL_LANG=en bash ./deltactl check x --bogus 2>&1 | grep -q "^ERROR unknown option: --bogus (see ./deltactl help check)"'
+check "adopt: English messages (done, then already marked)" 'bash ./deltactl new i18n-ad >/dev/null 2>&1; a="$(DELTACTL_LANG=en bash ./deltactl adopt i18n-ad 2>&1)"; b="$(DELTACTL_LANG=en bash ./deltactl adopt i18n-ad 2>&1)"; rm -rf instances/i18n-ad; echo "$a" | grep -q "^OK instance .i18n-ad. marked as existing" && echo "$b" | grep -q "^ERROR .i18n-ad. is already marked (existing): nothing to do"'
+check "adopt: Spanish messages are unchanged" 'bash ./deltactl new i18n-ad >/dev/null 2>&1; a="$(DELTACTL_LANG=es bash ./deltactl adopt i18n-ad 2>&1)"; rm -rf instances/i18n-ad; echo "$a" | grep -q "^OK instancia .i18n-ad. marcada como existente"'
+check "preflight validations: English warnings" 'printf "A=\nB=CAMBIAR_X\n" > "$CFG/e"; out="$(DELTACTL_LANG=en bash -c '"'"'ROOT="$PWD"; source lib/bootstrap.sh; source lib/cmd/deploy.sh; check_required "$1" A B'"'"' _ "$CFG/e" 2>&1)"; echo "$out" | grep -q "^WARN e: A is empty (help: ./deltactl help variable A)" && echo "$out" | grep -q "^WARN e: B still has the example value"'
+check "check strips the English labels from captured messages" 'out="$(printf "WARN one\nERROR two\n" | DELTACTL_LANG=en bash -c '"'"'ROOT="$PWD"; source lib/bootstrap.sh; source lib/cmd/check.sh; ck_lines'"'"')"; [ "$out" = "$(printf "one\ntwo")" ]'
+
 finish
