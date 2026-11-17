@@ -14,3 +14,4 @@ Si no sabes por dónde empezar: `./itc help nueva-instancia`. Si algo falló: `.
 
 ## Relacionado
 - `./itc menu` menú interactivo con ayuda en cada opción (`?4`)
+- `./itc completion bash` autocompletado con Tab de comandos, temas y variables

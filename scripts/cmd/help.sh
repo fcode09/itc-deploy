@@ -8,7 +8,7 @@
 # tests/test-help.sh comprueba que todo comando, tema y variable tenga su página.
 
 HELP_DIR="$ROOT/scripts/help"
-HELP_COMMANDS=(new init adopt deploy rollback stop down load images versions list status ps logs check doctor menu help)
+HELP_COMMANDS=(new init adopt deploy rollback stop down load images versions list status ps logs check doctor menu completion help)
 HELP_TOPICS=(nueva-instancia instancia-existente actualizar imagenes servicios red datos secretos archivos puertos solucion-problemas glosario)
 
 # Título (primera línea "# ...") de una página de ayuda.
