@@ -128,4 +128,23 @@ section "7. the code is English: Spanish lives only in the catalogs, the help pa
 check "no accented letters or inverted punctuation in the code" '! LC_ALL=C.UTF-8 grep -rnE "[áéíóúñÁÉÍÓÚÑ¿¡]" deltactl lib/bootstrap.sh lib/cmd lib/core lib/ui lib/adapters lib/i18n/i18n.sh'
 check "every lib/cmd command has a catalog file in both languages (or needs none)" 'for c in ops load list rollback images completion help check deploy init doctor new menu status; do for l in es en; do [ -f "lib/i18n/$l/$c.sh" ] || { echo "missing lib/i18n/$l/$c.sh"; exit 1; }; done; done'
 
+
+section "8. help pages by language (English in lib/help/en with fallback to the Spanish page)"
+mkdir -p "$CFG/h/en"
+touch "$CFG/h/cmd-a.txt" "$CFG/h/cmd-b.txt" "$CFG/h/en/cmd-a.txt" "$CFG/h/topic-nueva-instancia.txt" "$CFG/h/en/topic-new-instance.txt" "$CFG/h/topic-red.txt"
+hf() { # lang kind [id]
+  local lang="$1"
+  shift
+  DELTACTL_LANG="$lang" bash -c 'ROOT="$PWD"; source lib/bootstrap.sh; source lib/cmd/help.sh; HELP_DIR="$1"; shift; help_page_file "$@"' _ "$CFG/h" "$@"
+}
+check "English prefers its own page" '[ "$(hf en cmd a)" = "$CFG/h/en/cmd-a.txt" ]'
+check "English falls back to the Spanish page when it is not translated" '[ "$(hf en cmd b)" = "$CFG/h/cmd-b.txt" ]'
+check "Spanish never uses the English folder" '[ "$(hf es cmd a)" = "$CFG/h/cmd-a.txt" ]'
+check "a guide is found by its English id in English" '[ "$(hf en topic new-instance)" = "$CFG/h/en/topic-new-instance.txt" ]'
+check "a guide is found by its Spanish name in English" '[ "$(hf en topic nueva-instancia)" = "$CFG/h/en/topic-new-instance.txt" ]'
+check "a guide is found by its English id in Spanish" '[ "$(hf es topic new-instance)" = "$CFG/h/topic-nueva-instancia.txt" ]'
+check "an untranslated guide falls back to the Spanish file" '[ "$(hf en topic network)" = "$CFG/h/topic-red.txt" ]'
+check "a page that does not exist is an error" '! hf es cmd zzz >/dev/null && ! hf en topic zzz >/dev/null'
+check "help for an unknown page in English" 'DELTACTL_LANG=en bash ./deltactl help nosuchpage 2>&1 | grep -q "there is no help for .nosuchpage."'
+
 finish
