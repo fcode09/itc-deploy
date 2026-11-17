@@ -18,6 +18,8 @@ $ ./itc images
 ## 2. Crear la instancia
 $ ./itc new colorado
 > Crea `instances/colorado/` con puertos propios. Los archivos `.env.*` empiezan con punto: `ls -a`.
+> Con `./itc new --wizard` el asistente te pregunta lo esencial (versiones, URL, secretos) y rellena esos archivos.
+> Antes de empezar, `./itc doctor` revisa que el servidor esté listo (Docker, disco, Mongo).
 
 ## 3. Versiones: `.env.instance`
 $ nano instances/colorado/.env.instance
@@ -39,7 +41,9 @@ $ cp fcm.json instances/colorado/secrets/fcm.json
 $ cp keeper-fcm.json instances/colorado/secrets/keeper-fcm.json
 ! En `.env.s1` las rutas deben empezar con `/run/secrets/` (así se ve la carpeta dentro del contenedor). Ver `./itc help secretos`.
 
-## 6. Levantar
+## 6. Comprobar y levantar
+$ ./itc check colorado
+> Revisa configuración, imágenes, puertos y compose sin levantar nada. Con `--mongo` prueba también las bases.
 $ ./itc deploy colorado
 > Valida todo, comprueba las imágenes y espera a que los servicios estén healthy. No siembra datos.
 

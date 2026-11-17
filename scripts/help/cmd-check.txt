@@ -1,0 +1,27 @@
+# check · comprobar una instancia antes de desplegar
+
+Revisa todo lo que `./itc deploy` exigiría, SIN levantar nada, y lo muestra como un informe con
+✔/▲/✖ y cómo arreglar cada problema. Es solo lectura.
+
+## Uso
+$ ./itc check <instancia> [servicio] [--mongo]
+
+## Qué comprueba
+- configuración: variables obligatorias completas, nombres de imagen válidos y JSON de Firebase presentes
+- compose: que la definición de la instancia sea válida
+- imágenes: que estén cargadas en este servidor y que su arquitectura sea la del servidor
+- etiquetas: que ninguna apunte a otra imagen distinta de la desplegada
+- puertos: que no los use otra instancia ni otro proceso del servidor
+- datos: si la instancia ya fue sembrada o adoptada
+
+## Opciones
+- `servicio` comprueba solo `s0` o solo `s1`
+- `--mongo` además prueba, con un contenedor de un solo uso, que cada servicio llegue a sus bases (tarda unos segundos)
+
+## Resultado
+- sin errores: "listo para desplegar" y el código de salida es 0
+- con errores: lista qué corregir y termina con código 1
+
+## Relacionado
+- `./itc help nueva-instancia`, `./itc help solucion-problemas`
+- `./itc doctor` revisa el servidor en lugar de una instancia
