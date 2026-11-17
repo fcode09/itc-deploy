@@ -1,0 +1,3 @@
+AVISO no hay ayuda para 'no-existe'
+Índice completo: ./deltactl help      Buscar texto: ./deltactl help buscar no-existe
+[exit=1]

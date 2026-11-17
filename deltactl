@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+# deltactl: entry point to deploy and operate instances. See ./deltactl help
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export ROOT
+
+# shellcheck source=lib/bootstrap.sh
+source "$ROOT/lib/bootstrap.sh"
+
+# No arguments: in a terminal, the home screen (banner + status); in a pipe or script, the help.
+if [ "$#" -eq 0 ] && [ "$UI_RICH" -eq 1 ]; then
+  # shellcheck source=lib/cmd/status.sh
+  source "$ROOT/lib/cmd/status.sh"
+  cmd_home
+  exit 0
+fi
+
+CMD="${1:-help}"
+shift 2>/dev/null || true
+export CMD
+
+# <command> --help | -h: help for that command (detected before running anything).
+case "$CMD" in
+  help | -h | --help) ;;
+  *)
+    for _a in "$@"; do
+      case "$_a" in
+        -h | --help)
+          # shellcheck source=lib/cmd/help.sh
+          source "$ROOT/lib/cmd/help.sh"
+          cmd_help "$CMD"
+          exit $?
+          ;;
+      esac
+    done
+    ;;
+esac
+
+case "$CMD" in
+  new | deploy | rollback | list | images | load | status | check | doctor | menu | completion)
+    # shellcheck source=/dev/null
+    source "$ROOT/lib/cmd/$CMD.sh"
+    "cmd_$CMD" "$@"
+    ;;
+  versions)
+    # Alias of images.
+    # shellcheck source=lib/cmd/images.sh
+    source "$ROOT/lib/cmd/images.sh"
+    cmd_images "$@"
+    ;;
+  init | adopt)
+    # shellcheck source=lib/cmd/init.sh
+    source "$ROOT/lib/cmd/init.sh"
+    "cmd_$CMD" "$@"
+    ;;
+  ps | logs | stop | down)
+    # shellcheck source=lib/cmd/ops.sh
+    source "$ROOT/lib/cmd/ops.sh"
+    "cmd_$CMD" "$@"
+    ;;
+  help | -h | --help)
+    # shellcheck source=lib/cmd/help.sh
+    source "$ROOT/lib/cmd/help.sh"
+    cmd_help "$@"
+    ;;
+  *)
+    warn "$(t cli.unknown_command "$CMD")"
+    info "$(t cli.try_help "$CMD")" >&2
+    exit 1
+    ;;
+esac

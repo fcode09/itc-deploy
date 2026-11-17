@@ -1,0 +1,26 @@
+
+rollback · volver a la versión anterior
+-----------------------------------------
+
+Vuelve a las etiquetas del despliegue anterior (las que `deploy` guardó en `.previous`).
+
+Uso
+  $ ./deltactl rollback <instancia> [servicio] [--yes]
+
+Qué hace
+  . muestra qué etiquetas cambiarían (`1.2.0 -> 1.1.0`) y pide confirmación
+  . comprueba que la imagen previa siga cargada en este servidor (no hay de dónde bajarla)
+  . cambia las etiquetas en `.env.instance` y vuelve a desplegar
+  . lo que estaba desplegado pasa a ser la "previa": un segundo rollback lo restaura
+
+Ejemplos
+  $ ./deltactl rollback colorado s1       # solo s1
+  $ ./deltactl rollback colorado --yes    # todos los servicios, sin preguntar
+
+  ! No borres imágenes antiguas con `docker image prune -a`: sin ellas no hay rollback.
+  ! Un rollback no deshace cambios en la base de datos: solo cambia la versión del código.
+
+Relacionado
+  . `./deltactl help actualizar`
+  . `./deltactl images` muestra las versiones previas marcadas como `(previa)`
+[exit=0]

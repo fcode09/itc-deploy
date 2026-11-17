@@ -1,0 +1,18 @@
+
+[1m[36mImágenes de este servidor[0m
+[90m───────────────────────────[0m
+Arquitectura de este servidor: amd64
+
+[1ms0 = auth-backend[0m
+[1m[90mETIQUETA            ID             ARQ       CREADA          TAMAÑO     USADA_POR[0m
+[1m1.0[0m                 sha256[0m         amd64[0m     1 hour ago[0m      300MB[0m      [32mgold-drift(actual) gold-new(actual) gold-ok(actual)[0m
+
+[1ms1 = gueo-back-end[0m
+[1m[90mETIQUETA            ID             ARQ       CREADA          TAMAÑO     USADA_POR[0m
+[1m1.0[0m                 sha256[0m         amd64[0m     1 hour ago[0m      300MB[0m      [32mgold-drift(actual) gold-new(actual) gold-ok(actual)[0m
+[1m0.9[0m                 sha256[0m         amd64[0m     1 hour ago[0m      300MB[0m      [90msin uso (candidata a borrar)[0m
+
+Las versiones 'sin uso' no las usa ninguna instancia (ni como actual ni como previa).
+Este comando solo lista: borrar imágenes lo decides tú. Evita 'docker image prune -a'.
+  [36m→ 1 de 3 imagen(es) sin uso. Para borrar una concreta: docker image rm <nombre>:<etiqueta>[0m
+[exit=0]

@@ -1,0 +1,3 @@
+AVISO comando desconocido: frobnicate
+Prueba: ./deltactl help      (comandos y guías)   |   ./deltactl help buscar frobnicate
+[exit=1]

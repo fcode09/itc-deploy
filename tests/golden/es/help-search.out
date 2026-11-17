@@ -1,0 +1,39 @@
+
+./deltactl help deploy
+    - 5. guarda las etiquetas anteriores para poder hacer rollback
+    - `no llegó a healthy` → `./deltactl logs <instancia> <servicio>`; para volver atrás `./deltactl rollback`
+
+./deltactl help images
+    - `im-uno(previa)` es la versión anterior guardada para rollback
+
+./deltactl help menu
+    - 6. Volver a la versión anterior: `./deltactl rollback`
+    - las operaciones destructivas (init, down, rollback) piden confirmación en el propio menú
+
+./deltactl help rollback
+    # rollback · volver a la versión anterior
+    $ ./deltactl rollback <instancia> [servicio] [--yes]
+    - lo que estaba desplegado pasa a ser la "previa": un segundo rollback lo restaura
+
+./deltactl help 
+    | rollback <instancia> [servicio] [--yes] | Vuelve a las etiquetas del despliegue anterior
+
+./deltactl help actualizar
+    Una versión nueva es una imagen con una etiqueta NUEVA. Nunca reutilices una etiqueta: el rollback
+    $ ./deltactl rollback colorado s1
+
+./deltactl help archivos
+    - `.previous`  etiquetas anteriores, para `rollback`
+
+./deltactl help glosario
+    - **rollback**: volver a la etiqueta del despliegue anterior
+
+./deltactl help imagenes
+    ! Evita `docker image prune -a`: borraría también las versiones previas que necesita el rollback.
+
+./deltactl help servicios
+    $ ./deltactl rollback colorado s1
+
+./deltactl help solucion-problemas
+    - `unhealthy`, `reiniciando` → el servicio falla al arrancar → `./deltactl logs`; si es tras una actualización, `./deltactl rollback`
+[exit=0]

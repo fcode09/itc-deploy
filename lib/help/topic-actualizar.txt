@@ -1,0 +1,37 @@
+# Actualizar una instancia a una versión nueva
+
+## Idea
+Una versión nueva es una imagen con una etiqueta NUEVA. Nunca reutilices una etiqueta: el rollback
+y los avisos de `status` dependen de que cada etiqueta apunte siempre a la misma imagen.
+
+## Pasos
+- 1. en tu PC, construye con una etiqueta nueva y guarda la imagen
+$ docker build -t s1:1.3.0 .
+$ docker save s1:1.3.0 | gzip > s1-1.3.0.tar.gz
+- 2. cópiala al servidor y cárgala
+$ scp s1-1.3.0.tar.gz usuario@servidor:/ruta/deltactl/
+$ ./deltactl load s1-1.3.0.tar.gz
+$ ./deltactl images
+- 3. cambia la etiqueta en `instances/colorado/.env.instance`: `S1_TAG=1.3.0`
+- 4. despliega solo ese servicio
+$ ./deltactl deploy colorado s1
+- 5. verifica: `CONFIG` y `CORRIENDO` deben coincidir y el estado ser healthy
+$ ./deltactl status colorado
+
+## Volver atrás
+$ ./deltactl rollback colorado s1
+> Necesita que la imagen anterior siga cargada: no uses `docker image prune -a`.
+
+## Qué NO pasa al actualizar
+- no se vuelven a sembrar datos (`deploy` nunca siembra)
+- `data/`, `secrets/` y las bases de Mongo no se tocan
+
+## Varias instancias
+Cada instancia tiene su propia etiqueta: puedes actualizar una y dejar otras con la versión anterior.
+Conserva las imágenes antiguas hasta que ninguna instancia las use (`./deltactl images` las marca).
+
+## Si la versión exige variables nuevas
+Añádelas a `.env.s0` o `.env.s1` ANTES de desplegar (`./deltactl help variable` explica las conocidas).
+
+## Relacionado
+- `./deltactl help imagenes`, `./deltactl help servicios`

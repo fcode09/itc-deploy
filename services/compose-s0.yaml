@@ -1,0 +1,34 @@
+# s0 = auth-backend (NestJS). Puerto interno 3200; se publica solo en 127.0.0.1:${S0_PORT}.
+services:
+  s0:
+    # REGISTRY vacío = imagen local (auth-backend:<tag>); con valor se antepone (<registry>/auth-backend:<tag>).
+    image: ${REGISTRY:+${REGISTRY}/}${S0_IMAGE:-auth-backend}:${S0_TAG:?define S0_TAG en .env.instance}
+    # ./deltactl fija PULL_POLICY=never cuando REGISTRY está vacío: si falta la imagen local, Docker no
+    # debe bajar de Docker Hub una imagen homónima que no es la nuestra.
+    pull_policy: ${PULL_POLICY:-missing}
+    container_name: s0_${INSTANCE}
+    restart: unless-stopped
+    # El servicio solo corre en las instancias que lo listan en COMPOSE_PROFILES (.env.instance).
+    profiles: ["s0"]
+    # La imagen no trae init (a diferencia de s1, que usa tini): Docker aporta uno.
+    init: true
+    env_file:
+      - ./instances/${INSTANCE}/.env.s0
+    environment:
+      # Fijo: debe coincidir con el puerto interno publicado abajo. Pisa lo que diga .env.s0.
+      SERVER_PORT: "3200"
+    ports:
+      - "127.0.0.1:${S0_PORT:?define S0_PORT en .env.instance}:3200"
+    volumes:
+      # Las subcarpetas (user, loginSettings, file, certificate-settings) las crea `./deltactl new`.
+      - ${DATA_DIR:-./instances/${INSTANCE}/data}/s0/media:/app/src/media
+      - ${DATA_DIR:-./instances/${INSTANCE}/data}/s0/backups:/app/backups
+    # Para llegar a servicios que corren en el host (por ejemplo MongoDB).
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    mem_limit: ${S0_MEM_LIMIT:-512m}
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"

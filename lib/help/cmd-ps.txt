@@ -1,0 +1,9 @@
+# ps · contenedores de una instancia
+
+Atajo de `docker compose ps` para la instancia (incluye servicios fuera de `COMPOSE_PROFILES`).
+
+## Uso
+$ ./deltactl ps <instancia>
+
+## Relacionado
+- `./deltactl status <instancia>` da más información (versiones, salud, avisos)

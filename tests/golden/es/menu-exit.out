@@ -1,0 +1,30 @@
+
+[38;5;51m██████╗ ███████╗██╗     ████████╗ █████╗  ██████╗████████╗██╗     [0m
+[38;5;45m██╔══██╗██╔════╝██║     ╚══██╔══╝██╔══██╗██╔════╝╚══██╔══╝██║     [0m
+[38;5;39m██║  ██║█████╗  ██║        ██║   ███████║██║        ██║   ██║     [0m
+[38;5;33m██║  ██║██╔══╝  ██║        ██║   ██╔══██║██║        ██║   ██║     [0m
+[38;5;27m██████╔╝███████╗███████╗   ██║   ██║  ██║╚██████╗   ██║   ███████╗[0m
+[38;5;63m╚═════╝ ╚══════╝╚══════╝   ╚═╝   ╚═╝  ╚═╝ ╚═════╝   ╚═╝   ╚══════╝[0m
+  [90mDespliegue de instancias por municipalidad  ·  v0.2.0  ·  <HOST>[0m
+
+
+[1m[36mMenú[0m
+[90m──────[0m
+  [1m[36m  1)[0m Ver estado                         [90mversiones, salud y desajustes[0m
+  [1m[36m  2)[0m Crear una instancia                [90masistente paso a paso[0m
+  [1m[36m  3)[0m Comprobar una instancia            [90mtodo lo que deploy exigiría, sin levantar nada[0m
+  [1m[36m  4)[0m Desplegar                          [90mlevantar una instancia o un servicio[0m
+  [1m[36m  5)[0m Actualizar a una versión nueva    [90mcambia la etiqueta y despliega[0m
+  [1m[36m  6)[0m Volver a la versión anterior      [90mrollback[0m
+  [1m[36m  7)[0m Sembrar datos iniciales            [90msolo municipalidades NUEVAS (destructivo)[0m
+  [1m[36m  8)[0m Ver logs                           [90mde una instancia o un servicio[0m
+  [1m[36m  9)[0m Detener un servicio                [90msin tocar los demás[0m
+  [1m[36m 10)[0m Bajar una instancia                [90melimina los contenedores, conserva los datos[0m
+  [1m[36m 11)[0m Versiones de imágenes             [90mqué hay cargado y quién lo usa[0m
+  [1m[36m 12)[0m Cargar imágenes                   [90mdesde un archivo .tar o .tar.gz[0m
+  [1m[36m 13)[0m Diagnóstico del servidor          [90mDocker, disco, memoria, Mongo[0m
+  [1m[36m 14)[0m Ayuda                              [90míndice de comandos y guías[0m
+  [1m[36m  0)[0m Salir                              [90m[0m
+
+  Elige una opción (con ? delante, ayuda: ?4): 
+[exit=0]

@@ -1,0 +1,45 @@
+# DELTACTL · ayuda
+
+Despliega y opera una instancia por municipalidad con Docker Compose.
+Cada instancia tiene su propia red privada, puertos, datos, secretos y bases de datos.
+Servicios: `s0` = auth-backend (Auth) y `s1` = gueo-back-end (Gue).
+
+## Uso
+$ ./deltactl <comando> [instancia] [opciones]
+$ ./deltactl help <comando>        ayuda detallada de un comando (o ./deltactl <comando> --help)
+$ ./deltactl help <tema>           guía completa paso a paso
+
+## Instancias
+| new <instancia> [--services s0,s1] [--existing] | Crea instances/<instancia>/ desde las plantillas (--existing: la municipalidad YA tiene datos; no se sembrará nunca)
+| new --wizard | Asistente interactivo: pregunta lo esencial y lista lo que falta completar
+| init <instancia> [--yes] | Siembra los datos iniciales de una instancia NUEVA (una sola vez)
+| adopt <instancia> | Marca como ya inicializada una instancia que YA tiene datos
+
+## Despliegue
+| check <instancia> [servicio] [--mongo] | Comprueba todo lo que deploy exigiría, sin levantar nada
+| deploy <instancia> [servicio] | Valida, comprueba las imágenes y levanta (espera a healthy)
+| rollback <instancia> [servicio] [--yes] | Vuelve a las etiquetas del despliegue anterior
+| stop <instancia> <servicio> | Detiene un servicio sin tocar los demás
+| down <instancia> [--yes] | Detiene y elimina los contenedores (los datos se conservan)
+
+## Imágenes
+| load <archivo.tar|.tar.gz> | Carga imágenes en el Docker de este servidor
+| images [servicio] [--json] | Versiones de imagen disponibles y qué instancias las usan (alias: versions)
+
+## Información
+| status [instancia] [--json|--stats] | Panel de estado: versiones, salud, desajustes y siguientes pasos
+| doctor | Diagnóstico del servidor: Docker, disco, memoria, Mongo y permisos
+| list | Instancias, servicios, puertos, etiquetas y estado
+| ps <instancia> | Estado de los contenedores
+| logs <instancia> [servicio] [-f] | Logs (últimas 200 líneas)
+| menu | Menú interactivo con todas las acciones, con numeración y confirmaciones
+| completion bash | Autocompletado con Tab (source <(./deltactl completion bash))
+| help [comando|tema] | Esta ayuda
+
+## Inicio rápido (instancia nueva)
+- 1. `./deltactl load s0.tar.gz` y `./deltactl load s1.tar.gz`: cargar las imágenes en el servidor
+- 2. `./deltactl new colorado`: crear la instancia
+- 3. editar `instances/colorado/.env.instance`, `.env.s0` y `.env.s1`, y copiar los JSON de Firebase a `secrets/`
+- 4. `./deltactl deploy colorado`: levantar
+- 5. `./deltactl init colorado`: sembrar los datos iniciales (solo una vez, solo en instancias nuevas)
+> Guía completa con todos los detalles: `./deltactl help nueva-instancia`
