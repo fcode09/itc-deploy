@@ -50,6 +50,10 @@ La clave `sN` de cada uno está **por asignar**. Ninguno tiene Dockerfile todav�
 5. Crear `templates/.env.sN.example` y añadir las variables a `templates/.env.instance.example`.
 6. Añadir `sN` a `KNOWN_SERVICES` y a `default_repo` (nombre por defecto de su imagen) en `scripts/lib.sh` (las
    variables `SN_IMAGE`, `SN_TAG`, `SN_PORT` y `SN_MEM_LIMIT` ya se ignoran si están exportadas en el shell), definir `preflight_sN` en `scripts/cmd/deploy.sh`
-   y ampliar `scripts/cmd/new.sh` (carpetas de `data/` y puertos).
+   y ampliar `scripts/cmd/new.sh` (carpetas de `data/` y puertos). En ese mismo archivo, definir `REQUIRED_SN`
+   (sus variables obligatorias): lo usan la validación previa, `./itc new` y los tests de la ayuda.
 7. Las instancias existentes no lo activan solas: sumar `sN` a su `COMPOSE_PROFILES`.
-8. Actualizar este catálogo y la tabla del README.
+8. Documentar el servicio en la ayuda: cada variable de su plantilla en `scripts/help/variables.txt`, una línea
+   en la guía `scripts/help/topic-servicios.txt` y, si añade opciones a algún comando, su página `cmd-*.txt`.
+   `tests/run.sh test-help` falla mientras falte algo.
+9. Actualizar este catálogo y la tabla del README.

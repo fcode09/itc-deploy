@@ -90,7 +90,9 @@ check "explica lo que no es obvio (SHIFT_UPDATE_BASELINE_SECRET vacía)" \
   'bash ./itc help variable SHIFT_UPDATE_BASELINE_SECRET 2>&1 | grep -q "vacía"'
 
 section "7. coherencia: glosario vs plantillas"
-for pair in ".env.instance:templates/.env.instance.example" ".env.s0:templates/.env.s0.example" ".env.s1:templates/.env.s1.example"; do
+pairs=(".env.instance:templates/.env.instance.example")
+for svc in $(arr KNOWN_SERVICES); do pairs+=(".env.$svc:templates/.env.$svc.example"); done
+for pair in "${pairs[@]}"; do
   file="${pair%%:*}"; tpl="${pair#*:}"
   only_tpl="$(comm -23 <(tpl_keys "$tpl") <(gl_keys "$file") | tr '\n' ' ')"
   only_gl="$(comm -13 <(tpl_keys "$tpl") <(gl_keys "$file") | tr '\n' ' ')"
@@ -108,8 +110,10 @@ check "todos los tipos son obligatoria, opcional o fija (${badtype:-ok})" '[ -z 
 section "8. coherencia: 'obligatoria' en el glosario == lo que valida deploy"
 exp_inst="$( { arr REQUIRED_INSTANCE; for s in $(arr KNOWN_SERVICES); do echo "${s^^}_TAG"; echo "${s^^}_PORT"; done; } | sort)"
 check "obligatorias de .env.instance" '[ "$(gl_keys .env.instance obligatoria)" = "$exp_inst" ]'
-check "obligatorias de .env.s0" '[ "$(gl_keys .env.s0 obligatoria)" = "$(arr REQUIRED_S0 | sort)" ]'
-check "obligatorias de .env.s1" '[ "$(gl_keys .env.s1 obligatoria)" = "$(arr REQUIRED_S1 | sort)" ]'
+for svc in $(arr KNOWN_SERVICES); do
+  U="${svc^^}"
+  check "obligatorias de .env.$svc (REQUIRED_$U)" '[ "$(gl_keys .env.'"$svc"' obligatoria)" = "$(arr REQUIRED_'"$U"' | sort)" ]'
+done
 
 section "9. coherencia: las páginas solo recomiendan lo que existe"
 cmds="$(arr HELP_COMMANDS)"
