@@ -1,0 +1,23 @@
+# images · available image versions
+
+It lists the images loaded in this Docker by service and which instances use them.
+It only lists: it never deletes anything. Alias: `./deltactl versions`.
+
+## Usage
+$ ./deltactl images [service] [--json]
+
+## How to read the table
+- `im-uno(current)` that instance uses the tag now
+- `im-uno(previous)` is the previous version kept for rollback
+- `unused (candidate for deletion)` no instance uses it
+
+## Options
+- `service` shows only `s0` or only `s1`
+- `--json` output for scripts (no colors)
+
+## Examples
+$ ./deltactl images
+$ ./deltactl images s1 --json
+
+## Related
+- `./deltactl help local-images`, `./deltactl help update`

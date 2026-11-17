@@ -1,0 +1,21 @@
+# load · load images into this server
+
+A shortcut for `docker load`: it loads the images of a file created with `docker save` (also `.tar.gz`).
+
+## Usage
+$ ./deltactl load <file.tar|file.tar.gz>
+
+## Complete flow (you build on your PC, copy to the server)
+$ docker build -t s0:1.2.0 .
+$ docker save s0:1.2.0 | gzip > s0-1.2.0.tar.gz
+$ scp s0-1.2.0.tar.gz user@server:/path/deltactl/
+$ ./deltactl load s0-1.2.0.tar.gz
+
+## What it does
+- loads the file and lists the images it contained
+- warns if the image's architecture (amd64/arm64) is not the server's: it would not start
+- the file is only used to load; afterwards you can delete it
+
+## Related
+- `./deltactl images` to see what is loaded
+- `./deltactl help local-images`, `./deltactl help update`

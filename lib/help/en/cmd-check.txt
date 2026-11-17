@@ -1,0 +1,27 @@
+# check · check an instance before deploying
+
+It reviews everything `./deltactl deploy` would require, WITHOUT starting anything, and shows it as a
+report with ✔/▲/✖ and how to fix each problem. It is read-only.
+
+## Usage
+$ ./deltactl check <instance> [service] [--mongo]
+
+## What it checks
+- configuration: required variables filled in, valid image names and Firebase JSON files present
+- compose: that the instance's definition is valid
+- images: that they are loaded on this server and that their architecture is the server's
+- tags: that none points to an image different from the deployed one
+- ports: that no other instance or process on the server uses them
+- data: whether the instance was already seeded or adopted
+
+## Options
+- `service` checks only `s0` or only `s1`
+- `--mongo` also tests, with a one-off container, that each service reaches its databases (takes a few seconds)
+
+## Result
+- no errors: "ready to deploy" and the exit code is 0
+- with errors: it lists what to fix and exits with code 1
+
+## Related
+- `./deltactl help new-instance`, `./deltactl help troubleshooting`
+- `./deltactl doctor` checks the server instead of an instance

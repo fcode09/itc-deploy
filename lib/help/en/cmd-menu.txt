@@ -1,0 +1,36 @@
+# menu · interactive menu
+
+Everything `deltactl` does, with the press of a number. Each option asks what it needs (instance, service...),
+shows the equivalent command it is going to run and runs it: the menu does nothing the command
+line does not do, and it teaches you how to type it.
+
+## Usage
+$ ./deltactl menu
+
+## Menu options
+- 1. View status: `./deltactl status`
+- 2. Create an instance: `./deltactl new --wizard`
+- 3. Check an instance: `./deltactl check` (with the option to test the databases)
+- 4. Deploy: `./deltactl deploy` (all the services or one)
+- 5. Update to a new version: changes the tag in `.env.instance`, checks and deploys only that service
+- 6. Go back to the previous version: `./deltactl rollback`
+- 7. Seed initial data: `./deltactl init` (it asks you to type the instance name)
+- 8. View logs: `./deltactl logs` (also live)
+- 9. Stop a service: `./deltactl stop`
+- 10. Take an instance down: `./deltactl down`
+- 11. Image versions: `./deltactl images`
+- 12. Load images: `./deltactl load`
+- 13. Server diagnosis: `./deltactl doctor`
+- 14. Help: `./deltactl help`
+- 0. Quit
+
+## Help inside the menu
+Type `?` before a number: `?4` shows the help of "Deploy".
+
+## Safety
+- destructive operations (init, down, rollback) ask for confirmation in the menu itself
+- `init` requires typing the instance name
+- option 5 asks before changing the tag and, if the check fails, offers to restore the previous one
+
+## Related
+- `./deltactl help status`, `./deltactl help update`
