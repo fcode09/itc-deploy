@@ -55,6 +55,15 @@ printf '#!/bin/sh\nexit 0\n' > "$FIX/bin/ss"
 chmod +x "$FIX/bin/docker" "$FIX/bin/ss"
 export PATH="$FIX/bin:$PATH"
 
+# --- Fixed host figures for the status header (memory and load) ------------------------------------------
+printf 'MemTotal:        8388608 kB
+MemFree:         1048576 kB
+MemAvailable:    3145728 kB
+' > "$FIX/meminfo"
+printf '0.82 0.50 0.40 1/200 1234
+' > "$FIX/loadavg"
+export DELTACTL_MEMINFO="$FIX/meminfo" DELTACTL_LOADAVG="$FIX/loadavg"
+
 # --- Fixtures --------------------------------------------------------------------------------------
 started() { date -u -d "$1 ago" +%Y-%m-%dT%H:%M:%S.000000000Z; }
 # container project service state health image ago

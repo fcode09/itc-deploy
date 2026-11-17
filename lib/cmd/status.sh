@@ -159,6 +159,38 @@ status_footer() {
   fi
 }
 
+# Header of the status screen: host, memory, load and Docker, then the n/m of every instance
+# (n services fully OK out of the m that should run).
+status_header() {
+  local sep line host total avail pct cells=10 v f name n m kind strip=""
+  sep="  $UI_S_DOT  "
+  host="$(host_name)"
+  [ -n "$host" ] || host="$(t ui.host_fallback)"
+  line="  $C_BLD$host$C_OFF"
+  total="$(host_mem_total_kb)"
+  avail="$(host_mem_available_kb)"
+  # Without both figures (a system that does not report MemAvailable) the memory is left out, not guessed.
+  if [[ "$total" =~ ^[0-9]+$ ]] && [[ "$avail" =~ ^[0-9]+$ ]] && [ "$total" -gt 0 ]; then
+    pct=$(((total - avail) * 100 / total))
+    [ "$UI_W" -ge 70 ] || cells=6
+    line+="$sep$C_GRY$(t status.hdr.memory)$C_OFF $(ui_bar "$pct" "$cells") $(host_kb_to_gb $((total - avail)))/$(host_kb_to_gb "$total") GB $pct%"
+  fi
+  v="$(host_load1)"
+  [ -z "$v" ] || line+="$sep$C_GRY$(t status.hdr.load)$C_OFF $v"
+  if [ "$ST_DOCKER" -eq 1 ]; then
+    v="$(dk_info ServerVersion)"
+    [ -z "$v" ] || line+="$sep${C_GRY}Docker$C_OFF $v"
+  fi
+  printf '\n%s\n' "$line"
+  for f in "$INSTANCES_DIR"/*/.env.instance; do
+    [ -f "$f" ] || continue
+    name="$(basename "$(dirname "$f")")"
+    read -r n m kind <<< "$(st_instance_counts "$name")"
+    strip+="${strip:+$sep}$(ui_sym "$kind") $name $C_BLD$n/$m$C_OFF"
+  done
+  [ -z "$strip" ] || printf '  %s%s%s %s\n' "$C_GRY" "$(t status.hdr.instances)" "$C_OFF" "$strip"
+}
+
 status_once() { # instance
   local name="${1:-}"
   HINTS=() HINT_SEEN=() STATUS_ISSUES=0 STATUS_SERVICES=0 STATUS_INSTANCES=0
@@ -173,6 +205,7 @@ status_once() { # instance
   if [ -n "$name" ]; then
     status_detail "$name"
   else
+    status_header
     ui_h1 "$(t status.title)"
     status_table
   fi

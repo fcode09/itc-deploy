@@ -273,3 +273,27 @@ st_stats_cells() { # instance service -> "mem|cpu" ("-|-" if the container does 
   [ -n "$cn" ] || { printf '%s' '-|-'; return 0; }
   printf '%s' "${ST_STATS[$cn]:--|-}"
 }
+
+# Services of an instance that are fully OK (running and healthy, nothing to warn about) and services that should
+# run (COMPOSE_PROFILES), as "<n> <m> <kind>". n is "?" when Docker is not available. kind says how to draw it:
+# ok (all of them), warn (some), err (none, but containers exist or the profile is invalid) or dim (nothing created yet).
+st_instance_counts() { # instance
+  local name="$1" svc n=0 m key any=0 kind
+  st_enabled "$name"
+  m="${#ST_ENABLED[@]}"
+  if [ "$ST_DOCKER" -ne 1 ]; then
+    printf '? %d dim' "$m"
+    return 0
+  fi
+  for svc in ${ST_ENABLED[@]+"${ST_ENABLED[@]}"}; do
+    st_eval "$name" "$svc"
+    [ "$E_KIND" != "ok" ] || n=$((n + 1))
+  done
+  for key in "${!ST_STATE[@]}"; do [ "${key%%/*}" != "$name" ] || any=1; done
+  if [ "$m" -eq 0 ]; then kind=err
+  elif [ "$n" -eq "$m" ]; then kind=ok
+  elif [ "$n" -gt 0 ]; then kind=warn
+  elif [ "$any" -eq 1 ]; then kind=err
+  else kind=dim; fi
+  printf '%d %d %s' "$n" "$m" "$kind"
+}

@@ -65,8 +65,10 @@ ui_init() {
   # Unicode symbols only in rich mode (terminal); in pipes and logs always ASCII.
   if [ "$UI_UTF8" -eq 1 ] && [ "$UI_RICH" -eq 1 ]; then
     UI_S_OK='●' UI_S_WARN='▲' UI_S_ERR='✖' UI_S_INFO='ℹ' UI_S_DOT='·' UI_S_ARROW='→' UI_S_RULE='─'
+    UI_S_BAR_L='▕' UI_S_BAR_R='▏' UI_S_BAR_ON='█' UI_S_BAR_OFF='░'
   else
     UI_S_OK='*' UI_S_WARN='!' UI_S_ERR='x' UI_S_INFO='i' UI_S_DOT='.' UI_S_ARROW='->' UI_S_RULE='-'
+    UI_S_BAR_L='[' UI_S_BAR_R=']' UI_S_BAR_ON='#' UI_S_BAR_OFF='.'
   fi
   if [ "$UI_UTF8" -eq 1 ]; then UI_S_ELL='…'; else UI_S_ELL='~'; fi
 }
@@ -121,6 +123,20 @@ ui_state_color() {
     bold) printf '%s' "$C_BLD" ;;
     *) printf '' ;;
   esac
+}
+
+# Usage meter: ui_bar <percent> [cells]  ->  ▕██████░░░░▏ (or [######....] without Unicode). It is green below
+# 70 %, yellow below 85 % and red from there.
+ui_bar() { # percent [cells]
+  local pct="$1" cells="${2:-10}" on i out="" col
+  [[ "$pct" =~ ^[0-9]+$ ]] || pct=0
+  [ "$pct" -le 100 ] || pct=100
+  on=$(((pct * cells + 50) / 100))
+  if [ "$pct" -lt 70 ]; then col="$C_GRN"; elif [ "$pct" -lt 85 ]; then col="$C_YEL"; else col="$C_RED"; fi
+  for ((i = 0; i < cells; i++)); do
+    if [ "$i" -lt "$on" ]; then out+="$UI_S_BAR_ON"; else out+="$UI_S_BAR_OFF"; fi
+  done
+  printf '%s%s%s%s%s%s%s' "$C_GRY" "$UI_S_BAR_L" "$col" "$out" "$C_GRY" "$UI_S_BAR_R" "$C_OFF"
 }
 
 # --- Tables -------------------------------------------------------------------------------------

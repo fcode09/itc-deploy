@@ -75,7 +75,10 @@ de comandos; el menú y el asistente solo preguntan por ti y te muestran el coma
 ./deltactl completion bash        # autocompletado con Tab (source <(./deltactl completion bash))
 ```
 
-El panel `status` avisa de lo que no cuadra y sugiere el comando para arreglarlo: etiqueta configurada distinta
+Arriba del panel (`status` y la pantalla de inicio) aparecen el nombre del servidor, la memoria con su barra y
+porcentaje, la carga, la versión de Docker y, por cada instancia, `n/m`: los servicios en perfecto estado de los que
+deberían correr (`2/2` todo bien, `1/2` falta uno; `?/2` si Docker no responde). Si el sistema no informa la memoria
+disponible, la memoria se omite. El panel `status` avisa de lo que no cuadra y sugiere el comando para arreglarlo: etiqueta configurada distinta
 de la que corre, imagen reconstruida con la misma etiqueta, imagen que falta, servicio `unhealthy` o detenido,
 servicio que corre fuera de `COMPOSE_PROFILES`, puerto repetido o instancia sin sembrar. Con `--json`
 sale en formato para scripts y con `--strict` termina con código 2 si hay avisos (útil en monitoreo).

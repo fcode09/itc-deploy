@@ -3,6 +3,8 @@
 It shows, per instance and service, the configured version and the running one, the health, the port, the
 uptime and the data state, warns about mismatches and suggests the next step.
 It is read-only: it never modifies anything.
+At the top it shows the server memory, the load and the Docker version, and for each instance `n/m`:
+the services in perfect shape out of those that should run (`2/2` all good, `1/2` one is missing).
 
 ## Usage
 $ ./deltactl status [instance] [--json] [--stats] [--strict] [--watch [seconds]]

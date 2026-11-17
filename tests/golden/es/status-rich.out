@@ -1,4 +1,7 @@
 
+  [1m<HOST>[0m  ·  [90mMemoria[0m [90m▕[32m██████░░░░[90m▏[0m 5.0/8.0 GB 62%  ·  [90mCarga[0m 0.82  ·  [90mDocker[0m 27.0.0
+  [90mInstancias:[0m [31m✖[0m gold-drift [1m0/2[0m  ·  [90m·[0m gold-new [1m0/2[0m  ·  [32m●[0m gold-ok [1m2/2[0m
+
 [1m[36mEstado de las instancias[0m
 [90m──────────────────────────[0m
 [1m[90mINSTANCIA         SVC   CONFIG      CORRIENDO   ESTADO             PUERTO  UPTIME    DATOS         NOTAS[0m

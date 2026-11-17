@@ -5,6 +5,8 @@ status · panel de estado
 Muestra por instancia y servicio la versión configurada y la que corre, la salud, el puerto, el
 uptime y el estado de los datos, avisa de los desajustes y sugiere el siguiente paso.
 Es solo lectura: nunca modifica nada.
+Arriba muestra la memoria del servidor, la carga y la versión de Docker, y para cada instancia `n/m`:
+los servicios en perfecto estado de los que deberían correr (`2/2` todo bien, `1/2` falta uno).
 
 Uso
   $ ./deltactl status [instancia] [--json] [--stats] [--strict] [--watch [segundos]]

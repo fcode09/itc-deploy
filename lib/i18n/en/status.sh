@@ -75,3 +75,6 @@ MSG_en["status.detail.errors"]="{1} line(s) with ERROR/ECONNREFUSED in the logs 
 MSG_en["status.footer.ok"]="{1} instance(s) · {2} service(s) · all good"
 MSG_en["status.footer.issues"]="{1} instance(s) · {2} service(s) · {3} with warnings"
 MSG_en["status.footer.next_steps"]="Suggested next steps"
+MSG_en["status.hdr.memory"]="Memory"
+MSG_en["status.hdr.load"]="Load"
+MSG_en["status.hdr.instances"]="Instances:"

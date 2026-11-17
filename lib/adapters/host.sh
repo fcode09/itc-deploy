@@ -32,3 +32,20 @@ host_free_kb() { # path
 
 # Numeric id of the user running the tool.
 host_uid() { id -u; }
+
+# --- Memory and load (Linux /proc; the files can be replaced for tests) ---------------------------------
+# DELTACTL_MEMINFO and DELTACTL_LOADAVG point to alternative files. Every function prints nothing when the
+# file is missing, so the callers simply leave the figure out on systems without /proc.
+
+# Short host name (a fallback word when it cannot be read).
+host_name() { hostname 2>/dev/null || true; }
+
+# Total and available memory, in KB.
+host_mem_total_kb() { awk '/^MemTotal:/ { print $2 }' "${DELTACTL_MEMINFO:-/proc/meminfo}" 2>/dev/null || true; }
+host_mem_available_kb() { awk '/^MemAvailable:/ { print $2 }' "${DELTACTL_MEMINFO:-/proc/meminfo}" 2>/dev/null || true; }
+
+# Load average of the last minute.
+host_load1() { awk '{ print $1 }' "${DELTACTL_LOADAVG:-/proc/loadavg}" 2>/dev/null || true; }
+
+# 8388608 -> 8.0 (kilobytes to gigabytes, one decimal)
+host_kb_to_gb() { awk -v k="$1" 'BEGIN { printf "%.1f", k / 1048576 }'; }
