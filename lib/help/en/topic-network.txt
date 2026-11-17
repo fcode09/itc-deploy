@@ -1,0 +1,27 @@
+# Private network of each instance
+
+## Isolation
+Each instance creates its own network, `<instance>_net`. Its containers find each other by the service
+name (`s0`, `s1`) and cannot see those of other instances.
+
+## How the services talk to each other
+- `s1` calls `s0` over HTTP: `AUTH_URL=http://s0:3200` in `.env.s1`
+- `s0` calls `s1` over TCP (port 5020): `IP_INTERNAL_CONNECTION=s1` in `.env.s0` and `TCP_LISTEN_HOST=0.0.0.0` in `.env.s1`
+> Without `TCP_LISTEN_HOST=0.0.0.0`, `s1` only listens inside its own container and `s0` cannot reach it.
+
+## Ports to the outside
+- the services are only published on `127.0.0.1` (4100, 4101...): towards the internet goes your proxy with TLS
+! The 5020 of `s1` is NEVER published: that microservice has no authentication.
+
+## The server's MongoDB
+- Mongo is not in this compose: it is the server's own, shared by all the instances
+- from a container it is reached with `host.docker.internal` (already configured)
+- `127.0.0.1` inside a container is the container itself, not the server
+
+## Connection errors you will see in the logs
+- `ECONNREFUSED ...:5050` in `s0`: it looks for a "Spider" server that is not part of this deployment
+- `ECONNREFUSED 127.0.0.1:7050` in `s1`: it looks for the AddressLocator microservice, not deployed either
+> They do not prevent starting; only the functions that depend on those services fail.
+
+## Related
+- `./deltactl help services`, `./deltactl help ports`

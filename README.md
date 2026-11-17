@@ -51,11 +51,12 @@ lib/
 ├─ core/           # reglas: instancias, servicios, imágenes, puertos (sin entrada/salida propia)
 ├─ adapters/       # docker.sh, state.sh (archivos de la instancia), host.sh (puertos, permisos, disco)
 ├─ cmd/            # un archivo por comando; se cargan al usarlos
-└─ help/           # las páginas de ayuda
+└─ help/           # las páginas de ayuda: español en help/, inglés en help/en/
 ```
 
 El código y los comentarios están en inglés; el español es el idioma de la interfaz (se cambia con
-`DELTACTL_LANG=en` o con `UI_LANG=en` en `~/.config/deltactl/config`).
+`DELTACTL_LANG=en` o con `UI_LANG=en` en `~/.config/deltactl/config`). La ayuda integrada
+(`./deltactl help`) está en los dos idiomas; una página sin traducir se muestra en español.
 
 ## La consola
 

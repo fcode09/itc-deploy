@@ -1,0 +1,36 @@
+# Initial data (seeds)
+
+## What a seed is
+A command of the image itself (`node dist/cli.js <seed>`) that loads starting data into the databases.
+The seeds DELETE whatever is there (collection drops) before loading: that is why they are done only once, on
+new municipalities.
+
+## Who runs them
+- `./deltactl deploy` NEVER seeds
+- `./deltactl init <instance>` seeds a new instance, in this order:
+- 1. `populating_data_s1` (Gue catalogs)
+- 2. starts s1: the next seed needs to talk to it over TCP
+- 3. `populating_data_s0` (Auth base data); it empties the users of s1 and sends them again
+- 4. `create_root_user` (root, superuser and deltadispatch in Auth and in Gue)
+- 5. `url_systems` (system URLs, with the value of `IP_SERVER` from `.env.s0`)
+- 6. starts s0
+
+## Why that safety
+- `init` refuses if there is a `.initialized` marker or if the databases have users
+- there is no `--force`
+- the seeds ALWAYS exit with code 0 even when they fail: `init` reads their log and requires a minimum of completed steps
+
+## Data states (DATA column)
+- `init` seeded with `./deltactl init`
+- `existing` marked with `./deltactl adopt` or `new --existing`
+- `unseeded` one of the two is missing
+
+## Logs
+`instances/<instance>/init-logs/` keeps the log of each seed.
+
+## After seeding
+- change the passwords of root/superuser/deltadispatch (they are fixed in the Auth code)
+- check the URLs in Auth → Settings → Systems: `url_systems` sets the same value in all of them
+
+## Related
+- `./deltactl help init`, `./deltactl help existing-instance`
