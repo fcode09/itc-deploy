@@ -7,12 +7,15 @@ line does not do, and it teaches you how to type it.
 ## Usage
 $ ./deltactl menu [--classic]
 
-## The arrow-key panel
-In a real terminal (also when you run `./deltactl` without arguments) it opens a panel: at the top the server memory
-and the `n/m` state of every instance. Move with ↑ ↓, Enter opens the actions of the selected instance (details,
-check, deploy, rollback, logs, stop, take down, seed) and `?` shows all the keys. It refreshes by itself every few
-seconds; `L` switches between Spanish and English and `q` quits. Without a terminal (a pipe, a script) or with
-`--classic` the numbered menu below is used.
+## The live panel
+In a real terminal (also when you run `./deltactl` without arguments) it opens a one-screen panel with three views
+(keys `1`, `2`, `3` or Tab): Instances (the list, the detail of the selected one with its live memory and CPU, and the output
+of the last command), Resources (every service with memory, CPU and trend) and Output (the full output of the last command,
+scrollable). Move with ↑ ↓ ← → and Enter opens the actions of the instance. Commands run inside the panel, without leaving it:
+`:` types any `deltactl` command (Tab completes, ↑ recalls the previous one), `!` runs it in the terminal (wizards such as
+`new --wizard`) and `x` cancels the one that is running. The figures are read from the kernel every second and the state is
+refreshed when Docker reports a change. `L` switches between Spanish and English, `?` shows all the keys and `q` quits.
+Without a terminal (a pipe, a script) or with `--classic` the numbered menu below is used.
 
 ## Numbered menu options
 - 1. View status: `./deltactl status`
