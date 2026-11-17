@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# ./itc menu: menú interactivo con numeración. Cada opción pregunta lo necesario (instancia, servicio...),
-# muestra el comando equivalente y lo ejecuta con ./itc: el menú no hace nada que la línea de comandos no haga.
+# ./deltactl menu: menú interactivo con numeración. Cada opción pregunta lo necesario (instancia, servicio...),
+# muestra el comando equivalente y lo ejecuta con ./deltactl: el menú no hace nada que la línea de comandos no haga.
 # Las operaciones destructivas piden confirmación aquí (init exige escribir el nombre de la instancia).
 # Con "?" delante de un número (por ejemplo "?4") muestra la ayuda de esa opción.
 
 # new_ask, new_ask_yn y new_loaded_tags vienen de new.sh; st_enabled de status.sh
-source "$ROOT/scripts/cmd/new.sh"
-source "$ROOT/scripts/cmd/status.sh"
+source "$ROOT/lib/cmd/new.sh"
+source "$ROOT/lib/cmd/status.sh"
 
 PICK=""
 
@@ -101,11 +101,11 @@ menu_pause() {
   IFS= read -r _ || true
 }
 
-# Ejecuta ./itc con los argumentos, mostrando el comando equivalente. Devuelve su código de salida.
+# Ejecuta ./deltactl con los argumentos, mostrando el comando equivalente. Devuelve su código de salida.
 menu_exec() {
   local rc=0
-  printf '\n  %s%s ./itc %s%s\n\n' "$C_GRY" "$UI_S_ARROW" "$*" "$C_OFF"
-  "$ROOT/itc" "$@" || rc=$?
+  printf '\n  %s%s ./deltactl %s%s\n\n' "$C_GRY" "$UI_S_ARROW" "$*" "$C_OFF"
+  "$ROOT/deltactl" "$@" || rc=$?
   [ "$rc" -eq 0 ] || printf '\n  %s El comando terminó con errores (código %d)\n' "$(ui_sym err)" "$rc"
   return "$rc"
 }
@@ -150,7 +150,7 @@ menu_update() {
   if [ -z "$tag" ]; then info "  cancelado"; return 0; fi
   if [ "$tag" = "$cur" ]; then info "  ya está en esa etiqueta"; return 0; fi
   if [ -n "$tags" ] && [[ " $tags " != *" $tag "* ]]; then
-    warn "la etiqueta '$tag' no está entre las cargadas (¿falta ./itc load?)"
+    warn "la etiqueta '$tag' no está entre las cargadas (¿falta ./deltactl load?)"
     new_ask_yn "¿Continuar de todos modos?" n || return 0
   fi
   new_ask_yn "Se cambiará $(tag_var "$svc") de '${cur:-vacía}' a '$tag' en .env.instance y se desplegará solo $svc. ¿Continuar?" s || return 0
@@ -247,7 +247,7 @@ menu_dispatch() { # opción
 }
 
 cmd_menu() {
-  [ "$#" -eq 0 ] || die "menu no recibe argumentos (ver ./itc help menu)"
+  [ "$#" -eq 0 ] || die "menu no recibe argumentos (ver ./deltactl help menu)"
   local choice help_page
   ui_banner
   while true; do

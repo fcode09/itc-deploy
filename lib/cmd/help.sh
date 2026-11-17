@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# ./itc help [comando | tema | variable [CLAVE] | buscar <texto>]
-# La ayuda vive en scripts/help/*.txt (una sola fuente de verdad); este archivo solo la busca y la muestra.
+# ./deltactl help [comando | tema | variable [CLAVE] | buscar <texto>]
+# La ayuda vive en lib/help/*.txt (una sola fuente de verdad); este archivo solo la busca y la muestra.
 #   cmd-<comando>.txt   una página por comando
 #   topic-<tema>.txt    guías completas
 #   overview.txt        pantalla principal
 #   variables.txt       glosario de variables de .env.instance, .env.s0 y .env.s1
 # tests/test-help.sh comprueba que todo comando, tema y variable tenga su página.
 
-HELP_DIR="$ROOT/scripts/help"
+HELP_DIR="$ROOT/lib/help"
 HELP_COMMANDS=(new init adopt deploy rollback stop down load images versions list status ps logs check doctor menu completion help)
 HELP_TOPICS=(nueva-instancia instancia-existente actualizar imagenes servicios red datos secretos archivos puertos solucion-problemas glosario)
 
@@ -21,7 +21,7 @@ help_title() { # archivo
 
 help_topics_list() {
   local t
-  ui_h2 "Guías  (./itc help <tema>)"
+  ui_h2 "Guías  (./deltactl help <tema>)"
   for t in "${HELP_TOPICS[@]}"; do
     printf '  %s%-24s%s %s\n' "$C_GRN" "$t" "$C_OFF" "$(help_title "$HELP_DIR/topic-$t.txt")"
   done
@@ -32,9 +32,9 @@ help_overview() {
   ui_render_file "$HELP_DIR/overview.txt"
   help_topics_list
   printf '\n'
-  ui_hint "Variables:  ./itc help variable <NOMBRE>   (sin nombre, las lista todas)"
-  ui_hint "Buscar:     ./itc help buscar <texto>"
-  ui_hint "Cualquier comando acepta --help:  ./itc deploy --help"
+  ui_hint "Variables:  ./deltactl help variable <NOMBRE>   (sin nombre, las lista todas)"
+  ui_hint "Buscar:     ./deltactl help buscar <texto>"
+  ui_hint "Cualquier comando acepta --help:  ./deltactl deploy --help"
 }
 
 # Sugerencias para un nombre que no existe: páginas cuyo nombre se parece.
@@ -48,17 +48,19 @@ help_unknown() { # texto
     case "$n" in *"$q"* | "${q:0:3}"*)
       [ "$found" -eq 1 ] || info "¿Quisiste decir?"
       found=1
-      info "  ./itc help $n"
+      info "  ./deltactl help $n"
       ;;
     esac
   done
-  info "Índice completo: ./itc help      Buscar texto: ./itc help buscar $q"
+  info "Índice completo: ./deltactl help      Buscar texto: ./deltactl help buscar $q"
   return 1
 }
 
 help_page() { # nombre
   local n="$1" f
   [ "$n" != "versions" ] || n=images
+  # A guide may be asked for by its English id or its Spanish name; the page files still use the Spanish ids.
+  n="$(topic_file_id "$n")"
   for f in "$HELP_DIR/cmd-$n.txt" "$HELP_DIR/topic-$n.txt"; do
     if [ -f "$f" ]; then
       ui_render_file "$f"
@@ -101,7 +103,7 @@ help_variable() { # [CLAVE]
       fi
     done < <(help_var_records "")
     printf '\n'
-    ui_hint "Detalle de una variable: ./itc help variable <NOMBRE>"
+    ui_hint "Detalle de una variable: ./deltactl help variable <NOMBRE>"
     return 0
   fi
 
@@ -125,14 +127,14 @@ help_variable() { # [CLAVE]
     local near
     near="$(grep -E '^@ ' "$HELP_DIR/variables.txt" | grep -iF -- "${key:0:4}" | cut -d' ' -f2 | sort -u | head -5 | tr '\n' ' ')"
     [ -z "$near" ] || info "Parecidas: $near"
-    info "Lista completa: ./itc help variable"
+    info "Lista completa: ./deltactl help variable"
     return 1
   fi
 }
 
 help_search() { # texto...
   local q="$*" f n found=0
-  [ -n "$q" ] || die "uso: ./itc help buscar <texto>"
+  [ -n "$q" ] || die "uso: ./deltactl help buscar <texto>"
   for f in "$HELP_DIR"/*.txt; do
     grep -qiF -- "$q" "$f" || continue
     n="$(basename "$f" .txt)"
@@ -143,7 +145,7 @@ help_search() { # texto...
       overview) n="" ;;
     esac
     found=1
-    ui_h2 "./itc help $n"
+    ui_h2 "./deltactl help $n"
     grep -iF -m3 -- "$q" "$f" | while IFS= read -r line; do printf '    %s\n' "$(ui_inline "$line")"; done
   done
   [ "$found" -eq 1 ] || { warn "no hay coincidencias para '$q' en la ayuda"; return 1; }

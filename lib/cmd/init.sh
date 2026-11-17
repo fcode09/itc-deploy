@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# ./itc init <instancia> [--yes]: siembra los datos iniciales de una instancia NUEVA, una sola vez.
-# ./itc adopt <instancia>: marca como inicializada una instancia que YA tiene datos (no siembra nada).
+# ./deltactl init <instancia> [--yes]: siembra los datos iniciales de una instancia NUEVA, una sola vez.
+# ./deltactl adopt <instancia>: marca como inicializada una instancia que YA tiene datos (no siembra nada).
 #
 # Los seeds son DESTRUCTIVOS: hacen drop de colecciones, y el seed de s0 le ordena a s1, por TCP, que
 # vacíe su tabla de usuarios. Por eso init se niega si ya hay marcador o datos, y no tiene --force.
@@ -12,7 +12,7 @@
 # Los seeds terminan siempre con código 0 aunque fallen: se lee su log.
 
 # cmd_deploy viene de deploy.sh
-source "$ROOT/scripts/cmd/deploy.sh"
+source "$ROOT/lib/cmd/deploy.sh"
 
 MIN_STEPS_S1=30
 MIN_STEPS_S0=17
@@ -24,7 +24,7 @@ count_docs() { # instancia servicio variable_con_la_uri coleccion
   local name="$1" svc="$2" uri_var="$3" coll="$4" dir ref out
   dir="$(instance_dir "$name")"
   ref="$(service_image_ref "$name" "$svc")"
-  out="$(docker run --rm --add-host host.docker.internal:host-gateway --env-file "$dir/.env.$svc" "$ref" node -e '
+  out="$(dk_run_once "$dir/.env.$svc" "$ref" -- node -e '
     const m = require("mongoose");
     (async () => {
       const uri = process.env[process.argv[1]], coll = process.argv[2];
@@ -47,12 +47,12 @@ run_seed() { # instancia servicio red|- comando...
   shift 3
   dir="$(instance_dir "$name")"
   ref="$(service_image_ref "$name" "$svc")"
-  local -a args=(run --rm --add-host host.docker.internal:host-gateway --env-file "$dir/.env.$svc")
-  [ "$net" = "-" ] || args+=(--network "$net")
-  [ "$svc" != "s1" ] || args+=(-v "$dir/secrets:/run/secrets:ro")
+  local -a extra=()
+  [ "$net" = "-" ] || extra+=(--network "$net")
+  [ "$svc" != "s1" ] || extra+=(-v "$dir/secrets:/run/secrets:ro")
   mkdir -p "$dir/init-logs"
   SEED_LOG="$dir/init-logs/$(date -u +%Y%m%dT%H%M%SZ)-$svc-$1.log"
-  SEED_OUT="$(docker "${args[@]}" "$ref" node dist/cli.js "$@" 2>&1)" || true
+  SEED_OUT="$(dk_run_once "$dir/.env.$svc" "$ref" ${extra[@]+"${extra[@]}"} -- node dist/cli.js "$@" 2>&1)" || true
   printf '%s\n' "$SEED_OUT" > "$SEED_LOG"
   chmod 600 "$SEED_LOG"
 }
@@ -86,7 +86,7 @@ cmd_init() {
   local dir s have0=0 have1=0
   dir="$(instance_dir "$name")"
   # Los deploy internos de init no deben avisar de que la instancia "no está inicializada".
-  export ITC_SUPPRESS_INIT_WARN=1
+  export DELTACTL_SUPPRESS_INIT_WARN=1
 
   select_services "$name"
   for s in "${ENABLED[@]}"; do
@@ -110,7 +110,7 @@ cmd_init() {
   n_gue="$(count_docs "$name" s1 MONGO_DELTA_DISPATCH_URI users)"
   [ "$n_auth" != "ERR" ] && [ "$n_gue" != "ERR" ] || die "no se pudo comprobar Mongo; revisa las URI de .env.s0 y .env.s1 y que Mongo sea alcanzable$(see solucion-problemas)"
   if [ "$n_auth" -gt 0 ] || [ "$n_gue" -gt 0 ]; then
-    die "'$name' ya tiene datos (Auth usuarios=$n_auth, Gue users=$n_gue): los seeds los BORRARÍAN. Si es una municipalidad existente, usa: ./itc adopt $name$(see instancia-existente)"
+    die "'$name' ya tiene datos (Auth usuarios=$n_auth, Gue users=$n_gue): los seeds los BORRARÍAN. Si es una municipalidad existente, usa: ./deltactl adopt $name$(see instancia-existente)"
   fi
 
   info "Se sembrarán los datos iniciales de '$name' (operación única y destructiva sobre sus bases)."
@@ -155,5 +155,5 @@ cmd_adopt() {
     die "'$name' ya está marcada ($(get_var "$(marker_file "$name")" SOURCE)): nada que hacer"
   fi
   write_marker "$name" existing
-  ok "instancia '$name' marcada como existente: ./itc init no podrá ejecutarse sobre ella (no se sembró nada)"
+  ok "instancia '$name' marcada como existente: ./deltactl init no podrá ejecutarse sobre ella (no se sembró nada)"
 }
