@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # `docker` simulado y determinista para los tests: no necesita Docker real y nunca levanta nada.
-# Se copia a "$FIX/bin/docker" (ver tests/test-guided.sh y tests/test-menu.sh). Entiende solo lo que usa itc:
+# Se copia a "$FIX/bin/docker" (ver tests/test-guided.sh y tests/test-menu.sh). Entiende solo lo que usa deltactl:
 #   info, network inspect, ps, image ls/inspect, run (prueba de Mongo) y compose (version, config, up/pull/...).
 # Estado simulado en $FIX: images.txt (ref|id|arquitectura), calls.log (lo que se intentó ejecutar),
 # y los archivos compose_invalid y mongo_fail que fuerzan errores.

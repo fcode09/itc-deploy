@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# Tests de ./itc status: panel, detalle, --json, --strict y detección de desajustes.
+# Tests de ./deltactl status: panel, detalle, --json, --strict y detección de desajustes.
 # Usa un `docker` simulado y determinista (contenedores, imágenes y estadísticas de mentira), así que no
 # necesita Docker real. Se ejecuta desde la raíz de la copia aislada (tests/run.sh).
 set -u
 # shellcheck source=tests/lib.sh
 source tests/lib.sh
 export LANG=C.UTF-8
-unset NO_COLOR ITC_COLOR ITC_UI ITC_ASCII COLUMNS
+unset NO_COLOR DELTACTL_COLOR DELTACTL_UI DELTACTL_ASCII COLUMNS
 
 FIX="$(mktemp -d)"
 export FIX
@@ -46,12 +46,12 @@ deployed() { # instancia svc tag id
   printf '%s_TAG=%s\n%s_IMAGE_ID=%s\n' "$up" "$3" "$up" "$4" >> "instances/$1/.deployed"
 }
 newinst() { # nombre s0tag s1tag [servicios]
-  bash ./itc new "$1" ${4:+--services "$4"} >/dev/null 2>&1
+  bash ./deltactl new "$1" ${4:+--services "$4"} >/dev/null 2>&1
   fill_instance "instances/$1" "$2" "$3"
   : > "instances/$1/.initialized"
   printf 'SOURCE=init\nINITIALIZED_AT=2026-01-01T00:00:00Z\n' > "instances/$1/.initialized"
 }
-status() { bash ./itc status "$@" 2>&1; }
+status() { bash ./deltactl status "$@" 2>&1; }
 
 section "1. instancia sana"
 newinst st-ok 1.0 1.0
@@ -65,7 +65,7 @@ check "ambos servicios healthy" '[ "$(echo "$out" | grep "st-ok" | grep -c healt
 check "uptime en horas y en días" 'echo "$out" | grep -q "2h0[0-9]m" && echo "$out" | grep -q "3d00h"'
 check "pie: todo en orden" 'echo "$out" | grep -q "todo en orden"'
 check "sin avisos no hay siguientes pasos" '! echo "$out" | grep -q "Siguientes pasos"'
-check "--strict devuelve 0 si todo está bien" 'bash ./itc status --strict >/dev/null 2>&1'
+check "--strict devuelve 0 si todo está bien" 'bash ./deltactl status --strict >/dev/null 2>&1'
 check "la salida plana no lleva escapes" '! echo "$out" | has_ansi'
 
 section "2. etiqueta configurada distinta de la que corre"
@@ -76,9 +76,9 @@ container st-drift s0 running healthy auth-backend:1.0 "1 hour"
 container st-drift s1 running healthy gueo-back-end:1.0 "1 hour"
 out="$(status)"
 check "detecta el desajuste de s1" 'echo "$out" | grep -q "configurada 2.0 pero corre 1.0"'
-check "sugiere desplegar solo ese servicio" 'echo "$out" | grep -q "./itc deploy st-drift s1"'
+check "sugiere desplegar solo ese servicio" 'echo "$out" | grep -q "./deltactl deploy st-drift s1"'
 check "el pie cuenta los avisos" 'echo "$out" | grep -q "con avisos"'
-bash ./itc status --strict >/dev/null 2>&1; rc=$?
+bash ./deltactl status --strict >/dev/null 2>&1; rc=$?
 check "--strict devuelve exactamente 2 si hay avisos" '[ "$rc" -eq 2 ]'
 
 section "3. imagen reconstruida con la misma etiqueta"
@@ -95,7 +95,7 @@ section "4. imagen que falta en este servidor"
 newinst st-noimg 9.9 9.9
 out="$(status)"
 check "avisa de la imagen faltante" 'echo "$out" | grep -q "falta la imagen auth-backend:9.9"'
-check "sugiere ./itc load" 'echo "$out" | grep -q "./itc load"'
+check "sugiere ./deltactl load" 'echo "$out" | grep -q "./deltactl load"'
 check "sin contenedor se muestra como no creado" 'echo "$out" | grep "st-noimg" | grep -q "no creado"'
 
 section "5. estados de salud y contenedores detenidos"
@@ -107,8 +107,8 @@ container st-health s1 exited none gueo-back-end:4.0 "10 minutes"
 out="$(status st-health)"
 check "s0 unhealthy" 'echo "$out" | grep -q "unhealthy"'
 check "s1 detenido" 'echo "$out" | grep -q "detenido"'
-check "sugiere ver los logs de s0" 'echo "$out" | grep -q "./itc logs st-health s0"'
-check "sugiere levantar s1" 'echo "$out" | grep -q "./itc deploy st-health s1"'
+check "sugiere ver los logs de s0" 'echo "$out" | grep -q "./deltactl logs st-health s0"'
+check "sugiere levantar s1" 'echo "$out" | grep -q "./deltactl deploy st-health s1"'
 
 section "6. servicio que corre fuera de COMPOSE_PROFILES"
 newinst st-orph 5.0 5.0 s0
@@ -118,7 +118,7 @@ container st-orph s0 running healthy auth-backend:5.0 "1 hour"
 container st-orph s1 running healthy gueo-back-end:5.0 "1 hour"
 out="$(status)"
 check "detecta el servicio fuera de perfil" 'echo "$out" | grep -q "fuera de perfil"'
-check "sugiere detenerlo" 'echo "$out" | grep -q "./itc stop st-orph s1"'
+check "sugiere detenerlo" 'echo "$out" | grep -q "./deltactl stop st-orph s1"'
 
 section "7. puerto repetido entre instancias"
 newinst st-pa 6.0 6.0 s0
@@ -132,7 +132,7 @@ newinst st-nodata 7.0 7.0 s1
 rm -f instances/st-nodata/.initialized
 out="$(status)"
 check "marca la instancia sin sembrar" 'echo "$out" | grep "st-nodata" | grep -q "sin sembrar"'
-check "sugiere init y adopt" 'echo "$out" | grep -q "./itc init st-nodata" && echo "$out" | grep -q "adopt st-nodata"'
+check "sugiere init y adopt" 'echo "$out" | grep -q "./deltactl init st-nodata" && echo "$out" | grep -q "adopt st-nodata"'
 
 section "9. detalle de una instancia (con estadísticas)"
 printf 's0_st-ok|82MiB / 512MiB|0.2%%\n' > "$FIX/stats.txt"
@@ -144,7 +144,7 @@ check "el detalle cuenta las líneas de error" 'echo "$out" | grep -q "errores 1
 check "instancia inexistente da error claro" 'status zz-no | grep -q "no existe"'
 
 section "10. --json"
-js="$(bash ./itc status --json 2>/dev/null)"
+js="$(bash ./deltactl status --json 2>/dev/null)"
 check "empieza y termina como una lista" '[ "$(echo "$js" | head -n1)" = "[" ] && [ "$(echo "$js" | tail -n1)" = "]" ]'
 check "es JSON válido" 'if command -v python3 >/dev/null; then echo "$js" | python3 -c "import json,sys; json.load(sys.stdin)"; else true; fi'
 check "incluye las claves esperadas" \
@@ -158,10 +158,10 @@ check "avisa que no hay docker y sigue mostrando la configuración" \
   'echo "$out" | grep -q "docker no está disponible" && echo "$out" | grep -q "st-ok"'
 rm -f "$FIX/nodocker"
 
-section "12. pantalla de inicio (./itc sin argumentos)"
-check "en un pipe muestra la ayuda" 'bash ./itc 2>&1 | grep -qx "Uso"'
-home="$(ITC_UI=rich ITC_COLOR=never COLUMNS=100 bash ./itc 2>&1)"
+section "12. pantalla de inicio (./deltactl sin argumentos)"
+check "en un pipe muestra la ayuda" 'bash ./deltactl 2>&1 | grep -qx "Uso"'
+home="$(DELTACTL_UI=rich DELTACTL_COLOR=never COLUMNS=100 bash ./deltactl 2>&1)"
 check "en una terminal muestra banner y estado" 'echo "$home" | grep -q "██╗" && echo "$home" | grep -q "Estado de las instancias"'
-check "la pantalla de inicio apunta a la ayuda" 'echo "$home" | grep -q "./itc help"'
+check "la pantalla de inicio apunta a la ayuda" 'echo "$home" | grep -q "./deltactl help"'
 
 finish
