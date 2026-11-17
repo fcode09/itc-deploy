@@ -89,4 +89,12 @@ check "list without instances: English hint" 'DELTACTL_LANG=en bash ./deltactl l
 check "list header is translated" 'DELTACTL_LANG=en bash ./deltactl list 2>&1 | grep -q "^INSTANCE .*SERVICES"'
 check "stop without a service: English usage" 'bash ./deltactl new i18n-tmp >/dev/null 2>&1; out="$(DELTACTL_LANG=en bash ./deltactl stop i18n-tmp 2>&1)"; rm -rf instances/i18n-tmp; echo "$out" | grep -q "usage: ./deltactl stop <instance> <service>"'
 
+check "images with a bad option: English message" 'DELTACTL_LANG=en bash ./deltactl images --bogus 2>&1 | grep -q "^ERROR unknown option: --bogus (see ./deltactl help images)"'
+check "completion without a shell: English usage" 'DELTACTL_LANG=en bash ./deltactl completion 2>&1 | grep -q "^ERROR usage: ./deltactl completion bash"'
+check "completion for another shell: English message" 'DELTACTL_LANG=en bash ./deltactl completion zsh 2>&1 | grep -q "completion is only available for bash (got: .zsh.)"'
+check "help index: English guides heading and hints" 'out="$(DELTACTL_LANG=en DELTACTL_UI=plain bash ./deltactl help 2>&1)"; echo "$out" | grep -q "^Guides  (./deltactl help <topic>)" && echo "$out" | grep -q "Search:     ./deltactl help search <text>"'
+check "help guide names are English in the English index" 'DELTACTL_LANG=en DELTACTL_UI=plain bash ./deltactl help 2>&1 | grep -qE "^  (new-instance|troubleshooting) "'
+check "help variable: unknown variable in English" 'DELTACTL_LANG=en bash ./deltactl help variable NO_SUCH_VAR 2>&1 | grep -q "there is no variable named .NO_SUCH_VAR. in the glossary"'
+check "help search: English usage" 'DELTACTL_LANG=en bash ./deltactl help search 2>&1 | grep -q "^ERROR usage: ./deltactl help search <text>"'
+
 finish
