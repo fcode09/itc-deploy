@@ -72,8 +72,8 @@ check "an English id maps back to the page file id" '[ "$(i18n_run -- "topic_fil
 check "a command name is left alone" '[ "$(i18n_run -- "topic_label deploy")" = "deploy" ]'
 check "see shows the Spanish name in Spanish" '[ "$(i18n_run DELTACTL_LANG=es -- "see new-instance")" = " (ayuda: ./deltactl help nueva-instancia)" ]'
 check "see shows the English name in English" '[ "$(i18n_run DELTACTL_LANG=en -- "see nueva-instancia")" = " (help: ./deltactl help new-instance)" ]'
-check "help new-instance shows the same page as help nueva-instancia" 'diff <(DELTACTL_LANG=en bash ./deltactl help new-instance 2>&1) <(DELTACTL_LANG=es bash ./deltactl help nueva-instancia 2>&1)'
-check "help local-images shows the images guide" 'DELTACTL_LANG=en bash ./deltactl help local-images 2>&1 | grep -q "Imágenes locales\|imágenes"'
+check "help new-instance shows the same page as help nueva-instancia (in the same language)" 'diff <(DELTACTL_LANG=es bash ./deltactl help new-instance 2>&1) <(DELTACTL_LANG=es bash ./deltactl help nueva-instancia 2>&1)'
+check "help local-images shows the images guide" 'DELTACTL_LANG=en bash ./deltactl help local-images 2>&1 | grep -q "Images: names, tags and where they come from" && DELTACTL_LANG=es bash ./deltactl help local-images 2>&1 | grep -q "Imágenes: nombres, etiquetas"'
 check "help images is still the command page" 'DELTACTL_UI=plain bash ./deltactl help images 2>&1 | grep -q "./deltactl images"'
 
 section "6. the English interface"
@@ -127,5 +127,84 @@ check "status detail: English labels" 'bash ./deltactl new i18n-st >/dev/null 2>
 section "7. the code is English: Spanish lives only in the catalogs, the help pages and the templates"
 check "no accented letters or inverted punctuation in the code" '! LC_ALL=C.UTF-8 grep -rnE "[áéíóúñÁÉÍÓÚÑ¿¡]" deltactl lib/bootstrap.sh lib/cmd lib/core lib/ui lib/adapters lib/i18n/i18n.sh'
 check "every lib/cmd command has a catalog file in both languages (or needs none)" 'for c in ops load list rollback images completion help check deploy init doctor new menu status; do for l in es en; do [ -f "lib/i18n/$l/$c.sh" ] || { echo "missing lib/i18n/$l/$c.sh"; exit 1; }; done; done'
+
+
+section "8. help pages by language (English in lib/help/en with fallback to the Spanish page)"
+mkdir -p "$CFG/h/en"
+touch "$CFG/h/cmd-a.txt" "$CFG/h/cmd-b.txt" "$CFG/h/en/cmd-a.txt" "$CFG/h/topic-nueva-instancia.txt" "$CFG/h/en/topic-new-instance.txt" "$CFG/h/topic-red.txt"
+hf() { # lang kind [id]
+  local lang="$1"
+  shift
+  DELTACTL_LANG="$lang" bash -c 'ROOT="$PWD"; source lib/bootstrap.sh; source lib/cmd/help.sh; HELP_DIR="$1"; shift; help_page_file "$@"' _ "$CFG/h" "$@"
+}
+check "English prefers its own page" '[ "$(hf en cmd a)" = "$CFG/h/en/cmd-a.txt" ]'
+check "English falls back to the Spanish page when it is not translated" '[ "$(hf en cmd b)" = "$CFG/h/cmd-b.txt" ]'
+check "Spanish never uses the English folder" '[ "$(hf es cmd a)" = "$CFG/h/cmd-a.txt" ]'
+check "a guide is found by its English id in English" '[ "$(hf en topic new-instance)" = "$CFG/h/en/topic-new-instance.txt" ]'
+check "a guide is found by its Spanish name in English" '[ "$(hf en topic nueva-instancia)" = "$CFG/h/en/topic-new-instance.txt" ]'
+check "a guide is found by its English id in Spanish" '[ "$(hf es topic new-instance)" = "$CFG/h/topic-nueva-instancia.txt" ]'
+check "an untranslated guide falls back to the Spanish file" '[ "$(hf en topic network)" = "$CFG/h/topic-red.txt" ]'
+check "a page that does not exist is an error" '! hf es cmd zzz >/dev/null && ! hf en topic zzz >/dev/null'
+check "help for an unknown page in English" 'DELTACTL_LANG=en bash ./deltactl help nosuchpage 2>&1 | grep -q "there is no help for .nosuchpage."'
+
+
+section "9. English help pages match their Spanish originals"
+# Spanish page that corresponds to an English one (guide files are named by English id in lib/help/en).
+es_page() { # english page path
+  local name id es
+  name="$(basename "$1")"
+  case "$name" in
+    topic-*)
+      id="${name#topic-}"
+      id="${id%.txt}"
+      es="$(bash -c 'ROOT="$PWD"; source lib/i18n/i18n.sh; topic_file_id "$1"' _ "$id")"
+      printf 'lib/help/topic-%s.txt' "$es"
+      ;;
+    *) printf 'lib/help/%s' "$name" ;;
+  esac
+}
+# Command words of the "$ ./deltactl <word>" lines and of the "| <word>" rows, in order, plus every option mentioned.
+help_signature() { # file
+  grep -oE '^(\$ \./deltactl [a-z]+|\| [a-z]+)' "$1" | sed -E 's/^\$ \.\/deltactl //; s/^\| //' | tr '\n' ' '
+  echo
+  grep -oE -- '--[a-z][a-z-]*' "$1" | sort -u | tr '\n' ' '
+  echo
+}
+en_pages="$(ls lib/help/en/*.txt 2>/dev/null)"
+check "there are English pages to compare" '[ -n "$en_pages" ]'
+check "every English page has a Spanish original" 'for p in $en_pages; do [ -f "$(es_page "$p")" ] || { echo "no original for $p"; exit 1; }; done'
+check "commands and options match the Spanish page" 'for p in $en_pages; do case "$(basename "$p")" in variables.txt) continue ;; esac; diff <(help_signature "$p") <(help_signature "$(es_page "$p")") >/dev/null || { echo "differs: $p"; exit 1; }; done'
+glossary_keys() { grep -E "^@ " "$1" | awk -F" [|] " "{ sub(/^@ /, \"\", \$1); print \$1 \" \" \$2 }"; }
+check "the English glossary has the same variables, files and order" '[ ! -f lib/help/en/variables.txt ] || diff <(glossary_keys lib/help/en/variables.txt) <(glossary_keys lib/help/variables.txt) >/dev/null'
+glossary_types() { grep -E "^@ " "$1" | awk -F" [|] " "{ print \$3 }" | sed -e "s/obligatoria/required/" -e "s/opcional/optional/" -e "s/fija/fixed/"; }
+check "the English glossary types are required, optional or fixed, as in Spanish" '[ ! -f lib/help/en/variables.txt ] || diff <(glossary_types lib/help/en/variables.txt) <(glossary_types lib/help/variables.txt) >/dev/null'
+check "English pages fit in 130 columns" '! awk "length(\$0) > 130 { exit 1 }" lib/help/en/*.txt'
+check "English pages have no accented letters or inverted punctuation" '! LC_ALL=C.UTF-8 grep -nE "[áéíóúñÁÉÍÓÚÑ¿¡]" lib/help/en/*.txt'
+check "English pages refer to guides by English id" '! grep -nE "help (nueva-instancia|instancia-existente|actualizar|imagenes|servicios|red|datos|secretos|archivos|puertos|solucion-problemas|glosario)\b" lib/help/en/*.txt'
+
+check "the English help overview is shown in English" 'out="$(DELTACTL_LANG=en DELTACTL_UI=plain bash ./deltactl help 2>&1)"; echo "$out" | grep -q "DELTACTL · help" && echo "$out" | grep -q "Deploys and operates one instance per municipality" && ! echo "$out" | grep -q "Despliega y opera"'
+check "the English glossary answers help variable" 'out="$(DELTACTL_LANG=en DELTACTL_UI=plain bash ./deltactl help variable S0_TAG 2>&1)"; echo "$out" | grep -qE "^  type +required" && echo "$out" | grep -q "Tag (version) of the s0 image"'
+check "the English glossary table uses English type words" 'DELTACTL_LANG=en DELTACTL_UI=plain bash ./deltactl help variable 2>&1 | grep "S0_TAG" | grep -q "required"'
+check "the Spanish glossary is unchanged" 'DELTACTL_LANG=es DELTACTL_UI=plain bash ./deltactl help variable S0_TAG 2>&1 | grep -qE "^  tipo +obligatoria"'
+check "help search finds English text in English" 'DELTACTL_LANG=en DELTACTL_UI=plain bash ./deltactl help search "private network" 2>&1 | grep -q "private network"'
+
+en_page() { # spanish page path -> english page path
+  local name id en
+  name="$(basename "$1")"
+  case "$name" in
+    topic-*)
+      id="${name#topic-}"
+      id="${id%.txt}"
+      en="$(bash -c 'ROOT="$PWD"; source lib/i18n/i18n.sh; topic_canonical "$1"' _ "$id")"
+      printf 'lib/help/en/topic-%s.txt' "$en"
+      ;;
+    *) printf 'lib/help/en/%s' "$name" ;;
+  esac
+}
+check "every Spanish help page has an English page" 'for p in lib/help/*.txt; do [ -f "$(en_page "$p")" ] || { echo "missing $(en_page "$p")"; exit 1; }; done'
+check "the English help index lists the English guides with English titles" 'out="$(DELTACTL_LANG=en DELTACTL_UI=plain bash ./deltactl help 2>&1)"; echo "$out" | grep -qE "^  new-instance +Bring up a new instance, step by step" && echo "$out" | grep -qE "^  troubleshooting +Troubleshooting" && ! echo "$out" | grep -q "Poner en marcha"'
+check "an English guide is shown in English by its English id and its Spanish name" 'a="$(DELTACTL_LANG=en DELTACTL_UI=plain bash ./deltactl help new-instance 2>&1)"; b="$(DELTACTL_LANG=en DELTACTL_UI=plain bash ./deltactl help nueva-instancia 2>&1)"; [ "$a" = "$b" ] && echo "$a" | grep -q "Before you start"'
+check "the Spanish guides are unchanged" 'DELTACTL_LANG=es DELTACTL_UI=plain bash ./deltactl help new-instance 2>&1 | grep -q "Antes de empezar"'
+check "help for a command is shown in English" 'DELTACTL_LANG=en DELTACTL_UI=plain bash ./deltactl help deploy 2>&1 | grep -q "start or update an instance"'
 
 finish

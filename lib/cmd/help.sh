@@ -1,19 +1,46 @@
 #!/usr/bin/env bash
 # ./deltactl help [command | topic | variable [KEY] | search <text>]
-# The help lives in lib/help/*.txt (a single source of truth); this file only looks it up and shows it.
+# The help lives in lib/help (a single source of truth); this file only looks it up and shows it.
 #   cmd-<command>.txt   one page per command
 #   topic-<topic>.txt   full guides
 #   overview.txt        main screen
 #   variables.txt       glossary of the variables of .env.instance, .env.s0 and .env.s1
 # tests/test-help.sh checks that every command, topic and variable has its page.
 #
-# The page files are still Spanish; the labels and messages around them come from the catalogs.
+# Spanish (the default UI language) pages live in lib/help/. Every other language has its pages in
+# lib/help/<code>/ (lib/help/en/ for English) with English guide ids in the file names (topic-new-instance.txt).
+# A page that is not translated yet is shown in Spanish. The labels and messages around the pages come
+# from the catalogs.
 
 HELP_DIR="$ROOT/lib/help"
 # shellcheck disable=SC2034  # read by completion.sh and the tests
 HELP_COMMANDS=(new init adopt deploy rollback stop down load images versions list status ps logs check doctor menu completion help)
-# Topic ids as the page files are named (topic-<id>.txt). topic_label shows them in the UI language.
+# Topic ids as the Spanish page files are named (topic-<id>.txt). topic_label shows them in the UI language.
 HELP_TOPICS=(nueva-instancia instancia-existente actualizar imagenes servicios red datos secretos archivos puertos solucion-problemas glosario)
+
+# Path of a help page in the active language, or of the Spanish one when it is not translated.
+# usage: help_page_file overview | variables | cmd <command> | topic <guide id or name>
+# It prints nothing and fails when there is no such page.
+help_page_file() { # kind [id]
+  local kind="$1" id="${2:-}" lang="${DELTACTL_LANG_ACTIVE:-es}" name f
+  case "$kind" in
+    cmd) name="cmd-$id.txt" ;;
+    topic) name="topic-$(topic_canonical "$id").txt" ;;
+    *) name="$kind.txt" ;;
+  esac
+  if [ "$lang" != "es" ]; then
+    f="$HELP_DIR/$lang/$name"
+    if [ -f "$f" ]; then
+      printf '%s' "$f"
+      return 0
+    fi
+  fi
+  # Spanish page: the guide files keep their Spanish ids.
+  if [ "$kind" = "topic" ]; then name="topic-$(topic_file_id "$id").txt"; fi
+  f="$HELP_DIR/$name"
+  [ -f "$f" ] || return 1
+  printf '%s' "$f"
+}
 
 # Title (first line "# ...") of a help page.
 help_title() { # file
@@ -27,13 +54,13 @@ help_topics_list() {
   local t
   ui_h2 "$(t help.guides)"
   for t in "${HELP_TOPICS[@]}"; do
-    printf '  %s%-24s%s %s\n' "$C_GRN" "$(topic_label "$t")" "$C_OFF" "$(help_title "$HELP_DIR/topic-$t.txt")"
+    printf '  %s%-24s%s %s\n' "$C_GRN" "$(topic_label "$t")" "$C_OFF" "$(help_title "$(help_page_file topic "$t")")"
   done
 }
 
 help_overview() {
   ui_banner
-  ui_render_file "$HELP_DIR/overview.txt"
+  ui_render_file "$(help_page_file overview)"
   help_topics_list
   printf '\n'
   ui_hint "$(t help.hint_variables)"
@@ -41,14 +68,16 @@ help_overview() {
   ui_hint "$(t help.hint_flag)"
 }
 
-# Suggestions for a name that does not exist: pages whose name looks similar.
+# Suggestions for a name that does not exist: pages whose name looks similar (in the UI language).
 help_unknown() { # text
   local q="$1" f n found=0
   warn "$(t help.no_page "$q")"
   for f in "$HELP_DIR"/cmd-*.txt "$HELP_DIR"/topic-*.txt; do
     n="$(basename "$f" .txt)"
-    n="${n#cmd-}"
-    n="${n#topic-}"
+    case "$n" in
+      cmd-*) n="${n#cmd-}" ;;
+      topic-*) n="$(topic_label "${n#topic-}")" ;;
+    esac
     case "$n" in *"$q"* | "${q:0:3}"*)
       [ "$found" -eq 1 ] || info "$(t help.did_you_mean)"
       found=1
@@ -63,15 +92,14 @@ help_unknown() { # text
 help_page() { # name
   local n="$1" f
   [ "$n" != "versions" ] || n=images
-  # A guide may be asked for by its English id or its Spanish name; the page files still use the Spanish ids.
-  n="$(topic_file_id "$n")"
-  for f in "$HELP_DIR/cmd-$n.txt" "$HELP_DIR/topic-$n.txt"; do
-    if [ -f "$f" ]; then
-      ui_render_file "$f"
-      printf '\n'
-      return 0
-    fi
-  done
+  # A command page first; then a guide, asked for by its English id or its Spanish name.
+  f="$(help_page_file cmd "$n" || true)"
+  [ -n "$f" ] || f="$(help_page_file topic "$n" || true)"
+  if [ -n "$f" ]; then
+    ui_render_file "$f"
+    printf '\n'
+    return 0
+  fi
   help_unknown "$1"
 }
 
@@ -87,7 +115,7 @@ help_var_records() { # [KEY]
       next
     }
     p { print "T\t" $0 }
-  ' "$HELP_DIR/variables.txt"
+  ' "$(help_page_file variables)"
 }
 
 help_variable() { # [KEY]
@@ -102,7 +130,7 @@ help_variable() { # [KEY]
       if [ "$tag" = "H" ]; then
         IFS='|' read -r k f t d <<< "$rest"
         k="${k# }"; k="${k% }"; f="${f# }"; f="${f% }"; t="${t# }"; t="${t% }"
-        # The type words come from the glossary page (Spanish today, English once it is translated).
+        # The type words come from the glossary page, in the language of that page.
         case "$t" in obligatoria | required) first="err" ;; fija | fixed) first="dim" ;; *) first="" ;; esac
         ui_tr "bold:$k" "$f" "${first:+$first:}$t"
       fi
@@ -130,7 +158,7 @@ help_variable() { # [KEY]
   if [ "$first" -eq 1 ]; then
     warn "$(t help.no_variable "$key")"
     local near
-    near="$(grep -E '^@ ' "$HELP_DIR/variables.txt" | grep -iF -- "${key:0:4}" | cut -d' ' -f2 | sort -u | head -5 | tr '\n' ' ')"
+    near="$(grep -E '^@ ' "$(help_page_file variables)" | grep -iF -- "${key:0:4}" | cut -d' ' -f2 | sort -u | head -5 | tr '\n' ' ')"
     [ -z "$near" ] || info "$(t help.similar "$near")"
     info "$(t help.full_list)"
     return 1
@@ -138,20 +166,23 @@ help_variable() { # [KEY]
 }
 
 help_search() { # text...
-  local q="$*" f n found=0
+  local q="$*" f base n pf found=0
   [ -n "$q" ] || die "$(t help.search_usage)"
+  # The Spanish files give the list and the order; each page is searched in the UI language.
   for f in "$HELP_DIR"/*.txt; do
-    grep -qiF -- "$q" "$f" || continue
-    n="$(basename "$f" .txt)"
-    case "$n" in
-      cmd-*) n="${n#cmd-}" ;;
-      topic-*) n="${n#topic-}" ;;
-      variables) n="variable" ;;
-      overview) n="" ;;
+    base="$(basename "$f" .txt)"
+    case "$base" in
+      cmd-*) n="${base#cmd-}"; pf="$(help_page_file cmd "$n" || true)" ;;
+      topic-*) n="$(topic_label "${base#topic-}")"; pf="$(help_page_file topic "${base#topic-}" || true)" ;;
+      variables) n="variable"; pf="$(help_page_file variables || true)" ;;
+      overview) n=""; pf="$(help_page_file overview || true)" ;;
+      *) continue ;;
     esac
+    [ -n "$pf" ] || pf="$f"
+    grep -qiF -- "$q" "$pf" || continue
     found=1
     ui_h2 "./deltactl help $n"
-    grep -iF -m3 -- "$q" "$f" | while IFS= read -r line; do printf '    %s\n' "$(ui_inline "$line")"; done
+    grep -iF -m3 -- "$q" "$pf" | while IFS= read -r line; do printf '    %s\n' "$(ui_inline "$line")"; done
   done
   [ "$found" -eq 1 ] || { warn "$(t help.search_none "$q")"; return 1; }
 }

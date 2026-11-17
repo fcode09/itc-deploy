@@ -1,0 +1,192 @@
+# Glossary of the environment variables of deltactl.
+# Format: "@ KEY | file | type | default value" and below it the description up to the next "@".
+# type: required (validated by ./deltactl deploy) | optional | fixed (set by the compose or the image: it does not go in the .env).
+# tests/test-help.sh checks that this file matches the templates and the validations of deploy.sh.
+
+@ INSTANCE | .env.instance | required | set by ./deltactl new
+Name of the instance. It defines the Compose project, the containers (`s0_<INSTANCE>`, `s1_<INSTANCE>`)
+and the private network `<INSTANCE>_net`. It must match the folder name (`deploy` checks it).
+Lowercase letters, digits and hyphens only; it starts with a letter.
+
+@ REGISTRY | .env.instance | optional | empty
+Registry of the images, without a trailing slash. EMPTY = images already loaded in this Docker (`./deltactl load`):
+nothing is pulled. With a value (for example `registry.example.com/itc`) `deploy` pulls
+`<registry>/<name>:<tag>`. See `./deltactl help local-images`.
+
+@ COMPOSE_PROFILES | .env.instance | required | s0,s1
+Active services of the instance, separated by commas: `s0,s1`, `s1` or `s0`. Only the listed ones are
+validated, pulled and started. See `./deltactl help services`.
+
+@ S0_IMAGE | .env.instance | optional | auth-backend
+Name of the s0 image, WITHOUT a tag or registry. Change it only if you built the image with another
+name (for example `s0`). Lowercase letters, digits, `.` `_` `-`; `/` is allowed.
+
+@ S1_IMAGE | .env.instance | optional | gueo-back-end
+Name of the s1 image, WITHOUT a tag or registry. Same as `S0_IMAGE`.
+
+@ S0_TAG | .env.instance | required | none
+Tag (version) of the s0 image to deploy. One per version or commit; avoid `latest` and never
+reuse a tag. The available ones: `./deltactl images`.
+
+@ S1_TAG | .env.instance | required | none
+Tag (version) of the s1 image to deploy. Same as `S0_TAG`.
+
+@ S0_PORT | .env.instance | required | 4100
+Host port where s0 is published (only on 127.0.0.1). Each instance uses a block of 10 starting at 4100.
+`./deltactl new` proposes the next free one. See `./deltactl help ports`.
+
+@ S1_PORT | .env.instance | required | 4101
+Host port where s1 is published (only on 127.0.0.1). Normally `S0_PORT` + 1.
+
+@ S0_MEM_LIMIT | .env.instance | optional | 512m
+Memory limit of the s0 container. Adjust it to the real load.
+
+@ S1_MEM_LIMIT | .env.instance | optional | 2g
+Memory limit of the s1 container. Each instance can open up to 2 Chromium at a time for the
+PDF reports; with less memory they can fail.
+
+@ DATA_DIR | .env.instance | optional | ./instances/<INSTANCE>/data
+Data folder of the instance. Use it only if the data must live outside the repository (another disk).
+
+@ SERVER_PORT | .env.s0 | fixed | 3200
+Internal port of s0. The compose sets it: do not put it in `.env.s0`.
+
+@ NODE_ENV | .env.s0 | fixed | prod
+Set by the image. `prod` disables Swagger.
+
+@ IP_SERVER | .env.s0 | required | http://localhost
+Base public URL of the system, with a scheme (`http://` or `https://`), without a port or trailing slash.
+The seeds use it: `url_systems` stores it as the URL of each system (seen in Auth, Settings,
+Systems) and as the base of the backend URLs (`<IP_SERVER>:3000/3100/3200`). After `init`, check
+those URLs: they all carry the same value.
+
+@ JWT_SECRET | .env.s0 | required | none
+Key used to sign the JWT tokens of Auth. Secret and unique per instance
+(for example `openssl rand -hex 32`).
+
+@ JWT_EXPIRES_IN | .env.s0 | optional | 8h
+Lifetime of the JWT tokens.
+
+@ MONGO_URI | .env.s0 | required | mongodb://127.0.0.1/authsoftware2021
+MongoDB URI for Auth. From a container use `host.docker.internal` (the server's Mongo) and a
+database name of the instance's own. `127.0.0.1` inside the container is the container itself.
+
+@ IP_INTERNAL_CONNECTION | .env.s0 | required | 127.0.0.1
+Host of the s1 TCP server; the code uses the fixed port 5020. On the instance's private network it is `s1`.
+Auth also tries to contact a "Spider" server on this host (fixed port 5050): it is not part of this
+deployment and you will see `ECONNREFUSED` in the logs. See `./deltactl help network`.
+
+@ GOOGLE_KEY | .env.s0 | optional | none
+Google Maps key (geocoding of municipalities). Secret.
+
+@ PROFILE_PROPAGATION_ENABLED | .env.s0 | optional | true
+General switch for propagating permission profiles to users and external systems.
+Only the exact text `false` disables it.
+
+@ PROFILE_SYNC_CONCURRENCY | .env.s0 | optional | 4
+How many profile synchronizations with external systems run at the same time.
+
+@ PROFILE_BACKUP_DIR | .env.s0 | optional | ./backups
+Directory of the JSON backup written before `migrate_profiles apply`. Inside the container it is
+`/app/backups`, which is stored in `data/s0/backups`.
+
+@ SERVER_PORT | .env.s1 | fixed | 3000
+Internal port of s1. The compose sets it: do not put it in `.env.s1`.
+
+@ NODE_ENV | .env.s1 | fixed | prod
+Set by the image. `prod` disables Swagger.
+
+@ IP_SERVER | .env.s1 | required | http://localhost
+Base public URL of the system, with a scheme. Gue uses it for the URLs of the notification images
+(it adds the `SERVER_PORT` port), as a fallback in email links and, if you do not define `AUTH_URL`,
+to call Auth (`<IP_SERVER>:3200`).
+
+@ AUTH_URL | .env.s1 | required | ${IP_SERVER}:3200
+URL s1 uses to call Auth, without a trailing slash. On the instance's private network: `http://s0:3200`.
+If s0 does not run in this instance, point it to the Auth that applies. It needs an s1 image with support for
+`AUTH_URL`. See `./deltactl help network`.
+
+@ JWT_SECRET | .env.s1 | required | none
+Key used to sign the JWT tokens of Gue. Secret and unique per instance.
+
+@ DELTA_UNIVERSITY_HANDOFF_SECRET | .env.s1 | optional | none
+Secret of the handoff with Delta University. At least 32 characters; without it, the handoff endpoint
+answers 503.
+
+@ MONGO_DELTA_DISPATCH_URI | .env.s1 | required | none
+URI of the Delta Dispatch database (one of the three connections of s1). Use a database of the instance's own.
+
+@ MONGO_AUTHSOFTWARE_URI | .env.s1 | required | none
+URI of the AuthSoftware database. In the examples it carries the same database name as `MONGO_URI` of s0.
+
+@ MONGO_ROBIN_URI | .env.s1 | required | none
+URI of the Robin database (third connection of s1).
+
+@ IP_INTERNAL_CONNECTION | .env.s1 | optional | 127.0.0.1
+Reserved: in the current Gue code it is used neither to listen nor to connect. To choose which
+address the s1 TCP listens on, use `TCP_LISTEN_HOST`.
+
+@ PORT_INTERNAL_CONNECTION | .env.s1 | optional | 5020
+Reserved: `main.ts` ignores this value; the port of the internal TCP is fixed (5020).
+
+@ TCP_LISTEN_HOST | .env.s1 | optional | 127.0.0.1
+Address the TCP microservice (5020) used by s0 listens on. Without it, it listens only on
+loopback (as in PM2). In Docker, with s0 in another container, set it to `0.0.0.0` so that it reaches it over
+the instance's private network. Never publish port 5020: it has no authentication.
+
+@ FCM_CERT | .env.s1 | required | none
+PATH (not the content) to the Firebase service account JSON, as the container sees it:
+`/run/secrets/fcm.json`. The file goes in `instances/<instance>/secrets/`. See `./deltactl help secrets`.
+
+@ KEEPER_FCM_CERT | .env.s1 | required | none
+Same as `FCM_CERT`, for Keeper: `/run/secrets/keeper-fcm.json`.
+
+@ API_KEY_CLOUD_MESSAGING | .env.s1 | optional | none
+Legacy FCM authorization header. Secret.
+
+@ FEDERATION_ENCRYPTION_KEY | .env.s1 | required | none
+Encryption key of the federation: base64 of exactly 32 bytes (`openssl rand -base64 32`). Unique per
+instance. If it is missing or malformed, startup fails; if it changes, what was encrypted with the old one cannot be read.
+
+@ FEDERATION_NODE_DISPLAY_NAME | .env.s1 | optional | Delta Federation Node
+Visible name of the node in the federation.
+
+@ SERVERS_CONFIG | .env.s1 | required | none
+JSON text of the WhatsApp webhook, on ONE line and WITHOUT quotes around it. `[]` is enough to start.
+
+@ VERIFY_TOKEN | .env.s1 | optional | keeper_wsp_bussiness_app
+Verification token of the WhatsApp webhook.
+
+@ GOOGLE_KEY | .env.s1 | optional | none
+Google Maps key (geocoding). Secret.
+
+@ DEEPGRAM_API_KEY | .env.s1 | required | none
+Deepgram key (speech to text). Required on the first start with an empty database: without it the process
+crashes. Any value is enough to start; real transcription needs a valid key.
+
+@ TRANSCRIPTOR_URL | .env.s1 | optional | none
+URL of the Vosk transcription service. The speech-to-text seed and the fallback provider use it.
+
+@ LIVEKIT_URL | .env.s1 | optional | none
+URL of the LiveKit server (push-to-talk). Empty: creating a PTT session fails with "api-key and api-secret must
+be set"; the service starts anyway.
+
+@ LIVEKIT_API_KEY | .env.s1 | optional | none
+LiveKit API key. Secret.
+
+@ LIVEKIT_API_SECRET | .env.s1 | optional | none
+LiveKit API secret. Secret.
+
+@ LIVEKIT_TOKEN_TTL_SECONDS | .env.s1 | optional | 600
+Validity, in seconds, of the LiveKit tokens.
+
+@ SHIFT_UPDATE_BASELINE_SECRET | .env.s1 | optional | shift-update-baseline
+Secret used to sign the hidden baseline of the "Update month" Excel (shift export).
+Change it in production. CAREFUL: the default value only applies if the variable does NOT exist; with
+`SHIFT_UPDATE_BASELINE_SECRET=` (empty) the empty string is used, not the default value.
+
+@ SUPERVISOR_REPORT_PARITY_CHECK | .env.s1 | optional | disabled
+Feature flag. `log` pauses the report switch and records a comparison.
+
+@ SIPCOP_ALERT_RESYNC | .env.s1 | optional | disabled
+Feature flag. `on` enables the resynchronization of SIPCOP alerts.

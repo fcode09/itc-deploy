@@ -1,0 +1,41 @@
+# Images: names, tags and where they come from
+
+## Full reference
+`[REGISTRY/]NAME:TAG`, for example `auth-backend:1.2.0`
+- `NAME`: `S0_IMAGE` / `S1_IMAGE` in `.env.instance` (auth-backend and gueo-back-end by default)
+- `TAG`: `S0_TAG` / `S1_TAG`
+- `REGISTRY`: empty = local images
+
+## Local images (empty REGISTRY)
+- `deploy` never downloads anything from the internet
+- if the image is not loaded, it stops with an error: that way Docker does not pull from Docker Hub a same-named image that is not ours
+
+## With a registry
+`REGISTRY=registry.example.com/itc` makes `deploy` pull `registry.example.com/itc/auth-backend:1.2.0`.
+
+## Tags
+- use one tag per version or per commit; `latest` produces a warning
+- local tags are mutable: rebuilding with the same tag changes the image without warning
+! `status` and `deploy` detect it ("points to another image"), but the right thing is not to reuse tags.
+
+## Custom name
+If you built the image with another name:
+$ docker build -t s0:1.2.0 .
+and in `.env.instance` you set `S0_IMAGE=s0`.
+- valid: lowercase letters, digits, `.` `_` `-`; `/` for paths
+- without `:`; the tag goes separately, in `S0_TAG`
+
+## Architecture
+An image built on an amd64 PC does not run on an arm64 server (nor the other way round).
+`./deltactl load` and `./deltactl images` show the architecture of each image.
+
+## View and clean up
+$ ./deltactl images
+> It only lists. To delete a specific one: `docker image rm name:tag`.
+! Avoid `docker image prune -a`: it would also delete the previous versions the rollback needs.
+
+## Shell variables
+`deltactl` ignores `S0_TAG`, `REGISTRY` and the other variables exported in your shell: only `.env.instance` counts.
+
+## Related
+- `./deltactl help update`, `./deltactl help load`

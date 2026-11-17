@@ -1,0 +1,27 @@
+# What each file and folder is
+
+## Inside `instances/<instance>/`
+The dot files are not shown by `ls`: use `ls -a`.
+- `.env.instance`  versions, ports, active services and memory of the instance
+- `.env.s0` and `.env.s1`  variables of each service (databases, secrets, keys)
+- `secrets/`  Firebase JSON files, mounted read-only on `/run/secrets/` of `s1`
+- `data/`  files the services keep (uploaded images, reports, backups)
+- `.deployed`  tags and image IDs deployed the last time
+- `.previous`  previous tags, for `rollback`
+- `.initialized`  data marker: origin (`init` or `existing`), date and tags of that moment
+- `init-logs/`  log of each seed run by `init`
+> All of `instances/` is in `.gitignore`: it is never versioned.
+
+## In the root of the repository
+- `deltactl`  the tool; `lib/` its code in layers (`core/`, `adapters/`, `ui/`, `i18n/`, `cmd/`, `help/`)
+- `compose.yaml` and `services/compose-sN.yaml`  definition of the services (one per service)
+- `templates/`  `.env.*.example` templates that `./deltactl new` copies
+- `examples/`  complete example of a municipality
+- `docs/`  service catalog and step-by-step example
+
+## What can be edited and what cannot
+- edit by hand: `.env.instance`, `.env.s0`, `.env.s1` and the content of `secrets/`
+- do not edit: `.deployed`, `.previous`, `.initialized` (managed by `deltactl`)
+
+## Related
+- `./deltactl help secrets`, `./deltactl help new-instance`

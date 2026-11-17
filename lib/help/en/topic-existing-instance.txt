@@ -1,0 +1,26 @@
+# A municipality that already has data
+
+Typical case: it already runs with PM2 (or another deployment) and you move it to Docker using the same databases.
+
+## Golden rule
+`./deltactl init` NEVER runs on databases with data: its seeds drop collections.
+To prevent it, the instance is marked as "existing".
+
+## Steps
+$ ./deltactl new colorado --existing
+- edit `.env.s0` and `.env.s1` with the URIs of the CURRENT databases (`MONGO_URI`, `MONGO_*_URI`)
+- use the SAME secrets as the current installation (`JWT_SECRET`, `FEDERATION_ENCRYPTION_KEY`...): if they change, open sessions stop being valid and what was encrypted with the old key cannot be read
+$ ./deltactl deploy colorado
+$ ./deltactl status colorado
+
+## If you already created it without --existing
+$ ./deltactl adopt colorado
+> It only leaves the marker; it touches neither databases nor containers.
+
+## Coexistence with PM2 during the transition
+- the Docker ports (4100...) do not clash with those of PM2, but both would point to the same databases
+- to reach from a container something that still runs under PM2 on the host use `host.docker.internal`
+- decide when the traffic to the old installation is cut: this repository does not move the proxy
+
+## Related
+- `./deltactl help data`, `./deltactl help new-instance`

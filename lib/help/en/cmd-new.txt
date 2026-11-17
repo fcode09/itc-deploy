@@ -1,0 +1,45 @@
+# new · create an instance
+
+It creates the `instances/<instance>/` folder with the configuration ready to fill in.
+It does not touch Docker and does not start anything.
+
+## Usage
+$ ./deltactl new <instance> [--services s0,s1] [--existing]
+$ ./deltactl new --wizard
+
+## Wizard
+Without a name, in a terminal (or with `--wizard`), `new` asks the essential questions: name,
+services, whether the municipality already has data, name and tag of each image (it shows you the
+loaded ones), public URL and, on new instances, whether to generate the unique secrets for you.
+At the end it shows a summary, asks for confirmation and lists what is still missing.
+
+## Options
+- `--services s0,s1` services active in the instance (s0,s1 by default). E.g.: `--services s1` creates an instance with only Gue.
+- `--existing` the municipality ALREADY has data: it is marked as initialized and `./deltactl init` can never run on it.
+
+## What it creates
+- `.env.instance`  variables of the instance: versions, ports, active services, memory
+- `.env.s0` and `.env.s1`  variables of each service (secrets, databases...)
+- `secrets/`  for the Firebase JSON files (permissions 700)
+- `data/`  data folders of each service
+> The `.env.*` files start with a dot: you see them with `ls -a`.
+> The port is assigned by itself: the next free block (4100/4101, 4110/4111...).
+
+## Valid name
+Lowercase letters, digits and hyphens; it starts with a letter; 2 to 31 characters. E.g.: `colorado`, `san-isidro`.
+
+## After creating it
+$ nano instances/<instance>/.env.instance
+$ nano instances/<instance>/.env.s0
+$ nano instances/<instance>/.env.s1
+$ ./deltactl check <instance>
+$ ./deltactl deploy <instance>
+
+## Typical errors
+- the port is already used by another instance, or already taken on the server: edit `S0_PORT`/`S1_PORT` in `.env.instance`.
+- `data/` belongs to another user: the containers use uid 1000, run the `sudo chown -R 1000:1000 ...` that is shown.
+
+## Related
+- `./deltactl help new-instance` complete guide
+- `./deltactl help existing-instance` if the municipality already has data
+- `./deltactl help files`, `./deltactl help ports`

@@ -1,0 +1,30 @@
+# status · status panel
+
+It shows, per instance and service, the configured version and the running one, the health, the port, the
+uptime and the data state, warns about mismatches and suggests the next step.
+It is read-only: it never modifies anything.
+
+## Usage
+$ ./deltactl status [instance] [--json] [--stats] [--strict] [--watch [seconds]]
+
+## Options
+- `instance` detail view: image, previous version, memory/CPU and recent errors in the logs
+- `--stats` adds memory and CPU to the table (takes 1-2 s)
+- `--json` output for scripts; its values are not translated (`data` is `init`, `existing` or `unseeded`)
+- `--strict` exits with code 2 if there are warnings (useful in monitoring)
+- `--watch [N]` repaints every N seconds (2 by default); it needs a terminal
+
+## Mismatches it detects
+- `configured X but running Y`: you changed the tag and `./deltactl deploy` is missing
+- `tag X points to another image`: you rebuilt an image with the same tag
+- `image ... is missing`: it is not loaded on this server (`./deltactl load`)
+- `unhealthy`, `stopped`, `restarting`: check `./deltactl logs`
+- `out of profile`: a service runs that is no longer in `COMPOSE_PROFILES`
+- `port repeated`: two services use the same port
+- `unseeded`: `./deltactl init` or `./deltactl adopt` is missing
+
+## Without arguments
+Running `./deltactl` alone, in a terminal, opens this same panel with the banner.
+
+## Related
+- `./deltactl help glossary` for the meaning of each term

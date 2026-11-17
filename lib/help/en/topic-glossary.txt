@@ -1,0 +1,21 @@
+# Glossary
+
+- **instance**: a deployed municipality. It has its `instances/<name>/` folder, its network, its ports and its databases
+- **service**: an application of the ecosystem. Today `s0` (auth-backend) and `s1` (gueo-back-end)
+- **profile** (`COMPOSE_PROFILES`): list of active services in an instance
+- **tag**: the version of an image, for example `1.2.0`
+- **image**: the package with the application; it is built on your PC and loaded on the server with `./deltactl load`
+- **local image**: an image already loaded in this Docker (empty `REGISTRY`); it is never downloaded
+- **registry**: image server; with `REGISTRY` defined, `deploy` pulls the images from there
+- **healthy**: the service answered its health check; `deploy` waits for it to be so
+- **drift**: what is configured does not match what runs (tag, image, profile...)
+- **seed**: loading of initial data; it deletes and loads again, which is why it is done only once
+- **marker (`.initialized`)**: a file that records that the instance already has data; `init` refuses if it exists
+- **rollback**: going back to the tag of the previous deploy
+- **private network**: the `<instance>_net` network that isolates the containers of one instance from those of another
+- **drop**: deleting a whole collection of the database
+- **proxy**: a server (nginx, Caddy) that publishes the local ports to the internet with TLS
+- **shared Mongo**: the server's MongoDB, used by all the instances; each one with its own databases
+
+## Related
+- `./deltactl help` for the index of commands and guides

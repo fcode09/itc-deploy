@@ -1,0 +1,15 @@
+# stop · stop a service
+
+It stops a service without touching the others and without removing it. `./deltactl deploy` starts it again.
+
+## Usage
+$ ./deltactl stop <instance> <service>
+
+## Example
+$ ./deltactl stop colorado s1
+
+> To stop all the services of the instance use `./deltactl down <instance>`.
+> `./deltactl status` will show the service as `stopped`.
+
+## Related
+- `./deltactl help services`, `./deltactl down --help`

@@ -1,0 +1,21 @@
+# Ports
+
+## How they are distributed
+- each instance uses a block of 10 host ports, from 4100
+- `s0` uses the base port and `s1` the next one: 4100/4101 the first instance, 4110/4111 the second...
+- `./deltactl new` proposes the next free block and checks that no other instance uses it
+
+## Where they are published
+Only on `127.0.0.1` (see `S0_PORT` and `S1_PORT` in `.env.instance`): they are not reachable from outside the server.
+To expose them, put a proxy with TLS (nginx, Caddy...) in front; this repository does not configure it.
+
+## Inside the container
+Fixed: `s0` listens on 3200 and `s1` on 3000. They do not depend on `.env.s0` or `.env.s1`.
+
+## Repeated port
+- `./deltactl status` marks it in red ("port N repeated")
+- fix `S0_PORT`/`S1_PORT` in the `.env.instance` of one of the two and deploy that service again
+- if the port is used by something unrelated to `deltactl` on the server, `./deltactl new` only warns: check it with `ss -ltn`
+
+## Related
+- `./deltactl help network`, `./deltactl help services`

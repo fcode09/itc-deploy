@@ -1,0 +1,32 @@
+# deploy · start or update an instance
+
+It validates the configuration, checks that the images exist and starts the services, waiting for them
+to be healthy. With a service, it only touches that service. It NEVER seeds data.
+
+## Usage
+$ ./deltactl deploy <instance> [service]
+
+## What it does, in order
+- 1. requires the required variables to be filled in (no `CAMBIAR...` values)
+- 2. validates the instance's compose
+- 3. with local images, checks that they exist in this Docker (if one is missing, it changes nothing)
+- 4. warns if a tag now points to another image than the deployed one
+- 5. saves the previous tags so a rollback is possible
+- 6. starts (with REGISTRY it pulls the images first) and waits for healthy
+- 7. records the deployed tags in `.deployed`
+
+## Examples
+$ ./deltactl deploy colorado          # all the active services of the instance
+$ ./deltactl deploy colorado s1       # only s1 (it does not touch s0)
+
+> With local images (empty REGISTRY) nothing is ever downloaded from the internet.
+> If you change `S1_TAG` and deploy, Compose recreates only the container that changed.
+
+## Typical errors
+- `image X:tag is missing` → load it (`./deltactl load`) or fix the tag (`./deltactl images`)
+- `FCM_CERT points to ... but secrets/... is missing` → copy the JSON to `secrets/` (`./deltactl help secrets`)
+- `did not become healthy` → `./deltactl logs <instance> <service>`; to go back `./deltactl rollback`
+- `is not initialized` (warning) → `./deltactl init` if it is new, `./deltactl adopt` if it already has data
+
+## Related
+- `./deltactl help update`, `./deltactl help local-images`, `./deltactl help troubleshooting`
