@@ -148,7 +148,8 @@ dash_async() {
 
 # dash_async_take <slot>: when the result is ready it is left in DASH_AS_TEXT and the call returns 0.
 dash_async_take() {
-  local slot="$1" f="${DASH_AS_FILE[$slot]:-}" pid="${DASH_AS_PID[$slot]:-}"
+  local slot="$1" f pid
+  f="${DASH_AS_FILE[$slot]:-}" pid="${DASH_AS_PID[$slot]:-}"
   [ -n "$pid" ] || return 1
   if [ -f "$f" ]; then
     wait "$pid" 2> /dev/null

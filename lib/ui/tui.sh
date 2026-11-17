@@ -141,6 +141,7 @@ tui_vlen() { # text
 # Cuts a text to $2 visible cells keeping its color sequences, into TUI_OUT.
 tui_clip() { # text width
   local s="$1" w="$2" out="" vis=0 chunk rest seq final room
+  [ "$w" -gt 0 ] || { TUI_OUT=""; return 0; }
   tui_vlen "$s"
   if [ "$TUI_VL" -le "$w" ]; then TUI_OUT="$s"; return 0; fi
   # Without colors it is a plain cut.

@@ -256,7 +256,7 @@ check "pending events are read without waiting" '[ "$(run_lib "exec 8< $FIX/even
 check "when the stream ends the panel falls back to polling" '[ "$(run_lib "exec 8< $FIX/events.txt; DASH_EV_FD=8; dash_events_drain; dash_events_drain; echo [\$DASH_EV_FD]")" = "[]" ]'
 check "without a stream there are no events" '[ "$(run_lib "dash_events_drain && echo got || echo none")" = "none" ]'
 check "an event makes the next idle tick refresh the state" '[ "$(run_lib "dash_refresh; DASH_REFRESH_AT=\$SECONDS; exec 8< $FIX/events.txt; DASH_EV_FD=8; DASH_IDLE=1; MT_LAST_US=\$(date +%s)000000; dash_tick; echo \$DASH_EV_PENDING-\$DASH_REFRESH_AT")" != "" ]'
-check "a finished command forces a refresh" '[ "$(run_lib "dash_refresh; job_start t true; for i in 1 2 3 4 5 6 7 8 9 10; do job_poll; job_running || break; sleep 0.1; done; dash_job_tick; echo \$DASH_FORCE_REFRESH")" = "1" ]'
+check "a finished command asks for a refresh of the state" '[ "$(run_lib "dash_refresh; n=\$DASH_REFRESH_N; job_start t true; for i in 1 2 3 4 5 6 7 8 9 10; do job_poll; job_running || break; sleep 0.1; done; dash_job_tick; echo \$((DASH_REFRESH_N - n))")" = "1" ]'
 # A frame built with a known CPU reading
 CPU_SCRIPT='tui_size; dash_init; dash_refresh; mt_sample; MT_CPU[tui-a/s0]=123; MT_HCPU[tui-a/s0]="10 50 123"; MT_CPU[tui-a/s1]=2005; dash_host_build; dash_render'
 check "the CPU is shown with one decimal and a trend" 'run_lib "$CPU_SCRIPT" | grep -q "cpu  \[#\.*\] 12.3%  [_.:=+*#-]*"'
