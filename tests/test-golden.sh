@@ -27,6 +27,7 @@ LANG_UI="${DELTACTL_LANG:-es}"
 [ "$LANG_UI" = "es" ] || GOLDEN_DIR="${DELTACTL_GOLDEN_DIR:-tests/golden}/$LANG_UI"
 export LANG=C.UTF-8
 unset NO_COLOR DELTACTL_COLOR DELTACTL_UI DELTACTL_ASCII COLUMNS
+export TERM=xterm-256color   # color depends on terminal capabilities: pin them so the snapshots do not depend on the caller's TERM
 
 FIX="$(mktemp -d)"
 export FIX

@@ -8,17 +8,18 @@
 # "<instance>/<service>" key: MT_MEM (bytes), MT_LIM (bytes, 0 = no limit), MT_CPU (tenths of a percent of one
 # core, empty until the second sample) and the last MT_HIST_LEN values of each as space-separated strings.
 
-MT_HIST_LEN=40
+MT_HIST_LEN=120   # enough for a wide chart (one value per second)
 declare -gA MT_MEM=() MT_LIM=() MT_CPU=() MT_HMEM=() MT_HCPU=()
 declare -gA MT_CG_PID=() MT_CG_VER=() MT_CG_MEMDIR=() MT_CG_CPUDIR=() MT_PREV_CPU=() MT_PREV_T=()
 MT_LAST_US=0
 MT_SAMPLES=0
 MT_HOST_USED_KB="" MT_HOST_TOTAL_KB="" MT_HOST_PCT="" MT_HOST_LOAD="" MT_HOST_HIST=""
 
-# Sampling interval in microseconds (DELTACTL_METRICS_INTERVAL, in seconds; 1 by default).
+# Sampling interval in microseconds (DELTACTL_METRICS_INTERVAL, in seconds; 2 by default: the panel's charts, like btop's,
+# are meant for 2 s steps, and every sample costs a rebuild of the screen). 120 samples are 4 minutes of history.
 mt_interval_us() {
-  local s="${DELTACTL_METRICS_INTERVAL:-1}"
-  [[ "$s" =~ ^[0-9]+$ ]] && [ "$s" -gt 0 ] || s=1
+  local s="${DELTACTL_METRICS_INTERVAL:-2}"
+  [[ "$s" =~ ^[0-9]+$ ]] && [ "$s" -gt 0 ] || s=2
   printf '%s' "$((s * 1000000))"
 }
 
@@ -26,13 +27,16 @@ mt_interval_us() {
 mt_reset() {
   MT_MEM=() MT_LIM=() MT_CPU=() MT_HMEM=() MT_HCPU=()
   MT_CG_PID=() MT_CG_VER=() MT_CG_MEMDIR=() MT_CG_CPUDIR=() MT_PREV_CPU=() MT_PREV_T=()
-  MT_LAST_US=0 MT_SAMPLES=0 MT_HOST_HIST=""
+  MT_LAST_US=0 MT_SAMPLES=0 MT_HOST_HIST="" MT_INTERVAL_US=""
 }
 
 # Is it time for another sample?
+MT_INTERVAL_US=""
 mt_due() {
+  # The interval is read once: a `$(...)` here would be a process on every wake-up of the loop.
+  [ -n "$MT_INTERVAL_US" ] || MT_INTERVAL_US="$(mt_interval_us)"
   host_now_us
-  [ $((HOST_NOW_US - MT_LAST_US)) -ge "$(mt_interval_us)" ]
+  [ $((HOST_NOW_US - MT_LAST_US)) -ge "$MT_INTERVAL_US" ]
 }
 
 # Appends a value to a history string (kept to MT_HIST_LEN values). Result in MT_H.

@@ -19,6 +19,7 @@ MSG_es["deploy.images_missing"]="{1} imagen(es) sin cargar. Cárgalas con ./delt
 MSG_es["deploy.tag_rebuilt"]="{1}: la etiqueta {2} ahora apunta a otra imagen ({3}) distinta de la desplegada ({4}); no reutilices etiquetas"
 MSG_es["deploy.local_images"]="Imágenes locales (REGISTRY vacío): no se descarga nada."
 MSG_es["deploy.pulling"]="Descargando imágenes..."
+MSG_es["deploy.pull_failed"]="la descarga de imágenes falló (código {1}): no se levantó nada y no se registró ningún despliegue. Revisa el acceso al registry (REGISTRY, login) y reintenta"
 MSG_es["deploy.starting"]="Levantando servicios (espera a que estén healthy)..."
 MSG_es["deploy.not_healthy"]="los servicios no llegaron a healthy"
 MSG_es["deploy.not_healthy_hint"]="revisa: ./deltactl logs {1}   |   para volver atrás: ./deltactl rollback {1}"

@@ -3,7 +3,7 @@
 Read-only against the real Docker: it only sends navigation keys and read-only commands (status, logs)."""
 import fcntl, json, os, pty, select, shutil, signal, struct, subprocess, sys, termios, time
 
-ROWS, COLS = 30, 110
+ROWS, COLS = int(os.environ.get("HARNESS_ROWS", 30)), int(os.environ.get("HARNESS_COLS", 110))
 CLK = os.sysconf("SC_CLK_TCK")
 REPO = "/mnt/e/ITC/itc-deploy"
 OUT = sys.argv[1] if len(sys.argv) > 1 else "/tmp/pty-report.json"
@@ -31,7 +31,10 @@ class Screen:
         while i < n:
             ch = s[i]
             if ch == "\x1b":
-                if i + 1 < n and s[i + 1] == "[":
+                if i + 1 >= n:  # the read ended right after ESC: wait for the rest of the sequence
+                    self.pending = s[i:].encode() + self.pending
+                    return
+                if s[i + 1] == "[":
                     j = i + 2
                     while j < n and not ("@" <= s[j] <= "~"):
                         j += 1

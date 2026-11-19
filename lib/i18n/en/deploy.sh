@@ -19,6 +19,7 @@ MSG_en["deploy.images_missing"]="{1} image(s) not loaded. Load them with ./delta
 MSG_en["deploy.tag_rebuilt"]="{1}: tag {2} now points to another image ({3}) different from the deployed one ({4}); do not reuse tags"
 MSG_en["deploy.local_images"]="Local images (empty REGISTRY): nothing is pulled."
 MSG_en["deploy.pulling"]="Pulling images..."
+MSG_en["deploy.pull_failed"]="the image pull failed (exit code {1}): nothing was started and no deployment was recorded. Check access to the registry (REGISTRY, login) and retry"
 MSG_en["deploy.starting"]="Starting services (waiting for them to be healthy)..."
 MSG_en["deploy.not_healthy"]="the services did not become healthy"
 MSG_en["deploy.not_healthy_hint"]="check: ./deltactl logs {1}   |   to go back: ./deltactl rollback {1}"

@@ -175,7 +175,13 @@ deploy_up() { # explicit instance service...
     info "$(t deploy.local_images)"
   else
     info "$(t deploy.pulling)"
-    dk_compose "$name" ${pargs[@]+"${pargs[@]}"} pull ${svcs[@]+"${svcs[@]}"}
+    # deploy_up runs inside `|| die`, where errexit is off: the result has to be checked, or a failed pull would go on to `up`.
+    local pull_rc=0
+    dk_compose "$name" ${pargs[@]+"${pargs[@]}"} pull ${svcs[@]+"${svcs[@]}"} || pull_rc=$?
+    if [ "$pull_rc" -ne 0 ]; then
+      warn "$(t deploy.pull_failed "$pull_rc")"
+      return 1
+    fi
   fi
 
   info "$(t deploy.starting)"

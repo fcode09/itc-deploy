@@ -9,7 +9,9 @@
 #   1. seed of s1 (catalogs)               2. start s1 and wait for healthy (it must be UP for the s0 seed)
 #   3. seed of s0: populating_data_s0 (empties the users of s1 and sends them again), create_root_user,
 #      url_systems                          4. start s0
-# The seeds always exit with code 0 even when they fail: their log is read.
+# A seed counts as done only with exit code 0 AND a clean log (some images exit 0 even when they fail, so the log is read too).
+# From the first seed on the instance carries `.initialized` with SOURCE=init-incomplete; only a fully verified init
+# (both databases hold users) turns it into SOURCE=init. A failed or interrupted init is therefore never repeated by itself.
 
 # cmd_deploy comes from deploy.sh
 source "$ROOT/lib/cmd/deploy.sh"
@@ -18,6 +20,8 @@ MIN_STEPS_S1=30
 MIN_STEPS_S0=17
 SEED_OUT=""
 SEED_LOG=""
+SEED_RC=0
+INIT_NAME=""
 
 # Counts the documents of a collection with a one-off container (uses the image's own mongoose).
 count_docs() { # instance service uri_variable collection
@@ -52,7 +56,9 @@ run_seed() { # instance service network|- command...
   [ "$svc" != "s1" ] || extra+=(-v "$dir/secrets:/run/secrets:ro")
   mkdir -p "$dir/init-logs"
   SEED_LOG="$dir/init-logs/$(date -u +%Y%m%dT%H%M%SZ)-$svc-$1.log"
-  SEED_OUT="$(dk_run_once "$dir/.env.$svc" "$ref" ${extra[@]+"${extra[@]}"} -- node dist/cli.js "$@" 2>&1)" || true
+  # The exit code is kept: check_seed needs it AND the log (some images exit 0 even when they fail, so the log is read too).
+  SEED_RC=0
+  SEED_OUT="$(dk_run_once "$dir/.env.$svc" "$ref" ${extra[@]+"${extra[@]}"} -- node dist/cli.js "$@" 2>&1)" || SEED_RC=$?
   printf '%s\n' "$SEED_OUT" > "$SEED_LOG"
   chmod 600 "$SEED_LOG"
 }
@@ -64,12 +70,14 @@ seed_errors() { printf '%s\n' "$SEED_OUT" | grep -ac 'Ocurred an error' || true;
 fail_incomplete() { # step reason
   warn "$(t init.incomplete "$1" "$2")"
   warn "$(t init.full_log "$SEED_LOG")"
-  die "$(t init.not_marked)"
+  # The marker written before the first seed stays as init-incomplete: nothing here may remove that protection.
+  die "$(t init.left_incomplete "$(marker_file "$INIT_NAME")")"
 }
 
-# Verifies a seed: without 'Ocurred an error', with at least N steps and, if asked, with a given phrase.
+# Verifies a seed: exit code 0 AND no 'Ocurred an error', with at least N steps and, if asked, with a given phrase.
 check_seed() { # step minimum_steps [required_phrase]
   local step="$1" min="$2" must="${3:-}" errs steps
+  [ "$SEED_RC" -eq 0 ] || fail_incomplete "$step" "$(t init.seed_rc "$SEED_RC")"
   errs="$(seed_errors)"
   steps="$(seed_steps)"
   [ "$errs" -eq 0 ] || fail_incomplete "$step" "$(t init.err_in_log "$errs")"
@@ -98,6 +106,9 @@ cmd_init() {
     || die "$(t init.needs_both "$name")$(see services)"
 
   if [ -f "$(marker_file "$name")" ]; then
+    if [ "$(get_var "$(marker_file "$name")" SOURCE)" = "init-incomplete" ]; then
+      die "$(t init.already_incomplete "$name" "$(get_var "$(marker_file "$name")" INITIALIZED_AT)" "$(marker_file "$name")")"
+    fi
     die "$(t init.already "$name" "$(get_var "$(marker_file "$name")" SOURCE)" "$(get_var "$(marker_file "$name")" INITIALIZED_AT)")"
   fi
 
@@ -116,6 +127,11 @@ cmd_init() {
 
   info "$(t init.will_seed "$name")"
   confirm "$(t prompt.continue)" || die "$(t err.cancelled)"
+
+  # From here on the seeds can destroy data: the protection against repeating them exists BEFORE the first one, and only a
+  # fully verified init replaces it with `init`. Any failure, interruption or kill leaves it as init-incomplete.
+  INIT_NAME="$name"
+  write_marker "$name" init-incomplete || die "$(t init.marker_failed "$(marker_file "$name")")"
 
   info "$(t init.step1)"
   run_seed "$name" s1 - populating_data_s1
@@ -141,10 +157,13 @@ cmd_init() {
   local a_after g_after
   a_after="$(count_docs "$name" s0 MONGO_URI usuarios)"
   g_after="$(count_docs "$name" s1 MONGO_DELTA_DISPATCH_URI users)"
+  # Final verification: both databases must really hold users. An unknown answer (ERR) is not "zero users" and not success.
+  [ "$a_after" != "ERR" ] && [ "$a_after" -gt 0 ] \
+    || fail_incomplete "verification" "$(t init.auth_no_users "$a_after")"
   [ "$g_after" != "ERR" ] && [ "$g_after" -gt 0 ] \
-    || warn "$(t init.gue_no_users "$g_after")$(see network)"
+    || fail_incomplete "verification" "$(t init.gue_no_users "$g_after")$(see network)"
 
-  write_marker "$name" init
+  write_marker "$name" init || die "$(t init.marker_failed "$(marker_file "$name")")"
   ok "$(t init.done "$name" "$a_after" "$g_after" "$dir")"
   warn "$(t init.fixed_passwords)"
 }

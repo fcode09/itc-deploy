@@ -155,7 +155,11 @@ cmd_check() {
 
   # 6. Data.
   if [ -f "$(marker_file "$name")" ]; then
-    ck ok "$(t check.data_marked "$(get_var "$(marker_file "$name")" SOURCE)")"
+    if [ "$(get_var "$(marker_file "$name")" SOURCE)" = "init-incomplete" ]; then
+      ck warn "$(t check.data_incomplete)"
+    else
+      ck ok "$(t check.data_marked "$(get_var "$(marker_file "$name")" SOURCE)")"
+    fi
   else
     ck info "$(t check.data_unseeded "$name")"
   fi

@@ -12,6 +12,10 @@
 source "$ROOT/lib/i18n/i18n.sh"
 # shellcheck source=lib/ui/ui.sh
 source "$ROOT/lib/ui/ui.sh"
+# shellcheck source=lib/ui/theme.sh
+source "$ROOT/lib/ui/theme.sh"
+# shellcheck source=lib/ui/gfx.sh
+source "$ROOT/lib/ui/gfx.sh"
 # shellcheck source=lib/ui/say.sh
 source "$ROOT/lib/ui/say.sh"
 # shellcheck source=lib/ui/prompt.sh

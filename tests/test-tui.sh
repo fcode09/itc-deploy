@@ -39,6 +39,8 @@ export DELTACTL_PROC_ROOT="$FIX/proc" DELTACTL_CGROUP_ROOT="$FIX/cg"
 # Runs the panel with the keys given as arguments (one per line) and optional stdin. ASCII, no colors, 100 x 30.
 KEYS="$FIX/keys.txt"
 panel() { # key...  (stdin: answers to the confirmation prompts)
+  # The history is saved on disk: every run starts without it, unless KEEP_HISTORY is set.
+  [ -n "${KEEP_HISTORY:-}" ] || rm -f "$(dirname "${DELTACTL_CONFIG:-$FIX/none.cfg}")/history"
   printf '%s\n' "$@" > "$KEYS"
   DELTACTL_TUI_KEYS="$KEYS" DELTACTL_UI=rich DELTACTL_COLOR=never DELTACTL_ASCII=1 COLUMNS=100 DELTACTL_TUI_ROWS=30 bash ./deltactl 2>&1
 }
@@ -59,7 +61,7 @@ section "1. no instances"
 out="$(panel q)"
 check "the panel opens and shows the empty state" 'echo "$out" | grep -q "^=== frame 1 ===" && echo "$out" | grep -q "sin instancias; n crea una"'
 check "the tab line shows the three views with the first one active" 'echo "$out" | grep -q "\[1 Instancias\]  2 Recursos   3 Salida"'
-check "the keys of the view are in the last line" 'echo "$out" | grep -q "Up/Dn instancia . Lt/Rt servicio . Enter acciones . u desplegar"'
+check "with no instances the last line offers the New button" 'echo "$out" | grep -q "Up/Dn elegir . Enter crea la instancia"'
 check "no line is wider than the screen" '! echo "$out" | awk "length(\$0) > 100 { found = 1 } END { exit !found }"'
 
 started() { date -u -d "$1 ago" +%Y-%m-%dT%H:%M:%S.000000000Z; }
@@ -93,41 +95,68 @@ cgroup 1236 52428800 max 100
 
 section "2. the instances view"
 out="$(panel q)"
-check "the host line shows the memory bar, the load and Docker" 'echo "$out" | grep -q "Memoria \[####\.\.\] 5.0/8.0 GB 62%" && echo "$out" | grep -q "Carga 0.82" && echo "$out" | grep -q "Docker 27.0.0"'
+check "the host line shows the memory bar, the load and Docker" 'echo "$out" | grep -q "Memoria ####\.\. 5.0/8.0 GB 62%" && echo "$out" | grep -q "Carga 0.82" && echo "$out" | grep -q "Docker 27.0.0"'
 check "the host line shows what the containers use" 'echo "$out" | grep -q "contenedores 7[0-9][0-9]M"'
 check "every instance is a row with its n/m" 'echo "$out" | grep -q "tui-a  *2/2" && echo "$out" | grep -q "tui-b  *0/2" && echo "$out" | grep -q "tui-c  *1/2"'
 check "a row shows the memory its services use" 'echo "$out" | grep "tui-a  *2/2" | grep -q "7[0-9][0-9]M" && echo "$out" | grep "tui-c  *1/2" | grep -q " 50M"'
-check "the first row is selected" 'echo "$out" | grep -q "^| > . tui-a"'
+check "the first instance is selected (the New button is above it)" 'echo "$out" | grep -q "^| > .. tui-a" && echo "$out" | grep -q "+ Nueva instancia"'
 check "the detail shows each service with its image, state, uptime and port" 'echo "$out" | grep -q "s0 auth-backend:1.0  . healthy" && echo "$out" | grep -q "s1 gueo-back-end:1.0  . healthy" && echo "$out" | grep -q "activo 2d00h  \.  :4100" && echo "$out" | grep -q "activo 2d00h  \.  :4101"'
-check "the detail shows memory used, limit and percentage" 'echo "$out" | grep -q "mem  \[##\.*\] 100M/512M  19%" && echo "$out" | grep -q "mem  \[###\.*\] 600M/2.0G  29%"'
+check "the detail shows memory used, limit and percentage" 'echo "$out" | grep -q "mem  ##\.* 100M/512M  19%" && echo "$out" | grep -q "mem  ###\.* 600M/2.0G  29%"'
 check "the CPU has no figure until the second sample" 'echo "$out" | grep -q "cpu  sin lectura aún"'
 check "restarts are shown only when there are some" '[ "$(echo "$out" | grep -c "reinicios 3")" -eq 1 ] && ! echo "$out" | grep "activo 2d00h . :4100" | grep -q "reinicios"'
 check "the totals add the services and show the data state" 'echo "$out" | grep -q "Total  mem 7[0-9][0-9]M/2.5G  cpu 0.0%  datos: sembrados"'
-check "the output pane says nothing has run yet" 'echo "$out" | grep -q "Aún no has ejecutado nada"'
+check "the console shows its prompt with a hint" 'echo "$out" | grep -q "Consola" && echo "$out" | grep -q "tui-a > : escribe un comando"'
 
 section "3. moving around"
 out="$(panel down q)"
-check "down selects the next instance and its detail" 'echo "$out" | frame_n 2 | grep -q "^| > . tui-b" && echo "$out" | frame_n 2 | grep -q "tui-b . 0/2"'
+check "down selects the next instance and its detail" 'echo "$out" | frame_n 2 | grep -q "^| > .. tui-b" && echo "$out" | frame_n 2 | grep -q "tui-b . 0/2"'
 check "an instance that does not run shows its services as not created" 'echo "$out" | frame_n 2 | grep -q "s0 auth-backend:1.0  . no creado"'
 out="$(panel up q)"
-check "up from the first row wraps to the last" 'echo "$out" | frame_n 2 | grep -q "^| > . tui-c"'
+check "up from the first instance selects the New button" 'echo "$out" | frame_n 2 | grep -q "^| > + Nueva instancia"'
+out="$(panel up up q)"
+check "up again wraps to the last instance" 'echo "$out" | frame_n 3 | grep -q "^| > .. tui-c"'
+out="$(panel down down down down q)"
+check "down from the last instance goes through the New button and back to the first" 'echo "$out" | frame_n 4 | grep -q "^| > + Nueva instancia" && echo "$out" | frame_n 5 | grep -q "^| > .. tui-a"'
 out="$(panel j j k q)"
-check "j and k work like the arrows" 'echo "$out" | frame_n 4 | grep -q "^| > . tui-b"'
+check "j and k work like the arrows" 'echo "$out" | frame_n 4 | grep -q "^| > .. tui-b"'
+out="$(panel q)"
+check "the keys of the list are in the last line" 'echo "$out" | grep -q "Up/Dn instancia . Rt servicios . Enter acciones . u desplegar"'
 out="$(panel right q)"
-check "right moves the marker to the next service" 'echo "$out" | frame_n 2 | grep -q "|| > s1 gueo" && ! echo "$out" | frame_n 2 | grep -q "|| > s0 auth"'
-out="$(panel right right q)"
-check "the service marker wraps" 'echo "$out" | frame_n 3 | grep -q "|| > s0 auth"'
+check "inside the services the last line shows the keys of the services" 'echo "$out" | frame_n 2 | grep -q "Up/Dn servicio . Lt volver . Enter acciones . l logs"'
+check "right enters the services without moving the marker" 'echo "$out" | frame_n 2 | grep -q "|| > s0 auth" && echo "$out" | frame_n 2 | grep -q ">tui-a"'
+out="$(panel right down q)"
+check "inside the services down chooses the next service" 'echo "$out" | frame_n 3 | grep -q "|| > s1 gueo" && ! echo "$out" | frame_n 3 | grep -q "|| > s0 auth"'
+out="$(panel right down down q)"
+check "the service marker wraps" 'echo "$out" | frame_n 4 | grep -q "|| > s0 auth"'
+out="$(panel right left q)"
+check "left goes back to the list of instances" 'echo "$out" | frame_n 3 | grep -q ">Instancias" && ! echo "$out" | frame_n 3 | grep -q ">tui-a"'
+out="$(panel right esc q)"
+check "Esc inside the services goes back to the list instead of quitting" 'echo "$out" | frame_n 3 | grep -q ">Instancias"'
+out="$(panel down right down q)"
+check "changing instance resets the service and gives the focus back to the list" 'out="$(panel right down down q)" && echo "$out" | frame_n 4 | grep -q "|| > s0 auth"'
+out="$(panel up right q)"
+check "right does nothing on the New button" 'echo "$out" | frame_n 3 | grep -q ">Instancias"'
+out="$(panel up q)"
+check "the New button explains what it does in the center" 'echo "$out" | frame_n 2 | grep -q "Nueva instancia" && echo "$out" | frame_n 2 | grep -q "asistente"'
+out="$(panel up enter q < /dev/null)"
+check "Enter on the New button opens the wizard in the terminal" 'echo "$out" | grep -q "new --wizard"'
 out="$(panel 2 q)"
 check "2 opens the resources view" 'echo "$out" | frame_n 2 | grep -q "\[2 Recursos\]"'
-out="$(panel tab q)"
-check "Tab goes to the next view" 'echo "$out" | frame_n 2 | grep -q "\[2 Recursos\]"'
-out="$(panel tab tab tab q)"
+out="$(panel 2 tab q)"
+check "Tab goes to the next view (outside the instances view)" 'echo "$out" | frame_n 3 | grep -q "\[3 Salida\]"'
+out="$(panel 2 tab tab q)"
 check "Tab wraps around the views" 'echo "$out" | frame_n 4 | grep -q "\[1 Instancias\]"'
+out="$(panel tab q)"
+check "on the instances view Tab moves the focus to the services" 'echo "$out" | frame_n 2 | grep -q ">tui-a" && echo "$out" | frame_n 2 | grep -q "\[1 Instancias\]"'
+out="$(panel tab tab q)"
+check "and on to the list again (the logs pane exists only on the wide layout)" 'echo "$out" | frame_n 3 | grep -q ">Instancias"'
+out="$(panel btab q)"
+check "Shift+Tab goes the other way round" 'echo "$out" | frame_n 2 | grep -q ">tui-a"'
 
 section "4. the resources view"
 out="$(panel 2 q)"
 check "it lists every service of every instance with its state" 'echo "$out" | frame_n 2 | grep -q "tui-a  *s0  *healthy" && echo "$out" | frame_n 2 | grep -q "tui-a  *s1  *healthy" && echo "$out" | frame_n 2 | grep -q "tui-c  *s1  *detenido"'
-check "it shows the memory with a bar, the figures and the restarts" 'echo "$out" | frame_n 2 | grep "tui-a  *s1" | grep -q "\[##\.*\] 600M/2.0G 29%" && echo "$out" | frame_n 2 | grep "tui-a  *s1" | grep -q " 3 "'
+check "it shows the memory with a bar, the figures and the restarts" 'echo "$out" | frame_n 2 | grep "tui-a  *s1" | grep -q "##\.* 600M/2.0G 29%" && echo "$out" | frame_n 2 | grep "tui-a  *s1" | grep -q " 3 "'
 check "it shows the memory of the server and what the containers take" 'echo "$out" | frame_n 2 | grep -q "Servidor" && echo "$out" | frame_n 2 | grep -q "contenedores 7[0-9][0-9]M  ([0-9]*% de la RAM)"'
 check "a stopped service has no figures" 'echo "$out" | frame_n 2 | grep "tui-c  *s1" | grep -q " - "'
 check "the default order is by name" 'echo "$out" | frame_n 2 | grep -n "tui-a  *s0\|tui-a  *s1\|tui-c  *s0" | head -1 | grep -q "tui-a  *s0"'
@@ -136,33 +165,35 @@ check "s sorts by memory, the biggest first" 'echo "$out" | frame_n 3 | grep -q 
 out="$(panel 2 s s q)"
 check "s again sorts by CPU and a third time by name" 'echo "$out" | frame_n 4 | grep -q "orden: cpu" && out="$(panel 2 s s s q)" && echo "$out" | frame_n 5 | grep -q "orden: nombre"'
 out="$(panel 2 down enter q)"
-check "Enter jumps to the instance and service of the row" 'echo "$out" | frame_n 4 | grep -q "\[1 Instancias\]" && echo "$out" | frame_n 4 | grep -q "^| > . tui-a" && echo "$out" | frame_n 4 | grep -q "|| > s1 gueo"'
+check "Enter jumps to the instance and service of the row" 'echo "$out" | frame_n 4 | grep -q "\[1 Instancias\]" && echo "$out" | frame_n 4 | grep -q "^| > .. tui-a" && echo "$out" | frame_n 4 | grep -q "|| > s1 gueo"'
 out="$(panel 2 down down down down enter q)"
-check "the row of another instance selects that instance" 'echo "$out" | frame_n 7 | grep -q "^| > . tui-c"'
+check "the row of another instance selects that instance" 'echo "$out" | frame_n 7 | grep -q "^| > .. tui-c"'
 
 section "5. commands run inside the panel"
 out="$(panel : $(typed "status tui-a") enter wait q)"
 check "the typed command starts in the background and the panel says so" 'echo "$out" | grep -q "Ejecutando: ./deltactl status tui-a"'
-check "its output goes to the Output view" 'echo "$out" | last_frame | grep -q "\[3 Salida\]" && echo "$out" | last_frame | grep -q "Salida . ./deltactl status tui-a"'
+check "its output stays in the console of the Overview" 'echo "$out" | last_frame | grep -q "\[1 Instancias\]" && echo "$out" | last_frame | grep -q "terminó bien"'
+out2="$(panel 2 : $(typed "status tui-a") enter wait q)"
+check "from another view the output opens the Output view, as before" 'echo "$out2" | last_frame | grep -q "\[3 Salida\]" && echo "$out2" | last_frame | grep -q "Salida . ./deltactl status tui-a"'
 check "the output shows what the command printed" 'echo "$out" | last_frame | grep -q "tui-a"'
 check "the tab line shows how the command ended" 'echo "$out" | last_frame | grep -q ". ./deltactl status tui-a terminó bien"'
 out="$(panel : $(typed "frobnicate") enter wait q)"
 check "a command that fails shows its error code" 'echo "$out" | last_frame | grep -q "terminó con error"'
 check "and says so in the status line" 'echo "$out" | last_frame | grep -q "terminó con error"'
 out="$(panel : $(typed "./deltactl status tui-a") enter wait q)"
-check "a leading ./deltactl is accepted" 'echo "$out" | last_frame | grep -q "Salida . ./deltactl status tui-a"'
+check "a leading ./deltactl is accepted" 'echo "$out" | last_frame | grep -q "terminó bien"'
 out="$(panel : esc q)"
 check "Esc cancels the command line" 'echo "$out" | frame_n 3 | grep -q "Cancelado"'
 out="$(panel : $(typed "sta") tab)"
-check "Tab completes a command and adds a space" 'echo "$out" | last_frame | grep -q "\./deltactl :status $"'
+check "Tab completes a command and adds a space" 'echo "$out" | last_frame | grep -q "tui-a > status |"'
 out="$(panel : $(typed "st") tab)"
-check "Tab completes the common prefix when there are several" 'echo "$out" | last_frame | grep -q "\./deltactl :st$"'
+check "Tab completes the common prefix when there are several" 'echo "$out" | last_frame | grep -q "tui-a > st|"'
 out="$(panel : $(typed "status tui-") tab)"
-check "Tab completes an instance name to the common prefix" 'echo "$out" | last_frame | grep -q "\./deltactl :status tui-$"'
+check "Tab completes an instance name to the common prefix" 'echo "$out" | last_frame | grep -q "tui-a > status tui-|"'
 out="$(panel : $(typed "status tui-b") tab)"
-check "Tab completes a whole instance name" 'echo "$out" | last_frame | grep -q "\./deltactl :status tui-b "'
+check "Tab completes a whole instance name" 'echo "$out" | last_frame | grep -q "tui-a > status tui-b |"'
 out="$(panel : $(typed "status tui-a") enter wait : up)"
-check "Up recalls the previous command" 'echo "$out" | last_frame | grep -q "\./deltactl :status tui-a$"'
+check "Up recalls the previous command" 'echo "$out" | last_frame | grep -q "tui-a > status tui-a|"'
 out="$(panel x q)"
 check "x with nothing running says so" 'echo "$out" | frame_n 2 | grep -q "No hay ningún comando en ejecución"'
 out="$(panel : $(typed "status tui-a") enter : $(typed "status tui-b") enter wait q)"
@@ -176,15 +207,15 @@ check "Enter opens the actions with the instance and its n/m" 'echo "$out" | fra
 check "the actions name the selected service" 'echo "$out" | frame_n 2 | grep -q "Desplegar solo s0" && echo "$out" | frame_n 2 | grep -q "Logs en vivo de s0" && echo "$out" | frame_n 2 | grep -q "Detener s0"'
 check "the other actions are listed" 'echo "$out" | frame_n 2 | grep -q "Ver el estado detallado" && echo "$out" | frame_n 2 | grep -q "Volver a la versión anterior" && echo "$out" | frame_n 2 | grep -q "Bajar la instancia"'
 check "a seeded instance does not offer to seed" '! echo "$out" | frame_n 2 | grep -q "Sembrar datos iniciales"'
-out="$(panel right enter q q)"
-check "the actions follow the selected service" 'echo "$out" | frame_n 3 | grep -q "Desplegar solo s1"'
+out="$(panel right down enter q q)"
+check "the actions follow the selected service" 'echo "$out" | frame_n 4 | grep -q "Desplegar solo s1"'
 out="$(panel down enter q q)"
 check "an unseeded instance offers to seed" 'echo "$out" | frame_n 3 | grep -q "Acciones de tui-b (0/2)" && echo "$out" | frame_n 3 | grep -q "Sembrar datos iniciales"'
 out="$(panel enter enter wait q)"
 check "the first action runs status and shows its output" 'echo "$out" | last_frame | grep -q "Salida . ./deltactl status tui-a"'
 out="$(panel enter down enter wait q)"
 check "the second action runs check and stays in the view" 'echo "$out" | grep -q "Ejecutando: ./deltactl check tui-a" && echo "$out" | last_frame | grep -q "\[1 Instancias\]"'
-check "its output is in the pane at the bottom of the view" 'echo "$out" | last_frame | grep -q "Salida . ./deltactl check tui-a"'
+check "its output is in the console at the bottom of the view" 'echo "$out" | last_frame | grep -q "Consola" && echo "$out" | last_frame | grep -q "terminó bien"'
 out="$(panel enter down down down enter q)"
 check "deploy only one service passes the service" 'echo "$out" | grep -q "Ejecutando: ./deltactl deploy tui-a s0"'
 out="$(panel enter esc q)"
@@ -219,7 +250,7 @@ out="$(panel L L q)"
 check "L twice goes back to Spanish" 'echo "$out" | frame_n 3 | grep -q "\[1 Instancias\]" && grep -q "^UI_LANG=es$" "$FIX/config"'
 out="$(panel L 2 q)"
 check "the resources view is translated" 'echo "$out" | frame_n 3 | grep -q "INSTANCE  *SVC  *STATE  *MEMORY"'
-unset DELTACTL_CONFIG
+export DELTACTL_CONFIG="$FIX/none.cfg"   # an absent file, never the real config of the user (the panel writes its history and theme next to it)
 out="$(panel p q)"
 check "p pauses the live updates and says so" 'echo "$out" | frame_n 2 | grep -q "EN PAUSA" && echo "$out" | frame_n 2 | grep -q "Actualización en vivo en pausa"'
 out="$(panel p p q)"
@@ -259,8 +290,8 @@ check "an event makes the next idle tick refresh the state" '[ "$(run_lib "dash_
 check "a finished command asks for a refresh of the state" '[ "$(run_lib "dash_refresh; n=\$DASH_REFRESH_N; job_start t true; for i in 1 2 3 4 5 6 7 8 9 10; do job_poll; job_running || break; sleep 0.1; done; dash_job_tick; echo \$((DASH_REFRESH_N - n))")" = "1" ]'
 # A frame built with a known CPU reading
 CPU_SCRIPT='tui_size; dash_init; dash_refresh; mt_sample; MT_CPU[tui-a/s0]=123; MT_HCPU[tui-a/s0]="10 50 123"; MT_CPU[tui-a/s1]=2005; dash_host_build; dash_render'
-check "the CPU is shown with one decimal and a trend" 'run_lib "$CPU_SCRIPT" | grep -q "cpu  \[#\.*\] 12.3%  [_.:=+*#-]*"'
-check "a CPU above 100% fills the bar and keeps the figure" 'run_lib "$CPU_SCRIPT" | grep -q "cpu  \[#*\] 200.5%"'
+check "the CPU is shown with one decimal and a trend" 'run_lib "$CPU_SCRIPT" | grep -q "cpu  #\.* 12.3%  [_.:=+*#-]*"'
+check "a CPU above 100% fills the bar and keeps the figure" 'run_lib "$CPU_SCRIPT" | grep -q "cpu  #* 200.5%"'
 check "the Resources view shows the CPU of each service" 'run_lib "$CPU_SCRIPT; DASH_VIEW=resources; dash_render" | last_frame | grep "tui-a  *s0" | grep -q "12.3%"'
 check "a narrow screen still draws every view without overflow" 'for c in 40 60 80; do for v in instances resources output; do run_lib "COLUMNS=$c; tui_size; $CPU_SCRIPT; DASH_VIEW=$v; dash_render" | while IFS= read -r l; do [ "${#l}" -le "$c" ] || echo "WIDE:$c:$v"; done; done; done | grep -q WIDE && exit 1; exit 0'
 check "a small screen still draws every view" 'for r in 14 20; do for v in instances resources output; do run_lib "DELTACTL_TUI_ROWS=$r; tui_size; $CPU_SCRIPT; DASH_VIEW=$v; dash_render" | last_frame | grep -q "q salir" || exit 1; done; done'
@@ -275,7 +306,7 @@ check "a slot runs one thing at a time" '[ "$(run_lib "$ASYNC dash_async x a sle
 check "a producer that fails leaves no result and frees the slot" '[ "$(run_lib "$ASYNC dash_async x a false; for i in \$(seq 1 30); do dash_async_take x && break; sleep 0.1; done; echo [\${DASH_AS_PID[x]}]")" = "[]" ]'
 check "the loop starts the refresh without waiting and applies it later" '[ "$(run_lib "$ASYNC DELTACTL_TUI_KEYS=; unset DELTACTL_TUI_KEYS; DASH_REFRESH_WANT=1; dash_async_tick; started=\${DASH_AS_PID[state]:+yes}; for i in \$(seq 1 50); do dash_async_tick && break; sleep 0.1; done; echo \$started \${DASH_NM[tui-a]}")" = "yes 2/2" ]'
 check "the error counts are collected and applied per instance" '[ "$(run_lib "$ASYNC dash_refresh; dash_errors_apply tui-a \"\$(dash_errors_collect tui-a)\"; echo \${DASH_ERRS[tui-a/s0]} \${DASH_ERRS[tui-a/s1]} \${DASH_ERRS_AT[tui-a]:+set}")" = "1 1 set" ]'
-check "typing in the command line reuses the body of the frame" '[ "$(run_lib "$ASYNC dash_refresh; DASH_MODE=cmd; DASH_BUF=x; dash_render >/dev/null; s=\$DASH_BODY_SIG; DASH_BUF=xy; dash_render > /dev/null; [ \"\$s\" = \"\$DASH_BODY_SIG\" ] && echo same || echo rebuilt")" = "same" ]'
+check "typing in the command line of another view reuses the body of the frame" '[ "$(run_lib "$ASYNC dash_refresh; DASH_VIEW=resources; DASH_MODE=cmd; DASH_BUF=x; dash_render >/dev/null; s=\$DASH_BODY_SIG; DASH_BUF=xy; dash_render > /dev/null; [ \"\$s\" = \"\$DASH_BODY_SIG\" ] && echo same || echo rebuilt")" = "same" ]'
 check "the body is reused when nothing that it shows changed" '[ "$(run_lib "$ASYNC dash_refresh; dash_render >/dev/null; DASH_BUF=x; DASH_MSG=hello; s=\$DASH_BODY_SIG; dash_render > /dev/null; [ \"\$s\" = \"\$DASH_BODY_SIG\" ] && echo same || echo rebuilt")" = "same" ]'
 
 section "11. without a terminal the panel is not used"
@@ -300,6 +331,7 @@ check "tui_key reports the end of input as eof" '[ "$(tk < /dev/null)" = "eof" ]
 check "tui_key times out" '[ "$( (sleep 2) | ROOT="$PWD" bash -c "source lib/bootstrap.sh; source lib/ui/tui.sh; tui_key 0.2; printf \"%s\" \"\$TUI_KEY\"")" = "timeout" ]'
 tl() { ROOT="$PWD" DELTACTL_UI=rich DELTACTL_COLOR=always bash -c 'source lib/bootstrap.sh; source lib/ui/tui.sh; '"$1"; }
 check "tui_vlen ignores the color sequences" '[ "$(tl "tui_vlen \"\${C_RED}hello\${C_OFF} \${C_GRN}world\${C_OFF}\"; echo \$TUI_VL")" = "11" ]'
+check "tui_vlen counts multi-parameter colors, UTF-8 and unknown sequences correctly, also when repeated (cache)" '[ "$(tl "e=\$(printf \"\\033\"); tui_vlen \"\${e}[1;33m▸\${e}[0m ab\"; printf \"%s \" \$TUI_VL; tui_vlen \"\${e}[1;33m▸\${e}[0m ab\"; printf \"%s \" \$TUI_VL; tui_vlen \"x\${e}[Ky\"; printf \"%s \" \$TUI_VL; tui_vlen \"\${e}[m\${e}[38;5;244mz\${e}[0m\"; printf \"%s\" \$TUI_VL")" = "4 4 5 4" ]'
 check "tui_clip cuts to the width and keeps the colors consistent" '[ "$(tl "tui_clip \"\${C_RED}hello\${C_OFF} \${C_GRN}world\${C_OFF}\" 8; tui_vlen \"\$TUI_OUT\"; echo \$TUI_VL")" = "8" ]'
 check "tui_clip leaves a short text alone" '[ "$(tl "tui_clip abc 8; echo \"[\$TUI_OUT]\"")" = "[abc]" ]'
 check "tui_fit pads and cuts to the exact width" '[ "$(tl "tui_fit ab 5; echo \"[\$TUI_OUT]\"; tui_fit abcdefgh 5; echo \"[\$TUI_OUT]\"")" = "$(printf "[ab   ]\n[abcde]")" ]'
@@ -308,12 +340,114 @@ check "tui_box has the title in the top border and as many lines as asked" '[ "$
 draw_script() { # TUI_FORCE after the first draw is 0: only changed lines are written
   tl 'TUI_ROWS=10; TUI_COLS=40; TUI_FRAME=(one two three); tui_draw >/dev/null; TUI_FRAME=(one TWO three); tui_draw' | od -An -c | tr -d ' \n'
 }
-check "tui_draw repaints only the lines that changed" 'out="$(draw_script)"; echo "$out" | grep -q "033\[2;1HTWO" && ! echo "$out" | grep -q "one" && ! echo "$out" | grep -q "three"'
+check "tui_draw repaints only the lines that changed" 'out="$(draw_script)"; echo "$out" | grep -q "033\[2;1H033\[0m033\[KTWO" && ! echo "$out" | grep -q "one" && ! echo "$out" | grep -q "three"'
 check "tui_draw clears the screen on the first frame and after a resize" 'out="$(tl "TUI_ROWS=10; TUI_FRAME=(one); tui_draw" | od -An -c | tr -d " \n")"; echo "$out" | grep -q "033\[2J"'
-check "tui_draw clears lines that disappeared" 'out="$(tl "TUI_ROWS=10; TUI_FRAME=(one two three); tui_draw >/dev/null; TUI_FRAME=(one); tui_draw" | od -An -c | tr -d " \n")"; echo "$out" | grep -q "033\[2;1H033\[K" && echo "$out" | grep -q "033\[3;1H033\[K"'
+check "tui_draw never erases to the end of the line after a full-width line (it would delete the right border)" 'out="$(tl "TUI_ROWS=10 TUI_COLS=10; TUI_FRAME=(0123456789 abc); tui_draw" | od -An -c | tr -d " \n")"; echo "$out" | grep -q "0123456789033\[0m" && ! echo "$out" | grep -q "0123456789033\[0m033\[K"'
+check "tui_draw clears lines that disappeared" 'out="$(tl "TUI_ROWS=10; TUI_FRAME=(one two three); tui_draw >/dev/null; TUI_FRAME=(one); tui_draw" | od -An -c | tr -d " \n")"; echo "$out" | grep -q "033\[2;1H033\[0m033\[K" && echo "$out" | grep -q "033\[3;1H033\[0m033\[K"'
 check "tui_draw puts the cursor in the command line when asked" 'out="$(tl "TUI_ROWS=10; TUI_FRAME=(one); TUI_CURSOR=\"5;7\"; tui_draw" | od -An -c | tr -d " \n")"; echo "$out" | grep -q "033\[5;7H033\[?25h"'
 check "tui_enter and tui_leave switch the alternate screen once each" 'out="$(ROOT="$PWD" bash -c "source lib/bootstrap.sh; source lib/ui/tui.sh; tui_enter; tui_enter; tui_leave; tui_leave" | od -An -c | tr -d " \n")"; [ "$(echo "$out" | grep -o "033\[?1049h" | wc -l)" -eq 1 ] && [ "$(echo "$out" | grep -o "033\[?1049l" | wc -l)" -eq 1 ]'
 check "tui_enter stops line wrapping and tui_leave restores it" 'out="$(ROOT="$PWD" bash -c "source lib/bootstrap.sh; source lib/ui/tui.sh; tui_enter; tui_leave" | od -An -c | tr -d " \n")"; echo "$out" | grep -q "033\[?7l" && echo "$out" | grep -q "033\[?7h"'
 check "the test mode takes the size from DELTACTL_TUI_ROWS and COLUMNS" '[ "$(DELTACTL_TUI_KEYS=/dev/null DELTACTL_TUI_ROWS=33 COLUMNS=120 ROOT="$PWD" bash -c "source lib/bootstrap.sh; source lib/ui/tui.sh; tui_size; echo \$TUI_ROWS x \$TUI_COLS")" = "33 x 120" ]'
+
+section "11. wide layout and the new data"
+check "the overview fills every wide size exactly: each body line is as wide as the screen and its border closes" 'for s in 120x30 150x40 200x60 300x90; do c=${s%x*}; r=${s#*x}; run_lib "COLUMNS=$c; DELTACTL_TUI_ROWS=$r; tui_size; $CPU_SCRIPT; dash_render" | last_frame | awk -v c=$c -v r=$r "NR>=4 && NR<=r-1 { if (length(\$0) != c || substr(\$0, length(\$0), 1) !~ /[|+]/) { bad = 1; print s, NR, length(\$0) > \"/dev/stderr\" } } END { exit bad }" || exit 1; done'
+check "below 120 columns the compact view is kept" 'run_lib "COLUMNS=119; tui_size; $CPU_SCRIPT; dash_render" | last_frame | grep -q "Instancias" && ! run_lib "COLUMNS=119; tui_size; $CPU_SCRIPT; dash_render" | last_frame | grep -q "Servidor"'
+check "the wide overview has the server box and the services table" 'run_lib "COLUMNS=160; DELTACTL_TUI_ROWS=40; tui_size; $CPU_SCRIPT; dash_render" | last_frame | grep -q "Servidor" && run_lib "COLUMNS=160; DELTACTL_TUI_ROWS=40; tui_size; $CPU_SCRIPT; dash_render" | last_frame | grep -q "SVC"'
+check "a wide screen shows the events box from 150 columns" 'run_lib "COLUMNS=150; DELTACTL_TUI_ROWS=40; tui_size; $CPU_SCRIPT; dash_render" | last_frame | grep -q "Eventos" && ! run_lib "COLUMNS=149; DELTACTL_TUI_ROWS=40; tui_size; $CPU_SCRIPT; dash_render" | last_frame | grep -q "Eventos"'
+check "an event is kept as epoch|name|action" '[ "$(run_lib "dash_event_add \"1700000000|s0_x|die\"; echo \"\${DASH_EVENTS[0]}\"")" = "1700000000|s0_x|die" ]'
+check "a bare action becomes an event of an unknown container" '[ "$(run_lib "dash_event_add start; r=\"\${DASH_EVENTS[0]#*|}\"; echo \"\$r\"")" = "-|start" ]'
+check "the event ring never grows past its limit" '[ "$(run_lib "for i in \$(seq 1 260); do dash_event_add \"1700000000|c|start\"; done; echo \$((\${#DASH_EVENTS[@]} <= 200))")" = "1" ]'
+check "events seed: one start per running container, oldest first" '[ "$(run_lib "dash_refresh; dash_events_seed; echo \${#DASH_EVENTS[@]}")" -ge 1 ]'
+check "log text from outside cannot carry escape sequences into the panel" '[ "$(run_lib "tui_strip_ansi \$(printf \"a\033[31mred\033[0m \033[2Jb\033]0;t\007c\"); printf %s \"\$TUI_OUT\" | od -An -c | tr -d \" \n\" | grep -c 033")" = "0" ]'
+check "stripping keeps the text of coloured log lines" '[ "$(run_lib "tui_strip_ansi \"\$(printf \"x\033[1;32mgreen\033[0my\")\"; printf %s \"\$TUI_OUT\"")" = "xgreeny" ]'
+
+section "12. the console"
+out="$(panel : a b c left left X)"
+check "the cursor moves with the arrows and typing inserts at it" 'echo "$out" | last_frame | grep -q "tui-a > aX|bc"'
+out="$(panel : a b c home X)"
+check "Home goes to the start of the line" 'echo "$out" | last_frame | grep -q "tui-a > X|abc"'
+out="$(panel : a b c left backspace)"
+check "Backspace deletes before the cursor" 'echo "$out" | last_frame | grep -q "tui-a > a|c"'
+out="$(panel : a b c left left delete)"
+check "Delete removes the character under the cursor" 'echo "$out" | last_frame | grep -q "tui-a > a|c"'
+out="$(panel : a b c $'\025' X)"
+check "Ctrl+U deletes up to the start of the line" 'echo "$out" | last_frame | grep -q "tui-a > X|"'
+out="$(panel : a b c left left $'\013')"
+check "Ctrl+K deletes from the cursor to the end" 'echo "$out" | last_frame | grep -q "tui-a > a|"'
+out="$(panel : f o o space b a r $'\027')"
+check "Ctrl+W deletes the word before the cursor" 'echo "$out" | last_frame | grep -q "tui-a > foo |"'
+out="$(panel : a b c $'\001' $'\005' X)"
+check "Ctrl+A and Ctrl+E go to the start and to the end" 'echo "$out" | last_frame | grep -q "tui-a > abcX|"'
+check "Ctrl+C clears the line, then asks for a second one to leave" '[ "$(run_lib "dash_init; DASH_MODE=cmd; DASH_BUF=abc; DASH_CUR=3; dash_ctrl_c; echo \"[\$DASH_BUF]\$DASH_MODE\"")" = "[]cmd" ] && [ "$(run_lib "dash_init; dash_ctrl_c; echo \$DASH_QUIT; dash_ctrl_c; echo \$DASH_QUIT")" = "$(printf "0\n1")" ]'
+out="$(panel : h e l p enter q)"
+check "help is answered in the console" 'echo "$out" | last_frame | grep -q "Ctrl+C cancela el comando"'
+out="$(panel : h e l p enter : c l e a r enter q)"
+check "clear empties the transcript" '! echo "$out" | last_frame | grep -q "Ctrl+C cancela el comando"'
+out="$(panel : t h e m e enter q)"
+check "theme shows the current theme" 'echo "$out" | last_frame | grep -q "Tema actual: matrix"'
+out="$(panel : t h e m e space n o p e enter q)"
+check "an unknown theme is reported" 'echo "$out" | last_frame | grep -q "No existe el tema .nope."'
+out="$(panel : g o t o space r e s o u r c e s enter q)"
+check "goto changes the view" 'echo "$out" | last_frame | grep -q "\[2 Recursos\]"'
+out="$(panel : $(typed "status tui-a") enter wait : $(typed "history") enter q)"
+check "history lists what was typed, numbered" 'echo "$out" | last_frame | grep -q "1  status tui-a"'
+check "a command typed in the console is saved on disk" 'grep -qx "status tui-a" "$FIX/history"'
+panel : $(typed "status tui-a") enter wait q > /dev/null
+out="$(KEEP_HISTORY=1 panel : up)"
+check "the history from the previous session is loaded" 'echo "$out" | last_frame | grep -q "tui-a > status tui-a|"'
+out="$(panel : q x)"
+check "typing in the console never triggers the panel shortcuts" '! echo "$out" | last_frame | grep -q "Nada que cancelar\|No hay ningún comando"'
+out="$(panel : $(typed "status tui-a") enter wait q)"
+check "the transcript closes the command with how it ended" 'echo "$out" | last_frame | grep -q "terminó bien"'
+check "text from a command cannot move the cursor or change the screen" '[ "$(run_lib "tui_sanitize \"\$(printf \"a\\033[31mred\\033[0m \\033[2Jb\\033]0;t\\007c\")\"; printf %s \"\$TUI_OUT\" | od -An -c | tr -d \" \\n\" | grep -c \"033\\[2J\"")" = "0" ]'
+check "colours of a command are kept in the console" '[ "$(run_lib "tui_sanitize \"\$(printf \"x\\033[1;32mgreen\\033[0my\")\"; printf %s \"\$TUI_OUT\" | od -An -c | tr -d \" \\n\" | grep -c \"033\\[1;32m\"")" = "1" ]'
+
+out3="$(run_lib "$ASYNC dash_refresh; dash_start_job stay status tui-a; for i in \$(seq 1 80); do dash_job_tick; job_running || break; sleep 0.1; done; dash_job_tick; printf '[%s]\n' \"\${DASH_CON[@]}\"")"
+check "the transcript starts with the command, as the prompt would show it" 'echo "$out3" | grep -qx "\[tui-a > ./deltactl status tui-a\]"'
+check "and ends with how it finished" 'echo "$out3" | tail -1 | grep -q "terminó bien"'
+section "13. panes, zoom, logs and the palette"
+check "tui_key reads Shift+Tab" '[ "$(printf "\033[Z" | tk)" = "btab" ]'
+out="$(panel z q)"
+check "z zooms the list: the console is gone and the list is focused" 'echo "$out" | frame_n 2 | grep -q ">Instancias" && ! echo "$out" | frame_n 2 | grep -q "Consola"'
+out="$(panel z z q)"
+check "z again brings the layout back" 'echo "$out" | frame_n 3 | grep -q "Consola"'
+out="$(panel z esc q)"
+check "Esc closes the zoom before anything else" 'echo "$out" | frame_n 3 | grep -q "Consola" && echo "$out" | frame_n 3 | grep -q "\[1 Instancias\]"'
+out="$(panel tab z q)"
+check "zooming the services gives them the whole body" 'echo "$out" | frame_n 3 | grep -q ">tui-a" && ! echo "$out" | frame_n 3 | grep -q "Consola"'
+check "the focus ring goes list, services, logs, list on a wide screen" '[ "$(run_lib "COLUMNS=160; DELTACTL_TUI_ROWS=40; tui_size; dash_refresh; for i in 1 2 3; do dash_focus_cycle 1; printf \"%s \" \$DASH_FOCUS; done")" = "svc logs list " ]'
+check "and goes the other way with Shift+Tab" '[ "$(run_lib "COLUMNS=160; DELTACTL_TUI_ROWS=40; tui_size; dash_refresh; for i in 1 2 3; do dash_focus_cycle -1; printf \"%s \" \$DASH_FOCUS; done")" = "logs svc list " ]'
+check "on a narrow screen there is no logs pane in the ring" '[ "$(run_lib "dash_refresh; for i in 1 2 3; do dash_focus_cycle 1; printf \"%s \" \$DASH_FOCUS; done")" = "svc list svc " ]'
+check "the New button has no services to enter, so Tab keeps the list" '[ "$(run_lib "dash_refresh; DASH_ON_NEW=1; dash_focus_cycle 1; echo \$DASH_FOCUS")" = "list" ]'
+LOGS_WIDE='COLUMNS=160; DELTACTL_TUI_ROWS=40; tui_size; dash_init; dash_refresh; mt_sample; dash_current_target; DASH_LOGS[tui-a/s0]="$(seq -f "line %g ok" 1 30)"; DASH_LOGS_AT[tui-a/s0]=1;'
+check "the logs pane shows the end of the log while it follows" 'run_lib "$LOGS_WIDE dash_render" | last_frame | grep -q "line 30 ok" && run_lib "$LOGS_WIDE dash_render" | last_frame | grep -q "siguiendo"'
+check "scrolled back it shows older lines and says how far" 'run_lib "$LOGS_WIDE DASH_LOG_SCROLL=5; dash_render" | last_frame | grep -q "line 25 ok" && ! run_lib "$LOGS_WIDE DASH_LOG_SCROLL=5; dash_render" | last_frame | grep -q "line 30 ok" && run_lib "$LOGS_WIDE DASH_LOG_SCROLL=5; dash_render" | last_frame | grep -q "↑5 líneas\|5 líneas"'
+check "it never scrolls past the oldest line" '[ "$(run_lib "$LOGS_WIDE DASH_LOG_SCROLL=99999; dash_render >/dev/null; echo \$((DASH_LOG_SCROLL < 99999))")" = "1" ]'
+check "a filter keeps only the lines with the text, ignoring case" 'run_lib "$LOGS_WIDE DASH_LOG_FILTER=LINE\ 2; dash_render" | last_frame | grep -q "line 29 ok" && ! run_lib "$LOGS_WIDE DASH_LOG_FILTER=LINE\ 2; dash_render" | last_frame | grep -q "line 30 ok"'
+check "the title says which filter is active" 'run_lib "$LOGS_WIDE DASH_LOG_FILTER=line; dash_render" | last_frame | grep -q "/line"'
+check "a filter with no match says so" 'run_lib "$LOGS_WIDE DASH_LOG_FILTER=zzz; dash_render" | last_frame | grep -q "Ninguna línea"'
+check "while typing the filter the prompt is inside the pane" 'run_lib "$LOGS_WIDE DASH_FOCUS=logs; DASH_MODE=filter; DASH_BUF=err; DASH_CUR=3; dash_render" | last_frame | grep -q "/ err|"'
+check "the focused logs pane is marked" 'run_lib "$LOGS_WIDE DASH_FOCUS=logs; dash_render" | last_frame | grep -q ">Logs"'
+check "zooming the logs gives them the whole body" 'run_lib "$LOGS_WIDE DASH_FOCUS=logs; DASH_ZOOM=1; dash_render" | last_frame | grep -q ">Logs" && ! run_lib "$LOGS_WIDE DASH_FOCUS=logs; DASH_ZOOM=1; dash_render" | last_frame | grep -q "Servidor"'
+check "the keys of the logs pane scroll, jump and filter" '[ "$(run_lib "dash_key_logs up; dash_key_logs up; printf \"%s \" \$DASH_LOG_SCROLL; dash_key_logs down; printf \"%s \" \$DASH_LOG_SCROLL; dash_key_logs home; printf \"%s \" \$DASH_LOG_SCROLL; dash_key_logs end; printf \"%s \" \$DASH_LOG_SCROLL; dash_key_logs /; printf \"%s\" \$DASH_MODE")" = "2 1 100000 0 filter" ]'
+check "Enter applies the filter and an empty line removes it" '[ "$(run_lib "DASH_MODE=filter; DASH_BUF=boom; DASH_CUR=4; dash_key_edit enter; printf \"[%s]\" \"\$DASH_LOG_FILTER\"; DASH_MODE=filter; DASH_BUF=; dash_key_edit enter; printf \"[%s]\" \"\$DASH_LOG_FILTER\"")" = "[boom][]" ]'
+check "the fuzzy match accepts a subsequence, any case" 'run_lib "dash_pal_match cmp Comprobar" >/dev/null && ! run_lib "dash_pal_match xyz Comprobar" >/dev/null'
+check "a tighter match scores better than a scattered one" '[ "$(run_lib "dash_pal_match com Comprobar; a=\$PAL_SCORE; dash_pal_match cbr Comprobar; b=\$PAL_SCORE; echo \$((a < b))")" = "1" ]'
+out="$(panel $'\020' q)"
+check "Ctrl+P opens the palette with the actions of the selected instance" 'echo "$out" | frame_n 2 | grep -q "Paleta de acciones" && echo "$out" | frame_n 2 | grep -q "Comprobar" && echo "$out" | frame_n 2 | grep -q "Desplegar"'
+out="$(panel $'\020' esc q)"
+check "Esc closes the palette without doing anything" '! echo "$out" | frame_n 3 | grep -q "Paleta de acciones" && echo "$out" | frame_n 3 | grep -q "\[1 Instancias\]"'
+out="$(panel $'\020' c o m p r o b a r enter wait q)"
+check "typing narrows the list and Enter runs the first match" 'echo "$out" | grep -q "Ejecutando: ./deltactl check tui-a" && echo "$out" | last_frame | grep -q "terminó bien"'
+out="$(panel $'\020' I r space t u i - c enter q)"
+check "the palette jumps to another instance" 'echo "$out" | last_frame | grep -q "^| > .. tui-c"'
+out="$(panel $'\020' t e m a space n o r d enter q)"
+check "the palette changes the theme and remembers it" 'grep -q "^UI_THEME=nord$" "$FIX/none.cfg"'
+out="$(panel $'\020' z z z z z z q)"
+check "a query with no match says so" 'echo "$out" | frame_n 7 | grep -q "Sin coincidencias"'
+out="$(panel $'\020' down down q)"
+check "the arrows move the selection in the palette" 'echo "$out" | frame_n 4 | grep -q "| > .*Desplegar"'
+out="$(panel $'\020' $'\020' q)"
+check "opening the palette twice leaves it open" 'echo "$out" | frame_n 3 | grep -q "Paleta de acciones"'
 
 finish

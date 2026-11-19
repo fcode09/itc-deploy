@@ -18,6 +18,7 @@ TUI_FRAME=()
 TUI_PREV=()
 TUI_FRAMES=0
 TUI_ACTIVE=0
+TUI_STTY=""
 TUI_KEYS_OPEN=0
 TUI_ROWS=24
 TUI_COLS=80
@@ -57,7 +58,11 @@ tui_size() {
 tui_enter() {
   tui_test_mode && { tui_size; return 0; }
   [ "$TUI_ACTIVE" -eq 1 ] && return 0
-  printf '\033[?1049h\033[?25l\033[?7l'
+  printf '\033[?1049h\033[?25l\033[?7l%s' "$TH_RESET"
+  # Keys that arrive while the screen is being drawn would be echoed by the terminal itself, in the middle of the frame: the
+  # echo is off for as long as the panel is on (tui_leave restores the settings it found).
+  TUI_STTY="$(stty -g 2> /dev/null || true)"
+  stty -echo 2> /dev/null || true
   TUI_ACTIVE=1
   trap 'TUI_RESIZED=1' WINCH
   tui_size
@@ -66,7 +71,8 @@ tui_enter() {
 # Leaves the alternate screen and shows the cursor again. Safe to call twice.
 tui_leave() {
   [ "$TUI_ACTIVE" -eq 1 ] || return 0
-  printf '\033[?7h\033[?25h\033[?1049l'
+  printf '\033[0m\033[?7h\033[?25h\033[?1049l\033[0m'
+  if [ -n "$TUI_STTY" ]; then stty "$TUI_STTY" 2> /dev/null || stty echo 2> /dev/null || true; else stty echo 2> /dev/null || true; fi
   TUI_ACTIVE=0
   trap - WINCH
 }
@@ -112,6 +118,7 @@ tui_key() { # [timeout]
           '[D' | 'OD') TUI_KEY="left" ;;
           '[H' | 'OH' | '[1~' | '[7~') TUI_KEY="home" ;;
           '[F' | 'OF' | '[4~' | '[8~') TUI_KEY="end" ;;
+          '[Z') TUI_KEY="btab" ;;
           '[5~') TUI_KEY="pgup" ;;
           '[6~') TUI_KEY="pgdn" ;;
           '[3~') TUI_KEY="delete" ;;
@@ -128,14 +135,77 @@ tui_key() { # [timeout]
   esac
 }
 
+# A line of a box that starts with this marker is drawn as the selected row (see tui_box).
+TUI_SEL=$'\001'
+
 # Blank padding for tui_fit (cut from this string instead of building it each time).
 printf -v TUI_SPACES '%*s' 400 ''
 
+# Removes every `ESC [ ... <letter>` sequence and any other control character from a text into TUI_OUT: text that comes from
+# outside (container logs) must never move the cursor or change colours of the panel.
+tui_strip_ansi() { # text
+  local s="$1" out="" pre rest seq
+  s="${s//$'\r'/}"
+  s="${s//$'\t'/    }"
+  while [[ "$s" == *$'\033['* ]]; do
+    pre="${s%%$'\033['*}"
+    rest="${s#*$'\033['}"
+    seq="${rest%%[A-Za-z]*}"
+    if [ "$seq" = "$rest" ]; then s="$pre"; break; fi   # an unfinished sequence: drop the rest
+    out+="$pre"
+    s="${rest:$((${#seq} + 1))}"
+  done
+  out+="$s"
+  out="${out//$'\033'/}"
+  TUI_OUT="$out"
+}
+
+# Like tui_strip_ansi but keeps the colour sequences (`ESC [ ... m`): the output of a command is shown with its own colours, yet it
+# can never move the cursor or run a terminal command. The result is in TUI_OUT.
+tui_sanitize() { # text
+  local s="$1" out="" pre rest seq final
+  s="${s//$'\r'/}"
+  s="${s//$'\t'/    }"
+  while [[ "$s" == *$'\033['* ]]; do
+    pre="${s%%$'\033['*}"
+    rest="${s#*$'\033['}"
+    seq="${rest%%[A-Za-z]*}"
+    if [ "$seq" = "$rest" ]; then s="$pre"; break; fi   # an unfinished sequence: drop the rest
+    final="${rest:${#seq}:1}"
+    out+="${pre//$'\033'/}"
+    if [ "$final" = "m" ] && [[ "$seq" =~ ^[0-9\;]*$ ]]; then out+=$'\033['"${seq}m"; fi
+    s="${rest:$((${#seq} + 1))}"
+  done
+  s="${s//$'\033'/}"
+  out+="$s"
+  TUI_OUT="${out//$'\a'/}"
+}
+
 # Visible length of a text (color sequences do not count) into TUI_VL.
+# Lines repeat from one frame to the next, so the result is remembered (only for texts with colors, the slow ones).
+# Do not strip the sequences with `${1//$'\033'\[+([0-9;])m/}`: that extglob replacement takes ~25 ms on a coloured line.
+declare -gA TUI_VL_CACHE=()
+TUI_VL_CACHED=0
 tui_vlen() { # text
-  if [[ "$1" != *$'\033'* ]]; then TUI_VL="${#1}"; return 0; fi
-  local s="${1//$'\033'\[+([0-9;])m/}"
-  TUI_VL="${#s}"
+  local s="$1" n=0 pre rest seq
+  if [[ "$s" != *$'\033'* ]]; then TUI_VL="${#s}"; return 0; fi
+  if [[ -n "${TUI_VL_CACHE[$s]+x}" ]]; then TUI_VL="${TUI_VL_CACHE[$s]}"; return 0; fi
+  while [[ "$s" == *$'\033['* ]]; do
+    pre="${s%%$'\033['*}"
+    n=$((n + ${#pre}))
+    rest="${s#*$'\033['}"
+    seq="${rest%%[!0-9;]*}"
+    if [ -n "$seq" ] && [ "${rest:${#seq}:1}" = "m" ]; then
+      s="${rest:$((${#seq} + 1))}"   # a color sequence: it takes no cells
+    else
+      n=$((n + 2))                   # any other ESC [ stays counted, as before
+      s="$rest"
+    fi
+  done
+  TUI_VL=$((n + ${#s}))
+  if [ "$TUI_VL_CACHED" -ge 4096 ]; then TUI_VL_CACHE=() TUI_VL_CACHED=0; fi
+  TUI_VL_CACHE[$1]="$TUI_VL"
+  TUI_VL_CACHED=$((TUI_VL_CACHED + 1))
 }
 
 # Cuts a text to $2 visible cells keeping its color sequences, into TUI_OUT.
@@ -169,7 +239,7 @@ tui_clip() { # text width
     fi
   done
   # Close any color left open by the cut.
-  TUI_OUT="$out"$'\033[0m'
+  TUI_OUT="$out$TH_RESET"
 }
 
 # Fits a text to exactly $2 visible cells (cut or padded with spaces) into TUI_OUT.
@@ -196,26 +266,47 @@ tui_rep() { # char count
 
 # Draws a box of $2 x $3 cells around the lines of the array named $4 (it must hold at most $3 - 2 lines; missing ones are
 # blank). $1 is the title; $5 (optional) is a color for the border. The result is in TUI_BOX, one element per line.
-tui_box() { # title width height array [color]
-  local title="$1" w="$2" h="$3" col="${5:-$C_GRY}" i inner fill
+tui_box() { # title width height array [color] [focused]
+  local title="$1" w="$2" h="$3" foc="${6:-0}" i inner fill ttl styled
   local -n _tb="$4"
+  local col="${5:-${TH[border]:-$C_GRY}}"
   inner=$((w - 2))
   TUI_BOX=()
-  # Top: ┌─ title ───────┐
-  tui_vlen " $title "
-  if [ -n "$title" ] && [ "$TUI_VL" -le $((inner - 2)) ]; then
-    tui_rep "$UI_S_H" $((inner - 1 - TUI_VL))
-    TUI_BOX+=("$col$UI_S_TL$UI_S_H$C_OFF$C_BLD $title $C_OFF$col$TUI_OUT$UI_S_TR$C_OFF")
+  # A focused box shows it with the border colour AND the title as a badge; without colours (NO_COLOR, mono) a marker
+  # in front of the title keeps the focus visible.
+  if [ "$foc" -eq 1 ]; then
+    [ -n "${5:-}" ] || col="${TH[border_focus]:-$C_CYN}"
+    # Inside the badge the title is plain text: its own colours (a state in green) would vanish on the badge background.
+    tui_strip_ansi "$title"; ttl="$TUI_OUT"
+    [ -n "${TH[badge]:-}" ] || ttl="$UI_S_SEL$ttl"
+    styled="${TH[badge]:-$C_BLD} $ttl $C_OFF"
   else
-    tui_rep "$UI_S_H" "$inner"
-    TUI_BOX+=("$col$UI_S_TL$TUI_OUT$UI_S_TR$C_OFF")
+    ttl="$title"
+    styled="${TH[title]:-}$C_BLD $ttl $C_OFF"
   fi
+  # Top: ╭─ title ───────╮
+  tui_vlen " $ttl "
+  if [ -n "$title" ] && [ "$TUI_VL" -le $((inner - 2)) ]; then
+    tui_rep "$TH_B_H" $((inner - 1 - TUI_VL))
+    TUI_BOX+=("$col$TH_B_TL$TH_B_H$C_OFF$styled$col$TUI_OUT$TH_B_TR$C_OFF")
+  else
+    tui_rep "$TH_B_H" "$inner"
+    TUI_BOX+=("$col$TH_B_TL$TUI_OUT$TH_B_TR$C_OFF")
+  fi
+  local raw
   for ((i = 0; i < h - 2; i++)); do
-    tui_fit " ${_tb[$i]:-}" "$inner"
-    TUI_BOX+=("$col$UI_S_V$C_OFF$TUI_OUT$col$UI_S_V$C_OFF")
+    raw="${_tb[$i]:-}"
+    if [[ "$raw" == "$TUI_SEL"* ]]; then
+      # A selected row: the theme's selection colours across the whole inner width (resets inside the row bring them back).
+      raw="${raw#"$TUI_SEL"}"
+      tui_fit "${TH[sel]:-} ${raw//"$C_OFF"/"$C_OFF${TH[sel]:-}"}" "$inner"
+    else
+      tui_fit " $raw" "$inner"
+    fi
+    TUI_BOX+=("$col$TH_B_V$C_OFF$TUI_OUT$C_OFF$col$TH_B_V$C_OFF")
   done
-  tui_rep "$UI_S_H" "$inner"
-  TUI_BOX+=("$col$UI_S_BL$TUI_OUT$UI_S_BR$C_OFF")
+  tui_rep "$TH_B_H" "$inner"
+  TUI_BOX+=("$col$TH_B_BL$TUI_OUT$TH_B_BR$C_OFF")
 }
 
 # Draws TUI_FRAME (one line per element) from the top-left corner. Only the lines that differ from the previous
@@ -228,17 +319,19 @@ tui_draw() {
     printf '%s\n' "${TUI_FRAME[@]}"
     return 0
   fi
-  [ "$TUI_FORCE" -eq 0 ] || { out=$'\033[2J'; TUI_PREV=(); }
+  [ "$TUI_FORCE" -eq 0 ] || { out="$TH_RESET"$'\033[2J'; TUI_PREV=(); }
   [ "$n" -le "$TUI_ROWS" ] || n="$TUI_ROWS"
   for ((i = 0; i < n; i++)); do
     line="${TUI_FRAME[$i]}"
     if [ "$TUI_FORCE" -eq 1 ] || [ "$line" != "${TUI_PREV[$i]-}" ]; then
-      out+=$'\033['"$((i + 1));1H$line"$'\033[0m\033[K'
+      # Clear first, then write: a trailing `ESC[K` would erase the last column (the cursor stays on it after a full-width
+      # line), and with it the right border of every box.
+      out+=$'\033['"$((i + 1));1H$TH_RESET"$'\033[K'"$line$TH_RESET"
     fi
   done
   # Lines of the previous frame that no longer exist.
   for ((i = n; i < ${#TUI_PREV[@]} && i < TUI_ROWS; i++)); do
-    out+=$'\033['"$((i + 1));1H"$'\033[K'
+    out+=$'\033['"$((i + 1));1H$TH_RESET"$'\033[K'
   done
   if [ -n "$TUI_CURSOR" ]; then out+=$'\033['"${TUI_CURSOR}H"$'\033[?25h'; else out+=$'\033[?25l'; fi
   printf '%s' "$out"
