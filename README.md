@@ -69,6 +69,8 @@ de comandos; el menú y el asistente solo preguntan por ti y te muestran el coma
 ./deltactl status                 # versión configurada vs la que corre, salud, puertos, uptime y siguientes pasos
 ./deltactl status colorado        # detalle de una instancia: imagen, previa, memoria/CPU y errores recientes
 ./deltactl images                 # versiones cargadas, quién las usa, previas para rollback y las que sobran
+./deltactl runs                   # historial de operaciones (deploy, init, rollback, stop...): cuándo, cuánto tardó, cómo terminó
+./deltactl runs logs last         # todo lo que imprimió la última operación (runs show last: el detalle)
 ./deltactl check colorado         # comprueba todo lo que deploy exigiría, sin levantar nada (--mongo prueba las bases)
 ./deltactl doctor                 # diagnóstico del servidor: Docker, disco, memoria, Mongo, permisos
 ./deltactl new --wizard           # asistente: pregunta lo esencial y lista lo que falta completar

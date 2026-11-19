@@ -23,6 +23,7 @@ COMPLETION_FLAGS=(
   "check:--mongo"
   "logs:-f"
   "menu:--classic"
+  "runs:--instance -n --json --tail --raw"
 )
 
 cmd_completion() {
@@ -73,6 +74,8 @@ _deltactl_complete() {
       [ "$COMP_CWORD" -eq 2 ] && COMPREPLY=($(compgen -W "$services" -- "$cur")) ;;
     load)
       COMPREPLY=($(compgen -f -- "$cur")) ;;
+    runs)
+      if [ "$COMP_CWORD" -eq 2 ]; then COMPREPLY=($(compgen -W "list show logs" -- "$cur")); fi ;;
     completion)
       [ "$COMP_CWORD" -eq 2 ] && COMPREPLY=($(compgen -W "bash" -- "$cur")) ;;
   esac

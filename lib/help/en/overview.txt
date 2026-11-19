@@ -28,6 +28,7 @@ $ ./deltactl help <topic>          full step-by-step guide
 
 ## Information
 | status [instance] [--json|--stats] | Status panel: versions, health, mismatches and next steps
+| runs [list|show|logs] | History of operations: when, how long, how it ended and its whole output
 | doctor | Server diagnosis: Docker, disk, memory, Mongo and permissions
 | list | Instances, services, ports, tags and state
 | ps <instance> | State of the containers

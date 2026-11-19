@@ -1,0 +1,34 @@
+# runs · historial de operaciones
+
+Cada operación que cambia algo (`deploy`, `init`, `adopt`, `rollback`, `load`, `stop`, `down`, `new`) queda registrada:
+cuándo empezó, cuánto tardó, cómo terminó y TODO lo que imprimió. Solo lee: nunca modifica una ejecución.
+
+## Uso
+$ ./deltactl runs list [--instance <nombre>] [-n <cuántas>] [--json]
+$ ./deltactl runs show <id|last>
+$ ./deltactl runs logs <id|last> [--tail <n>] [--raw]
+
+## Opciones
+- `list` las últimas ejecuciones, la más reciente primero (20 por defecto)
+- `--instance <nombre>` filtra por instancia, `-n <cuántas>` limita y `--json` da salida para scripts
+- `show` el detalle de una ejecución y las últimas líneas de su salida
+- `last` es la más reciente; de un id basta el principio
+- `logs` la salida completa; `--tail <n>` solo las últimas líneas
+- `--raw` conserva los colores (a un archivo o una tubería sale sin ellos)
+
+## Estados
+- `correcta`, `fallida` (código de salida distinto de 0), `cancelada` (Ctrl+C), `en curso`
+- `interrumpida`: el proceso desapareció sin terminar (kill, corte de luz). Nunca se cuenta como correcta
+
+## Cómo funciona
+- Solo hay una operación a la vez: si otra está en curso, la segunda se rechaza y dice cuál es
+- Los datos viven en `instances/.deltactl/` (privado, no se versiona). `DELTACTL_NO_RUNS=1` desactiva el registro
+- Durante la operación los errores y los mensajes salen juntos por la salida estándar (un único log ordenado)
+
+## Ejemplos
+$ ./deltactl runs list --instance colorado -n 5
+$ ./deltactl runs show last
+$ ./deltactl runs logs 20261119T1402 --tail 30
+
+## Relacionado
+- `./deltactl help deploy`, `./deltactl help status`

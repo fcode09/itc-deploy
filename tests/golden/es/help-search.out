@@ -15,6 +15,9 @@
     $ ./deltactl rollback <instancia> [servicio] [--yes]
     - lo que estaba desplegado pasa a ser la "previa": un segundo rollback lo restaura
 
+./deltactl help runs
+    Cada operación que cambia algo (`deploy`, `init`, `adopt`, `rollback`, `load`, `stop`, `down`, `new`) queda registrada:
+
 ./deltactl help 
     | rollback <instancia> [servicio] [--yes] | Vuelve a las etiquetas del despliegue anterior
 
