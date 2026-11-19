@@ -8,7 +8,7 @@
 
 declare -gA DT=() DASH_SYM=() DASH_KEYS=() DASH_KB=()
 DTV="" DASH_BAR="" DASH_GB="" DASH_CLK="" DASH_KC="" DASH_KBV=""
-DASH_REV="" DASH_UD="" DASH_LR="" DASH_LEFT="" DASH_RIGHT=""
+DASH_REV="" DASH_UD="" DASH_LR="" DASH_LEFT="" DASH_RIGHT="" DASH_PG=">"
 DASH_SPINNER=()
 DASH_HOSTLINE=""
 DASH_LIST_LINES=() DASH_DET_LINES=() DASH_DET_START=() DASH_DET_OFF=0 DASH_WRAP=()
@@ -30,10 +30,10 @@ dash_symbols_init() {
   fi
   if [ "$UI_UTF8" -eq 1 ] && [ "$UI_RICH" -eq 1 ]; then
     DASH_SPINNER=(⠋ ⠙ ⠹ ⠸ ⠼ ⠴ ⠦ ⠧ ⠇ ⠏)
-    DASH_UD='↑↓' DASH_LR='←→' DASH_LEFT='←' DASH_RIGHT='→'
+    DASH_UD='↑↓' DASH_LR='←→' DASH_LEFT='←' DASH_RIGHT='→' DASH_PG='❯'
   else
     DASH_SPINNER=('|' '/' '-' '\')
-    DASH_UD='Up/Dn' DASH_LR='Lt/Rt' DASH_LEFT='Lt' DASH_RIGHT='Rt'
+    DASH_UD='Up/Dn' DASH_LR='Lt/Rt' DASH_LEFT='Lt' DASH_RIGHT='Rt' DASH_PG='>'
   fi
   DASH_REV=""
   [ -z "$C_BLD" ] || DASH_REV=$'\033[7m'
@@ -1042,7 +1042,7 @@ dash_dialog_palette() { # body_height
   acc="${TH[accent]:-$C_CYN}"
   DASH_DLG=("")
   if [ -n "$DASH_REV" ]; then cur="$DASH_REV $C_OFF"; else cur="_"; fi
-  DASH_DLG+=("$acc$(dash_prompt_glyph)$C_OFF $DASH_PAL_Q$cur" "")
+  DASH_DLG+=("$acc$DASH_PG$C_OFF $DASH_PAL_Q$cur" "")
   if [ "$n" -eq 0 ]; then
     dt tui.pal.none; DASH_DLG+=("$C_GRY$DTV$C_OFF")
   else
@@ -1070,7 +1070,7 @@ dash_console_box() { # width height
   [ "$DASH_MODE" != "cmd" ] || foc=1
   acc="${TH[accent]:-$C_CYN}"
   dash_prompt_name; pn="$DASH_PN"
-  pg="$(dash_prompt_glyph)"
+  pg="$DASH_PG"
   n="${#DASH_CON[@]}"
   end=$((n - DASH_CON_SCROLL))
   [ "$end" -ge 0 ] || end=0

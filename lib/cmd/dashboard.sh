@@ -954,7 +954,7 @@ dash_shell() {
   dash_refresh_request
 }
 
-dash_prompt_glyph() { if [ "$UI_UTF8" -eq 1 ] && [ "$UI_RICH" -eq 1 ]; then printf '%s' "❯"; else printf '%s' ">"; fi; }
+dash_prompt_glyph() { printf '%s' "$DASH_PG"; }   # (set once by dash_symbols_init: a command substitution per frame is a process per frame)
 
 # Ctrl+C: it cancels what is running; with nothing running it clears the line, and a second one in a row leaves the panel.
 dash_ctrl_c() {
