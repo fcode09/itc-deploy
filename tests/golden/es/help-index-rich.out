@@ -39,6 +39,7 @@ Servicios: [36ms0[0m = auth-backend (Auth) y [36ms1[0m = gueo-back-end (Gue)
 
 [1mInformación[0m
   [32mstatus [instancia] [--json|--stats][0m               Panel de estado: versiones, salud, desajustes y siguientes pasos
+  [32mruns [list|show|logs][0m                             Historial de operaciones: cuándo, cuánto tardó, cómo terminó y su salida completa
   [32mdoctor[0m                                            Diagnóstico del servidor: Docker, disco, memoria, Mongo y permisos
   [32mlist[0m                                              Instancias, servicios, puertos, etiquetas y estado
   [32mps <instancia>[0m                                    Estado de los contenedores

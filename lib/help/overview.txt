@@ -28,6 +28,7 @@ $ ./deltactl help <tema>           guía completa paso a paso
 
 ## Información
 | status [instancia] [--json|--stats] | Panel de estado: versiones, salud, desajustes y siguientes pasos
+| runs [list|show|logs] | Historial de operaciones: cuándo, cuánto tardó, cómo terminó y su salida completa
 | doctor | Diagnóstico del servidor: Docker, disco, memoria, Mongo y permisos
 | list | Instancias, servicios, puertos, etiquetas y estado
 | ps <instancia> | Estado de los contenedores
