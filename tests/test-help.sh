@@ -136,7 +136,13 @@ for v in $(grep -ohE 'help variable [A-Z][A-Z0-9_]+' $H/*.txt | awk '{ print $3 
   echo "$allvars" | grep -qx "$v" || bad_var+="$v "
 done
 check "todas las variables recomendadas existen en el glosario (${bad_var:-ok})" '[ -z "$bad_var" ]'
-check "las líneas de las páginas caben en 130 columnas" '! awk "length(\$0) > 130 { exit 1 }" $H/cmd-*.txt $H/topic-*.txt'
+# The old check was inverted (`! awk "... exit 1"` accepted exactly the long lines) and awk counts bytes, not characters.
+# Known debt: 16 lines are still wider than 130 characters because ui_render_file does not wrap text yet. This is a ratchet:
+# a NEW long line fails; lower the number as lines are fixed (the goal is 0).
+HELP_LONG_DEBT=16
+long_lines="$(cat $H/cmd-*.txt $H/topic-*.txt | grep -cE '.{131,}')"
+check "el detector de líneas largas funciona (cuenta caracteres, no bytes)" 'printf "%0200d\n" 0 | grep -qE ".{131,}" && ! printf "%0100d\n" 0 | grep -qE ".{131,}"'
+check "ninguna página nueva tiene líneas de más de 130 caracteres (deuda conocida: $HELP_LONG_DEBT, ahora $long_lines)" '[ "$long_lines" -le "$HELP_LONG_DEBT" ]'
 
 section "10. los errores apuntan a la ayuda"
 # Toda pista $(see X) del código debe señalar un tema o comando que exista.
