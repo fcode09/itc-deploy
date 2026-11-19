@@ -3,8 +3,9 @@
 # Sourced from lib.sh; not meant to be executed.
 #
 # Source code, comments and identifiers are English. Everything the user reads lives in catalogs:
-#   lib/i18n/es.sh   Spanish (the default UI language, and the fallback for any missing key)
-#   lib/i18n/en.sh   English
+#   lib/i18n/es/*.sh   Spanish (the default UI language, and the fallback for any missing key)
+#   lib/i18n/en/*.sh   English
+# Each language has one file per area (common.sh, then one per command), all loaded together.
 #
 # Messages use numbered placeholders {1}..{9} instead of printf formats: bash printf has no positional
 # arguments, and a translation must be free to reorder them. A literal newline is written as \n.
@@ -49,6 +50,25 @@ i18n_config_lang() {
   printf '%s' "${val,,}"
 }
 
+# Loads every catalog file of a language (lib/i18n/<code>/*.sh).
+i18n_load_lang() { # code
+  local f
+  for f in "$ROOT/lib/i18n/$1"/*.sh; do
+    # shellcheck source=/dev/null
+    source "$f"
+  done
+}
+
+# Remembers the language in the config file (UI_LANG=<code>), creating it if needed. A failure to write is
+# ignored: the choice then lasts only for the current run.
+i18n_save_lang() { # code
+  local f
+  f="$(i18n_config_file)"
+  mkdir -p "$(dirname "$f")" 2>/dev/null || return 0
+  [ -f "$f" ] || : > "$f" 2>/dev/null || return 0
+  set_var "$f" UI_LANG "$1" 2>/dev/null || true
+}
+
 # Chooses the language (see the order above) and loads its catalog. Spanish is always loaded: it is the
 # fallback for keys missing in another language.
 i18n_init() {
@@ -57,12 +77,8 @@ i18n_init() {
   i18n_valid_lang "$want" || want="$(i18n_config_lang)"
   i18n_valid_lang "$want" || want="$DELTACTL_DEFAULT_LANG"
   DELTACTL_LANG_ACTIVE="$want"
-  # shellcheck source=lib/i18n/es.sh
-  source "$ROOT/lib/i18n/es.sh"
-  if [ "$want" != "es" ]; then
-    # shellcheck source=/dev/null
-    source "$ROOT/lib/i18n/$want.sh"
-  fi
+  i18n_load_lang es
+  [ "$want" = "es" ] || i18n_load_lang "$want"
 }
 
 # t <key> [arg1 ... arg9]   prints the message of the active language with {1}..{9} replaced.

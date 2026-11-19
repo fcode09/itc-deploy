@@ -1,0 +1,3 @@
+# versions · alias of images
+
+`./deltactl versions` is the same as `./deltactl images`. See `./deltactl help images`.

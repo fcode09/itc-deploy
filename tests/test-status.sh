@@ -26,6 +26,10 @@ case "$1" in
   stats) cat "$FIX/stats.txt" ;;
   logs) echo "Nest ERROR de prueba"; echo "linea normal" ;;
   image)
+    if [ "$2" = "ls" ]; then
+      awk -F'|' '{ split($1, r, ":"); printf "%s|%s|%s\n", r[1], r[2], $2 }' "$FIX/images.txt"
+      exit 0
+    fi
     ref="${*: -1}"
     line="$(grep -F "$ref|" "$FIX/images.txt" | head -n1)"
     [ -n "$line" ] || exit 1
@@ -60,7 +64,7 @@ deployed st-ok s0 1.0 sha256:aaa; deployed st-ok s1 1.0 sha256:bbb
 container st-ok s0 running healthy auth-backend:1.0 "2 hours"
 container st-ok s1 running healthy gueo-back-end:1.0 "3 days"
 out="$(status)"
-check "muestra la instancia con sus dos servicios" 'echo "$out" | grep -c "st-ok" | grep -qx 2'
+check "muestra la instancia con sus dos servicios" 'echo "$out" | grep -v "^  Instancias:" | grep -c "st-ok" | grep -qx 2'
 check "ambos servicios healthy" '[ "$(echo "$out" | grep "st-ok" | grep -c healthy)" -eq 2 ]'
 check "uptime en horas y en días" 'echo "$out" | grep -q "2h0[0-9]m" && echo "$out" | grep -q "3d00h"'
 check "pie: todo en orden" 'echo "$out" | grep -q "todo en orden"'
@@ -163,5 +167,36 @@ check "en un pipe muestra la ayuda" 'bash ./deltactl 2>&1 | grep -qx "Uso"'
 home="$(DELTACTL_UI=rich DELTACTL_COLOR=never COLUMNS=100 bash ./deltactl 2>&1)"
 check "en una terminal muestra banner y estado" 'echo "$home" | grep -q "██╗" && echo "$home" | grep -q "Estado de las instancias"'
 check "la pantalla de inicio apunta a la ayuda" 'echo "$home" | grep -q "./deltactl help"'
+
+
+section "10. header: memory, load and the n/m of every instance"
+printf 'MemTotal:        8388608 kB\nMemFree:         1048576 kB\nMemAvailable:    3145728 kB\n' > "$FIX/meminfo"
+printf '0.82 0.50 0.40 1/200 1234\n' > "$FIX/loadavg"
+printf 'MemTotal:        8388608 kB\n' > "$FIX/meminfo-no-available"
+newinst st-hd 1.0 1.0
+image auth-backend:1.0 sha256:aaa; image gueo-back-end:1.0 sha256:bbb
+deployed st-hd s0 1.0 sha256:aaa; deployed st-hd s1 1.0 sha256:bbb
+container st-hd s0 running healthy auth-backend:1.0 "1 hour"
+container st-hd s1 exited none gueo-back-end:1.0 "1 hour"
+hdr() { DELTACTL_MEMINFO="$FIX/meminfo" DELTACTL_LOADAVG="$FIX/loadavg" bash ./deltactl "$@" 2>&1; }
+out="$(hdr status)"
+check "the header shows the memory with its bar, the figures and the percentage" 'echo "$out" | grep -qE "Memoria \[######\.\.\.\.\] 5\.0/8\.0 GB 62%"'
+check "the header shows the load of the last minute" 'echo "$out" | grep -q "Carga 0.82"'
+check "the header shows n/m per instance: one of two services OK" 'echo "$out" | grep "^  Instancias:" | grep -q "st-hd 1/2"'
+check "an instance with every service OK shows m/m" 'echo "$out" | grep "^  Instancias:" | grep -q "st-ok 2/2"'
+check "the header comes before the table title" 'echo "$out" | grep -n "Memoria" | head -1 | cut -d: -f1 | { read a; b="$(echo "$out" | grep -n "^Estado de las instancias" | head -1 | cut -d: -f1)"; [ "$a" -lt "$b" ]; }'
+check "the header is also on the home screen" 'DELTACTL_MEMINFO="$FIX/meminfo" DELTACTL_LOADAVG="$FIX/loadavg" DELTACTL_UI=rich bash ./deltactl 2>&1 | grep -q "Instancias:"'
+check "no header in the JSON output" '! hdr status --json | grep -q "Memoria"'
+check "no header in the detail view of an instance" '! hdr status st-hd | grep -q "^  Instancias:"'
+check "memory is left out when the system does not report MemAvailable" '! DELTACTL_MEMINFO="$FIX/meminfo-no-available" DELTACTL_LOADAVG="$FIX/loadavg" bash ./deltactl status 2>&1 | grep -q "Memoria"'
+check "the English header uses English labels" 'o="$(DELTACTL_LANG=en DELTACTL_MEMINFO="$FIX/meminfo" DELTACTL_LOADAVG="$FIX/loadavg" bash ./deltactl status 2>&1)"; echo "$o" | grep -q "Memory \[" && echo "$o" | grep -q "Load 0.82" && echo "$o" | grep -q "^  Instances:"'
+check "the --strict exit code does not depend on the header" 'hdr status --strict >/dev/null; [ "$?" -eq 2 ]'
+bar() { DELTACTL_UI=${2:-plain} DELTACTL_COLOR=${3:-never} DELTACTL_ASCII=1 ROOT="$PWD" bash -c 'source lib/bootstrap.sh; ui_bar "$@"' _ "$1" ${4:-10}; }
+check "ui_bar draws the filled share (ASCII)" '[ "$(bar 62)" = "[######....]" ] && [ "$(bar 0 plain never 4)" = "[....]" ] && [ "$(bar 100 plain never 4)" = "[####]" ]'
+check "ui_bar clamps above 100 and tolerates a non-number" '[ "$(bar 150 plain never 4)" = "[####]" ] && [ "$(bar abc plain never 4)" = "[....]" ]'
+check "ui_bar is green, yellow and red by threshold" 'g="$(printf "[32m")"; y="$(printf "[33m")"; r="$(printf "[31m")"; bar 10 rich always | grep -qF "$g" && bar 75 rich always | grep -qF "$y" && bar 90 rich always | grep -qF "$r"'
+host() { DELTACTL_MEMINFO="$FIX/meminfo" DELTACTL_LOADAVG="$FIX/loadavg" ROOT="$PWD" bash -c 'source lib/bootstrap.sh; "$@"' _ "$@"; }
+check "the host adapter reads memory, load and converts to GB" '[ "$(host host_mem_total_kb)" = "8388608" ] && [ "$(host host_mem_available_kb)" = "3145728" ] && [ "$(host host_load1)" = "0.82" ] && [ "$(host host_kb_to_gb 8388608)" = "8.0" ]'
+check "the host adapter prints nothing when the files are missing" '[ -z "$(DELTACTL_MEMINFO=/nonexistent DELTACTL_LOADAVG=/nonexistent ROOT="$PWD" bash -c "source lib/bootstrap.sh; host_mem_total_kb; host_load1")" ]'
 
 finish

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# ./deltactl ps | logs | stop | down <instancia>: atajos de operación.
-# Usan --profile '*' para ver o limpiar también servicios que ya no están en COMPOSE_PROFILES.
+# ./deltactl ps | logs | stop | down <instance>: operation shortcuts.
+# They use --profile '*' to also show or clean services that are no longer in COMPOSE_PROFILES.
 
 cmd_ps() {
   require_instance "${1:-}"
@@ -16,15 +16,15 @@ cmd_logs() {
   dk_compose "$name" --profile '*' logs --tail 200 "$@"
 }
 
-# Detiene un servicio sin tocar los demás (no lo elimina; ./deltactl deploy lo vuelve a levantar).
+# Stops one service without touching the others (it does not remove it; ./deltactl deploy starts it again).
 cmd_stop() {
   local name="${1:-}" svc="${2:-}"
   require_instance "$name"
-  [ -n "$svc" ] || die "uso: ./deltactl stop <instancia> <servicio>  (para detener todo: ./deltactl down $name)"
-  valid_service "$svc" || die "servicio desconocido: '$svc' (válidos: ${KNOWN_SERVICES[*]})$(see servicios)"
+  [ -n "$svc" ] || die "$(t ops.stop_usage "$name")"
+  valid_service "$svc" || die "$(t err.service_unknown "$svc" "${KNOWN_SERVICES[*]}")$(see services)"
   check_docker
   dk_compose "$name" --profile "$svc" stop "$svc"
-  ok "$svc detenido en '$name'"
+  ok "$(t ops.stopped "$svc" "$name")"
 }
 
 cmd_down() {
@@ -32,8 +32,8 @@ cmd_down() {
   local name="${ARGS[0]:-}"
   require_instance "$name"
   check_docker
-  info "Detiene y elimina los contenedores de '$name'. Los datos (data/) y secretos se conservan."
-  confirm "¿Continuar?" || die "cancelado"
+  info "$(t ops.down_info "$name")"
+  confirm "$(t prompt.continue)" || die "$(t err.cancelled)"
   dk_compose "$name" --profile '*' down
-  ok "instancia '$name' detenida"
+  ok "$(t ops.down_done "$name")"
 }

@@ -1,0 +1,16 @@
+# logs · view the logs
+
+It shows the last 200 lines of the instance's services.
+
+## Usage
+$ ./deltactl logs <instance> [service] [-f]
+
+## Examples
+$ ./deltactl logs colorado s1        # logs of s1
+$ ./deltactl logs colorado s0 -f     # follow live (Ctrl+C to exit)
+
+> `./deltactl status <instance>` counts how many lines with ERROR there were in the last 10 minutes.
+> The logs rotate by themselves: 5 files of 10 MB per service.
+
+## Related
+- `./deltactl help troubleshooting`

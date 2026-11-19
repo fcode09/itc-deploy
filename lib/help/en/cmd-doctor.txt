@@ -1,0 +1,23 @@
+# doctor · server diagnosis
+
+It checks the server, not a particular instance: Docker, resources, MongoDB, permissions and tools.
+It is read-only and every failure says how to fix it.
+
+## Usage
+$ ./deltactl doctor
+
+## What it checks
+- Docker: reachable daemon and Compose v2.20 or newer
+- free disk where Docker keeps the images (warning below 10 GB, error below 3 GB)
+- server memory and the sum of the memory limits of all the instances
+- MongoDB: that every URI is reachable over TCP from where the containers use it (Docker's gateway for `host.docker.internal`)
+- the open-files limit of `mongod` (64000 or more recommended with many instances)
+- permissions of the `.env.*` files (they must be 600) and owner of `data/` (uid 1000)
+- helper tools: `ss`, `openssl` and `gunzip`
+
+## Result
+It exits with code 1 if there are errors; warnings do not change the exit code.
+
+## Related
+- `./deltactl check <instance>` checks a particular instance before deploying
+- `./deltactl help troubleshooting`, `./deltactl help network`

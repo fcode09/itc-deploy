@@ -30,11 +30,12 @@ Imágenes
 
 Información
   status [instancia] [--json|--stats]               Panel de estado: versiones, salud, desajustes y siguientes pasos
+  runs [list|show|logs]                             Historial de operaciones: cuándo, cuánto tardó, cómo terminó y su salida completa
   doctor                                            Diagnóstico del servidor: Docker, disco, memoria, Mongo y permisos
   list                                              Instancias, servicios, puertos, etiquetas y estado
   ps <instancia>                                    Estado de los contenedores
   logs <instancia> [servicio] [-f]                  Logs (últimas 200 líneas)
-  menu                                              Menú interactivo con todas las acciones, con numeración y confirmaciones
+  menu [--classic]                                  Panel interactivo con flechas (o menú numerado sin terminal) con todas las acciones y confirmaciones
   completion bash                                   Autocompletado con Tab (source <(./deltactl completion bash))
   help [comando|tema]                               Esta ayuda
 

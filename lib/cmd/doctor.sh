@@ -1,27 +1,26 @@
 #!/usr/bin/env bash
 # ./deltactl doctor
-# Diagnóstico del servidor, SOLO LECTURA: Docker y Compose, disco, memoria, Mongo, permisos de las
-# instancias y herramientas auxiliares. Cada fallo dice cómo arreglarlo. Termina con código 1 si hay errores.
+# Server diagnosis, READ-ONLY: Docker and Compose, disk, memory, Mongo, instance permissions and helper
+# tools. Every failure says how to fix it. It exits with code 1 if there are errors.
 
-# ck (informe con símbolos) viene de check.sh; st_enabled (servicios activos) de status.sh
+# ck (report with symbols) comes from check.sh
 source "$ROOT/lib/cmd/check.sh"
-source "$ROOT/lib/cmd/status.sh"
 
 # 512m -> 512, 2g -> 2048, 1.5g -> 1536 (megabytes)
-dr_mem_mb() { # valor
+dr_mem_mb() { # value
   awk -v v="$1" 'BEGIN {
     u = tolower(substr(v, length(v))); n = substr(v, 1, length(v) - 1) + 0
     if (u == "g") n *= 1024; else if (u == "k") n /= 1024; else if (u != "m") n = v / 1048576
     printf "%d", n }'
 }
 
-# ¿Se puede abrir una conexión TCP? (3 s de límite, sin herramientas externas)
-dr_tcp() { # host puerto
+# Can a TCP connection be opened? (3 s limit, no external tools)
+dr_tcp() { # host port
   timeout 3 bash -c "exec 3<>/dev/tcp/$1/$2" >/dev/null 2>&1
 }
 
-# host y puerto de una URI mongodb://[usuario:clave@]host[:puerto]/base
-dr_mongo_hostport() { # uri -> "host puerto"
+# Host and port of a URI mongodb://[user:password@]host[:port]/database
+dr_mongo_hostport() { # uri -> "host port"
   local u="${1#*://}" h p
   u="${u#*@}"
   u="${u%%/*}"
@@ -35,46 +34,46 @@ dr_mongo_hostport() { # uri -> "host puerto"
 dr_kb_to_gb() { awk -v k="$1" 'BEGIN { printf "%.1f", k / 1048576 }'; }
 
 cmd_doctor() {
-  [ "$#" -eq 0 ] || die "doctor no recibe argumentos (ver ./deltactl help doctor)"
+  [ "$#" -eq 0 ] || die "$(t doctor.no_args)"
   local v cv root free total avail line f name svc raw mb sum=0 gw h p seen="" uri var pid lim
 
-  ui_h1 "Diagnóstico del servidor"
+  ui_h1 "$(t doctor.title)"
 
   # --- Docker ------------------------------------------------------------------------------
-  ui_h2 "Docker"
+  ui_h2 "$(t doctor.sec.docker)"
   if ! dk_installed; then
-    ck err "Docker no está instalado o no está en el PATH" "Instálalo: https://docs.docker.com/engine/install/"
+    ck err "$(t doctor.docker_missing)" "$(t doctor.docker_missing_hint)"
   elif ! dk_daemon_ok; then
-    ck err "No se puede hablar con el daemon de Docker" \
-      "¿Servicio detenido? sudo systemctl start docker" "¿Sin permisos? Añade tu usuario al grupo docker y vuelve a entrar"
+    ck err "$(t doctor.daemon_down)" \
+      "$(t doctor.daemon_down_hint1)" "$(t doctor.daemon_down_hint2)"
   else
     v="$(dk_info ServerVersion)"
-    ck ok "Docker $v (arquitectura $(server_arch))"
+    ck ok "$(t doctor.docker_ok "$v" "$(server_arch)")"
     cv="$(dk_compose_version)"
     if [ -z "$cv" ]; then
-      ck err "Falta el plugin 'docker compose'" "Se necesita Compose v2.20 o superior (por 'include')"
+      ck err "$(t doctor.compose_missing)" "$(t doctor.compose_missing_hint)"
     elif [ "$(printf '%s\n%s\n' 2.20.0 "$cv" | sort -V | head -n1)" != "2.20.0" ]; then
-      ck err "Docker Compose $cv es demasiado antiguo" "Se necesita 2.20 o superior"
+      ck err "$(t doctor.compose_old "$cv")" "$(t doctor.compose_old_hint)"
     else
-      ck ok "Docker Compose $cv"
+      ck ok "$(t doctor.compose_ok "$cv")"
     fi
   fi
 
-  # --- Recursos ----------------------------------------------------------------------------
-  ui_h2 "Recursos"
+  # --- Resources ---------------------------------------------------------------------------
+  ui_h2 "$(t doctor.sec.resources)"
   root="$(dk_info DockerRootDir)"
   [ -n "$root" ] && [ -d "$root" ] || root="$ROOT"
   free="$(host_free_kb "$root")"
   if [[ "${free:-}" =~ ^[0-9]+$ ]]; then
     if [ "$free" -lt 3145728 ]; then
-      ck err "Poco disco libre en $root: $(dr_kb_to_gb "$free") GB" "Las imágenes y los logs necesitan espacio. Libera disco o mueve Docker."
+      ck err "$(t doctor.disk_low "$root" "$(dr_kb_to_gb "$free")")" "$(t doctor.disk_low_hint)"
     elif [ "$free" -lt 10485760 ]; then
-      ck warn "Disco libre en $root: $(dr_kb_to_gb "$free") GB (menos de 10 GB)"
+      ck warn "$(t doctor.disk_warn "$root" "$(dr_kb_to_gb "$free")")"
     else
-      ck ok "Disco libre en $root: $(dr_kb_to_gb "$free") GB"
+      ck ok "$(t doctor.disk_ok "$root" "$(dr_kb_to_gb "$free")")"
     fi
   else
-    ck info "No se pudo medir el disco libre"
+    ck info "$(t doctor.disk_unknown)"
   fi
 
   total="$(awk '/^MemTotal:/ { print $2 }' /proc/meminfo 2>/dev/null || true)"
@@ -91,19 +90,18 @@ cmd_doctor() {
     done
   done
   if [[ "${total:-}" =~ ^[0-9]+$ ]]; then
-    ck ok "Memoria: $((total / 1024)) MB en total, $((${avail:-0} / 1024)) MB disponibles"
+    ck ok "$(t doctor.mem_ok "$((total / 1024))" "$((${avail:-0} / 1024))")"
     if [ "$sum" -gt $((total / 1024)) ]; then
-      ck warn "Los límites de memoria de las instancias suman $sum MB, más que la RAM del servidor" \
-        "Son techos, no reservas: si todas las instancias los alcanzan a la vez, el servidor se queda sin memoria"
+      ck warn "$(t doctor.mem_over "$sum")" "$(t doctor.mem_over_hint)"
     elif [ "$sum" -gt 0 ]; then
-      ck ok "Límites de memoria de las instancias: $sum MB en total"
+      ck ok "$(t doctor.mem_limits "$sum")"
     fi
   else
-    ck info "No se pudo leer la memoria de este servidor"
+    ck info "$(t doctor.mem_unknown)"
   fi
 
   # --- MongoDB -----------------------------------------------------------------------------
-  ui_h2 "MongoDB"
+  ui_h2 "$(t doctor.sec.mongo)"
   gw=""
   if dk_daemon_ok; then
     gw="$(dk_network_gateway)"
@@ -117,40 +115,39 @@ cmd_doctor() {
       case " $seen " in *" $h:$p "*) continue ;; esac
       seen+=" $h:$p"
       if [ "$h" = "host.docker.internal" ]; then
-        # Así llegan los contenedores: a la puerta de enlace de Docker, no a 127.0.0.1 del servidor.
+        # That is how containers get there: to Docker's gateway, not to the server's 127.0.0.1.
         if [ -z "$gw" ]; then
-          ck info "$h:$p: no se pudo averiguar la puerta de enlace de Docker para probarlo"
+          ck info "$(t doctor.mongo_gw_unknown "$h:$p")"
         elif dr_tcp "$gw" "$p"; then
-          ck ok "$h:$p alcanzable desde los contenedores (por $gw)"
+          ck ok "$(t doctor.mongo_via_gw "$h:$p" "$gw")"
         else
-          ck err "$h:$p NO es alcanzable desde los contenedores (probado contra $gw:$p)" \
-            "Mongo debe escuchar en $gw o en 0.0.0.0 (bindIp en mongod.conf) y el firewall debe permitirlo"
+          ck err "$(t doctor.mongo_gw_fail "$h:$p" "$gw" "$p")" \
+            "$(t doctor.mongo_gw_fail_hint "$gw")"
         fi
       elif dr_tcp "$h" "$p"; then
-        ck ok "$h:$p alcanzable"
+        ck ok "$(t doctor.mongo_reach "$h:$p")"
       else
-        ck err "$h:$p no responde por TCP" "Revisa la URI en $(basename "$(dirname "$f")")/$(basename "$f") y la red"
+        ck err "$(t doctor.mongo_noresp "$h:$p")" "$(t doctor.mongo_noresp_hint "$(basename "$(dirname "$f")")/$(basename "$f")")"
       fi
     done
   done
-  [ -n "$seen" ] || ck info "Ninguna instancia define URI de Mongo todavía"
+  [ -n "$seen" ] || ck info "$(t doctor.mongo_none)"
 
   pid="$(pgrep -x mongod 2>/dev/null | head -n1 || true)"
   if [ -n "$pid" ] && [ -r "/proc/$pid/limits" ]; then
     lim="$(awk '/^Max open files/ { print $4 }' "/proc/$pid/limits")"
     if [[ "$lim" =~ ^[0-9]+$ ]] && [ "$lim" -lt 64000 ]; then
-      ck warn "mongod permite $lim archivos abiertos (recomendado: 64000 o más)" \
-        "Con muchas instancias Mongo puede caer con EMFILE. Sube LimitNOFILE en su servicio systemd."
+      ck warn "$(t doctor.nofile_warn "$lim")" "$(t doctor.nofile_warn_hint)"
     elif [[ "$lim" =~ ^[0-9]+$ ]]; then
-      ck ok "mongod permite $lim archivos abiertos"
+      ck ok "$(t doctor.nofile_ok "$lim")"
     fi
   else
-    ck info "No se pudo comprobar el límite de archivos abiertos de Mongo (no corre aquí o no es visible)" \
-      "Con muchas instancias conviene 64000 o más: ./deltactl help solucion-problemas"
+    ck info "$(t doctor.nofile_unknown)" \
+      "$(t doctor.nofile_unknown_hint "$(topic_label troubleshooting)")"
   fi
 
-  # --- Instancias --------------------------------------------------------------------------
-  ui_h2 "Instancias"
+  # --- Instances ---------------------------------------------------------------------------
+  ui_h2 "$(t doctor.sec.instances)"
   local n=0 dir bad uid fstype
   for f in "$INSTANCES_DIR"/*/.env.instance; do
     [ -f "$f" ] || continue
@@ -158,12 +155,12 @@ cmd_doctor() {
     dir="$(dirname "$f")"
     name="$(basename "$dir")"
     bad=""
-    # Windows montado en WSL (/mnt/c...) y otros sistemas sin permisos Unix muestran todo como 777:
-    # no se puede comprobar nada y avisar sería un falso positivo. DELTACTL_FSTYPE permite forzarlo en tests.
+    # Windows mounted in WSL (/mnt/c...) and other systems without Unix permissions show everything as 777:
+    # nothing can be checked and warning would be a false positive. DELTACTL_FSTYPE lets tests force it.
     fstype="$(host_fs_type "$dir")"
     case "$fstype" in
       9p | drvfs | ntfs | fuseblk | vfat | msdos | exfat)
-        ck info "$name: el sistema de archivos ($fstype) no maneja permisos Unix (¿WSL sobre Windows?): no se comprueban"
+        ck info "$(t doctor.fs_noperm "$name" "$fstype")"
         continue
         ;;
     esac
@@ -174,38 +171,34 @@ cmd_doctor() {
     done
     uid="$(host_owner_uid "$dir/data" "$RUNTIME_UID")"
     if [ -n "$bad" ]; then
-      ck warn "$name: archivos con secretos legibles por otros usuarios: $bad" "Corrige con: chmod 600 $dir/.env.*"
+      ck warn "$(t doctor.secrets_readable "$name" "$bad")" "$(t doctor.secrets_readable_hint "$dir")"
     elif [ "$uid" != "$RUNTIME_UID" ]; then
-      ck warn "$name: data/ pertenece al uid $uid y los contenedores usan el $RUNTIME_UID" \
-        "Corrige con: sudo chown -R $RUNTIME_UID:$RUNTIME_UID $dir/data"
+      ck warn "$(t doctor.data_uid "$name" "$uid" "$RUNTIME_UID")" \
+        "$(t doctor.data_uid_hint "$RUNTIME_UID" "$dir")"
     else
-      ck ok "$name: permisos correctos"
+      ck ok "$(t doctor.perms_ok "$name")"
     fi
   done
-  [ "$n" -gt 0 ] || ck info "No hay instancias todavía: crea la primera con ./deltactl new <instancia>"
+  [ "$n" -gt 0 ] || ck info "$(t doctor.no_instances)"
 
-  # --- Herramientas ------------------------------------------------------------------------
-  ui_h2 "Herramientas"
+  # --- Tools -------------------------------------------------------------------------------
+  ui_h2 "$(t doctor.sec.tools)"
   for v in ss openssl gunzip; do
     if host_has "$v"; then
-      ck ok "$v disponible"
+      ck ok "$(t doctor.tool_ok "$v")"
     else
-      case "$v" in
-        ss) ck warn "Falta 'ss'" "Sin ella no se detectan puertos ocupados por otros procesos (paquete iproute2)" ;;
-        openssl) ck warn "Falta 'openssl'" "Sin ella el asistente no puede generar secretos por ti" ;;
-        gunzip) ck warn "Falta 'gunzip'" "Sin ella ./deltactl load no puede leer archivos .tar.gz" ;;
-      esac
+      ck warn "$(t "doctor.tool_missing.$v")" "$(t "doctor.tool_missing_hint.$v")"
     fi
   done
 
   printf '\n'
   if [ "$CK_ERR" -gt 0 ]; then
-    printf '  %s %s%d error(es) y %d aviso(s)%s\n' "$(ui_sym err)" "$C_RED" "$CK_ERR" "$CK_WARN" "$C_OFF"
+    printf '  %s %s%s%s\n' "$(ui_sym err)" "$C_RED" "$(t doctor.summary_err "$CK_ERR" "$CK_WARN")" "$C_OFF"
     return 1
   fi
   if [ "$CK_WARN" -gt 0 ]; then
-    printf '  %s %sEl servidor funciona, con %d aviso(s)%s\n' "$(ui_sym warn)" "$C_YEL" "$CK_WARN" "$C_OFF"
+    printf '  %s %s%s%s\n' "$(ui_sym warn)" "$C_YEL" "$(t doctor.summary_warn "$CK_WARN")" "$C_OFF"
   else
-    printf '  %s %sServidor en buen estado%s\n' "$(ui_sym ok)" "$C_GRN" "$C_OFF"
+    printf '  %s %s%s%s\n' "$(ui_sym ok)" "$C_GRN" "$(t doctor.summary_ok)" "$C_OFF"
   fi
 }

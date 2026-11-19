@@ -1,0 +1,19 @@
+# adopt · mark an instance that already has data
+
+It seeds nothing: it only leaves the `.initialized` marker (origin `existing`) so that `./deltactl init`
+refuses to run on an instance whose databases already hold real data.
+
+## Usage
+$ ./deltactl adopt <instance>
+
+## When to use it
+- the municipality already ran with PM2 and you are now moving it to Docker pointing to the same databases
+- `init` stopped because the databases already had data
+
+## What it does NOT do
+- it does not modify the databases
+- it does not start or stop containers
+
+## Related
+- `./deltactl help existing-instance`
+- `./deltactl help data`

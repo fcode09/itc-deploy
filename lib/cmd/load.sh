@@ -1,27 +1,27 @@
 #!/usr/bin/env bash
-# ./deltactl load <archivo.tar|archivo.tar.gz>: carga imágenes en el Docker de este servidor.
-# Es un atajo de `docker load`; el archivo solo se usa para cargar y luego se puede borrar.
+# ./deltactl load <file.tar|file.tar.gz>: loads images into this server's Docker.
+# A shortcut for `docker load`; the file is only used to load and can be deleted afterwards.
 
 cmd_load() {
   local file="${1:-}" out ref
-  [ -n "$file" ] || die "uso: ./deltactl load <archivo.tar|archivo.tar.gz>"
-  [ -f "$file" ] || die "no existe el archivo: $file"
+  [ -n "$file" ] || die "$(t load.usage)"
+  [ -f "$file" ] || die "$(t load.no_file "$file")"
   check_docker
 
-  info "Cargando $file ..."
-  # `docker load` lee tar; los .gz se descomprimen al vuelo.
-  out="$(dk_load "$file")" || { printf '%s\n' "$out" >&2; die "no se pudo cargar $file"; }
+  info "$(t load.loading "$file")"
+  # `docker load` reads tar; .gz files are decompressed on the fly.
+  out="$(dk_load "$file")" || { printf '%s\n' "$out" >&2; die "$(t load.failed "$file")"; }
 
   local -a loaded=()
   while IFS= read -r ref; do
     [ -z "$ref" ] || loaded+=("$ref")
   done < <(printf '%s\n' "$out" | sed -n 's/^Loaded image: //p')
-  [ "${#loaded[@]}" -gt 0 ] || die "el archivo no contiene imágenes con nombre (¿es un archivo de docker save?)$(see imagenes)"
+  [ "${#loaded[@]}" -gt 0 ] || die "$(t load.no_images)$(see local-images)"
 
-  info "Imágenes cargadas:"
+  info "$(t load.loaded_title)"
   for ref in "${loaded[@]}"; do
     info "  $ref"
     warn_arch_mismatch "$ref"
   done
-  ok "${#loaded[@]} imagen(es) disponibles. Usa estas etiquetas en S0_TAG / S1_TAG y revisa con ./deltactl images"
+  ok "$(t load.done "${#loaded[@]}")"
 }

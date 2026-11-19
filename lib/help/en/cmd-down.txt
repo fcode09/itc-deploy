@@ -1,0 +1,15 @@
+# down · stop and remove the containers
+
+It stops and removes the containers of the instance. The data (`data/`), the secrets and the
+configuration are kept: a later `./deltactl deploy` starts it again.
+
+## Usage
+$ ./deltactl down <instance> [--yes]
+
+## What it does NOT do
+- it does not delete `data/`, `secrets/` or the `.env.*` files
+- it does not delete the Mongo databases
+- it does not delete images
+
+## Related
+- `./deltactl stop` to stop a single service

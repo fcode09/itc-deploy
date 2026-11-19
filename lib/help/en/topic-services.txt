@@ -1,0 +1,32 @@
+# Services: s0, s1 and COMPOSE_PROFILES
+
+## The services
+- `s0` auth-backend (NestJS): authentication, users, municipality and system URLs. Internal port 3200.
+- `s1` gueo-back-end (NestJS + Chromium for the PDF reports). Internal port 3000.
+- ports on the host: blocks of 10 from 4100; `s0` uses the base port and `s1` the next one (4100/4101, 4110/4111...)
+
+## COMPOSE_PROFILES
+List of active services of the instance, in `.env.instance`:
+- `COMPOSE_PROFILES=s0,s1` both
+- `COMPOSE_PROFILES=s1` only Gue
+- `COMPOSE_PROFILES=s0` only Auth
+Only the listed services are validated, pulled and started.
+
+## Operating a single service
+$ ./deltactl deploy colorado s1
+$ ./deltactl stop colorado s1
+$ ./deltactl logs colorado s1
+$ ./deltactl rollback colorado s1
+> The service must be in `COMPOSE_PROFILES`; if not, `deltactl` says so and does nothing.
+
+## Dependencies between services
+- `s1` waits for `s0` to be healthy (if `s0` runs in the instance)
+- `s0` calls `s1` over TCP 5020 inside the private network
+- `s1` calls `s0` over HTTP with `AUTH_URL`
+- with only `s1` active, `AUTH_URL` must point to the Auth that applies
+
+## Adding a new service (s2...)
+The steps are in `docs/services-catalog.md`.
+
+## Related
+- `./deltactl help network`, `./deltactl help ports`

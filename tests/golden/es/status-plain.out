@@ -1,4 +1,7 @@
 
+  <HOST>  .  Memoria [######....] 5.0/8.0 GB 62%  .  Carga 0.82  .  Docker 27.0.0
+  Instancias: x gold-drift 0/2  .  . gold-new 0/2  .  * gold-ok 2/2
+
 Estado de las instancias
 --------------------------
 INSTANCIA         SVC   CONFIG      CORRIENDO   ESTADO             PUERTO  UPTIME    DATOS         NOTAS

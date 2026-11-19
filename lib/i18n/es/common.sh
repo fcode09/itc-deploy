@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC2034  # MSG_es is read by t through a nameref
-# Spanish catalog (default UI language). Sourced by lib/i18n/i18n.sh; not executed.
+# Spanish catalog (default UI language). Sourced by lib/i18n/i18n.sh with the other files of lib/i18n/es/; not executed.
 # Placeholders {1}..{9} are replaced by the arguments of t. Keep every key in sync with en.sh
 # (tests/test-i18n.sh fails if the key sets or the placeholders differ).
 
@@ -52,3 +52,12 @@ MSG_es["err.service_inactive"]="'{1}' no está activo en '{2}' (COMPOSE_PROFILES
 
 MSG_es["err.confirm_needed"]="se requiere confirmación: ejecuta de forma interactiva o añade --yes"
 MSG_es["prompt.confirm"]="{1} [s/N] "
+
+# --- Shared by several commands ----------------------------------------------------------------------
+MSG_es["prompt.continue"]="¿Continuar?"
+MSG_es["err.cancelled"]="cancelado"
+MSG_es["data.init"]="init"
+MSG_es["data.existing"]="existente"
+MSG_es["data.unseeded"]="sin sembrar"
+MSG_es["prompt.hint_yes"]="S/n"
+MSG_es["prompt.hint_no"]="s/N"

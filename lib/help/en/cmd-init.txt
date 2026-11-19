@@ -1,0 +1,34 @@
+# init · seed the initial data
+
+It loads the starting data of a NEW municipality: the Gue catalogs, the base data of Auth
+(including the users and the URLs of the systems) and the administrative users
+(root, superuser, deltadispatch).
+
+## Usage
+$ ./deltactl init <instance> [--yes]
+
+## What it does, in order
+- 1. checks that the databases are empty (if they have data, it stops)
+- 2. runs the s1 seed (catalogs)
+- 3. starts s1 and waits for it to be healthy: the s0 seed needs to talk to it over TCP
+- 4. runs the s0 seeds (base data, root user, system URLs) and syncs the users with s1
+- 5. starts s0 and leaves the `.initialized` marker
+
+! It is DESTRUCTIVE: the seeds drop collections. That is why it only runs on new instances, once, and has no --force.
+! The root/superuser users have fixed passwords in the Auth code: change them after the first login.
+
+## Requirements
+- s0 and s1 active in `COMPOSE_PROFILES`
+- images loaded and valid configuration (the same checks as `deploy`)
+- Mongo reachable from the containers
+
+## If the municipality ALREADY has data
+Do not use `init`: use `./deltactl adopt <instance>` (or create the instance with `./deltactl new --existing`).
+
+## Log
+The logs of each seed are left in `instances/<instance>/init-logs/`. The seeds always exit with
+code 0 even when they fail, which is why `init` reads their log to know whether they went well.
+
+## Related
+- `./deltactl help data` what each seed loads and why
+- `./deltactl help existing-instance`

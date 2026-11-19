@@ -51,11 +51,12 @@ lib/
 ├─ core/           # reglas: instancias, servicios, imágenes, puertos (sin entrada/salida propia)
 ├─ adapters/       # docker.sh, state.sh (archivos de la instancia), host.sh (puertos, permisos, disco)
 ├─ cmd/            # un archivo por comando; se cargan al usarlos
-└─ help/           # las páginas de ayuda
+└─ help/           # las páginas de ayuda: español en help/, inglés en help/en/
 ```
 
 El código y los comentarios están en inglés; el español es el idioma de la interfaz (se cambia con
-`DELTACTL_LANG=en` o con `UI_LANG=en` en `~/.config/deltactl/config`).
+`DELTACTL_LANG=en` o con `UI_LANG=en` en `~/.config/deltactl/config`). La ayuda integrada
+(`./deltactl help`) está en los dos idiomas; una página sin traducir se muestra en español.
 
 ## La consola
 
@@ -63,18 +64,24 @@ El código y los comentarios están en inglés; el español es el idioma de la i
 de comandos; el menú y el asistente solo preguntan por ti y te muestran el comando equivalente.
 
 ```bash
-./deltactl                        # en una terminal: banner + panel de estado de todas las instancias
-./deltactl menu                   # menú interactivo con todas las acciones (con ?4 ves la ayuda de la opción 4)
+./deltactl                        # en una terminal: el panel en vivo (vistas 1/2/3, ↑↓ ←→, Enter = acciones, : = cualquier comando, ? = teclas, L = idioma, q = salir)
+./deltactl menu --classic         # el menú numerado con todas las acciones (con ?4 ves la ayuda de la opción 4); es el que se usa sin terminal
 ./deltactl status                 # versión configurada vs la que corre, salud, puertos, uptime y siguientes pasos
 ./deltactl status colorado        # detalle de una instancia: imagen, previa, memoria/CPU y errores recientes
 ./deltactl images                 # versiones cargadas, quién las usa, previas para rollback y las que sobran
+./deltactl runs                   # historial de operaciones (deploy, init, rollback, stop...): cuándo, cuánto tardó, cómo terminó
+./deltactl runs logs last         # todo lo que imprimió la última operación (runs show last: el detalle y lo que consumió)
+./deltactl runs stats             # lo que cuesta cada tipo de operación de media: duración, CPU, docker, memoria pico
 ./deltactl check colorado         # comprueba todo lo que deploy exigiría, sin levantar nada (--mongo prueba las bases)
 ./deltactl doctor                 # diagnóstico del servidor: Docker, disco, memoria, Mongo, permisos
 ./deltactl new --wizard           # asistente: pregunta lo esencial y lista lo que falta completar
 ./deltactl completion bash        # autocompletado con Tab (source <(./deltactl completion bash))
 ```
 
-El panel `status` avisa de lo que no cuadra y sugiere el comando para arreglarlo: etiqueta configurada distinta
+Arriba del panel (`status` y la pantalla de inicio) aparecen el nombre del servidor, la memoria con su barra y
+porcentaje, la carga, la versión de Docker y, por cada instancia, `n/m`: los servicios en perfecto estado de los que
+deberían correr (`2/2` todo bien, `1/2` falta uno; `?/2` si Docker no responde). Si el sistema no informa la memoria
+disponible, la memoria se omite. El panel `status` avisa de lo que no cuadra y sugiere el comando para arreglarlo: etiqueta configurada distinta
 de la que corre, imagen reconstruida con la misma etiqueta, imagen que falta, servicio `unhealthy` o detenido,
 servicio que corre fuera de `COMPOSE_PROFILES`, puerto repetido o instancia sin sembrar. Con `--json`
 sale en formato para scripts y con `--strict` termina con código 2 si hay avisos (útil en monitoreo).

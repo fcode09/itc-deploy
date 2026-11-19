@@ -1,0 +1,9 @@
+# ps · containers of an instance
+
+A shortcut for `docker compose ps` for the instance (it includes services outside `COMPOSE_PROFILES`).
+
+## Usage
+$ ./deltactl ps <instance>
+
+## Related
+- `./deltactl status <instance>` gives more information (versions, health, warnings)

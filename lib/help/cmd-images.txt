@@ -13,7 +13,7 @@ $ ./deltactl images [servicio] [--json]
 
 ## Opciones
 - `servicio` muestra solo `s0` o solo `s1`
-- `--json` salida para scripts (sin colores)
+- `--json` salida para scripts (sin colores); `used_by` usa siempre `(current)` y `(previous)`, sin importar el idioma
 
 ## Ejemplos
 $ ./deltactl images

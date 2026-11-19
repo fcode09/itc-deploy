@@ -1,8 +1,8 @@
 [
   {"instance":"gold-drift","service":"s0","configured_tag":"1.0","running_tag":"1.0","deployed_tag":"1.0","previous_tag":"","state":"running","health":"unhealthy","status":"err","port":"4110","uptime_seconds":<N>,"data":"init","issues":["unhealthy"]},
   {"instance":"gold-drift","service":"s1","configured_tag":"1.0","running_tag":"0.9","deployed_tag":"0.9","previous_tag":"","state":"running","health":"healthy","status":"warn","port":"4111","uptime_seconds":<N>,"data":"init","issues":["tag-drift"]},
-  {"instance":"gold-new","service":"s0","configured_tag":"1.0","running_tag":"-","deployed_tag":"","previous_tag":"","state":"","health":"","status":"dim","port":"4120","uptime_seconds":null,"data":"sin sembrar","issues":["not-created"]},
-  {"instance":"gold-new","service":"s1","configured_tag":"1.0","running_tag":"-","deployed_tag":"","previous_tag":"","state":"","health":"","status":"dim","port":"4121","uptime_seconds":null,"data":"sin sembrar","issues":["not-created"]},
+  {"instance":"gold-new","service":"s0","configured_tag":"1.0","running_tag":"-","deployed_tag":"","previous_tag":"","state":"","health":"","status":"dim","port":"4120","uptime_seconds":null,"data":"unseeded","issues":["not-created"]},
+  {"instance":"gold-new","service":"s1","configured_tag":"1.0","running_tag":"-","deployed_tag":"","previous_tag":"","state":"","health":"","status":"dim","port":"4121","uptime_seconds":null,"data":"unseeded","issues":["not-created"]},
   {"instance":"gold-ok","service":"s0","configured_tag":"1.0","running_tag":"1.0","deployed_tag":"1.0","previous_tag":"","state":"running","health":"healthy","status":"ok","port":"4100","uptime_seconds":<N>,"data":"init","issues":[]},
   {"instance":"gold-ok","service":"s1","configured_tag":"1.0","running_tag":"1.0","deployed_tag":"1.0","previous_tag":"","state":"running","health":"healthy","status":"ok","port":"4101","uptime_seconds":<N>,"data":"init","issues":[]}
 ]

@@ -136,7 +136,13 @@ for v in $(grep -ohE 'help variable [A-Z][A-Z0-9_]+' $H/*.txt | awk '{ print $3 
   echo "$allvars" | grep -qx "$v" || bad_var+="$v "
 done
 check "todas las variables recomendadas existen en el glosario (${bad_var:-ok})" '[ -z "$bad_var" ]'
-check "las líneas de las páginas caben en 130 columnas" '! awk "length(\$0) > 130 { exit 1 }" $H/cmd-*.txt $H/topic-*.txt'
+# The old check was inverted (`! awk "... exit 1"` accepted exactly the long lines) and awk counts bytes, not characters.
+# Known debt: 16 lines are still wider than 130 characters because ui_render_file does not wrap text yet. This is a ratchet:
+# a NEW long line fails; lower the number as lines are fixed (the goal is 0).
+HELP_LONG_DEBT=16
+long_lines="$(cat $H/cmd-*.txt $H/topic-*.txt | grep -cE '.{131,}')"
+check "el detector de líneas largas funciona (cuenta caracteres, no bytes)" 'printf "%0200d\n" 0 | grep -qE ".{131,}" && ! printf "%0100d\n" 0 | grep -qE ".{131,}"'
+check "ninguna página nueva tiene líneas de más de 130 caracteres (deuda conocida: $HELP_LONG_DEBT, ahora $long_lines)" '[ "$long_lines" -le "$HELP_LONG_DEBT" ]'
 
 section "10. los errores apuntan a la ayuda"
 # Toda pista $(see X) del código debe señalar un tema o comando que exista.
@@ -146,7 +152,7 @@ while IFS= read -r t; do
   # The code uses English topic ids; the page files are still named after the Spanish ids.
   page="$(ROOT="$PWD" bash -c 'source lib/i18n/i18n.sh; topic_file_id "$1"' _ "$t")"
   { echo "$cmds"; echo "$topics"; } | grep -qx "$page" || bad_see+="$t "
-done < <(grep -ohE '\$\(see [^)]*\)' lib/bootstrap.sh lib/cmd/*.sh | sed -E 's/^\$\(see "?//; s/"?\)$//' | sort -u)
+done < <(grep -ohE '\$\(see [^)]*\)' lib/core/*.sh lib/ui/*.sh lib/cmd/*.sh | sed -E 's/^\$\(see "?//; s/"?\)$//' | sort -u)
 check "cada pista \$(see ...) del código señala una página existente (${bad_see:-ok})" '[ -z "$bad_see" ]'
 
 # docker mínimo para llegar a las validaciones sin Docker real
@@ -169,7 +175,7 @@ check "servicio desconocido apunta a la guía de servicios" 'bash ./deltactl sto
 check "servicio inactivo apunta a la guía de servicios" \
   'sed -i "s/^COMPOSE_PROFILES=.*/COMPOSE_PROFILES=s0/" instances/hp-test/.env.instance; bash ./deltactl deploy hp-test s1 2>&1 | grep -q "(ayuda: ./deltactl help servicios)"'
 check "el aviso de imagen faltante nombra la guía de imágenes" \
-  'sed -i "s/^COMPOSE_PROFILES=.*/COMPOSE_PROFILES=s0,s1/" instances/hp-test/.env.instance; grep -q "see imagenes" lib/cmd/deploy.sh'
+  'sed -i "s/^COMPOSE_PROFILES=.*/COMPOSE_PROFILES=s0,s1/" instances/hp-test/.env.instance; grep -q "see local-images" lib/cmd/deploy.sh'
 check "los mensajes siguen mostrando su texto original" 'echo "$out" | grep -q "está vacía" && echo "$out" | grep -q "problema(s) en la configuración"'
 check "las pistas también salen sin color" '! echo "$out" | has_ansi'
 rm -rf instances/hp-test

@@ -1,0 +1,27 @@
+# completion · Tab completion
+
+It prints the bash completion for `./deltactl`. With it, Tab completes commands, instances, services,
+options, help topics and variable names.
+
+## Usage
+$ ./deltactl completion bash
+
+## Enabling it
+$ source <(./deltactl completion bash)
+> It only lasts for the current session. To keep it permanently (once):
+$ ./deltactl completion bash > ~/.deltactl-completion.bash
+$ echo 'source ~/.deltactl-completion.bash' >> ~/.bashrc
+
+## What it completes
+- typing `de` and pressing Tab completes the command: `deploy`
+- after `deploy` and a space, Tab shows the instances that exist; with another Tab, the services
+- after `status --`, Tab shows `--json --stats --strict --watch`
+- after `help nue`, Tab completes the topic: `nueva-instancia` (the Spanish guide names are what it offers)
+- after `help variable` and the first letters of a variable, Tab shows the ones that start that way
+
+## When to regenerate it
+The commands, topics, services and variables are taken from the code when it is generated: if you update `deltactl`,
+generate the file again. The instances are read on every Tab, so that is not needed.
+
+## Related
+- `./deltactl help` index of commands and guides

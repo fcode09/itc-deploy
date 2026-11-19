@@ -11,7 +11,13 @@ dk_installed() { command -v docker >/dev/null 2>&1; }
 dk_daemon_ok() { docker info >/dev/null 2>&1; }
 
 # Docker is installed and its daemon answers.
-dk_ready() { dk_installed && dk_daemon_ok; }
+# The panel asks every few seconds: DK_READY_TTL > 0 lets it trust a recent positive answer instead of running `docker info` again.
+DK_READY_AT=0 DK_READY_TTL=0
+dk_ready() {
+  if [ "$DK_READY_TTL" -gt 0 ] && [ "$DK_READY_AT" -gt 0 ] && [ $((SECONDS - DK_READY_AT)) -lt "$DK_READY_TTL" ]; then return 0; fi
+  dk_installed && dk_daemon_ok || return 1
+  DK_READY_AT="$SECONDS"
+}
 
 # The `docker compose` plugin is present.
 dk_compose_ok() { docker compose version >/dev/null 2>&1; }
@@ -79,6 +85,8 @@ dk_image_arch() { docker image inspect --format '{{.Architecture}}' "$1" 2>/dev/
 # Loaded images as "repository|tag|id|created|size" lines, and as "repository|tag" lines.
 dk_images_detail() { docker image ls --format '{{.Repository}}|{{.Tag}}|{{.ID}}|{{.CreatedSince}}|{{.Size}}'; }
 dk_images_tags() { docker image ls --format '{{.Repository}}|{{.Tag}}' 2>/dev/null; }
+# "repository|tag|id" for every loaded image in ONE query (the id is the full "sha256:..." one).
+dk_images_ids() { docker image ls --no-trunc --format '{{.Repository}}|{{.Tag}}|{{.ID}}' 2>/dev/null; }
 
 # Loads an image archive (docker save output, plain or gzip). Prints docker's output; returns its status.
 dk_load() { # file
@@ -104,15 +112,33 @@ dk_run_once() {
 # Ids of every container (running or not) that belongs to a Compose project.
 dk_project_container_ids() { docker ps -aq --filter label=com.docker.compose.project 2>/dev/null; }
 
-# One "project|service|state|health|image|started|name" row per container id.
+# Ids of the containers (running or not) of one instance: its Compose project is named after it.
+dk_instance_container_ids() { # instance
+  docker ps -aq --filter "label=com.docker.compose.project=$1" 2>/dev/null
+}
+
+# One "project|service|state|health|image|started|name|pid|restarts" row per container id.
 dk_container_rows() { # ids...
   docker inspect --format \
-    '{{index .Config.Labels "com.docker.compose.project"}}|{{index .Config.Labels "com.docker.compose.service"}}|{{.State.Status}}|{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}|{{.Config.Image}}|{{.State.StartedAt}}|{{.Name}}' \
+    '{{index .Config.Labels "com.docker.compose.project"}}|{{index .Config.Labels "com.docker.compose.service"}}|{{.State.Status}}|{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}|{{.Config.Image}}|{{.State.StartedAt}}|{{.Name}}|{{.State.Pid}}|{{.RestartCount}}' \
     "$@" 2>/dev/null
+}
+
+# Stream of container lifecycle events, one action per line (start, die, health_status, ...). It never ends:
+# the panel reads it through a coprocess to refresh only when something changes.
+dk_events_stream() { # run it in a coprocess: it replaces that process with `docker events`
+  exec docker events --since 6h --filter type=container --filter event=start --filter event=die --filter event=stop \
+    --filter event=restart --filter event=oom --filter event=destroy --filter event=health_status \
+    --format '{{.Time}}|{{.Actor.Attributes.name}}|{{.Action}}' 2>/dev/null
 }
 
 # "name|memory|cpu" rows for the running containers (takes 1-2 s).
 dk_stats_rows() { docker stats --no-stream --format '{{.Name}}|{{.MemUsage}}|{{.CPUPerc}}' 2>/dev/null; }
+
+# The last N lines of a container's log (stdout and stderr together).
+dk_logs_tail() { # container lines
+  docker logs --tail "$2" "$1" 2>&1
+}
 
 # Number of log lines of the last 10 minutes that look like errors.
 dk_log_error_count() { # container

@@ -1,0 +1,18 @@
+# list · summary of instances
+
+One line per instance: active services, ports, tags, data state and whether it is up.
+
+## Usage
+$ ./deltactl list
+
+## Columns
+- `SERVICES` those of `COMPOSE_PROFILES`
+- `S0`, `S1` ports published on 127.0.0.1
+- `S0_TAG`, `S1_TAG` tags configured in `.env.instance`
+- `DATA` `init` (seeded), `existing` (already had data) or `unseeded`
+- `STATE` `up (N containers)` or `stopped`
+
+> To see the version that is really running, the health and the mismatches use `./deltactl status`.
+
+## Related
+- `./deltactl help status`

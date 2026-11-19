@@ -13,10 +13,23 @@ case "$1" in
     esac
     exit 0 ;;
   network) echo 127.0.0.1; exit 0 ;;
-  ps) exit 0 ;;
+  ps)
+    # $FIX/containers.txt (optional): project|service|state|health|image|started|name|pid|restarts, one per container.
+    # `ps` prints the line numbers of the rows of the project named in the label filter; `inspect <ids>` prints those rows.
+    [ -f "$FIX/containers.txt" ] || exit 0
+    case "$*" in
+      *com.docker.compose.project=*)
+        all="$*"; p="${all#*com.docker.compose.project=}"; p="${p%% *}"   # (${*#...} would trim each argument separately)
+        awk -F'|' -v p="$p" '$1 == p { print NR }' "$FIX/containers.txt" ;;
+    esac
+    exit 0 ;;
+  inspect)
+    [ -f "$FIX/containers.txt" ] || exit 1
+    for id in "${@:4}"; do sed -n "${id}p" "$FIX/containers.txt"; done
+    exit 0 ;;
   image)
     case "$2" in
-      ls) awk -F'[:|]' '{ printf "%s|%s|%s|1 hour ago|300MB\n", $1, $2, $3 }' "$FIX/images.txt" ;;
+      ls) awk -F'|' '{ split($1, r, ":"); printf "%s|%s|%s|1 hour ago|300MB\n", r[1], r[2], $2 }' "$FIX/images.txt" ;;
       inspect)
         ref="${*: -1}"
         line="$(grep -F "$ref|" "$FIX/images.txt" | head -n1)"
@@ -29,6 +42,29 @@ case "$1" in
     exit 0 ;;
   run)
     echo "run $*" >> "$FIX/calls.log"
+    case "$*" in
+      *countDocuments*)
+        # init's document count: the collection is the last argument; the value comes from $FIX/count_<collection> (0 by default)
+        if [ -f "$FIX/mongo_fail" ]; then echo "ERR=timeout de prueba"; else echo "COUNT=$(cat "$FIX/count_${*: -1}" 2>/dev/null || echo 0)"; fi
+        exit 0 ;;
+      *dist/cli.js*)
+        # A seed of the image's CLI. $FIX/seed_out_<command> replaces its output, $FIX/seed_rc_<command> sets its exit code
+        # (real seeds exit 0 even when they fail), and $FIX/no_users_after keeps the user collections empty.
+        all="$*"; cmd="${all#*dist/cli.js }"; cmd="${cmd%% *}"   # (${*#...} would trim each argument separately)
+        if [ -f "$FIX/seed_out_$cmd" ]; then
+          cat "$FIX/seed_out_$cmd"
+        else
+          case "$cmd" in
+            populating_data_s1) for i in $(seq 30); do echo "catalog $i populated"; done ;;
+            populating_data_s0)
+              for i in $(seq 17); do echo "table $i populated"; done
+              [ -f "$FIX/no_users_after" ] || { echo 4 > "$FIX/count_usuarios"; echo 4 > "$FIX/count_users"; } ;;
+            create_root_user) echo "Root user created" ;;
+            url_systems) echo "Url of server has created successfully" ;;
+          esac
+        fi
+        exit "$(cat "$FIX/seed_rc_$cmd" 2>/dev/null || echo 0)" ;;
+    esac
     if [ -f "$FIX/mongo_fail" ]; then echo "ERR=timeout de prueba"; else echo "OK=basedeprueba"; fi
     exit 0 ;;
   compose)
@@ -42,7 +78,11 @@ case "$1" in
         config) cfg=1; shift ;;
         -q) quiet=1; shift ;;
         --images) imgs=1; shift ;;
-        up | pull | ps | stop | down | logs) echo "COMPOSE $1" >> "$FIX/calls.log"; exit 0 ;;
+        up | pull | ps | stop | down | logs)
+          echo "COMPOSE $1" >> "$FIX/calls.log"
+          # $FIX/fail_<command> holds the exit code that command must return (for example fail_pull=23)
+          if [ -f "$FIX/fail_$1" ]; then exit "$(cat "$FIX/fail_$1")"; fi
+          exit 0 ;;
         *) shift ;;
       esac
     done

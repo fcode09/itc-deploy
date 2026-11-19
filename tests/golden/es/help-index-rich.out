@@ -39,11 +39,12 @@ Servicios: [36ms0[0m = auth-backend (Auth) y [36ms1[0m = gueo-back-end (Gue)
 
 [1mInformación[0m
   [32mstatus [instancia] [--json|--stats][0m               Panel de estado: versiones, salud, desajustes y siguientes pasos
+  [32mruns [list|show|logs][0m                             Historial de operaciones: cuándo, cuánto tardó, cómo terminó y su salida completa
   [32mdoctor[0m                                            Diagnóstico del servidor: Docker, disco, memoria, Mongo y permisos
   [32mlist[0m                                              Instancias, servicios, puertos, etiquetas y estado
   [32mps <instancia>[0m                                    Estado de los contenedores
   [32mlogs <instancia> [servicio] [-f][0m                  Logs (últimas 200 líneas)
-  [32mmenu[0m                                              Menú interactivo con todas las acciones, con numeración y confirmaciones
+  [32mmenu [--classic][0m                                  Panel interactivo con flechas (o menú numerado sin terminal) con todas las acciones y confirmaciones
   [32mcompletion bash[0m                                   Autocompletado con Tab (source <(./deltactl completion bash))
   [32mhelp [comando|tema][0m                               Esta ayuda
 

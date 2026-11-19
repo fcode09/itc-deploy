@@ -1,0 +1,63 @@
+# Bring up a new instance, step by step
+
+An instance is a municipality: its containers, its private network, its ports, its data and its databases.
+
+## Before you start
+- Docker with Compose v2.20 or newer on the server (`docker compose version`)
+- MongoDB reachable from the server (shared by all the instances; it is not part of this compose)
+- the s0 and s1 images (`.tar.gz` files created with `docker save`)
+- the municipality's Firebase service account JSON files
+- a database name of its own for this instance (never reuse those of another one)
+
+## 1. Load the images
+$ ./deltactl load s0-1.2.0.tar.gz
+$ ./deltactl load s1-1.2.0.tar.gz
+$ ./deltactl images
+> Write down the exact tags (for example `1.2.0`): you will use them in step 3.
+
+## 2. Create the instance
+$ ./deltactl new colorado
+> It creates `instances/colorado/` with ports of its own. The `.env.*` files start with a dot: `ls -a`.
+> With `./deltactl new --wizard` the wizard asks you the essentials (versions, URL, secrets) and fills in those files.
+> Before starting, `./deltactl doctor` checks that the server is ready (Docker, disk, Mongo).
+
+## 3. Versions: `.env.instance`
+$ nano instances/colorado/.env.instance
+- `S0_TAG` and `S1_TAG`: the tags from step 1
+- `S0_IMAGE` and `S1_IMAGE`: only if you built the images with another name (auth-backend and gueo-back-end by default)
+- `REGISTRY`: leave it empty (images loaded on this server)
+> What each variable means: `./deltactl help variable S0_TAG`
+
+## 4. Services: `.env.s0` and `.env.s1`
+$ nano instances/colorado/.env.s0
+$ nano instances/colorado/.env.s1
+- replace every `CAMBIAR...` value; `deploy` does not start while any remain
+- use databases of the instance's own (`..._colorado`)
+- the secrets must be unique per instance: `openssl rand -hex 32` (and `openssl rand -base64 32` for `FEDERATION_ENCRYPTION_KEY`)
+> `./deltactl help variable` lists all the variables; the required ones are marked.
+
+## 5. Firebase: `secrets/`
+$ cp fcm.json instances/colorado/secrets/fcm.json
+$ cp keeper-fcm.json instances/colorado/secrets/keeper-fcm.json
+! In `.env.s1` the paths must start with `/run/secrets/` (that is how the folder looks inside the container). See `./deltactl help secrets`.
+
+## 6. Check and start
+$ ./deltactl check colorado
+> It reviews configuration, images, ports and compose without starting anything. With `--mongo` it also tests the databases.
+$ ./deltactl deploy colorado
+> It validates everything, checks the images and waits for the services to be healthy. It does not seed data.
+
+## 7. Seed the initial data (NEW instances only)
+$ ./deltactl init colorado
+! It is destructive and done only once. If the municipality already has data: `./deltactl help existing-instance`.
+
+## 8. Verify
+$ ./deltactl status colorado
+
+## 9. Afterwards
+- change the passwords of `root`, `superuser` and `deltadispatch`
+- in Auth, Settings → Systems, check the URL of each system: `init` filled them all with the value of `IP_SERVER`
+- publish the local ports (4100, 4101...) with your proxy and TLS: this repository does not configure that
+
+## If something fails
+$ ./deltactl help troubleshooting

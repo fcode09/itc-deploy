@@ -3,6 +3,8 @@
 Muestra por instancia y servicio la versión configurada y la que corre, la salud, el puerto, el
 uptime y el estado de los datos, avisa de los desajustes y sugiere el siguiente paso.
 Es solo lectura: nunca modifica nada.
+Arriba muestra la memoria del servidor, la carga y la versión de Docker, y para cada instancia `n/m`:
+los servicios en perfecto estado de los que deberían correr (`2/2` todo bien, `1/2` falta uno).
 
 ## Uso
 $ ./deltactl status [instancia] [--json] [--stats] [--strict] [--watch [segundos]]
@@ -10,7 +12,7 @@ $ ./deltactl status [instancia] [--json] [--stats] [--strict] [--watch [segundos
 ## Opciones
 - `instancia` vista de detalle: imagen, versión previa, memoria/CPU y errores recientes en los logs
 - `--stats` añade memoria y CPU a la tabla (tarda 1-2 s)
-- `--json` salida para scripts
+- `--json` salida para scripts; sus valores no se traducen (`data` es `init`, `existing` o `unseeded`)
 - `--strict` termina con código 2 si hay avisos (útil en monitoreo)
 - `--watch [N]` se repinta cada N segundos (2 por defecto); necesita una terminal
 

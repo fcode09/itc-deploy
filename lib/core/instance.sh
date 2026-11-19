@@ -24,3 +24,19 @@ check_docker() {
     die "$(t err.compose_old "$v")"
   fi
 }
+
+# Data state code of an instance: "init" or "existing" (the SOURCE of its marker), or "unseeded" when it
+# has no marker yet.
+data_state() { # instance
+  local m
+  m="$(marker_file "$1")"
+  if [ -f "$m" ]; then get_var "$m" SOURCE; else printf 'unseeded'; fi
+}
+
+# Label of a data state code in the active language. An unknown code is shown as it is.
+data_label() { # code
+  case "$1" in
+    init | existing | unseeded) t "data.$1" ;;
+    *) printf '%s' "$1" ;;
+  esac
+}

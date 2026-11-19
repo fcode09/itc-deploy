@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# shellcheck disable=SC2034  # MSG_en is read by t through a nameref
+# help messages: English. Sourced by lib/i18n/i18n.sh; not executed.
+
+MSG_en["help.guides"]="Guides  (./deltactl help <topic>)"
+MSG_en["help.hint_variables"]="Variables:  ./deltactl help variable <NAME>   (without a name, lists them all)"
+MSG_en["help.hint_search"]="Search:     ./deltactl help search <text>"
+MSG_en["help.hint_flag"]="Any command accepts --help:  ./deltactl deploy --help"
+MSG_en["help.no_page"]="there is no help for '{1}'"
+MSG_en["help.did_you_mean"]="Did you mean?"
+MSG_en["help.full_index"]="Full index: ./deltactl help      Search text: ./deltactl help search {1}"
+MSG_en["help.vars_title"]="Environment variables"
+MSG_en["help.col.variable"]="VARIABLE"
+MSG_en["help.col.file"]="FILE"
+MSG_en["help.col.type"]="TYPE"
+MSG_en["help.var_detail_hint"]="Detail of a variable: ./deltactl help variable <NAME>"
+MSG_en["help.kv.file"]="file"
+MSG_en["help.kv.type"]="type"
+MSG_en["help.kv.default"]="default"
+MSG_en["help.kv.none"]="none"
+MSG_en["help.no_variable"]="there is no variable named '{1}' in the glossary"
+MSG_en["help.similar"]="Similar: {1}"
+MSG_en["help.full_list"]="Full list: ./deltactl help variable"
+MSG_en["help.search_usage"]="usage: ./deltactl help search <text>"
+MSG_en["help.search_none"]="no matches for '{1}' in the help"
