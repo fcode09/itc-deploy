@@ -7,11 +7,13 @@ when it started, how long it took, how it ended and EVERYTHING it printed. It on
 $ ./deltactl runs list [--instance <name>] [-n <count>] [--json]
 $ ./deltactl runs show <id|last>
 $ ./deltactl runs logs <id|last> [--tail <n>] [--raw]
+$ ./deltactl runs stats [--instance <name>] [-n <count>]
 
 ## Options
 - `list` the latest runs, newest first (20 by default)
 - `--instance <name>` filters by instance, `-n <count>` limits and `--json` gives output for scripts
-- `show` the detail of a run and the last lines of its output
+- `show` the detail: consumption, containers before and after, the comparison with the previous run and the output
+- `stats` what each kind of operation costs on average (duration, CPU, docker, peak memory)
 - `last` is the newest; the start of an id is enough
 - `logs` the whole output; `--tail <n>` only the last lines
 - `--raw` keeps the colours (into a file or a pipe it is plain text)
@@ -19,6 +21,13 @@ $ ./deltactl runs logs <id|last> [--tail <n>] [--raw]
 ## States
 - `succeeded`, `failed` (exit code other than 0), `canceled` (Ctrl+C), `running`
 - `interrupted`: the process vanished without finishing (kill, power loss). It is never counted as a success
+
+## What it measures
+- CPU: user + system of everything the operation started (the command, docker, tee)
+- docker: how many calls it made and how long it waited in them; which one was the slowest
+- Peak memory: sum of the resident memory of its processes, one sample per second (approximate)
+- Containers: running, memory and restarts of the instance before and after
+- It does not include what the docker daemon uses; the containers account for that
 
 ## How it works
 - Only one operation runs at a time: if another is going on, the second is refused and says which one

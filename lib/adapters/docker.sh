@@ -112,6 +112,11 @@ dk_run_once() {
 # Ids of every container (running or not) that belongs to a Compose project.
 dk_project_container_ids() { docker ps -aq --filter label=com.docker.compose.project 2>/dev/null; }
 
+# Ids of the containers (running or not) of one instance: its Compose project is named after it.
+dk_instance_container_ids() { # instance
+  docker ps -aq --filter "label=com.docker.compose.project=$1" 2>/dev/null
+}
+
 # One "project|service|state|health|image|started|name|pid|restarts" row per container id.
 dk_container_rows() { # ids...
   docker inspect --format \

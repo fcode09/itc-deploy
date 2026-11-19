@@ -13,7 +13,20 @@ case "$1" in
     esac
     exit 0 ;;
   network) echo 127.0.0.1; exit 0 ;;
-  ps) exit 0 ;;
+  ps)
+    # $FIX/containers.txt (optional): project|service|state|health|image|started|name|pid|restarts, one per container.
+    # `ps` prints the line numbers of the rows of the project named in the label filter; `inspect <ids>` prints those rows.
+    [ -f "$FIX/containers.txt" ] || exit 0
+    case "$*" in
+      *com.docker.compose.project=*)
+        all="$*"; p="${all#*com.docker.compose.project=}"; p="${p%% *}"   # (${*#...} would trim each argument separately)
+        awk -F'|' -v p="$p" '$1 == p { print NR }' "$FIX/containers.txt" ;;
+    esac
+    exit 0 ;;
+  inspect)
+    [ -f "$FIX/containers.txt" ] || exit 1
+    for id in "${@:4}"; do sed -n "${id}p" "$FIX/containers.txt"; done
+    exit 0 ;;
   image)
     case "$2" in
       ls) awk -F'|' '{ split($1, r, ":"); printf "%s|%s|%s|1 hour ago|300MB\n", r[1], r[2], $2 }' "$FIX/images.txt" ;;

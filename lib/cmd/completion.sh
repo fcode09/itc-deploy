@@ -75,7 +75,7 @@ _deltactl_complete() {
     load)
       COMPREPLY=($(compgen -f -- "$cur")) ;;
     runs)
-      if [ "$COMP_CWORD" -eq 2 ]; then COMPREPLY=($(compgen -W "list show logs" -- "$cur")); fi ;;
+      if [ "$COMP_CWORD" -eq 2 ]; then COMPREPLY=($(compgen -W "list show logs stats" -- "$cur")); fi ;;
     completion)
       [ "$COMP_CWORD" -eq 2 ] && COMPREPLY=($(compgen -W "bash" -- "$cur")) ;;
   esac

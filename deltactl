@@ -40,10 +40,14 @@ esac
 
 # Operations that change something run recorded: their own log, a lock against a second operation and an entry in the history
 # (lib/core/runs.sh). DELTACTL_NO_RUNS=1 turns it off; DELTACTL_RUN_ID is set inside a recorded run, so it is not wrapped twice.
-if [ -z "${DELTACTL_RUN_ID:-}" ] && [ "${DELTACTL_NO_RUNS:-0}" != "1" ]; then
+if [ "${DELTACTL_NO_RUNS:-0}" != "1" ]; then
   # shellcheck source=lib/core/runs.sh
   source "$ROOT/lib/core/runs.sh"
-  if runs_is_mutation "$CMD" "$@"; then runs_exec "$CMD" "$@"; fi
+  if [ -z "${DELTACTL_RUN_ID:-}" ]; then
+    if runs_is_mutation "$CMD" "$@"; then runs_exec "$CMD" "$@"; fi
+  else
+    runs_child_init   # inside the record: every call to docker is timed
+  fi
 fi
 
 case "$CMD" in

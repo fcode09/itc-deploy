@@ -9,16 +9,29 @@
 # its output goes through `tee` into the log, and the wrapper writes the result when the child ends. The commands themselves do
 # not know about any of this. Standard error is merged into standard output (one ordered log).
 #
+# What it measures (all of it with Bash builtins and /proc, no extra tools):
+#   CPU_MS         user+system CPU of everything the command started (the `times` builtin of the wrapper, before and after)
+#   DOCKER_*       calls to docker and the time spent inside them (a shell function `docker` in the child appends to docker.tsv)
+#   PEAK_RSS_KB    highest sum of the resident memory of the command's process tree, sampled once a second (samples.tsv); an
+#                  approximation (shared pages are counted once per process) and short peaks between samples are missed
+#   OUT_LINES/BYTES  size of what it printed
+#   FOOT_BEFORE/AFTER  the instance's containers (running/total, memory in bytes, restarts) before and after the operation
+# It does NOT include what dockerd and the containers themselves use: that is what FOOT_* shows.
+#
 # State (all private, mode 700/600, under instances/.deltactl/, which is never versioned):
 #   runs/<id>/meta        KEY=VALUE lines (read as data, never sourced)
 #   runs/<id>/out.log     what the command printed, colours included
+#   runs/<id>/samples.tsv elapsed ms, RSS of the tree in KB, number of processes (one line per second)
+#   runs/<id>/docker.tsv  duration in ms and the docker subcommand of every call
 #   runs.idx              id, started, command, instance, state, exit code, duration in ms (tab separated, append only)
 #   active/<id>           the PID of the wrapper while the run is going (a missing PID means it was interrupted)
 #   locks/mutation.lock   folder created with mkdir (atomic); pid inside
-# DELTACTL_NO_RUNS=1 turns the whole thing off.
+# DELTACTL_NO_RUNS=1 turns the whole thing off; DELTACTL_RUN_FOOTPRINT=0 skips the before/after look at the containers.
 
 declare -gA RUN=()
-RUNS_OWNER_PID="" RUNS_OWNER_RUN="" RUNS_OWNER_WHAT=""
+RUNS_OWNER_PID="" RUNS_OWNER_RUN="" RUNS_OWNER_WHAT="" RUNS_FOOT="" RUNS_SAMPLER=""
+RUNS_META_KEYS=(RUN_ID OP ARGS INSTANCE STATE STARTED_AT ENDED_AT DURATION_MS RC PID HOST USER VERSION
+  CPU_MS DOCKER_CALLS DOCKER_MS DOCKER_SLOW PEAK_RSS_KB PEAK_PROCS OUT_LINES OUT_BYTES FOOT_BEFORE FOOT_AFTER)
 
 runs_dir() { printf '%s/.deltactl' "$INSTANCES_DIR"; }
 
@@ -67,7 +80,7 @@ runs_now_iso() { date -u +%Y-%m-%dT%H:%M:%SZ; }
 runs_meta_write() { # dir   (from RUN)
   local dir="$1" tmp k
   tmp="$(mktemp "$dir/.meta.XXXXXX")" || return 1
-  for k in RUN_ID OP ARGS INSTANCE STATE STARTED_AT ENDED_AT DURATION_MS RC PID HOST USER VERSION; do
+  for k in "${RUNS_META_KEYS[@]}"; do
     printf '%s=%s\n' "$k" "${RUN[$k]:-}"
   done > "$tmp" || { rm -f "$tmp"; return 1; }
   chmod 600 "$tmp"
@@ -152,11 +165,150 @@ runs_recover() {
   done
 }
 
+# --- Measuring ----------------------------------------------------------------------------------------------------------
+
+# "0m1.340s" as milliseconds.
+runs_t2ms() { # text
+  local t="$1" m s sec frac
+  m="${t%%m*}"; s="${t#*m}"; s="${s%s}"
+  sec="${s%.*}"; frac="${s#*.}000"
+  printf '%d' $((10#${m:-0} * 60000 + 10#${sec:-0} * 1000 + 10#${frac:0:3}))
+}
+
+# CPU of everything the wrapper has waited for so far (user+system of its children, descendants included), in ms, into RUNS_CPU.
+# `times` has to run in this very shell, not in a subshell: its figures are the shell's own.
+RUNS_CPU=0
+runs_cpu_now() { # scratch_file
+  local l1 l2 u s
+  times > "$1"
+  { read -r l1; read -r l2; } < "$1"
+  read -r u s <<< "$l2"
+  RUNS_CPU=$(($(runs_t2ms "$u") + $(runs_t2ms "$s")))
+}
+
+# Inside the recorded child: every call to docker is timed and appended to docker.tsv. A shell function is the one place all of
+# them go through (also the ones in subshells and pipelines, where a counter variable would be lost).
+runs_child_init() {
+  [ -n "${DELTACTL_RUN_DIR:-}" ] && [ -d "$DELTACTL_RUN_DIR" ] || return 0
+  # shellcheck disable=SC2329  # called by every adapter that runs `docker`, not from here
+  docker() {
+    local t0 t1 rc=0 what="${1:-}" a
+    if [ "$what" = "compose" ]; then   # `compose --env-file x up -d`: the verb is what tells calls apart
+      for a in "${@:2}"; do
+        case "$a" in up | down | pull | stop | start | restart | ps | config | logs | run | exec | rm | version | images | build) what="compose $a"; break ;; esac
+      done
+    else
+      what="$what ${2:-}"
+    fi
+    host_now_us; t0="$HOST_NOW_US"
+    command docker "$@" || rc=$?
+    host_now_us; t1="$HOST_NOW_US"
+    printf '%s\t%s\n' $(((t1 - t0) / 1000)) "$what" >> "$DELTACTL_RUN_DIR/docker.tsv" 2> /dev/null || true
+    return "$rc"
+  }
+}
+
+# Samples, once a second, the resident memory and the number of processes of the tree that hangs from the wrapper. Runs in the
+# background until the wrapper ends or kills it. It must cost next to nothing, so it only walks the command's own tree: each
+# process lists its children in /proc/<pid>/task/*/children and its resident pages are the 2nd number of /proc/<pid>/statm
+# (a handful of small reads per sample, whatever else runs on the machine). Kernels without the `children` files fall back to
+# reading every /proc/*/stat, which grows with the number of processes.
+runs_sampler() { # root_pid dir
+  local root="$1" dir="$2" me="$BASHPID" pagekb t0 now sum n fast=0 p k c i line pid st changed
+  local -a queue=() f=()
+  local -A par=() rs=() inside=()
+  [ -d /proc/self ] || return 0
+  pagekb=$(($(getconf PAGESIZE 2> /dev/null || echo 4096) / 1024))
+  [ -r "/proc/$root/task/$root/children" ] && fast=1
+  host_now_us; t0="$HOST_NOW_US"
+  while kill -0 "$root" 2> /dev/null; do
+    sum=0 n=0
+    if [ "$fast" -eq 1 ]; then
+      queue=("$root") i=0
+      while [ "$i" -lt "${#queue[@]}" ]; do
+        p="${queue[i]}"
+        i=$((i + 1))
+        for c in /proc/"$p"/task/*/children; do
+          line=""
+          read -r line < "$c" 2> /dev/null || true   # no trailing newline: read fails but still fills `line`
+          for k in $line; do [ "$k" = "$me" ] || queue+=("$k"); done
+        done
+        [ "$p" != "$root" ] || continue   # the wrapper itself waits: its own memory is not the command's
+        read -r _ k _ < "/proc/$p/statm" 2> /dev/null || continue
+        sum=$((sum + k * pagekb)) n=$((n + 1))
+      done
+    else
+      par=() rs=() inside=()
+      for st in /proc/[0-9]*/stat; do
+        read -r line < "$st" 2> /dev/null || continue
+        pid="${st#/proc/}"; pid="${pid%/stat}"
+        line="${line#*) }"
+        # After the command name: state, ppid, ... the resident pages are the 22nd of these fields.
+        read -ra f <<< "$line"
+        par[$pid]="${f[1]:-0}" rs[$pid]=$((${f[21]:-0} * pagekb))
+      done
+      inside=([$root]=1) changed=1
+      while [ "$changed" -eq 1 ]; do
+        changed=0
+        for pid in "${!par[@]}"; do
+          [ -z "${inside[$pid]:-}" ] || continue
+          if [ -n "${inside[${par[$pid]}]:-}" ] && [ "$pid" != "$me" ] && [ "${par[$pid]}" != "$me" ]; then inside[$pid]=1; changed=1; fi
+        done
+      done
+      for pid in "${!inside[@]}"; do
+        [ "$pid" != "$root" ] || continue
+        sum=$((sum + ${rs[$pid]:-0})) n=$((n + 1))
+      done
+    fi
+    host_now_us; now="$HOST_NOW_US"
+    printf '%s\t%s\t%s\n' $(((now - t0) / 1000)) "$sum" "$n" >> "$dir/samples.tsv" 2> /dev/null || true
+    sleep 1
+  done
+}
+
+# The containers of an instance before or after an operation, into RUNS_FOOT: "running/total memory_bytes restarts". It is a look,
+# not a measurement of the operation: two docker queries, skipped with DELTACTL_RUN_FOOTPRINT=0 or when there is no docker.
+runs_footprint() { # instance
+  local ids proj svc st hl img started nm pid rs run=0 tot=0 mem=0 rst=0
+  RUNS_FOOT=""
+  [ "$1" != "-" ] && [ "${DELTACTL_RUN_FOOTPRINT:-1}" != "0" ] && host_has docker || return 0
+  ids="$(dk_instance_container_ids "$1" 2> /dev/null || true)"
+  if [ -z "$ids" ]; then RUNS_FOOT="0/0 0 0"; return 0; fi
+  while IFS='|' read -r proj svc st hl img started nm pid rs; do
+    tot=$((tot + 1))
+    [[ "$rs" =~ ^[0-9]+$ ]] && rst=$((rst + rs))
+    if [ "$st" = "running" ]; then
+      run=$((run + 1))
+      if host_cg_resolve "$pid" && host_cg_mem "$HOST_CG_MEM" "$HOST_CG_VER"; then mem=$((mem + CG_MEM_BYTES)); fi
+    fi
+  # shellcheck disable=SC2086  # one argument per container id
+  done < <(dk_container_rows $ids)
+  RUNS_FOOT="$run/$tot $mem $rst"
+}
+
+# Summary of what the child did, from the files it left, into RUN.
+runs_collect() { # dir
+  local dir="$1" calls ms slow lines bytes peak procs
+  if [ -s "$dir/docker.tsv" ]; then
+    read -r calls ms slow < <(awk -F'\t' '{ n++; s += $1; if ($1 > m) { m = $1; c = $2 } } END { printf "%d %d %s|%s\n", n, s, m + 0, c }' "$dir/docker.tsv")
+    RUN[DOCKER_CALLS]="$calls" RUN[DOCKER_MS]="$ms" RUN[DOCKER_SLOW]="$slow"
+  else
+    RUN[DOCKER_CALLS]=0 RUN[DOCKER_MS]=0 RUN[DOCKER_SLOW]=""
+  fi
+  if [ -s "$dir/samples.tsv" ]; then
+    read -r peak procs < <(awk -F'\t' '$2 > m { m = $2; p = $3 } END { printf "%d %d\n", m + 0, p + 0 }' "$dir/samples.tsv")
+    RUN[PEAK_RSS_KB]="$peak" RUN[PEAK_PROCS]="$procs"
+  fi
+  lines="$(wc -l < "$dir/out.log" 2> /dev/null | tr -d ' ')"
+  bytes="$(wc -c < "$dir/out.log" 2> /dev/null | tr -d ' ')"
+  RUN[OUT_LINES]="${lines:-0}" RUN[OUT_BYTES]="${bytes:-0}"
+}
+
 # --- The recorded execution ---------------------------------------------------------------------------------------------
 
 # Runs the command inside a record and exits with its exit code. It never returns.
 runs_exec() { # command args...
-  local cmd="$1" state id dir log rc t0 t1 inst what
+  local cmd="$1" state id dir log rc t0 t1 inst what c0 c1
   local -a envs=()
   shift
   state="$(runs_dir)"
@@ -177,6 +329,8 @@ runs_exec() { # command args...
   RUN[RUN_ID]="$id" RUN[OP]="$cmd" RUN[ARGS]="${*//$'\n'/ }" RUN[INSTANCE]="$inst" RUN[STATE]="running"
   RUN[STARTED_AT]="$(runs_now_iso)" RUN[ENDED_AT]="" RUN[DURATION_MS]="" RUN[RC]="" RUN[PID]="$$"
   RUN[HOST]="$(host_name)" RUN[USER]="${USER:-${LOGNAME:-}}" RUN[VERSION]="$DELTACTL_VERSION"
+  # What the instance looks like before (only for operations that touch its containers).
+  case "$cmd" in deploy | init | rollback | stop | down) runs_footprint "$inst"; RUN[FOOT_BEFORE]="$RUNS_FOOT" ;; esac
   runs_meta_write "$dir" || { runs_unlock; die "$(t runs.cannot_record "$state")"; }
   printf '%s\n' "$$" > "$state/active/$id"
   envs=(DELTACTL_RUN_ID="$id" DELTACTL_RUN_DIR="$dir")
@@ -190,11 +344,21 @@ runs_exec() { # command args...
   # Ctrl+C and friends reach the child (same process group); the wrapper stays to write the result.
   trap ':' INT TERM HUP
   set +e
+  runs_cpu_now "$dir/.times0"; c0="$RUNS_CPU"
+  runs_sampler "$$" "$dir" &
+  RUNS_SAMPLER=$!
   env "${envs[@]}" bash "$ROOT/deltactl" "$cmd" "$@" 2>&1 | tee -ia "$log"
   rc="${PIPESTATUS[0]}"
+  # CPU is read before the sampler is stopped: a child that has not been waited for is not in the figures yet.
+  runs_cpu_now "$dir/.times1"; c1="$RUNS_CPU"
+  kill "$RUNS_SAMPLER" 2> /dev/null; wait "$RUNS_SAMPLER" 2> /dev/null
+  rm -f "$dir/.times0" "$dir/.times1"
   set -e
   host_now_us; t1="$HOST_NOW_US"
   RUN[STATE]="$(runs_state_of "$rc")" RUN[RC]="$rc" RUN[ENDED_AT]="$(runs_now_iso)" RUN[DURATION_MS]="$(((t1 - t0) / 1000))"
+  RUN[CPU_MS]="$((c1 - c0))"
+  runs_collect "$dir"
+  case "$cmd" in deploy | init | rollback | stop | down) runs_footprint "$inst"; RUN[FOOT_AFTER]="$RUNS_FOOT" ;; esac
   runs_meta_write "$dir" || true
   runs_idx_add || true
   rm -f "$state/active/$id"

@@ -7,11 +7,13 @@ cuándo empezó, cuánto tardó, cómo terminó y TODO lo que imprimió. Solo le
 $ ./deltactl runs list [--instance <nombre>] [-n <cuántas>] [--json]
 $ ./deltactl runs show <id|last>
 $ ./deltactl runs logs <id|last> [--tail <n>] [--raw]
+$ ./deltactl runs stats [--instance <nombre>] [-n <cuántas>]
 
 ## Opciones
 - `list` las últimas ejecuciones, la más reciente primero (20 por defecto)
 - `--instance <nombre>` filtra por instancia, `-n <cuántas>` limita y `--json` da salida para scripts
-- `show` el detalle de una ejecución y las últimas líneas de su salida
+- `show` el detalle: consumo, contenedores antes y después, la comparación con la ejecución anterior y la salida
+- `stats` lo que cuesta cada tipo de operación de media (duración, CPU, docker, memoria pico)
 - `last` es la más reciente; de un id basta el principio
 - `logs` la salida completa; `--tail <n>` solo las últimas líneas
 - `--raw` conserva los colores (a un archivo o una tubería sale sin ellos)
@@ -19,6 +21,13 @@ $ ./deltactl runs logs <id|last> [--tail <n>] [--raw]
 ## Estados
 - `correcta`, `fallida` (código de salida distinto de 0), `cancelada` (Ctrl+C), `en curso`
 - `interrumpida`: el proceso desapareció sin terminar (kill, corte de luz). Nunca se cuenta como correcta
+
+## Qué mide
+- CPU: usuario + sistema de todo lo que lanzó la operación (el comando, docker, tee)
+- docker: cuántas llamadas hizo y cuánto tiempo esperó en ellas; cuál fue la más lenta
+- Memoria pico: suma de la memoria residente de sus procesos, una muestra por segundo (aproximada)
+- Contenedores: en marcha, memoria y reinicios de la instancia antes y después
+- No incluye lo que gasta el demonio de docker; eso lo cuentan los contenedores
 
 ## Cómo funciona
 - Solo hay una operación a la vez: si otra está en curso, la segunda se rechaza y dice cuál es

@@ -132,4 +132,46 @@ rm -rf "$STATE"
 bash ./deltactl init rn-init --yes > /dev/null 2>&1; rc=$?
 check "init (which deploys twice inside) is a single run" '[ "$rc" -eq 0 ] && [ "$(runs_n)" = "1" ] && [ "$(mv_ "$(last_run)" OP)" = "init" ]'
 
+section "8. what a run consumed"
+newinst rn-cons
+rm -rf "$STATE"
+printf 'rn-cons|auth-backend|running|none|auth-backend:1.0|2026-11-19T20:00:00Z|/rn-cons-a-1|0|0\nrn-cons|gueo-back-end|running|healthy|gueo-back-end:2.0|2026-11-19T20:00:00Z|/rn-cons-g-1|0|3\nother|x|running|none|x:1|2026-11-19T20:00:00Z|/o-1|0|9\n' > "$FIX/containers.txt"
+bash ./deltactl deploy rn-cons > /dev/null 2>&1
+id="$(last_run)"
+check "CPU is measured in milliseconds" '[[ "$(mv_ "$id" CPU_MS)" =~ ^[0-9]+$ ]]'
+check "the docker calls are counted and their time added up" '[ "$(mv_ "$id" DOCKER_CALLS)" -ge 1 ] && [[ "$(mv_ "$id" DOCKER_MS)" =~ ^[0-9]+$ ]] && [ "$(wc -l < "$STATE/runs/$id/docker.tsv" | tr -d " ")" = "$(mv_ "$id" DOCKER_CALLS)" ]'
+check "compose calls are told apart by their verb" 'grep -q "compose up" "$STATE/runs/$id/docker.tsv" && ! grep -q "compose --env-file" "$STATE/runs/$id/docker.tsv"'
+check "the slowest call is kept with its name" '[[ "$(mv_ "$id" DOCKER_SLOW)" =~ ^[0-9]+\|docker\ |^[0-9]+\|compose\ |^[0-9]+\|[a-z]+ ]]'
+check "the size of the output is the size of the log" '[ "$(mv_ "$id" OUT_BYTES)" = "$(wc -c < "$STATE/runs/$id/out.log" | tr -d " ")" ] && [ "$(mv_ "$id" OUT_LINES)" -ge 1 ]'
+check "peak memory and processes are sampled while it runs" '[ "$(mv_ "$id" PEAK_RSS_KB)" -gt 0 ] && [ "$(mv_ "$id" PEAK_PROCS)" -ge 1 ] && [ -s "$STATE/runs/$id/samples.tsv" ]'
+check "the instance is looked at before and after (only its own containers)" '[[ "$(mv_ "$id" FOOT_BEFORE)" =~ ^2/2\ [0-9]+\ 3$ ]] && [[ "$(mv_ "$id" FOOT_AFTER)" =~ ^2/2\ [0-9]+\ 3$ ]]'
+check "the scratch files of the measurement are gone" '[ ! -e "$STATE/runs/$id/.times0" ] && [ ! -e "$STATE/runs/$id/.times1" ]'
+check "the files of a run stay private" '[ "$(stat -c %a "$STATE/runs/$id/docker.tsv")" = "600" ] && [ "$(stat -c %a "$STATE/runs/$id/samples.tsv")" = "600" ]'
+check "the sampler is not left running (it is a fork of the wrapper: same command line)" '! pgrep -f "deltactl deploy rn-cons" >/dev/null 2>&1'
+DELTACTL_RUN_FOOTPRINT=0 bash ./deltactl deploy rn-cons > /dev/null 2>&1
+id2="$(last_run)"
+check "DELTACTL_RUN_FOOTPRINT=0 skips the look at the containers" '[ -z "$(mv_ "$id2" FOOT_BEFORE)" ] && [ -z "$(mv_ "$id2" FOOT_AFTER)" ] && [[ "$(mv_ "$id2" CPU_MS)" =~ ^[0-9]+$ ]]'
+bash ./deltactl stop rn-cons > /dev/null 2>&1
+check "stop looks at the containers too" '[ -n "$(mv_ "$(last_run)" FOOT_BEFORE)" ]'
+bash ./deltactl deploy rn-nope > /dev/null 2>&1
+check "a failed run is measured as well" '[ "$(mv_ "$(last_run)" STATE)" = "failed" ] && [[ "$(mv_ "$(last_run)" CPU_MS)" =~ ^[0-9]+$ ]]'
+bash ./deltactl deploy rn-cons > /dev/null 2>&1
+out="$(bash ./deltactl runs show last 2>&1)"
+check "runs show has the consumption" 'echo "$out" | grep -q "Consumo de la operación" && echo "$out" | grep -q "CPU " && echo "$out" | grep -q "llamadas" && echo "$out" | grep -q "memoria pico" && echo "$out" | grep -q "salida "'
+check "and the containers before and after" 'echo "$out" | grep -q "Contenedores de rn-cons" && echo "$out" | grep -q "2 de 2 en marcha"'
+check "and the comparison with the previous successful run" 'echo "$out" | grep -q "Frente al deploy anterior con éxito de rn-cons" && echo "$out" | grep -qE "duración +[0-9.]+ (ms|s) .* \([+-][0-9]+%\)"'
+check "the comparison is the last thing, after the output" '[ "$(echo "$out" | grep -n "Salida (últimas" | cut -d: -f1)" -lt "$(echo "$out" | grep -n "Frente al" | cut -d: -f1)" ]'
+out="$(DELTACTL_LANG=en bash ./deltactl runs show last 2>&1)"
+check "it is translated" 'echo "$out" | grep -q "Consumption of the operation" && echo "$out" | grep -q "of one core" && echo "$out" | grep -q "Against the previous successful deploy"'
+mkdir -p "$STATE/runs/20260101T000000Z-1"
+printf 'RUN_ID=20260101T000000Z-1\nOP=deploy\nARGS=old\nINSTANCE=old\nSTATE=succeeded\nSTARTED_AT=2026-01-01T00:00:00Z\nENDED_AT=2026-01-01T00:00:03Z\nDURATION_MS=3000\nRC=0\n' > "$STATE/runs/20260101T000000Z-1/meta"
+out="$(bash ./deltactl runs show 20260101T000000Z-1 2>&1)"; rc=$?
+check "a run recorded before the measurements shows no consumption (and does not fail)" '[ "$rc" -eq 0 ] && ! echo "$out" | grep -q "Consumo de la operación" && echo "$out" | grep -q "duración"'
+out="$(bash ./deltactl runs stats 2>&1)"; rc=$?
+check "runs stats gives one row per kind of operation" '[ "$rc" -eq 0 ] && echo "$out" | grep -q "DURACIÓN MEDIA" && echo "$out" | grep -qE "^deploy +[0-9]+ +[0-9]+ +[0-9]+" && echo "$out" | grep -q "MEM PICO"'
+check "stats counts the failed ones" 'echo "$out" | grep -E "^deploy" | awk "{ exit !(\$4 >= 1) }"'
+check "stats can be narrowed to an instance" 'bash ./deltactl runs stats --instance rn-cons 2>&1 | grep -q "^deploy" && ! bash ./deltactl runs stats --instance rn-cons 2>&1 | grep -q "^new"'
+check "stats with a bad option shows the usage" '! bash ./deltactl runs stats --nope >/dev/null 2>&1 && ! bash ./deltactl runs stats -n 0 >/dev/null 2>&1'
+rm -f "$FIX/containers.txt"
+
 finish
