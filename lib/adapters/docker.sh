@@ -122,13 +122,18 @@ dk_container_rows() { # ids...
 # Stream of container lifecycle events, one action per line (start, die, health_status, ...). It never ends:
 # the panel reads it through a coprocess to refresh only when something changes.
 dk_events_stream() { # run it in a coprocess: it replaces that process with `docker events`
-  exec docker events --filter type=container --filter event=start --filter event=die --filter event=stop \
+  exec docker events --since 6h --filter type=container --filter event=start --filter event=die --filter event=stop \
     --filter event=restart --filter event=oom --filter event=destroy --filter event=health_status \
-    --format '{{.Action}}' 2>/dev/null
+    --format '{{.Time}}|{{.Actor.Attributes.name}}|{{.Action}}' 2>/dev/null
 }
 
 # "name|memory|cpu" rows for the running containers (takes 1-2 s).
 dk_stats_rows() { docker stats --no-stream --format '{{.Name}}|{{.MemUsage}}|{{.CPUPerc}}' 2>/dev/null; }
+
+# The last N lines of a container's log (stdout and stderr together).
+dk_logs_tail() { # container lines
+  docker logs --tail "$2" "$1" 2>&1
+}
 
 # Number of log lines of the last 10 minutes that look like errors.
 dk_log_error_count() { # container

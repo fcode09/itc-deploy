@@ -80,7 +80,8 @@ check "the second sample computes the CPU percentage" '[ "$(lib "$SAMPLER echo 5
 check "the history grows with every sample" '[ "$(lib "$SAMPLER HOST_FAKE_NOW_US=2000000; mt_sample; read -ra h <<< \"\${MT_HMEM[a/s0]}\"; echo \${#h[@]}")" = "2" ]'
 check "a container that disappears is forgotten" '[ "$(lib "$SAMPLER unset ST_STATE[a/s0]; HOST_FAKE_NOW_US=2000000; mt_sample; echo [\${MT_MEM[a/s0]:-}]")" = "[]" ]'
 check "the instance totals add services" '[ "$(lib "$SAMPLER mt_instance_sum a s0 s1 s2; echo \$MT_SUM_MEM \$MT_SUM_LIM")" = "241172480 536870912" ]'
-check "the sampler is due only after the interval" '[ "$(lib "$SAMPLER HOST_FAKE_NOW_US=1500000; mt_due && echo due || echo wait; HOST_FAKE_NOW_US=2000000; mt_due && echo due || echo wait")" = "$(printf "wait\ndue")" ]'
+check "the default sampling interval is 2 seconds" '[ "$(lib "mt_interval_us")" = "2000000" ]'
+check "the sampler is due only after the interval" '[ "$(lib "DELTACTL_METRICS_INTERVAL=1; $SAMPLER HOST_FAKE_NOW_US=1500000; mt_due && echo due || echo wait; HOST_FAKE_NOW_US=2000000; mt_due && echo due || echo wait")" = "$(printf "wait\ndue")" ]'
 check "DELTACTL_METRICS_INTERVAL sets the interval" '[ "$(DELTACTL_METRICS_INTERVAL=5 lib "mt_interval_us")" = "5000000" ]'
 
 finish
