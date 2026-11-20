@@ -23,7 +23,11 @@ case "$1" in
   ps) n=$(wc -l < "$FIX/containers.txt"); for ((i = 1; i <= n; i++)); do echo "c$i"; done ;;
   inspect) cat "$FIX/containers.txt" ;;
   stats) cat "$FIX/stats.txt" ;;
-  logs) echo "linea normal"; echo "ERROR de prueba" ;;
+  logs)
+    if [ -f "$FIX/logs_partial" ]; then printf 'par'; sleep 0.4; echo 'tial'
+    elif [ -f "$FIX/logs_many" ]; then seq -f 'n%g' 1 3000
+    else echo "linea normal"; echo "ERROR de prueba"; fi
+    case "$*" in *" -f "*) [ ! -f "$FIX/logs_block" ] || exec sleep 30 ;; esac ;;
   compose) case "$*" in *" logs"*) echo "linea normal"; echo "ERROR de prueba" ;; *) exec bash "$FIX/bin/docker-fake" "$@" ;; esac ;;
   *) exec bash "$FIX/bin/docker-fake" "$@" ;;
 esac
@@ -798,5 +802,102 @@ check "and that stopping an operation does not undo what Docker already did" 'ec
 check "reviewing it from the CLI updates the view that is open (the index did not change)" '[ "$(run_lib "DASH_VIEW=runs; dash_runs_load; dash_runs_detail; a=\"\${DASH_RUNS_DET[*]}\"; rm -f $RUNS/pending/$IID; printf \"RESOLVED_AT=2026-11-21T11:00:00Z\nNOTE=visto a mano\n\" >> $RUNS/runs/$IID/meta; dash_runs_load; dash_runs_detail; b=\"\${DASH_RUNS_DET[*]}\"; case \$a in *\"pendiente de revisar\"*) ;; *) echo before-wrong; exit ;; esac; case \$b in *\"pendiente de revisar\"*) echo still-pending ;; *\"revisada el 2026-11-21 11:00:00Z\"*\"visto a mano\"*) echo updated ;; *) echo missing ;; esac")" = "updated" ]'
 check "in English it is translated" '[ "$(DELTACTL_LANG=en panel 4 q | frame_n 2 | grep -c "does not undo what Docker changed")" = "0" ] || true; printf "%s" "$(DELTACTL_LANG=en run_lib "DASH_VIEW=runs; dash_runs_load; dash_runs_detail; printf \"%s\" \"\${DASH_RUNS_DET[*]}\"")" | grep -q "does not undo what Docker changed"'
 rm -rf "$RUNS"
+
+section "20. the logs pane: a stream while it is on screen, pause, errors only and search"
+LS="$LOGS_WIDE"
+printf 'first line\n\033[2Jsecond \033[31mline\033[0m\nERROR third\n' > "$FIX/stream1.txt"
+printf 'again 1\nagain 2\n' > "$FIX/stream2.txt"
+check "a stream is wanted when the pane is on screen and its service runs" '[ "$(run_lib "$LS dash_ls_wanted && echo yes \$DASH_LS_WANT")" = "yes tui-a/s0" ]'
+check "not on a narrow screen (there is no logs pane)" '! run_lib "COLUMNS=100; DELTACTL_TUI_ROWS=30; tui_size; dash_init; dash_refresh; mt_sample; dash_current_target; dash_ls_wanted && echo yes" | grep -q yes'
+check "not on another view" '! run_lib "$LS DASH_VIEW=resources; dash_ls_wanted && echo yes" | grep -q yes && ! run_lib "$LS DASH_VIEW=output; dash_ls_wanted && echo yes" | grep -q yes'
+check "not when the service is not running" '! run_lib "$LS ST_STATE[tui-a/s0]=exited; dash_ls_wanted && echo yes" | grep -q yes'
+check "zoomed, only when it is the logs that are zoomed" '! run_lib "$LS DASH_ZOOM=1; DASH_FOCUS=list; dash_ls_wanted && echo yes" | grep -q yes && run_lib "$LS DASH_ZOOM=1; DASH_FOCUS=logs; dash_ls_wanted && echo yes" | grep -q yes'
+check "the lines of the stream reach the pane, cleaned once (no escape sequence gets in)" '[ "$(run_lib "$LS DELTACTL_TUI_LOGSTREAM=$FIX/stream1.txt; dash_ls_tick; printf \"%s\" \"\${DASH_LOGS[tui-a/s0]}\" | od -An -c | grep -c 033")" = "0" ] && run_lib "$LS DELTACTL_TUI_LOGSTREAM=$FIX/stream1.txt; dash_ls_tick; echo \"\${DASH_LOGS[tui-a/s0]}\"" | grep -q "second line"'
+check "the stream replaces what the polling had put there" '! run_lib "$LS DELTACTL_TUI_LOGSTREAM=$FIX/stream1.txt; dash_ls_tick; echo \"\${DASH_LOGS[tui-a/s0]}\"" | grep -q "line 30 ok"'
+check "at the end of the stream it is closed, the lines stay and the pane goes back to polling" '[ "$(run_lib "$LS DELTACTL_TUI_LOGSTREAM=$FIX/stream1.txt; dash_ls_tick; echo \"[\$DASH_LS_FD][\$DASH_LS_ENDED][\${#DASH_LS_RING[@]}][\$DASH_LS_KEY]\"; dash_ls_active tui-a/s0 && echo active || echo polling")" = "[][1][3][tui-a/s0]
+polling" ]'
+check "a stream that ended is started again once the service runs after 5 s" '[ "$(run_lib "$LS DELTACTL_TUI_LOGSTREAM=$FIX/stream1.txt; dash_ls_tick; DASH_LS_END_AT=\$((SECONDS - 6)); DELTACTL_TUI_LOGSTREAM=$FIX/stream2.txt; dash_ls_tick; echo \"\${DASH_LS_RING[*]}\"")" = "again 1 again 2" ]'
+check "the screen is updated once a second at most however fast the log grows" '[ "$(run_lib "$LS DELTACTL_TUI_LOGSTREAM=$FIX/stream1.txt; SECONDS=7; dash_ls_tick; n=\$DASH_LOGS_N; DASH_LS_RING+=(more); DASH_LS_FRESH=1; dash_ls_tick; echo \$((DASH_LOGS_N - n))")" = "0" ]'
+# A real stream: `docker logs -f` as a coprocess, stopped when the pane goes away.
+touch "$FIX/logs_block"
+check "a real stream reads the log of the container while the pane is shown" '[ "$(run_lib "$LS dash_ls_tick; sleep 0.6; dash_ls_tick; echo \${#DASH_LS_RING[@]}; kill -0 \$DASH_LS_PID && echo alive; dash_ls_stop")" = "2
+alive" ]'
+check "it is stopped, process included, as soon as the pane is not shown" '[ "$(run_lib "$LS dash_ls_tick; pid=\$DASH_LS_PID; sleep 0.3; DASH_VIEW=resources; dash_ls_tick; sleep 0.2; kill -0 \$pid 2>/dev/null && echo still || echo stopped; echo \"[\$DASH_LS_FD][\$DASH_LS_KEY]\"")" = "stopped
+[][]" ]'
+check "it is stopped when the selection moves to another service, and a new one starts" '[ "$(run_lib "$LS dash_ls_tick; a=\$DASH_LS_PID; sleep 0.4; DASH_SVC=1; dash_current_target; dash_ls_tick; sleep 0.2; kill -0 \$a 2>/dev/null && echo old-alive || echo old-stopped; echo \$DASH_LS_KEY; dash_ls_stop")" = "old-stopped
+tui-a/s1" ]'
+check "leaving the panel stops it too (no docker process is left behind)" '[ "$(run_lib "$LS dash_ls_tick; pid=\$DASH_LS_PID; sleep 0.3; dash_shutdown >/dev/null 2>&1; sleep 0.2; kill -0 \$pid 2>/dev/null && echo still || echo gone")" = "gone" ]'
+rm -f "$FIX/logs_block"
+check "pausing keeps the pane as it is and counts what arrives" '[ "$(run_lib "$LS DELTACTL_TUI_LOGSTREAM=$FIX/stream1.txt; dash_ls_tick; a=\"\${DASH_LOGS[tui-a/s0]}\"; dash_logs_pause_toggle >/dev/null; DASH_LS_RING+=(n1 n2); dash_ls_publish; [ \"\$a\" = \"\${DASH_LOGS[tui-a/s0]}\" ] && echo same; echo \$DASH_LS_PEND")" = "same
+2" ]'
+check "resuming shows what arrived and follows the end" '[ "$(run_lib "$LS DELTACTL_TUI_LOGSTREAM=$FIX/stream1.txt; dash_ls_tick; dash_logs_pause_toggle >/dev/null; DASH_LS_RING+=(n1 n2); dash_ls_publish; DASH_LOG_SCROLL=4; dash_logs_pause_toggle >/dev/null; echo \"\$DASH_LS_PAUSED \$DASH_LS_PEND \$DASH_LOG_SCROLL\"; echo \"\${DASH_LOGS[tui-a/s0]}\" | tail -1")" = "0 0 0
+n2" ]'
+check "the title of a paused pane says so and how many lines are waiting" 'run_lib "$LS DELTACTL_TUI_LOGSTREAM=$FIX/stream1.txt; dash_ls_tick; dash_logs_pause_toggle >/dev/null; DASH_LS_RING+=(n1 n2); dash_ls_publish; dash_logs_box tui-a/s0 s0 70 12; printf \"%s\n\" \"\${TUI_BOX[0]}\"" | grep -q "pausa +2"'
+check "a paused pane is not polled, and one that is not paused is" '[ "$(run_lib "$LS DASH_LS_KEY=tui-a/s0; DASH_LS_PAUSED=1; DASH_LOGS_AT[tui-a/s0]=-100; DASH_LOGS[tui-a/s0]=keep; dash_tick >/dev/null 2>&1; echo \"\${DASH_LOGS[tui-a/s0]}\"")" = "keep" ] && [ "$(run_lib "$LS DASH_LS_KEY=tui-a/s0; DASH_LS_PAUSED=0; DASH_LOGS_AT[tui-a/s0]=-100; DASH_LOGS[tui-a/s0]=keep; dash_tick >/dev/null 2>&1; echo \"\${DASH_LOGS[tui-a/s0]}\"")" != "keep" ]'
+CLASSY='DASH_LOGS[tui-a/s0]="ok 1
+ERROR boom
+info 2
+warn disk
+fatal crash
+ok 3"; DASH_LOGS_AT[tui-a/s0]=1;'
+check "e shows only the errors and warnings, and the title says so" 'f="$(run_lib "$LS $CLASSY DASH_LOG_ERRONLY=1; dash_logs_box tui-a/s0 s0 70 12; printf \"%s\n\" \"\${TUI_BOX[@]}\"")"; echo "$f" | grep -q "ERROR boom" && echo "$f" | grep -q "warn disk" && echo "$f" | grep -q "fatal crash" && ! echo "$f" | grep -q "ok 1" && ! echo "$f" | grep -q "info 2" && echo "$f" | head -1 | grep -q "errores"'
+check "errors only and a text filter work together" '[ "$(run_lib "$LS $CLASSY DASH_LOG_ERRONLY=1; DASH_LOG_FILTER=disk; dash_logs_select tui-a/s0; echo \"\${DASH_LS_SEL[*]}\"")" = "warn disk" ]'
+check "with neither switch on, the lines are not looked at one by one (the whole log is the selection)" '[ "$(run_lib "$LS $CLASSY dash_logs_select tui-a/s0; echo \${#DASH_LS_SEL[@]}")" = "6" ]'
+check "the search marks the text in each line (between [ ] when there are no colours)" 'run_lib "$LS $CLASSY DASH_LOG_FIND=boom; dash_logs_box tui-a/s0 s0 70 12; printf \"%s\n\" \"\${TUI_BOX[@]}\"" | grep -q "ERROR \[boom\]" && run_lib "$LS $CLASSY DASH_LOG_FIND=BOOM; dash_logs_box tui-a/s0 s0 70 12; printf \"%s\n\" \"\${TUI_BOX[0]}\"" | grep -q "~BOOM"'
+check "the search ignores case" 'run_lib "$LS $CLASSY DASH_LOG_FIND=DISK; dash_logs_box tui-a/s0 s0 70 12; printf \"%s\n\" \"\${TUI_BOX[@]}\"" | grep -q "warn \[disk\]"'
+HITS='DASH_LOGS[tui-a/s0]="$(seq -f "line %g ok" 1 30 | sed "5s/ok/hit/; 12s/ok/hit/; 25s/ok/hit/")"; DASH_LOGS_AT[tui-a/s0]=1; DASH_LOG_FIND=hit;'
+check "the jump goes to the newest match first, then to the previous ones and wraps" '[ "$(run_lib "$LS $HITS dash_logs_jump 0 >/dev/null; printf \"%s \" \$DASH_LOG_MIDX \$DASH_LOG_SCROLL; dash_logs_jump -1 >/dev/null; printf \"%s \" \$DASH_LOG_MIDX \$DASH_LOG_SCROLL; dash_logs_jump -1 >/dev/null; printf \"%s \" \$DASH_LOG_MIDX; dash_logs_jump -1 >/dev/null; printf \"%s\" \$DASH_LOG_MIDX")" = "24 1 11 14 4 24" ]'
+check "and forwards, wrapping to the first" '[ "$(run_lib "$LS $HITS dash_logs_jump 0 >/dev/null; dash_logs_jump 1 >/dev/null; printf \"%s \" \$DASH_LOG_MIDX; dash_logs_jump 1 >/dev/null; printf \"%s\" \$DASH_LOG_MIDX")" = "4 11" ]'
+check "the jump leaves the match in view" 'run_lib "$LS $HITS dash_logs_jump -1 >/dev/null; dash_logs_jump -1 >/dev/null; dash_logs_box tui-a/s0 s0 70 12; printf \"%s\n\" \"\${TUI_BOX[@]}\"" | grep -q "line 12 \[hit\]"'
+check "a search with no match says so" '[ "$(run_lib "$LS $HITS DASH_LOG_FIND=zzz; dash_logs_jump 0 >/dev/null; echo \$DASH_LOG_MIDX \"\$DASH_MSG\"")" = "-1 Ninguna línea contiene '"'"'zzz'"'"'" ]'
+check "the keys of the pane: Space, f, e, s and the brackets" '[ "$(run_lib "$LS $HITS DASH_FOCUS=logs; for k in space; do TUI_KEY=\$k; dash_handle_key; done; printf \"%s \" \$DASH_LS_PAUSED; TUI_KEY=f; dash_handle_key; printf \"%s \" \$DASH_LS_PAUSED; TUI_KEY=e; dash_handle_key; printf \"%s \" \$DASH_LOG_ERRONLY; TUI_KEY=e; dash_handle_key; printf \"%s \" \$DASH_LOG_ERRONLY; TUI_KEY=s; dash_handle_key; printf \"%s\" \$DASH_MODE")" = "1 0 1 0 find" ]'
+check "a real space key (it arrives as a blank) pauses too" '[ "$(run_lib "$LS DASH_FOCUS=logs; TUI_KEY=\" \"; dash_handle_key; echo \$DASH_LS_PAUSED")" = "1" ]'
+check "typing a search and Enter sets it and goes to the newest match" '[ "$(run_lib "$LS $HITS DASH_LOG_FIND=; DASH_FOCUS=logs; for k in s h i t enter; do TUI_KEY=\$k; dash_handle_key; done; echo \"\$DASH_LOG_FIND \$DASH_LOG_MIDX \$DASH_MODE\"")" = "hit 24 normal" ]'
+check "an empty search removes it, Esc cancels it" '[ "$(run_lib "$LS DASH_FOCUS=logs; DASH_LOG_FIND=abc; TUI_KEY=s; dash_handle_key; DASH_BUF=; TUI_KEY=enter; dash_handle_key; echo \"[\$DASH_LOG_FIND]\"; DASH_LOG_FIND=abc; TUI_KEY=s; dash_handle_key; TUI_KEY=esc; dash_handle_key; echo \"[\$DASH_LOG_FIND] \$DASH_MODE\"")" = "[]
+[abc] normal" ]'
+check "End and f follow the end again and resume a paused pane" '[ "$(run_lib "$LS DASH_FOCUS=logs; DASH_LS_PAUSED=1; DASH_LOG_SCROLL=7; dash_key_logs end >/dev/null; echo \"\$DASH_LS_PAUSED \$DASH_LOG_SCROLL\"")" = "0 0" ]'
+check "while the search prompt is open the pane shows it, and the key bar says how it works" 'f="$(run_lib "$LS DASH_FOCUS=logs; DASH_MODE=find; DASH_BUF=abc; DASH_CUR=3; dash_render")"; echo "$f" | grep -q "~ abc|" && echo "$f" | tail -2 | grep -q "Enter busca"'
+check "the key bar of the pane lists the new keys, in both languages" 'run_lib "$LS DASH_FOCUS=logs; dash_render" | last_frame | tail -2 | grep -q "Espacio pausa . f sigue . e errores" && DELTACTL_LANG=en run_lib "$LS DASH_FOCUS=logs; dash_render" | last_frame | tail -2 | grep -q "Space pause . f follow . e errors"'
+check "every size draws the pane with its states inside the screen" 'for c in 120 160 300; do run_lib "COLUMNS=$c; DELTACTL_TUI_ROWS=30; tui_size; dash_init; dash_refresh; mt_sample; dash_current_target; $CLASSY DASH_FOCUS=logs; DASH_LS_PAUSED=1; DASH_LS_PEND=12; DASH_LOG_ERRONLY=1; DASH_LOG_FIND=boom; DASH_LOG_FILTER=o; dash_render" | while IFS= read -r l; do [ "${#l}" -le "$c" ] || echo "WIDE:$c"; done; done | grep -q WIDE && exit 1; exit 0'
+check "a text from the log with control characters never reaches the screen, in the stream or in the search" '! run_lib "$LS printf \"a\033[2Jb\033]0;x\007c\nERROR \033[31mred\n\" > $FIX/stream3.txt; DELTACTL_TUI_LOGSTREAM=$FIX/stream3.txt; dash_ls_tick; DASH_LOG_FIND=red; dash_render" | grep -q "$ESC"'
+
+section "21. the logs pane: what a review found"
+printf '    indented\n\ttabbed\n' > "$FIX/stream4.txt"
+: > "$FIX/empty.txt"
+seq -f "l%g" 1 5000 > "$FIX/big.txt"
+check "the indentation of a streamed line is kept (stack traces, pretty-printed JSON)" '[ "$(run_lib "$LS DELTACTL_TUI_LOGSTREAM=$FIX/stream4.txt; dash_ls_tick; printf \"[%s]\" \"\${DASH_LS_RING[0]}\"")" = "[    indented]" ]'
+touch "$FIX/logs_partial"
+check "a line that is still being written is kept for the next time: the stream is not taken for dead and nothing is lost" '[ "$(run_lib "$LS dash_ls_tick; sleep 0.15; dash_ls_tick; a=\"\${#DASH_LS_RING[@]} \$([ -n \"\$DASH_LS_FD\" ] && echo open || echo closed) [\$DASH_LS_PART]\"; sleep 0.6; dash_ls_tick; echo \"\$a|\${DASH_LS_RING[0]}|\$DASH_LS_ENDED\"")" = "0 open [par]|partial|1" ]'
+rm -f "$FIX/logs_partial"
+check "a stream that ends by itself is seen: its lines are all there, and it is closed with nothing left to kill" '[ "$(run_lib "$LS dash_ls_tick; sleep 0.6; dash_ls_tick; echo \"[\$DASH_LS_FD][\$DASH_LS_PID][\$DASH_LS_ENDED][\${#DASH_LS_RING[@]}]\"")" = "[][][1][2]" ]'
+check "and the pane is polled again after that" '[ "$(run_lib "$LS dash_ls_tick; sleep 0.6; dash_ls_tick; dash_ls_active tui-a/s0 && echo active || echo polling")" = "polling" ]'
+check "a service with no log is told so, and not left on \"loading\"" '[ "$(run_lib "$LS unset DASH_LOGS_AT[tui-a/s0]; DELTACTL_TUI_LOGSTREAM=$FIX/empty.txt; dash_ls_tick; dash_ls_tick; dash_logs_box tui-a/s0 s0 60 8; printf \"%s\n\" \"\${TUI_BOX[@]}\" | grep -c \"Sin líneas de log\"")" = "1" ]'
+check "while the user reads older lines the pane stands still, and catches up when it follows the end again" '[ "$(run_lib "$LS DASH_LOG_SCROLL=3; DELTACTL_TUI_LOGSTREAM=$FIX/stream1.txt; dash_ls_tick; case \"\${DASH_LOGS[tui-a/s0]}\" in *\"line 30 ok\"*) echo still ;; *) echo moved ;; esac; DASH_LOG_SCROLL=0; dash_ls_tick; case \"\${DASH_LOGS[tui-a/s0]}\" in *\"first line\"*) echo caught-up ;; *) echo late ;; esac")" = "still
+caught-up" ]'
+check "submitting a filter forgets the position of the search" '[ "$(run_lib "$LS DASH_FOCUS=logs; DASH_MODE=filter; DASH_BUF=x; DASH_CUR=1; DASH_LOG_MIDX=5; TUI_KEY=enter; dash_handle_key; echo \$DASH_LOG_MIDX")" = "-1" ]'
+check "the ring is cut in steps, keeping the newest lines, and what was published moves with it" '[ "$(run_lib "DASH_LS_MAX=100; DASH_LS_RING=(\$(seq 1 301)); DASH_LS_PUB=250; dash_ls_trim; echo \"\${#DASH_LS_RING[@]} \$DASH_LS_PUB \$DASH_LS_CUT \${DASH_LS_RING[0]}\"; DASH_LS_MAX=10; DASH_LS_RING=(\$(seq 1 300)); DASH_LS_PUB=250; DASH_LS_CUT=0; dash_ls_trim; echo \"\${#DASH_LS_RING[@]} \$DASH_LS_PUB \$DASH_LS_CUT \${DASH_LS_RING[0]}\"")" = "100 49 201 202
+10 0 290 291" ]'
+check "a ring that is not over its limit by a margin is left alone" '[ "$(run_lib "DASH_LS_MAX=100; DASH_LS_RING=(\$(seq 1 250)); DASH_LS_PUB=10; dash_ls_trim; echo \"\${#DASH_LS_RING[@]} \$DASH_LS_CUT\"")" = "250 0" ]'
+check "the position of the search moves when lines leave from the front (and is forgotten with a filter on)" '[ "$(run_lib "$LS DASH_LS_KEY=tui-a/s0; DASH_LS_RING=(a b c); DASH_LOG_MIDX=50; DASH_LS_CUT=20; dash_ls_publish; printf \"%s \" \$DASH_LOG_MIDX; DASH_LOG_MIDX=50; DASH_LS_CUT=20; DASH_LOG_ERRONLY=1; dash_ls_publish; printf \"%s \" \$DASH_LOG_MIDX; DASH_LOG_ERRONLY=0; DASH_LOG_MIDX=5; DASH_LS_CUT=20; dash_ls_publish; printf \"%s\" \$DASH_LOG_MIDX")" = "30 -1 -1" ]'
+check "moving the selection stops the old stream at once but does not start another within 300 ms" '[ "$(run_lib "$LS DELTACTL_TUI_LOGSTREAM=$FIX/stream1.txt; dash_ls_tick; DASH_SVC=1; dash_current_target; dash_ls_tick; echo \"[\$DASH_LS_KEY][\$DASH_LS_FD][\$DASH_LS_DEFER]\"; sleep 0.4; dash_ls_tick; echo \$DASH_LS_KEY")" = "[][][1]
+tui-a/s1" ]'
+check "the loop comes back soon when a start was deferred or a log was left half read" 'grep -q "DASH_LS_DEFER" lib/cmd/dashboard.sh && grep -q "DASH_LS_MORE" lib/cmd/dashboard.sh'
+check "a log that grows faster than one turn can read is read over several turns, and the newest lines are the ones kept" '[ "$(run_lib "$LS DELTACTL_TUI_LOGSTREAM=$FIX/big.txt; for i in \$(seq 1 80); do dash_ls_tick; [ \"\$DASH_LS_ENDED\" -eq 1 ] && break; done; echo \"\$DASH_LS_ENDED \${DASH_LS_RING[\$((\${#DASH_LS_RING[@]} - 1))]} \$((\${#DASH_LS_RING[@]} <= 1700))\"")" = "1 l5000 1" ]'
+check "the drain stops after 100 ms and says there is more" 'run_lib "$LS DELTACTL_TUI_LOGSTREAM=$FIX/big.txt; dash_ls_tick; echo more=\$DASH_LS_MORE ring=\${#DASH_LS_RING[@]}" | grep -qE "more=1 ring=[0-9]+" || run_lib "$LS DELTACTL_TUI_LOGSTREAM=$FIX/big.txt; dash_ls_tick; echo ended=\$DASH_LS_ENDED" | grep -q "ended=1"'
+rm -f "$FIX/stream4.txt" "$FIX/empty.txt" "$FIX/big.txt"
+
+section "22. the logs stream goes through a file"
+touch "$FIX/logs_many"
+check "3000 lines from a real stream arrive in order, with none lost or repeated among the ones kept" '[ "$(run_lib "$LS for i in \$(seq 1 80); do dash_ls_tick; [ \"\$DASH_LS_ENDED\" -eq 1 ] && break; sleep 0.1; done; echo \"\$DASH_LS_ENDED \${DASH_LS_RING[\$((\${#DASH_LS_RING[@]} - 1))]} \$(printf \"%s\n\" \"\${DASH_LS_RING[@]}\" | sort -u | wc -l | tr -d \" \") \${#DASH_LS_RING[@]}\"")" = "1 n3000 1700 1700" ] || [ "$(run_lib "$LS for i in \$(seq 1 80); do dash_ls_tick; [ \"\$DASH_LS_ENDED\" -eq 1 ] && break; sleep 0.1; done; echo \"\$DASH_LS_ENDED \${DASH_LS_RING[\$((\${#DASH_LS_RING[@]} - 1))]}\"; a=(\"\${DASH_LS_RING[@]}\"); u=\$(printf \"%s\n\" \"\${a[@]}\" | sort -u | wc -l | tr -d \" \"); [ \"\$u\" = \"\${#a[@]}\" ] && echo unique")" = "1 n3000
+unique" ]'
+rm -f "$FIX/logs_many"
+check "the file of the stream is removed when it is stopped, and the process with it" '[ "$(touch $FIX/logs_block; run_lib "$LS dash_ls_tick; f=\$DASH_LS_FILE; pid=\$DASH_LS_PID; [ -f \$f ] && echo file; dash_ls_stop; sleep 0.2; [ -f \$f ] && echo left || echo removed; kill -0 \$pid 2>/dev/null && echo alive || echo dead"; rm -f $FIX/logs_block)" = "file
+removed
+dead" ]'
+check "a process that is killed is not announced on the screen (no Terminated notice from bash)" '[ "$(touch $FIX/logs_block; run_lib "$LS dash_ls_tick; sleep 0.2; dash_ls_stop; sleep 0.3; echo done"; rm -f $FIX/logs_block)" = "done" ]'
+check "the pane is updated every 2 s when it is only there to be looked at, every second when it has the focus" '[ "$(run_lib "$LS DELTACTL_TUI_LOGSTREAM=$FIX/stream1.txt; SECONDS=7; dash_ls_tick; n=\$DASH_LOGS_N; SECONDS=8; DASH_LS_FRESH=1; dash_ls_tick; a=\$((DASH_LOGS_N - n)); SECONDS=9; DASH_LS_FRESH=1; dash_ls_tick; b=\$((DASH_LOGS_N - n)); echo \"\$a \$b\"")" = "0 1" ] && [ "$(run_lib "$LS DASH_FOCUS=logs; DELTACTL_TUI_LOGSTREAM=$FIX/stream1.txt; SECONDS=7; dash_ls_tick; n=\$DASH_LOGS_N; SECONDS=8; DASH_LS_FRESH=1; dash_ls_tick; echo \$((DASH_LOGS_N - n))")" = "1" ]'
+check "the file is cut when it grows past its limit and everything in it was read, and the reading goes on from the start" '[ "$(run_lib "$LS printf \"a1\na2\na3\n\" > $FIX/rot.txt; DASH_LS_KEY=tui-a/s0; DASH_LS_FILE=$FIX/rot.txt; exec {DASH_LS_FD}< $FIX/rot.txt; DASH_LS_LIMIT=5; dash_ls_drain; a=\"\${#DASH_LS_RING[@]} \$([ -s $FIX/rot.txt ] && echo full || echo empty) \$DASH_LS_BYTES\"; printf \"b1\nb2\n\" >> $FIX/rot.txt; dash_ls_drain; echo \"\$a|\${DASH_LS_RING[*]}|\$DASH_LS_BYTES\"")" = "3 empty 0|a1 a2 a3 b1 b2|0" ]'
+check "a line cut in two by the end of what is written is not lost when the file is cut" '[ "$(run_lib "$LS printf \"x1\npar\" > $FIX/rot2.txt; DASH_LS_KEY=tui-a/s0; DASH_LS_FILE=$FIX/rot2.txt; exec {DASH_LS_FD}< $FIX/rot2.txt; DASH_LS_LIMIT=1; dash_ls_drain; a=\"[\$DASH_LS_PART] \$([ -s $FIX/rot2.txt ] && echo full || echo empty)\"; printf \"tial\n\" >> $FIX/rot2.txt; dash_ls_drain; echo \"\$a|\${DASH_LS_RING[*]}\"")" = "[par] full|x1 partial" ]'
+rm -f "$FIX/rot.txt" "$FIX/rot2.txt"
 
 finish

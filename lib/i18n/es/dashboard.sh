@@ -112,8 +112,8 @@ MSG_es["tui.con.history_empty"]="El historial está vacío."
 MSG_es["tui.con.shell_hint"]="Estás en una shell normal dentro de la instalación. Escribe exit para volver al panel."
 MSG_es["tui.con.help"]="CONSOLA: escribe cualquier comando de deltactl, sin el prefijo\n  status colorado · deploy colorado s1 · logs colorado s0 -f · check colorado\n\nPROPIOS DEL PANEL\n  help               esta ayuda\n  clear  (Ctrl+L)    limpia la consola\n  theme [nombre]     muestra o cambia el tema (matrix cyber amber nord dracula mono)\n  history            las últimas órdenes\n  goto <vista>       instances · resources · output\n  refresh · quit     refrescar · salir\n\nTECLAS\n  Enter ejecuta · Tab completa · ↑↓ historial · ←→ Inicio Fin mueven el cursor\n  Ctrl+U/K/W borran hasta el inicio / el final / la palabra · PgUp PgDn desplazan\n  Ctrl+C cancela el comando · ! al inicio lo ejecuta en el terminal · ! solo abre una shell"
 MSG_es["tui.msg.ctrl_c_again"]="Nada que cancelar: pulsa Ctrl+C otra vez (o q) para salir"
-MSG_es["tui.keys.logs"]="{1} desplazar · PgUp/PgDn · Fin sigue · / filtrar · z zoom · Tab panel · {2} volver · q salir"
-MSG_es["tui.keys.zoom"]="z o Esc salen del zoom · Tab cambia de panel · {1} desplazar (logs) · : comando · ? ayuda · q salir"
+MSG_es["tui.keys.logs"]="{1} mover · Espacio pausa · f sigue · e errores · / filtro · s buscar ([ ]) · z zoom · Tab panel · {2} atrás · q salir"
+MSG_es["tui.keys.zoom"]="z o Esc salen · Tab cambia de panel · {1} mover · Espacio pausa · f sigue · e errores · / filtro · s buscar · q salir"
 MSG_es["tui.keys.filter"]="Enter aplica el filtro · Esc cancela · una línea vacía lo quita"
 MSG_es["tui.logs.follow"]="siguiendo"
 MSG_es["tui.logs.scrolled"]="↑{1} líneas"
@@ -150,7 +150,7 @@ MSG_es["tui.confirm_stop"]="Detiene {1} de '{2}' sin eliminarlo (./deltactl depl
 
 # Help overlay
 MSG_es["tui.help_title"]="Teclas"
-MSG_es["tui.help"]="VISTAS   1 · 2 · 3 · 4 · 5  Instancias · Recursos · Salida · Ejecuciones · Procesos\n\nINSTANCIAS\n  ↑ ↓  (k j)          instancia (la primera fila es + Nueva) · → servicios · ← o Esc vuelve\n  Tab  Mayús+Tab      panel siguiente / anterior (instancias · servicios · logs)\n  z                   zoom del panel con el foco (Esc lo cierra)\n  Logs con foco       ↑ ↓ PgUp PgDn Inicio Fin desplazan · / filtra por texto\n  Enter · l u c s     acciones · logs · desplegar · comprobar · estado\n  Ctrl+P              paleta de acciones (busca: despl, logs, tema...)\n\nEJECUTAR\n  :  !                comando (status colorado, logs x -f ...) · igual, en el terminal\n  x · n d i           cancelar · nueva instancia · diagnóstico · imágenes\n\nSALIDA   ↑ ↓ PgUp PgDn desplazan · f sigue al final · e solo errores\nEJECUC.  ↑ ↓ elegir · PgUp PgDn detalle · t estadísticas (s: instancia) · Enter salida\nPROCES.  ↑ ↓ PgUp PgDn desplazan el árbol de procesos\nGENERAL  r refrescar · p pausar · L idioma · T tema · ? ayuda · q o Esc salir"
+MSG_es["tui.help"]="VISTAS   1 · 2 · 3 · 4 · 5  Instancias · Recursos · Salida · Ejecuciones · Procesos\n\nINSTANCIAS\n  ↑ ↓  (k j)          instancia (la primera fila es + Nueva) · → servicios · ← o Esc vuelve\n  Tab  Mayús+Tab      panel siguiente / anterior (instancias · servicios · logs)\n  z                   zoom del panel con el foco (Esc lo cierra)\n  Logs con foco       ↑ ↓ PgUp PgDn Inicio Fin desplazan · / filtra por texto · Espacio pausa · f sigue · e errores · s busca ([ ] saltan)\n  Enter · l u c s     acciones · logs · desplegar · comprobar · estado\n  Ctrl+P              paleta de acciones (busca: despl, logs, tema...)\n\nEJECUTAR\n  :  !                comando (status colorado, logs x -f ...) · igual, en el terminal\n  x · n d i           cancelar · nueva instancia · diagnóstico · imágenes\n\nSALIDA   ↑ ↓ PgUp PgDn desplazan · f sigue al final · e solo errores\nEJECUC.  ↑ ↓ elegir · PgUp PgDn detalle · t estadísticas (s: instancia) · Enter salida\nPROCES.  ↑ ↓ PgUp PgDn desplazan el árbol de procesos\nGENERAL  r refrescar · p pausar · L idioma · T tema · ? ayuda · q o Esc salir"
 MSG_es["tui.help_close"]="Pulsa cualquier tecla para volver"
 
 # Runs view (lib/cmd/dashboard_runs.sh)
@@ -201,3 +201,14 @@ MSG_es["tui.procs.self_kids"]="procesos que ha lanzado y siguen vivos: {1}"
 MSG_es["tui.runs.partial"]="Parar no deshace lo ya cambiado en Docker."
 MSG_es["tui.runs.review_pending"]="pendiente de revisar"
 MSG_es["tui.runs.resolve_cmd"]="./deltactl runs resolve {1}"
+
+# Logs pane: stream, pause, errors only, search (lib/cmd/dashboard_logs.sh)
+MSG_es["tui.logs.paused"]="pausa"
+MSG_es["tui.logs.paused_n"]="pausa +{1}"
+MSG_es["tui.logs.errors"]="errores"
+MSG_es["tui.logs.paused_msg"]="Logs en pausa: Espacio o f los retoman"
+MSG_es["tui.logs.resumed_msg"]="Logs siguiendo"
+MSG_es["tui.logs.no_find"]="Escribe un texto con s para buscar"
+MSG_es["tui.logs.find_none"]="Ninguna línea contiene '{1}'"
+MSG_es["tui.logs.find_at"]="Coincidencia {1} de {2}: {3}"
+MSG_es["tui.keys.find"]="Enter busca · Esc cancela · [ y ] saltan a la coincidencia anterior y siguiente · una línea vacía quita la búsqueda"
