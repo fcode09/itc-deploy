@@ -22,6 +22,7 @@ source "$ROOT/lib/ui/tui.sh"
 source "$ROOT/lib/cmd/dashboard_view.sh"
 source "$ROOT/lib/cmd/dashboard_runs.sh"
 source "$ROOT/lib/cmd/dashboard_procs.sh"
+source "$ROOT/lib/cmd/dashboard_logs.sh"
 
 DASH_VIEW=instances       # instances | resources | output | runs | procs
 DASH_MODE=normal          # normal | menu | confirm | name | cmd | help
@@ -333,6 +334,7 @@ dash_shutdown() {
   theme_restore
   [ -z "$DASH_EV_PID" ] || kill "$DASH_EV_PID" 2>/dev/null || true
   dash_runs_log_cancel_scan
+  dash_ls_stop
   dash_async_stop
   DASH_EV_PID=""
   job_cleanup
@@ -411,6 +413,7 @@ dash_tick() {
   if dash_async_tick; then DASH_DIRTY=1; fi
   dash_runs_tick
   dash_procs_tick
+  dash_ls_tick
   if [ "$DASH_PAUSED" -eq 0 ]; then
     if [ -n "$DASH_EV_FD" ]; then interval="$DASH_SAFETY_SECONDS"; else interval="$DASH_REFRESH_SECONDS"; fi
     if [ "$DASH_EV_PENDING" -eq 1 ] || [ $((SECONDS - DASH_REFRESH_AT)) -ge "$interval" ]; then
@@ -429,7 +432,8 @@ dash_tick() {
       # While the user reads older lines the log stands still (no new request); a focused pane refreshes faster.
       local every=5
       [ "$DASH_FOCUS" != "logs" ] || every=3
-      if [ "${ST_STATE[$lk]:-}" = "running" ] && [ "$DASH_LOG_SCROLL" -eq 0 ] && { [ -z "${DASH_LOGS_AT[$lk]:-}" ] || [ $((SECONDS - DASH_LOGS_AT[$lk])) -ge "$every" ]; }; then
+      # (a stream feeds the pane when there is one; paused, the pane stands still)
+      if [ "${ST_STATE[$lk]:-}" = "running" ] && [ "$DASH_LOG_SCROLL" -eq 0 ] && [ "$DASH_LS_PAUSED" -eq 0 ] && ! dash_ls_active "$lk" && { [ -z "${DASH_LOGS_AT[$lk]:-}" ] || [ $((SECONDS - DASH_LOGS_AT[$lk])) -ge "$every" ]; }; then
         dash_logs_request "$lk"
       fi
     fi
@@ -728,8 +732,16 @@ dash_key_logs() { # key
     pgup) DASH_LOG_SCROLL=$((DASH_LOG_SCROLL + page)) ;;
     pgdn) DASH_LOG_SCROLL=$((DASH_LOG_SCROLL - page)); [ "$DASH_LOG_SCROLL" -ge 0 ] || DASH_LOG_SCROLL=0 ;;
     home) DASH_LOG_SCROLL=100000 ;;           # clamped to the oldest line when drawn
-    end | G) DASH_LOG_SCROLL=0 ;;
+    end | G | f)                              # follow the end again (and resume, if it was paused)
+      DASH_LOG_SCROLL=0 DASH_LOG_MIDX=-1
+      [ "$DASH_LS_PAUSED" -eq 0 ] || dash_logs_pause_toggle
+      ;;
+    space | ' ') dash_logs_pause_toggle ;;
+    e) DASH_LOG_ERRONLY=$((1 - DASH_LOG_ERRONLY)) DASH_LOG_SCROLL=0 DASH_LOG_MIDX=-1 ;;
     '/') DASH_MODE=filter DASH_BUF="$DASH_LOG_FILTER" DASH_CUR="${#DASH_LOG_FILTER}" ;;
+    s) DASH_MODE=find DASH_BUF="$DASH_LOG_FIND" DASH_CUR="${#DASH_LOG_FIND}" ;;
+    ']') dash_logs_jump 1 ;;
+    '[') dash_logs_jump -1 ;;
     left | h) DASH_FOCUS=svc ;;
     *) return 1 ;;
   esac
@@ -1060,7 +1072,10 @@ dash_key_edit() {
         DASH_MODE=normal
         if [ "$DASH_BUF" = "$DASH_NAME_TARGET" ]; then dash_start_job stay init "$DASH_NAME_TARGET" --yes; else dash_msg warn "$(t tui.msg.bad_name)"; fi
       elif [ "$DASH_MODE" = "filter" ]; then
-        DASH_MODE=normal DASH_LOG_FILTER="$DASH_BUF" DASH_LOG_SCROLL=0 DASH_CUR=0   # an empty line removes the filter
+        DASH_MODE=normal DASH_LOG_FILTER="$DASH_BUF" DASH_LOG_SCROLL=0 DASH_CUR=0 DASH_LOG_MIDX=-1   # an empty line removes the filter
+      elif [ "$DASH_MODE" = "find" ]; then
+        DASH_MODE=normal DASH_LOG_FIND="$DASH_BUF" DASH_CUR=0 DASH_LOG_MIDX=-1      # an empty line removes the search
+        [ -z "$DASH_LOG_FIND" ] || dash_logs_jump 0                                   # and a text goes to the newest match
       else
         dash_submit_cmd
       fi
@@ -1110,7 +1125,7 @@ dash_handle_key() {
   case "$DASH_MODE" in
     menu) dash_key_menu "$k" ;;
     confirm) dash_key_confirm "$k" ;;
-    name | cmd | filter) dash_key_edit "$k" ;;
+    name | cmd | filter | find) dash_key_edit "$k" ;;
     palette) dash_key_palette "$k" ;;
     help) DASH_MODE=normal ;;
     *)
@@ -1150,7 +1165,8 @@ dash_loop() {
       dash_render
     fi
     # Waiting costs nothing: `read -t` sleeps. A running command makes the loop wake up more often.
-    if job_running; then tick=0.2; else tick=1; fi
+    # A running command, a log that grows faster than one turn can read and a stream waiting to start all ask to be back soon.
+    if job_running || [ "$DASH_LS_MORE" -eq 1 ]; then tick=0.2; elif [ "$DASH_LS_DEFER" -eq 1 ]; then tick=0.3; else tick=1; fi
     tui_key "$tick"
     if [ "$DASH_SIGINT" -eq 1 ]; then DASH_SIGINT=0; dash_ctrl_c; DASH_DIRTY=1; fi
     DASH_IDLE=0

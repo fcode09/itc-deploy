@@ -738,52 +738,58 @@ dash_center_boxes() { # instance width height
 # The logs box: the last lines of the service's log (cleaned when they arrived), errors in red and warnings in yellow. With the
 # focus it scrolls (the title says how far back it is) and `/` filters the lines by a text (case-insensitive).
 dash_logs_box() { # key service width height [focused]
-  local key="$1" svc="$2" w="$3" h="$4" foc="${5:-0}" inner n i start end line sig flt="$DASH_LOG_FILTER" title before at after
-  local -a all=() sel=() body=()
+  local key="$1" svc="$2" w="$3" h="$4" foc="${5:-0}" inner n i start end line sig flt="$DASH_LOG_FILTER" title before at after f low ed=0 mark
+  local -a body=()
+  { [ "$DASH_MODE" = "filter" ] || [ "$DASH_MODE" = "find" ]; } && ed=1
   [ "$DASH_FOCUS" != "logs" ] || foc=1
-  sig="$key|$DASH_LOGS_N|$w|$h|$foc|$DASH_LOG_SCROLL|$flt|$DASH_MODE|$TH_NAME|$DASH_LANG_N"
-  [ "$DASH_MODE" != "filter" ] || sig+="|$DASH_BUF|$DASH_CUR"
+  sig="$key|$DASH_LOGS_N|$w|$h|$foc|$DASH_LOG_SCROLL|$flt|$DASH_MODE|$TH_NAME|$DASH_LANG_N|$DASH_LOG_ERRONLY|$DASH_LOG_FIND|$DASH_LS_PAUSED|$DASH_LS_PEND|$DASH_LOG_MIDX"
+  [ "$ed" -eq 0 ] || sig+="|$DASH_BUF|$DASH_CUR"
   if [ "$sig" = "$DASH_LBOX_SIG" ]; then TUI_BOX=("${DASH_LBOX[@]}"); return 0; fi
   inner=$((h - 2))
-  [ "$DASH_MODE" != "filter" ] || inner=$((inner - 1))     # one line for the filter prompt
+  [ "$ed" -eq 0 ] || inner=$((inner - 1))     # one line for the prompt of the filter or of the search
   [ "$inner" -ge 1 ] || inner=1
+  DASH_LOG_INNER="$inner"
+  f="${DASH_LOG_FIND,,}"
   if [ -z "${DASH_LOGS_AT[$key]+x}" ]; then
     dt tui.logs.loading; body=("$C_GRY$DTV$C_OFF")
   elif [ -z "${DASH_LOGS[$key]}" ]; then
     dt tui.logs.none; body=("$C_GRY$DTV$C_OFF")
   else
-    mapfile -t all <<< "${DASH_LOGS[$key]}"
-    if [ -n "$flt" ]; then
-      for line in "${all[@]}"; do
-        if [[ "${line,,}" == *"${flt,,}"* ]]; then sel+=("$line"); fi
-      done
-    else
-      sel=("${all[@]}")
-    fi
-    n="${#sel[@]}"
+    dash_logs_select "$key"
+    n="${#DASH_LS_SEL[@]}"
     [ "$DASH_LOG_SCROLL" -le $((n - inner)) ] || DASH_LOG_SCROLL=$((n - inner))   # never past the oldest line
     [ "$DASH_LOG_SCROLL" -ge 0 ] || DASH_LOG_SCROLL=0
     end=$((n - DASH_LOG_SCROLL))
     start=$((end - inner)); [ "$start" -ge 0 ] || start=0
     if [ "$n" -eq 0 ]; then dt tui.logs.no_match; body=("$C_GRY$DTV$C_OFF"); fi
     for ((i = start; i < end; i++)); do
-      line="${sel[$i]}"
-      case "$line" in
-        *[Ee][Rr][Rr][Oo][Rr]* | *ECONN* | *[Ff][Aa][Ii][Ll]* | *"Unable to"*) body+=("$C_RED$line$C_OFF") ;;
-        *[Ww][Aa][Rr][Nn]*) body+=("$C_YEL$line$C_OFF") ;;
+      line="${DASH_LS_SEL[$i]}"
+      low="${line,,}"
+      dash_log_class_l "$low"
+      if [ -n "$f" ]; then dash_log_mark "$line" "$f"; line="$DASH_LH"; fi
+      case "$DASH_LC" in
+        err) body+=("$C_RED$line$C_OFF") ;;
+        warn) body+=("$C_YEL$line$C_OFF") ;;
         *) body+=("$C_GRY$line$C_OFF") ;;
       esac
     done
   fi
-  if [ "$DASH_MODE" = "filter" ]; then
+  if [ "$ed" -eq 1 ]; then
     before="${DASH_BUF:0:$DASH_CUR}"; at="${DASH_BUF:$DASH_CUR:1}"; after="${DASH_BUF:$((DASH_CUR + 1))}"
+    mark="/"; [ "$DASH_MODE" != "find" ] || mark="~"
     while [ "${#body[@]}" -lt "$inner" ]; do body+=(""); done
-    if [ -n "$DASH_REV" ]; then body+=("${TH[accent]:-$C_CYN}/$C_OFF $before$DASH_REV${at:- }$C_OFF$after"); else body+=("/ $before|$at$after"); fi
+    if [ -n "$DASH_REV" ]; then body+=("${TH[accent]:-$C_CYN}$mark$C_OFF $before$DASH_REV${at:- }$C_OFF$after"); else body+=("$mark $before|$at$after"); fi
   fi
   dt tui.logs.title; title="$DTV $UI_S_DOT $svc"
+  if [ "$DASH_LS_PAUSED" -eq 1 ]; then
+    if [ "$DASH_LS_PEND" -gt 0 ]; then dtf tui.logs.paused_n "$DASH_LS_PEND"; else dt tui.logs.paused; DTF="$DTV"; fi
+    title+=" $UI_S_DOT $DTF"
+  fi
+  if [ "$DASH_LOG_ERRONLY" -eq 1 ]; then dt tui.logs.errors; title+=" $UI_S_DOT $DTV"; fi
   [ -z "$flt" ] || title+=" $UI_S_DOT /$flt"
+  [ -z "$DASH_LOG_FIND" ] || title+=" $UI_S_DOT ~$DASH_LOG_FIND"
   if [ "$DASH_LOG_SCROLL" -gt 0 ]; then dt tui.logs.scrolled; title+=" $UI_S_DOT ${DTV//\{1\}/$DASH_LOG_SCROLL}"
-  else dt tui.logs.follow; title+=" $UI_S_DOT $DTV"; fi
+  elif [ "$DASH_LS_PAUSED" -eq 0 ]; then dt tui.logs.follow; title+=" $UI_S_DOT $DTV"; fi
   tui_box "$title" "$w" "$h" body "" "$foc"
   DASH_LBOX=("${TUI_BOX[@]}") DASH_LBOX_SIG="$sig"
 }
@@ -1230,6 +1236,7 @@ dash_key_line() {
       ;;
     name) dt tui.name.keys; TUI_FRAME+=(" $C_GRY$DTV$C_OFF") ;;
     filter) dt tui.keys.filter; TUI_FRAME+=(" $C_GRY$DTV$C_OFF") ;;
+    find) dt tui.keys.find; TUI_FRAME+=(" $C_GRY$DTV$C_OFF") ;;
     palette) dt tui.pal.keys; TUI_FRAME+=(" $C_GRY${DTV//\{1\}/$DASH_UD}$C_OFF") ;;
     help) dt tui.help_close; TUI_FRAME+=(" $C_GRY$DTV$C_OFF") ;;
     *)
@@ -1309,7 +1316,8 @@ dash_render() {
   [ "$DASH_MODE" != "name" ] || sig+="|$DASH_BUF"
   sig+="|$DASH_RUNS_SEL|$DASH_RUNS_OFF|$DASH_RUNS_MODE|$DASH_RUNS_N|$DASH_RUNS_STATS_INST|$DASH_RV_TOP|$DASH_RV_END|$DASH_RV_TOTAL|$DASH_PROCS_N|$DASH_PROCS_OFF|$DASH_PC_TXT"
   sig+="|$DASH_CON_N|$DASH_CON_SCROLL|$DASH_ZOOM|$DASH_LOG_SCROLL|$DASH_LOG_FILTER|$DASH_PAL_Q|$DASH_PAL_SEL"
-  [ "$DASH_MODE" != "filter" ] || sig+="|$DASH_BUF|$DASH_CUR"
+  sig+="|$DASH_LOG_ERRONLY|$DASH_LOG_FIND|$DASH_LS_PAUSED|$DASH_LS_PEND|$DASH_LOG_MIDX"
+  { [ "$DASH_MODE" != "filter" ] && [ "$DASH_MODE" != "find" ]; } || sig+="|$DASH_BUF|$DASH_CUR"
   { [ "$DASH_MODE" != "cmd" ] || [ "$DASH_VIEW" != "instances" ]; } || sig+="|$DASH_BUF|$DASH_CUR"
   if job_running; then sig+="|$SECONDS"; fi
   if [ "$sig" = "$DASH_BODY_SIG" ]; then

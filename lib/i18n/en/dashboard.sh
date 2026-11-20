@@ -112,8 +112,8 @@ MSG_en["tui.con.history_empty"]="The history is empty."
 MSG_en["tui.con.shell_hint"]="You are in a normal shell inside the installation. Type exit to come back to the panel."
 MSG_en["tui.con.help"]="CONSOLE: type any deltactl command, without the prefix\n  status colorado · deploy colorado s1 · logs colorado s0 -f · check colorado\n\nPANEL COMMANDS\n  help               this help\n  clear  (Ctrl+L)    clear the console\n  theme [name]       show or change the theme (matrix cyber amber nord dracula mono)\n  history            the last commands\n  goto <view>        instances · resources · output\n  refresh · quit     refresh · leave\n\nKEYS\n  Enter runs · Tab completes · ↑↓ history · ←→ Home End move the cursor\n  Ctrl+U/K/W delete to the start / the end / the word · PgUp PgDn scroll\n  Ctrl+C cancels the command · a leading ! runs it in the terminal · a lone ! opens a shell"
 MSG_en["tui.msg.ctrl_c_again"]="Nothing to cancel: press Ctrl+C again (or q) to leave"
-MSG_en["tui.keys.logs"]="{1} scroll · PgUp/PgDn · End follows · / filter · z zoom · Tab pane · {2} back · q quit"
-MSG_en["tui.keys.zoom"]="z or Esc leave the zoom · Tab changes pane · {1} scroll (logs) · : command · ? help · q quit"
+MSG_en["tui.keys.logs"]="{1} move · Space pause · f follow · e errors · / filter · s search ([ ]) · z zoom · Tab pane · {2} back · q quit"
+MSG_en["tui.keys.zoom"]="z or Esc leave · Tab changes pane · {1} move · Space pause · f follow · e errors · / filter · s search · q quit"
 MSG_en["tui.keys.filter"]="Enter applies the filter · Esc cancels · an empty line removes it"
 MSG_en["tui.logs.follow"]="following"
 MSG_en["tui.logs.scrolled"]="↑{1} lines"
@@ -150,7 +150,7 @@ MSG_en["tui.confirm_stop"]="Stops {1} of '{2}' without removing it (./deltactl d
 
 # Help overlay
 MSG_en["tui.help_title"]="Keys"
-MSG_en["tui.help"]="VIEWS    1 · 2 · 3 · 4 · 5  Instances · Resources · Output · Runs · Processes\n\nINSTANCES\n  ↑ ↓  (k j)          instance (the first row is + New) · → services · ← or Esc goes back\n  Tab  Shift+Tab      next / previous pane (instances · services · logs)\n  z                   zoom the focused pane (Esc closes it)\n  Logs (focused)      ↑ ↓ PgUp PgDn Home End scroll · / filters by text\n  Enter · l u c s     actions · logs · deploy · check · status\n  Ctrl+P              action palette (search: depl, logs, theme...)\n\nRUN\n  :  !                command (status colorado, logs x -f ...) · the same, in the terminal\n  x · n d i           cancel · new instance · diagnosis · images\n\nOUTPUT   ↑ ↓ PgUp PgDn scroll · f follows the end · e only errors\nRUNS     ↑ ↓ choose · PgUp PgDn detail · t statistics (s: instance) · Enter output\nPROCESS  ↑ ↓ PgUp PgDn scroll the process tree\nGENERAL  r refresh · p pause · L language · T theme · ? help · q or Esc quit"
+MSG_en["tui.help"]="VIEWS    1 · 2 · 3 · 4 · 5  Instances · Resources · Output · Runs · Processes\n\nINSTANCES\n  ↑ ↓  (k j)          instance (the first row is + New) · → services · ← or Esc goes back\n  Tab  Shift+Tab      next / previous pane (instances · services · logs)\n  z                   zoom the focused pane (Esc closes it)\n  Logs (focused)      ↑ ↓ PgUp PgDn Home End scroll · / filters by text · Space pause · f follow · e errors · s search ([ ] jump)\n  Enter · l u c s     actions · logs · deploy · check · status\n  Ctrl+P              action palette (search: depl, logs, theme...)\n\nRUN\n  :  !                command (status colorado, logs x -f ...) · the same, in the terminal\n  x · n d i           cancel · new instance · diagnosis · images\n\nOUTPUT   ↑ ↓ PgUp PgDn scroll · f follows the end · e only errors\nRUNS     ↑ ↓ choose · PgUp PgDn detail · t statistics (s: instance) · Enter output\nPROCESS  ↑ ↓ PgUp PgDn scroll the process tree\nGENERAL  r refresh · p pause · L language · T theme · ? help · q or Esc quit"
 MSG_en["tui.help_close"]="Press any key to go back"
 
 # Runs view (lib/cmd/dashboard_runs.sh)
@@ -201,3 +201,14 @@ MSG_en["tui.procs.self_kids"]="processes it started that are still alive: {1}"
 MSG_en["tui.runs.partial"]="Stopping does not undo what Docker changed."
 MSG_en["tui.runs.review_pending"]="needs review"
 MSG_en["tui.runs.resolve_cmd"]="./deltactl runs resolve {1}"
+
+# Logs pane: stream, pause, errors only, search (lib/cmd/dashboard_logs.sh)
+MSG_en["tui.logs.paused"]="paused"
+MSG_en["tui.logs.paused_n"]="paused +{1}"
+MSG_en["tui.logs.errors"]="errors"
+MSG_en["tui.logs.paused_msg"]="Logs paused: Space or f resume them"
+MSG_en["tui.logs.resumed_msg"]="Logs following"
+MSG_en["tui.logs.no_find"]="Type a text with s to search"
+MSG_en["tui.logs.find_none"]="No line contains '{1}'"
+MSG_en["tui.logs.find_at"]="Match {1} of {2}: {3}"
+MSG_en["tui.keys.find"]="Enter searches · Esc cancels · [ and ] jump to the previous and next match · an empty line removes the search"
