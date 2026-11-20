@@ -16,6 +16,14 @@ Un panel de una sola pantalla (`./deltactl` en una terminal, o `./deltactl menu`
   (PgUp/PgDn desplazan el detalle). `t` da las estadísticas por operación (`s` las limita a una instancia) y `Enter` abre su salida
   guardada en un visor paginado: un log de cualquier tamaño se indexa una vez (un punto de control por cada 500 líneas, en segundo
   plano a partir de 8 MiB) y cada página se lee desde el punto de control más cercano, así que la memoria no crece con el log.
+- **Logs de un servicio** (vista Instancias en pantalla ancha, o `z` para ampliarlos; `lib/cmd/dashboard_logs.sh`): mientras el panel de
+  logs se ve y el servicio corre, un `docker logs --tail 200 -f` escribe en un fichero temporal y el panel lo lee (no por tubería: bash lee
+  una tubería byte a byte, ~500 µs por línea, y un fichero por bloques, ~20 µs). Se mata al dejar de verse, al cambiar de servicio (el
+  nuevo arranca como mucho cada 300 ms) y al salir. Anillo de 1500 líneas; la pantalla se actualiza cada segundo con el foco y cada 2 s
+  sin él; el fichero se vacía al pasar de 4 MiB. Sin flujo (servicio parado, sin Docker) se sondea `docker logs --tail` como antes.
+  Con el foco en los logs: `Espacio` pausa y reanuda (el título cuenta las líneas que esperan), `f` o `Fin` vuelven al final, `e` deja solo
+  errores y avisos, `/` filtra por texto, `s` busca (resalta, `[` y `]` saltan a la coincidencia anterior o siguiente). Si lees líneas
+  antiguas la vista se queda quieta, como siempre.
 - **Procesos** (`5`): el árbol vivo del comando en curso (PID, memoria, línea de comandos; la suma no cuenta el proceso que espera,
   igual que `runs show`) y lo que cuesta el propio panel (memoria, CPU ahora y de media, procesos que ha lanzado, p. ej. `docker events`).
   Mientras corre un comando, la cabecera lleva una tarjeta (`N proc · X MB`) y las pestañas inactivas se reducen a su número si falta sitio.
@@ -125,6 +133,20 @@ en pantalla y el detalle se construye una vez por selección; los procesos se le
 comando en marcha, cada 2 s sin él). El objetivo de menos del 1 % en reposo sigue sin cumplirse (el coste es el de siempre: reconstruir
 el fotograma y el muestreo). Un hallazgo útil de la vista Procesos: el `docker events` que lanza el panel ocupa unos 32 MB de RSS (es el CLI
 de Docker, no el panel).
+
+## Siguiendo logs (2026-11-20; WSL2, Docker real, 2 contenedores, 130x30, `pty_harness.py`, 25 s con el foco en los logs)
+
+CPU propia del panel. "Antes" es el sondeo (`docker logs --tail 400` cada 3 s); los logs simulados salen de un `docker` falso:
+
+| Caso | Antes | Después |
+| --- | --- | --- |
+| Docker real, logs en silencio | 10,3 % | **2,8 %** |
+| 100 líneas/s | 8,6 % | **4,7 %** |
+| ~2000 líneas/s | 10,1 % | 14,9 % |
+
+Lo que costaba: leer una línea de una tubería (~470-680 µs) frente a un fichero (~15 µs); limpiar secuencias de escape de cada línea (~52 µs;
+ahora solo las que llevan ESC, CR o tabulador); publicar y reconstruir la caja. Con 2000 líneas/s el panel lee todo (antes solo veía una muestra
+cada 3 s), de ahí el 15 %: más allá de eso nadie puede leerlo y conviene `logs <instancia> <servicio> -f` en la vista Salida.
 
 ## Consumo medido (WSL2, Docker real, 2 contenedores, 110x30)
 
