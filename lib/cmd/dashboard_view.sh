@@ -1294,12 +1294,18 @@ dash_build_body() { # body_height
 
 # Builds the whole frame for the current state and draws it.
 dash_render() {
-  local bh i sig
+  local bh i sig data
   bh=$((TUI_ROWS - 4))
   dash_tabs_line
   TUI_FRAME=("$DASH_HOSTLINE" "$TUI_TABS")
-  sig="$DASH_VIEW|$DASH_MODE|$DASH_SEL|$DASH_SVC|$DASH_FOCUS|$DASH_ON_NEW|$DASH_RES_SEL|$DASH_RES_SORT|$MT_SAMPLES|$DASH_REFRESH_N|$DASH_ERRS_N|$DASH_LANG_N"
-  sig+="|$DASH_EV_N|$DASH_LOGS_N|$JOB_SEQ|$JOB_TOTAL|${JOB_RC-r}|$JOB_CANCELLED|$DASH_OUT_SCROLL|$DASH_OUT_ERRORS|$TUI_ROWS|$TUI_COLS|$DASH_MENU_SEL|$DASH_CONF_TEXT|$DASH_NAME_TARGET"
+  # The figures (samples, state of Docker, errors, events, logs of a service) only matter to the views that draw them. The others keep
+  # their body between samples: rebuilding it every 2 s would redraw exactly the same lines.
+  case "$DASH_VIEW" in
+    output | runs | procs) data="" ;;
+    *) data="$MT_SAMPLES|$DASH_REFRESH_N|$DASH_ERRS_N|$DASH_EV_N|$DASH_LOGS_N" ;;
+  esac
+  sig="$DASH_VIEW|$DASH_MODE|$DASH_SEL|$DASH_SVC|$DASH_FOCUS|$DASH_ON_NEW|$DASH_RES_SEL|$DASH_RES_SORT|$data|$DASH_LANG_N"
+  sig+="|$JOB_SEQ|$JOB_TOTAL|${JOB_RC-r}|$JOB_CANCELLED|$DASH_OUT_SCROLL|$DASH_OUT_ERRORS|$TUI_ROWS|$TUI_COLS|$DASH_MENU_SEL|$DASH_CONF_TEXT|$DASH_NAME_TARGET"
   [ "$DASH_MODE" != "name" ] || sig+="|$DASH_BUF"
   sig+="|$DASH_RUNS_SEL|$DASH_RUNS_OFF|$DASH_RUNS_MODE|$DASH_RUNS_N|$DASH_RUNS_STATS_INST|$DASH_RV_TOP|$DASH_RV_END|$DASH_RV_TOTAL|$DASH_PROCS_N|$DASH_PROCS_OFF|$DASH_PC_TXT"
   sig+="|$DASH_CON_N|$DASH_CON_SCROLL|$DASH_ZOOM|$DASH_LOG_SCROLL|$DASH_LOG_FILTER|$DASH_PAL_Q|$DASH_PAL_SEL"

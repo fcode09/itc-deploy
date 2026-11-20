@@ -417,6 +417,7 @@ dash_tick() {
       # In the test mode (synchronous) it waits for an idle tick, so a key press never blocks on Docker.
       if ! tui_test_mode || [ "$DASH_IDLE" -eq 1 ]; then dash_refresh_request; fi
     fi
+    case "$DASH_VIEW" in output | runs | procs) MT_INTERVAL_MULT=2 ;; *) MT_INTERVAL_MULT=1 ;; esac
     if mt_due; then
       mt_sample
       dash_host_build
