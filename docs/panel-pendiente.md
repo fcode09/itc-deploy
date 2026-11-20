@@ -105,6 +105,21 @@ CPU propia del panel / con los procesos que lanza, 30 s por escenario (el ruido 
 | Siguiendo logs, vista Procesos | 8,72 % | 10,69 % |
 | Siguiendo logs, vista Ejecuciones | 7,59 % | 9,47 % |
 
+Después de optimizar (misma máquina, 2 repeticiones alternadas con el código anterior; CPU propia en reposo, 30 s): Ejecuciones
+**2,58 % → 1,73 %**, Procesos **2,96 % → 2,19 %**, Instancias 2,56 % → 2,74 % (sin cambio apreciable; el ruido del harness es de ±0,5).
+Qué se hizo, y por qué solo ayuda a las vistas sin métricas:
+
+- `mt_push` cuenta los valores con un contador (`MT_HN`) en vez de contar los espacios de un historial de 120 valores en cada
+  inserción (1,6 ms → una concatenación), y `host_cg_mem` lee `memory.stat` de una vez (`$(< fichero)`, sin proceso) en vez de línea a
+  línea. Con 7 contenedores en marcha `mt_sample` pasó de unos 24 ms a unos 15 ms en régimen estable.
+- La firma de caché del cuerpo ya no incluye muestras, estado de Docker, errores, eventos ni logs en las vistas Salida, Ejecuciones
+  y Procesos: su cuerpo no usa esas cifras y se reconstruía igual cada 2 s.
+- En esas tres vistas se muestrea cada 4 s en vez de cada 2 (solo cambia la cabecera, que se mueve despacio).
+
+Dónde queda el coste en Instancias (con 7 contenedores): ~15 ms de `mt_sample` + ~2 ms de la cabecera + ~23 ms de reconstrucción del
+fotograma por cada muestra de 2 s. Con esos cambios de cifras en cada muestra, bajar de ahí exige dibujar menos (cachear por panel con
+una firma de las cifras ya redondeadas, o muestrear más despacio), no leer más rápido; el objetivo de menos del 1 % sigue sin cumplirse.
+
 RSS 8,5-8,8 MB en todos. Las vistas nuevas no cuestan más que la línea base: el historial se relee cada 5 s solo mientras la vista está
 en pantalla y el detalle se construye una vez por selección; los procesos se leen con builtins de Bash desde `/proc` (cada 1 s con un
 comando en marcha, cada 2 s sin él). El objetivo de menos del 1 % en reposo sigue sin cumplirse (el coste es el de siempre: reconstruir
