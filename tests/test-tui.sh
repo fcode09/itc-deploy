@@ -785,4 +785,18 @@ check "a view that keeps its body still shows the new header" '[ "$(run_lib "$BO
 check "the sampling interval is stretched while the view shows no figure of a service" '[ "$(run_lib "HOST_FAKE_NOW_US=10000000; MT_LAST_US=7000000; MT_INTERVAL_MULT=1; mt_due && a=due || a=wait; MT_INTERVAL_MULT=2; mt_due && b=due || b=wait; echo \$a \$b")" = "due wait" ]'
 check "the panel sets it by view: 2 for Output, Runs and Processes, 1 for the others" '[ "$(run_lib "$BODYENV for v in output runs procs instances resources; do DASH_VIEW=\$v; dash_tick >/dev/null 2>&1; printf \"%s \" \$MT_INTERVAL_MULT; done")" = "2 2 2 1 1 " ]'
 
+section "19. interrupted runs nobody has reviewed"
+rm -rf "$RUNS"
+IID=20261121T100000Z-40
+mkrun "$IID" deploy tui-a succeeded 0 5000 1000 1000 1000
+sed -i 's/^STATE=.*/STATE=interrupted/; s/^RC=.*/RC=-/' "$RUNS/runs/$IID/meta"
+mkdir -p "$RUNS/pending"; printf 'deploy\ttui-a\n' > "$RUNS/pending/$IID"
+out="$(panel 4 q)"
+f="$(echo "$out" | frame_n 2)"
+check "the Runs view says an interrupted run is pending review, and how to clear it" 'echo "$f" | grep -q "pendiente de revisar" && echo "$f" | grep -q "./deltactl runs resolve $IID"'
+check "and that stopping an operation does not undo what Docker already did" 'echo "$f" | grep -q "no deshace lo ya cambiado en Docker"'
+check "reviewing it from the CLI updates the view that is open (the index did not change)" '[ "$(run_lib "DASH_VIEW=runs; dash_runs_load; dash_runs_detail; a=\"\${DASH_RUNS_DET[*]}\"; rm -f $RUNS/pending/$IID; printf \"RESOLVED_AT=2026-11-21T11:00:00Z\nNOTE=visto a mano\n\" >> $RUNS/runs/$IID/meta; dash_runs_load; dash_runs_detail; b=\"\${DASH_RUNS_DET[*]}\"; case \$a in *\"pendiente de revisar\"*) ;; *) echo before-wrong; exit ;; esac; case \$b in *\"pendiente de revisar\"*) echo still-pending ;; *\"revisada el 2026-11-21 11:00:00Z\"*\"visto a mano\"*) echo updated ;; *) echo missing ;; esac")" = "updated" ]'
+check "in English it is translated" '[ "$(DELTACTL_LANG=en panel 4 q | frame_n 2 | grep -c "does not undo what Docker changed")" = "0" ] || true; printf "%s" "$(DELTACTL_LANG=en run_lib "DASH_VIEW=runs; dash_runs_load; dash_runs_detail; printf \"%s\" \"\${DASH_RUNS_DET[*]}\"")" | grep -q "does not undo what Docker changed"'
+rm -rf "$RUNS"
+
 finish
