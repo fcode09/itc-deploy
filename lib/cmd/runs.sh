@@ -3,7 +3,10 @@
 # ./deltactl runs show <id|last>
 # ./deltactl runs logs <id|last> [--tail <n>] [--raw]
 # ./deltactl runs stats [--instance <name>] [-n <runs>]
-# History of the operations that changed something (see lib/core/runs.sh). It only reads: it never changes a run.
+# ./deltactl runs resolve <id|--all> [--note <text>]
+# ./deltactl runs prune [--dry-run] [--days <n>] [--max-mb <n>]
+# History of the operations that changed something (see lib/core/runs.sh). It only reads, except `resolve` (marks an interrupted run as
+# reviewed) and `prune` (deletes old runs), which act when asked for and never change what a run recorded about itself.
 
 # shellcheck source=lib/core/runs.sh
 source "$ROOT/lib/core/runs.sh"
@@ -61,7 +64,7 @@ runs_running_lines() {
 }
 
 runs_list() {
-  local inst="" n=20 json=0 idx line id when op ins st rc ms first=1
+  local inst="" n=20 json=0 idx line id when op ins st rc ms first=1 pend
   while [ "$#" -gt 0 ]; do
     case "$1" in
       --json) json=1 ;;
@@ -93,8 +96,10 @@ runs_list() {
       first=0
       [[ "$rc" =~ ^[0-9]+$ ]] || rc=null
       [[ "$ms" =~ ^[0-9]+$ ]] || ms=null
-      printf '  {"id":"%s","started_at":"%s","command":"%s","instance":"%s","state":"%s","exit_code":%s,"duration_ms":%s}' \
-        "$(ui_json_escape "$id")" "$(ui_json_escape "$when")" "$(ui_json_escape "$op")" "$(ui_json_escape "$ins")" "$st" "$rc" "$ms"
+      pend=false
+      [ ! -f "$(runs_dir)/pending/$id" ] || pend=true
+      printf '  {"id":"%s","started_at":"%s","command":"%s","instance":"%s","state":"%s","exit_code":%s,"duration_ms":%s,"pending_review":%s}' \
+        "$(ui_json_escape "$id")" "$(ui_json_escape "$when")" "$(ui_json_escape "$op")" "$(ui_json_escape "$ins")" "$st" "$rc" "$ms" "$pend"
     done
     printf '\n]\n'
     return 0
@@ -105,9 +110,11 @@ runs_list() {
   for line in "${lines[@]}"; do
     IFS=$'\t' read -r id when op ins st rc ms <<< "$line"
     runs_state_cell "$st"
+    [ ! -f "$(runs_dir)/pending/$id" ] || RUNS_CELL="err:$(t runs.state.pending)"
     runs_fmt_ms "$ms"
     ui_tr "$id" "${when/T/ }" "bold:$op" "$ins" "$RUNS_CELL" "dim:$RUNS_F"
   done
+  if runs_pending; then ui_hint "$(t runs.pending_hint "$RUNS_PEND_N")"; fi
   ui_hint "$(t runs.hint_show)"
 }
 
@@ -223,6 +230,13 @@ runs_show() {
   ui_kv "$(t runs.kv.ended)" "${RUN[ENDED_AT]:--}" 16
   ui_kv "$(t runs.kv.duration)" "$RUNS_F" 16
   ui_kv "$(t runs.kv.who)" "${RUN[USER]:--}@${RUN[HOST]:--}" 16
+  if [ -f "$(runs_dir)/pending/$id" ]; then
+    ui_kv "$(t runs.kv.review)" "$(t runs.review.pending "$id")" 16
+  elif [ -n "${RUN[RESOLVED_AT]:-}" ]; then
+    ui_kv "$(t runs.kv.review)" "$(t runs.review.done "${RUN[RESOLVED_AT]/T/ }")${RUN[NOTE]:+ $UI_S_DOT ${RUN[NOTE]}}" 16
+  fi
+  # What it had already changed is not undone by stopping it: say so instead of letting the state suggest otherwise.
+  case "${RUN[STATE]}" in canceled | interrupted) ui_hint "$(t runs.note_partial "${RUN[INSTANCE]}")" ;; esac
   f="$dir/out.log"
   ui_kv "$(t runs.kv.log)" "$f" 16
   runs_show_consumption "$dir"
@@ -324,6 +338,109 @@ runs_logs() {
   fi
 }
 
+# Marks interrupted runs as reviewed, which lets operations start again: runs resolve <id|--all> [--note <text>]
+runs_resolve_cmd() {
+  local target="" all=0 note="" id f dir
+  local -a ids=()
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      --all) all=1 ;;
+      --note) [ "$#" -gt 1 ] || die "$(t runs.resolve.usage)"; note="$2"; shift ;;
+      -*) die "$(t runs.unknown_option "$1")" ;;
+      *) [ -z "$target" ] || die "$(t runs.resolve.usage)"; target="$1" ;;
+    esac
+    shift
+  done
+  if [ "$all" -eq 1 ]; then
+    [ -z "$target" ] || die "$(t runs.resolve.usage)"
+    for f in "$(runs_dir)"/pending/*; do [ -f "$f" ] && ids+=("${f##*/}"); done
+    [ "${#ids[@]}" -gt 0 ] || { info "$(t runs.resolve.none)"; return 0; }
+  else
+    [ -n "$target" ] || die "$(t runs.resolve.usage)"   # an id on purpose: it is a statement that someone looked at that run
+    runs_resolve "$target"
+    [ -f "$(runs_dir)/pending/$RUNS_ID" ] || die "$(t runs.resolve.not_pending "$RUNS_ID")"
+    ids=("$RUNS_ID")
+  fi
+  for id in "${ids[@]}"; do
+    dir="$(runs_dir)/runs/$id"
+    if runs_meta_read "$dir"; then
+      RUN[RESOLVED_AT]="$(runs_now_iso)" RUN[NOTE]="${note//$'\n'/ }"
+      runs_meta_write "$dir" || warn "$(t runs.resolve.no_meta "$id")"
+    fi
+    rm -f "$(runs_dir)/pending/$id"
+    ok "$(t runs.resolve.ok "$id")"
+  done
+}
+
+# Deletes the oldest finished runs past a limit of age (days) or of total size (MB): runs prune [--dry-run] [--days <n>] [--max-mb <n>].
+# Runs in progress and interrupted ones nobody has reviewed are never deleted. It only ever runs when asked for.
+runs_prune() {
+  local dry=0 days=30 maxmb=1024 rc=0
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      --dry-run) dry=1 ;;
+      --days) [ "$#" -gt 1 ] || die "$(t runs.prune.usage)"; days="$2"; shift ;;
+      --max-mb) [ "$#" -gt 1 ] || die "$(t runs.prune.usage)"; maxmb="$2"; shift ;;
+      *) die "$(t runs.unknown_option "$1")" ;;
+    esac
+    shift
+  done
+  [[ "$days" =~ ^[0-9]+$ ]] && [[ "$maxmb" =~ ^[0-9]+$ ]] || die "$(t runs.prune.usage)"
+  # Deleting and rewriting the index happen under the lock of the operations: nothing appends to the index meanwhile.
+  if [ "$dry" -eq 0 ] && ! runs_lock "prune" "runs prune"; then die "$(t runs.prune.busy "$RUNS_OWNER_WHAT")"; fi
+  runs_prune_run "$dry" "$days" "$maxmb" || rc=$?
+  [ "$dry" -eq 1 ] || runs_unlock
+  return "$rc"
+}
+
+runs_prune_run() { # dry days maxmb
+  local dry="$1" days="$2" maxmb="$3" cutoff base idx kb d id acc=0 total=0 gone=0 gonekb=0 why n=0 total_txt del
+  local -A size=() reason=() keepit=()
+  local -a ids=() out=()
+  base="$(runs_dir)/runs"
+  idx="$(runs_dir)/runs.idx"
+  [ -d "$base" ] || die "$(t runs.none)"
+  cutoff="$(date -u -d "$days days ago" +%Y%m%dT%H%M%SZ)"
+  # Sizes of every run in one call (a process per folder would be slow with thousands of them).
+  while IFS=$'\t' read -r kb d; do size["${d##*/}"]="$kb"; done < <(du -sk "$base"/*/ 2> /dev/null | sed 's#/\?$##')
+  for d in "$base"/*; do [ -d "$d" ] && ids+=("${d##*/}"); done
+  [ "${#ids[@]}" -gt 0 ] || { info "$(t runs.none)"; return 0; }
+  # What is going on and what nobody has reviewed stays, whatever the limits say.
+  for d in "$(runs_dir)"/active/*; do [ -e "$d" ] && keepit["${d##*/}"]=1; done
+  for d in "$(runs_dir)"/pending/*; do [ -e "$d" ] && keepit["${d##*/}"]=1; done
+  # Newest first: what fits the size budget stays, the rest (and whatever is too old) goes.
+  for ((n = ${#ids[@]} - 1; n >= 0; n--)); do
+    id="${ids[$n]}"
+    kb="${size[$id]:-0}"
+    acc=$((acc + kb)) total=$((total + kb))
+    [ -z "${keepit[$id]:-}" ] || continue
+    why=""
+    if [[ "${id:0:16}" < "$cutoff" ]]; then why="age"
+    elif [ "$acc" -gt $((maxmb * 1024)) ]; then why="size"; fi
+    [ -z "$why" ] || { reason[$id]="$why"; gone=$((gone + 1)); gonekb=$((gonekb + kb)); out+=("$id"); }
+  done
+  runs_fmt_kb "$total"; total_txt="$RUNS_F"
+  if [ "$gone" -eq 0 ]; then info "$(t runs.prune.nothing "$days" "$maxmb" "${#ids[@]}" "$total_txt")"; return 0; fi
+  runs_fmt_kb "$gonekb"
+  if [ "$dry" -eq 1 ]; then ui_h1 "$(t runs.prune.title_dry "$gone" "${#ids[@]}" "$RUNS_F")"; else ui_h1 "$(t runs.prune.title "$gone" "${#ids[@]}" "$RUNS_F")"; fi
+  ui_table_cols 24 14 14 12
+  ui_th "$(t runs.col.id)" "$(t runs.col.op)" "$(t runs.col.instance)" "$(t runs.prune.col.size)" "$(t runs.prune.col.why)"
+  for id in "${out[@]}"; do
+    runs_meta_read "$base/$id" || RUN=()
+    runs_fmt_kb "${size[$id]:-0}"
+    ui_tr "$id" "${RUN[OP]:--}" "${RUN[INSTANCE]:--}" "$RUNS_F" "dim:$(t "runs.prune.why.${reason[$id]}" "$days" "$maxmb")"
+  done
+  ui_hint "$(t runs.prune.keeps)"
+  [ "$dry" -eq 0 ] || return 0
+  del="$(mktemp "$(runs_dir)/.prune.XXXXXX")" || die "$(t runs.cannot_record "$(runs_dir)")"
+  printf '%s\n' "${out[@]}" > "$del"
+  for id in "${out[@]}"; do rm -rf "${base:?}/$id"; done
+  if [ -s "$idx" ]; then
+    awk -F'\t' 'NR == FNR { gone[$1]; next } !($1 in gone)' "$del" "$idx" > "$del.idx" && mv -f "$del.idx" "$idx"
+  fi
+  rm -f "$del" "$del.idx"
+}
+
 cmd_runs() {
   local sub="${1:-list}"
   [ "$#" -eq 0 ] || shift
@@ -332,6 +449,8 @@ cmd_runs() {
     show) runs_show "$@" ;;
     logs | log) runs_logs "$@" ;;
     stats) runs_stats "$@" ;;
+    resolve) runs_resolve_cmd "$@" ;;
+    prune) runs_prune "$@" ;;
     *) die "$(t runs.usage)" ;;
   esac
 }

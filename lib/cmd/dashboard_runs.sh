@@ -94,7 +94,9 @@ dash_runs_load() {
   DASH_RUNS_SEL="$sel"
   id="${DASH_RUNS_LINES[$sel]:-}"
   DASH_RUNS_SEL_ID="${id%%$'\t'*}"
-  f="${DASH_RUNS_LINES[*]-}"
+  # Reviewing an interrupted run (./deltactl runs resolve) changes no index line: the pending marks are part of what is compared.
+  local -a pend=("$base"/pending/*)
+  f="${DASH_RUNS_LINES[*]-}|${pend[*]}"
   # A run in progress keeps writing: its detail (end of the output, figures) is built again at every load.
   if [ "$f" != "$DASH_RUNS_SIG" ] || [[ "$f" == *$'\trunning\t'* ]]; then
     DASH_RUNS_SIG="$f"
@@ -155,6 +157,7 @@ dash_runs_list_lines() { # inner_height inner_width
   for ((i = start; i < n && i < start + avail; i++)); do
     dash_runs_fields "$i"
     dash_runs_sym "$RN_ST"
+    [ ! -f "$INSTANCES_DIR/.deltactl/pending/$RN_ID" ] || DASH_RUNS_SYM="${DASH_SYM[err]}"   # an interrupted run nobody has reviewed
     when="${RN_WHEN:5:5} ${RN_WHEN:11:5}"
     if [ "$RN_ST" = "running" ]; then dt runs.state.running; dur="$DTV"; else runs_fmt_ms "$RN_MS"; dur="$RUNS_F"; fi
     printf -v ins '%-*s' "$nw" "${RN_INS:0:$nw}"
@@ -305,6 +308,16 @@ dash_runs_detail() {
   if [ -n "${RUN[ENDED_AT]:-}" ]; then dt runs.kv.ended; dash_runs_kv "$DTV" "${RUN[ENDED_AT]/T/ }"; fi
   runs_fmt_ms "${RUN[DURATION_MS]:-}"; dt runs.kv.duration; dash_runs_kv "$DTV" "$RUNS_F"
   dt runs.kv.who; dash_runs_kv "$DTV" "${RUN[USER]:--}@${RUN[HOST]:--}"
+  if [ -f "$INSTANCES_DIR/.deltactl/pending/$id" ]; then
+    dt tui.runs.review_pending; s="$DTV"
+    dt runs.kv.review; dash_runs_kv "$DTV" "$C_RED$s$C_OFF"
+    dtf tui.runs.resolve_cmd "$id"; DASH_RUNS_DET+=("   $C_GRY$DTF$C_OFF")
+  elif [ -n "${RUN[RESOLVED_AT]:-}" ]; then
+    dtf runs.review.done "${RUN[RESOLVED_AT]/T/ }"; s="$DTF"
+    [ -z "${RUN[NOTE]:-}" ] || s+=" $UI_S_DOT ${RUN[NOTE]}"
+    dt runs.kv.review; dash_runs_kv "$DTV" "$s"
+  fi
+  case "${RUN[STATE]}" in canceled | interrupted) dt tui.runs.partial; DASH_RUNS_DET+=(" $C_GRY$DTV$C_OFF") ;; esac
   # What matters most goes first (how it compares with the earlier runs), then the figures behind it. The comparison reads other
   # runs into RUN, so the run being shown is put back before its consumption is written.
   local -A mine=()

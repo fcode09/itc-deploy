@@ -72,6 +72,8 @@ de comandos; el menú y el asistente solo preguntan por ti y te muestran el coma
 ./deltactl runs                   # historial de operaciones (deploy, init, rollback, stop...): cuándo, cuánto tardó, cómo terminó
 ./deltactl runs logs last         # todo lo que imprimió la última operación (runs show last: el detalle y lo que consumió)
 ./deltactl runs stats             # lo que cuesta cada tipo de operación de media: duración, CPU, docker, memoria pico
+./deltactl runs resolve <id>      # marca como revisada una ejecución interrumpida (hasta entonces no se ejecuta nada nuevo)
+./deltactl runs prune --dry-run   # qué borraría de las ejecuciones viejas (30 días / 1 GB); sin --dry-run las borra
 ./deltactl check colorado         # comprueba todo lo que deploy exigiría, sin levantar nada (--mongo prueba las bases)
 ./deltactl doctor                 # diagnóstico del servidor: Docker, disco, memoria, Mongo, permisos
 ./deltactl new --wizard           # asistente: pregunta lo esencial y lista lo que falta completar
