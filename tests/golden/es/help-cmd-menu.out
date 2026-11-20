@@ -10,13 +10,16 @@ Uso
   $ ./deltactl menu [--classic]
 
 El panel en vivo
-En una terminal real (también al ejecutar `./deltactl` sin argumentos) abre un panel de una sola pantalla con tres vistas
-(teclas `1`, `2`, `3` o Tab): Instancias (la lista, el detalle de la seleccionada con su memoria y CPU en vivo, y la salida
-del último comando), Recursos (cada servicio con memoria, CPU y tendencia) y Salida (la salida completa del último comando,
-con desplazamiento). Muévete con ↑ ↓ ← → y Enter abre las acciones de la instancia. Los comandos corren dentro del panel,
-sin salir: `:` escribe cualquier comando de `deltactl` (Tab completa, ↑ repite el anterior), `!` lo ejecuta en el terminal
-(asistentes como `new --wizard`) y `x` cancela el que está en marcha. Las cifras se leen del kernel cada segundo y el estado
-se actualiza cuando Docker avisa de un cambio. `L` cambia entre español e inglés, `?` muestra todas las teclas y `q` sale.
+En una terminal real (también al ejecutar `./deltactl` sin argumentos) abre un panel de una sola pantalla con cinco vistas
+(teclas `1` a `5` o Tab): Instancias (la lista, el detalle de la seleccionada con su memoria y CPU en vivo, y la salida
+del último comando), Recursos (cada servicio con memoria, CPU y tendencia), Salida (la salida completa del último comando,
+con desplazamiento), Ejecuciones (el historial de lo que cambió algo, con su resultado, su consumo, la comparación con
+las anteriores y su salida guardada; `t` da las estadísticas) y Procesos (los procesos del comando en curso y lo que
+cuesta el propio panel). Muévete con ↑ ↓ ← → y Enter abre las acciones de la instancia.
+Los comandos corren dentro del panel, sin salir: `:` escribe cualquier comando de `deltactl` (Tab completa, ↑ repite el
+anterior), `!` lo ejecuta en el terminal (asistentes como `new --wizard`) y `x` cancela el que está en marcha. Las cifras
+se leen del kernel cada segundo y el estado se actualiza cuando Docker avisa de un cambio. `L` cambia entre español e
+inglés, `?` muestra todas las teclas y `q` sale.
 Sin terminal (un pipe, un script) o con `--classic` se usa el menú numerado que sigue.
 
 Opciones del menú numerado

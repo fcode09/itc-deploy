@@ -233,11 +233,51 @@ runs_show() {
   runs_show_vs "$id"   # last: it replaces RUN with the previous run
 }
 
-# What each kind of operation costs on average: runs stats [--instance <name>] [-n <runs to look at>]
+# What each kind of operation costs on average. The figures are gathered here (CLI and panel share them) into the RS_* tables.
+declare -gA RS_CNT=() RS_OK=() RS_BAD=() RS_SDUR=() RS_NDUR=() RS_SCPU=() RS_NCPU=() RS_SDK=() RS_NDK=() RS_PEAK=()
+RS_OPS=() RS_N=0
+RS_C_DUR="" RS_C_CPU="" RS_C_DK="" RS_C_PEAK=""
+
+# Looks at the last $2 runs (of instance $1, or of all when empty). Returns 1 when there is no history at all; RS_OPS is empty
+# when there is history but none of it finished.
+runs_stats_collect() { # instance count
+  local inst="$1" n="$2" d op
+  local -a dirs=()
+  RS_CNT=() RS_OK=() RS_BAD=() RS_SDUR=() RS_NDUR=() RS_SCPU=() RS_NCPU=() RS_SDK=() RS_NDK=() RS_PEAK=() RS_OPS=() RS_N=0
+  [ -d "$(runs_dir)/runs" ] || return 1
+  for d in "$(runs_dir)"/runs/*; do [ -d "$d" ] && dirs+=("$d"); done
+  [ "${#dirs[@]}" -gt 0 ] || return 1
+  [ "${#dirs[@]}" -le "$n" ] || dirs=("${dirs[@]: -$n}")
+  RS_N="${#dirs[@]}"
+  for d in "${dirs[@]}"; do
+    runs_meta_read "$d" || continue
+    [ -z "$inst" ] || [ "${RUN[INSTANCE]:-}" = "$inst" ] || continue
+    case "${RUN[STATE]:-}" in succeeded | failed | canceled) ;; *) continue ;; esac   # running and interrupted ones have no figures
+    op="${RUN[OP]:-?}"
+    [ -n "${RS_CNT[$op]:-}" ] || RS_OPS+=("$op")
+    RS_CNT[$op]=$((${RS_CNT[$op]:-0} + 1))
+    case "${RUN[STATE]:-}" in succeeded) RS_OK[$op]=$((${RS_OK[$op]:-0} + 1)) ;; failed) RS_BAD[$op]=$((${RS_BAD[$op]:-0} + 1)) ;; esac
+    if [[ "${RUN[DURATION_MS]:-}" =~ ^[0-9]+$ ]]; then RS_SDUR[$op]=$((${RS_SDUR[$op]:-0} + ${RUN[DURATION_MS]})); RS_NDUR[$op]=$((${RS_NDUR[$op]:-0} + 1)); fi
+    if [[ "${RUN[CPU_MS]:-}" =~ ^[0-9]+$ ]]; then RS_SCPU[$op]=$((${RS_SCPU[$op]:-0} + ${RUN[CPU_MS]})); RS_NCPU[$op]=$((${RS_NCPU[$op]:-0} + 1)); fi
+    if [[ "${RUN[DOCKER_MS]:-}" =~ ^[0-9]+$ ]]; then RS_SDK[$op]=$((${RS_SDK[$op]:-0} + ${RUN[DOCKER_MS]})); RS_NDK[$op]=$((${RS_NDK[$op]:-0} + 1)); fi
+    if [[ "${RUN[PEAK_RSS_KB]:-}" =~ ^[0-9]+$ ]] && [ "${RUN[PEAK_RSS_KB]}" -gt "${RS_PEAK[$op]:-0}" ]; then RS_PEAK[$op]="${RUN[PEAK_RSS_KB]}"; fi
+  done
+  return 0
+}
+
+# The averages of one operation as text: RS_C_DUR, RS_C_CPU, RS_C_DK and RS_C_PEAK ("-" when there is no figure).
+runs_stats_cells() { # op
+  local op="$1"
+  RS_C_DUR="-" RS_C_CPU="-" RS_C_DK="-" RS_C_PEAK="-"
+  if [ "${RS_NDUR[$op]:-0}" -gt 0 ]; then runs_fmt_ms $((${RS_SDUR[$op]} / ${RS_NDUR[$op]})); RS_C_DUR="$RUNS_F"; fi
+  if [ "${RS_NCPU[$op]:-0}" -gt 0 ]; then runs_fmt_ms $((${RS_SCPU[$op]} / ${RS_NCPU[$op]})); RS_C_CPU="$RUNS_F"; fi
+  if [ "${RS_NDK[$op]:-0}" -gt 0 ]; then runs_fmt_ms $((${RS_SDK[$op]} / ${RS_NDK[$op]})); RS_C_DK="$RUNS_F"; fi
+  if [ "${RS_PEAK[$op]:-0}" -gt 0 ]; then runs_fmt_kb "${RS_PEAK[$op]}"; RS_C_PEAK="$RUNS_F"; fi
+}
+
+# runs stats [--instance <name>] [-n <runs to look at>]
 runs_stats() {
-  local inst="" n=100 d id op st ms k
-  local -A cnt=() ok=() bad=() sdur=() ndur=() scpu=() ncpu=() sdk=() ndk=() peak=()
-  local -a ops=() dirs=()
+  local inst="" n=100 op k
   while [ "$#" -gt 0 ]; do
     case "$1" in
       --instance) [ "$#" -gt 1 ] || die "$(t runs.usage)"; inst="$2"; shift ;;
@@ -247,35 +287,15 @@ runs_stats() {
     shift
   done
   [[ "$n" =~ ^[0-9]+$ ]] && [ "$n" -gt 0 ] || die "$(t runs.usage)"
-  [ -d "$(runs_dir)/runs" ] || die "$(t runs.none)"
-  for d in "$(runs_dir)"/runs/*; do [ -d "$d" ] && dirs+=("$d"); done
-  [ "${#dirs[@]}" -gt 0 ] || die "$(t runs.none)"
-  [ "${#dirs[@]}" -le "$n" ] || dirs=("${dirs[@]: -$n}")
-  for d in "${dirs[@]}"; do
-    runs_meta_read "$d" || continue
-    [ -z "$inst" ] || [ "${RUN[INSTANCE]}" = "$inst" ] || continue
-    case "${RUN[STATE]}" in succeeded | failed | canceled) ;; *) continue ;; esac   # running and interrupted ones have no figures
-    op="${RUN[OP]}"
-    [ -n "${cnt[$op]:-}" ] || ops+=("$op")
-    cnt[$op]=$((${cnt[$op]:-0} + 1))
-    case "${RUN[STATE]}" in succeeded) ok[$op]=$((${ok[$op]:-0} + 1)) ;; failed) bad[$op]=$((${bad[$op]:-0} + 1)) ;; esac
-    if [[ "${RUN[DURATION_MS]:-}" =~ ^[0-9]+$ ]]; then sdur[$op]=$((${sdur[$op]:-0} + ${RUN[DURATION_MS]})); ndur[$op]=$((${ndur[$op]:-0} + 1)); fi
-    if [[ "${RUN[CPU_MS]:-}" =~ ^[0-9]+$ ]]; then scpu[$op]=$((${scpu[$op]:-0} + ${RUN[CPU_MS]})); ncpu[$op]=$((${ncpu[$op]:-0} + 1)); fi
-    if [[ "${RUN[DOCKER_MS]:-}" =~ ^[0-9]+$ ]]; then sdk[$op]=$((${sdk[$op]:-0} + ${RUN[DOCKER_MS]})); ndk[$op]=$((${ndk[$op]:-0} + 1)); fi
-    if [[ "${RUN[PEAK_RSS_KB]:-}" =~ ^[0-9]+$ ]] && [ "${RUN[PEAK_RSS_KB]}" -gt "${peak[$op]:-0}" ]; then peak[$op]="${RUN[PEAK_RSS_KB]}"; fi
-  done
-  if [ "${#ops[@]}" -eq 0 ]; then info "$(t runs.none)"; return 0; fi
-  ui_h1 "$(t runs.stats_title "${#dirs[@]}")"
+  runs_stats_collect "$inst" "$n" || die "$(t runs.none)"
+  if [ "${#RS_OPS[@]}" -eq 0 ]; then info "$(t runs.none)"; return 0; fi
+  ui_h1 "$(t runs.stats_title "$RS_N")"
   ui_table_cols 12 7 6 8 14 14 14
   ui_th "$(t runs.col.op)" "$(t runs.col.runs)" "$(t runs.col.ok)" "$(t runs.col.failed)" "$(t runs.col.avg_duration)" "$(t runs.col.avg_cpu)" "$(t runs.col.avg_docker)" "$(t runs.col.peak_mem)"
-  for op in "${ops[@]}"; do
-    local a_d="-" a_c="-" a_k="-" p="-"
-    if [ "${ndur[$op]:-0}" -gt 0 ]; then runs_fmt_ms $((${sdur[$op]} / ${ndur[$op]})); a_d="$RUNS_F"; fi
-    if [ "${ncpu[$op]:-0}" -gt 0 ]; then runs_fmt_ms $((${scpu[$op]} / ${ncpu[$op]})); a_c="$RUNS_F"; fi
-    if [ "${ndk[$op]:-0}" -gt 0 ]; then runs_fmt_ms $((${sdk[$op]} / ${ndk[$op]})); a_k="$RUNS_F"; fi
-    if [ "${peak[$op]:-0}" -gt 0 ]; then runs_fmt_kb "${peak[$op]}"; p="$RUNS_F"; fi
-    k="${bad[$op]:-0}"
-    ui_tr "bold:$op" "${cnt[$op]}" "${ok[$op]:-0}" "$( [ "$k" -gt 0 ] && printf 'err:%s' "$k" || printf '%s' "$k")" "$a_d" "$a_c" "$a_k" "$p"
+  for op in "${RS_OPS[@]}"; do
+    runs_stats_cells "$op"
+    k="${RS_BAD[$op]:-0}"
+    ui_tr "bold:$op" "${RS_CNT[$op]}" "${RS_OK[$op]:-0}" "$( [ "$k" -gt 0 ] && printf 'err:%s' "$k" || printf '%s' "$k")" "$RS_C_DUR" "$RS_C_CPU" "$RS_C_DK" "$RS_C_PEAK"
   done
   ui_hint "$(t runs.cons_note)"
 }
