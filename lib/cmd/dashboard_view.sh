@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC2034  # the DASH_* and DSV_* variables are shared with lib/cmd/dashboard.sh
-# Drawing of the interactive panel: header, tabs, the three views (instances, resources, output), the dialogs and
+# Drawing of the interactive panel: header, tabs, the views (instances, resources, output; runs is in dashboard_runs.sh), the dialogs and
 # the key bars. Sourced by lib/cmd/dashboard.sh. It only builds TUI_FRAME; it never runs anything.
 #
 # Speed matters here: a frame is built at most once per change and every helper returns its result in a variable
@@ -49,6 +49,10 @@ dash_texts_build() {
   DASH_KEYS[zoom]="$(t tui.keys.zoom "$DASH_UD")"
   DASH_KEYS[resources]="$(t tui.keys.resources "$DASH_UD" "$DASH_LR")"
   DASH_KEYS[output]="$(t tui.keys.output "$DASH_UD" "$DASH_LR")"
+  DASH_KEYS[runs]="$(t tui.keys.runs "$DASH_UD")"
+  DASH_KEYS[runs_stats]="$(t tui.keys.runs_stats)"
+  DASH_KEYS[runs_log]="$(t tui.keys.runs_log "$DASH_UD")"
+  DASH_KEYS[procs]="$(t tui.keys.procs "$DASH_UD")"
 }
 
 # A usage bar in a variable: dash_bar <percent> [cells]  (green below 70 %, yellow below 85 %, red above). Remembered.
@@ -176,24 +180,30 @@ dash_job_label() {
 }
 DASH_JL=""
 
-# The tab line: the three views and, at the right, the state of the current command.
+# The tab line: the views and, at the right, the state of the current command.
 dash_tabs_line() {
-  local v i=0 left="" right="" pad lw rw
-  for v in instances resources output; do
+  local v i=0 left="" short="" right="" pad lw rw piece
+  for v in instances resources output runs procs; do
     i=$((i + 1))
     dt "tui.tab.$v"
     if [ "$DASH_VIEW" = "$v" ]; then
       # The active view is a filled pill; without colours it keeps the bracketed form.
-      if [ -n "${TH[sel]:-}" ]; then left+=" ${TH[sel]}$C_BLD $i $DTV $C_OFF"; else left+=" $DASH_REV$C_BLD$C_CYN[$i $DTV]$C_OFF"; fi
+      if [ -n "${TH[sel]:-}" ]; then piece=" ${TH[sel]}$C_BLD $i $DTV $C_OFF"; else piece=" $DASH_REV$C_BLD$C_CYN[$i $DTV]$C_OFF"; fi
+      left+="$piece" short+="$piece"
     else
       left+="  ${TH[key]:-}$i$C_OFF $C_GRY$DTV$C_OFF "
+      short+="  ${TH[key]:-}$i$C_OFF "
     fi
   done
   dash_job_label
   right="$DASH_JL"
+  # The card of the command that is running: how many processes it has and what they use (see dashboard_procs.sh).
+  if [ -n "$DASH_PC_TXT" ] && job_running; then right+=" $C_GRY$UI_S_DOT $DASH_PC_TXT$C_OFF"; fi
   if [ "$DASH_PAUSED" -eq 1 ]; then dt tui.paused; right="$C_YEL$DTV$C_OFF${right:+  $right}"; fi
   tui_vlen "$left"; lw="$TUI_VL"
   tui_vlen "$right"; rw="$TUI_VL"
+  # What the running command says matters more than the names of the other views: they shrink to their numbers first.
+  if [ $((lw + rw + 2)) -gt "$TUI_COLS" ]; then left="$short"; tui_vlen "$left"; lw="$TUI_VL"; fi
   if [ $((lw + rw + 2)) -gt "$TUI_COLS" ]; then
     tui_clip "$right" $((TUI_COLS - lw - 2)); right="$TUI_OUT"; tui_vlen "$right"; rw="$TUI_VL"
   fi
@@ -1231,6 +1241,7 @@ dash_key_line() {
         elif [ "$DASH_FOCUS" = "svc" ]; then kv=services
         elif [ "$DASH_FOCUS" = "logs" ]; then kv=logs; fi
       fi
+      [ "$DASH_VIEW" != "runs" ] || { [ "$DASH_RUNS_MODE" != "stats" ] && [ "$DASH_RUNS_MODE" != "log" ]; } || kv="runs_$DASH_RUNS_MODE"
       dash_keybar "${DASH_KEYS[$kv]}"
       line="$DASH_KBV"
       if job_running; then dt tui.keys.running; line+=" $C_DIM$UI_S_DOT$C_OFF $C_YEL$DTV$C_OFF"; fi
@@ -1269,6 +1280,8 @@ dash_build_body() { # body_height
             ;;
           resources) dash_view_resources "$bh" ;;
           output) dash_view_output "$bh" ;;
+          runs) dash_view_runs "$bh" ;;
+          procs) dash_view_procs "$bh" ;;
         esac
         ;;
     esac
@@ -1288,6 +1301,7 @@ dash_render() {
   sig="$DASH_VIEW|$DASH_MODE|$DASH_SEL|$DASH_SVC|$DASH_FOCUS|$DASH_ON_NEW|$DASH_RES_SEL|$DASH_RES_SORT|$MT_SAMPLES|$DASH_REFRESH_N|$DASH_ERRS_N|$DASH_LANG_N"
   sig+="|$DASH_EV_N|$DASH_LOGS_N|$JOB_SEQ|$JOB_TOTAL|${JOB_RC-r}|$JOB_CANCELLED|$DASH_OUT_SCROLL|$DASH_OUT_ERRORS|$TUI_ROWS|$TUI_COLS|$DASH_MENU_SEL|$DASH_CONF_TEXT|$DASH_NAME_TARGET"
   [ "$DASH_MODE" != "name" ] || sig+="|$DASH_BUF"
+  sig+="|$DASH_RUNS_SEL|$DASH_RUNS_OFF|$DASH_RUNS_MODE|$DASH_RUNS_N|$DASH_RUNS_STATS_INST|$DASH_RV_TOP|$DASH_RV_END|$DASH_RV_TOTAL|$DASH_PROCS_N|$DASH_PROCS_OFF|$DASH_PC_TXT"
   sig+="|$DASH_CON_N|$DASH_CON_SCROLL|$DASH_ZOOM|$DASH_LOG_SCROLL|$DASH_LOG_FILTER|$DASH_PAL_Q|$DASH_PAL_SEL"
   [ "$DASH_MODE" != "filter" ] || sig+="|$DASH_BUF|$DASH_CUR"
   { [ "$DASH_MODE" != "cmd" ] || [ "$DASH_VIEW" != "instances" ]; } || sig+="|$DASH_BUF|$DASH_CUR"

@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC2034  # the DASH_* and DSV_* variables are shared with lib/cmd/dashboard_view.sh
-# The interactive panel: one screen, three views, live figures. It is what ./deltactl and ./deltactl menu open in a
+# The interactive panel: one screen, four views, live figures. It is what ./deltactl and ./deltactl menu open in a
 # real terminal; without one (a pipe, a script, TERM=dumb) they keep showing the static home screen and the numbered menu.
 #
-# Views (1, 2, 3 or Tab): Instances (list + detail of the selected one + output of the last command), Resources (every
-# service with memory, CPU and trend) and Output (the full output of the last command, scrollable).
+# Views (1 to 5 or Tab): Instances (list + detail of the selected one + output of the last command), Resources (every
+# service with memory, CPU and trend), Output (the full output of the last command, scrollable) and Runs (the history of the
+# operations that changed something, lib/cmd/dashboard_runs.sh) and Processes (what the running command is made of and what the
+# panel itself costs, lib/cmd/dashboard_procs.sh).
 # Commands run in the background inside the panel (lib/core/jobs.sh): the screen keeps updating while they run and
 # `:` runs any ./deltactl command. Interactive commands (wizards) run in the terminal and come back.
 #
@@ -18,8 +20,10 @@ source "$ROOT/lib/cmd/status.sh"
 source "$ROOT/lib/cmd/help.sh"
 source "$ROOT/lib/ui/tui.sh"
 source "$ROOT/lib/cmd/dashboard_view.sh"
+source "$ROOT/lib/cmd/dashboard_runs.sh"
+source "$ROOT/lib/cmd/dashboard_procs.sh"
 
-DASH_VIEW=instances       # instances | resources | output
+DASH_VIEW=instances       # instances | resources | output | runs | procs
 DASH_MODE=normal          # normal | menu | confirm | name | cmd | help
 DASH_SEL=0 DASH_SVC=0 DASH_RES_SEL=0 DASH_RES_SORT=name DASH_FOCUS=list DASH_ON_NEW=0
 DASH_ZOOM=0 DASH_LOG_SCROLL=0 DASH_LOG_FILTER="" DASH_PAL_Q="" DASH_PAL_SEL=0
@@ -245,6 +249,7 @@ dash_async_tick() {
   if dash_async_take state; then dash_state_apply "$DASH_AS_TEXT"; changed=0; fi
   if dash_async_take errors; then dash_errors_apply "${DASH_AS_ARG[errors]}" "$DASH_AS_TEXT"; changed=0; fi
   if dash_async_take logs; then dash_logs_apply "${DASH_AS_ARG[logs]}" "$DASH_AS_TEXT"; changed=0; fi
+  if dash_async_take rvidx; then dash_runs_log_index "${DASH_AS_ARG[rvidx]}" "$DASH_AS_TEXT"; changed=0; fi
   return "$changed"
 }
 
@@ -327,6 +332,7 @@ dash_shutdown() {
   tui_leave
   theme_restore
   [ -z "$DASH_EV_PID" ] || kill "$DASH_EV_PID" 2>/dev/null || true
+  dash_runs_log_cancel_scan
   dash_async_stop
   DASH_EV_PID=""
   job_cleanup
@@ -391,6 +397,7 @@ dash_job_tick() {
       dash_con_add "${DASH_SYM[err]} $(t tui.msg.finished_err "./deltactl $JOB_TITLE" "$JOB_RC" "$secs")"
     fi
     dash_refresh_request
+    DASH_RUNS_AT=-1000   # the command left a run: the Runs view reads the history again
   fi
 }
 
@@ -402,6 +409,8 @@ dash_tick() {
   if dash_events_drain; then DASH_EV_PENDING=1; fi
   # What finished in the background is applied at once, even while paused (it was already asked for).
   if dash_async_tick; then DASH_DIRTY=1; fi
+  dash_runs_tick
+  dash_procs_tick
   if [ "$DASH_PAUSED" -eq 0 ]; then
     if [ -n "$DASH_EV_FD" ]; then interval="$DASH_SAFETY_SECONDS"; else interval="$DASH_REFRESH_SECONDS"; fi
     if [ "$DASH_EV_PENDING" -eq 1 ] || [ $((SECONDS - DASH_REFRESH_AT)) -ge "$interval" ]; then
@@ -560,7 +569,8 @@ dash_key_global() { # key ; returns 0 when handled
   case "$1" in
     q) DASH_QUIT=1 ;;
     esc)
-      if [ "$DASH_VIEW" != "instances" ]; then DASH_VIEW=instances
+      if [ "$DASH_VIEW" = "runs" ] && [ "$DASH_RUNS_MODE" != "list" ]; then DASH_RUNS_MODE=list   # the statistics first
+      elif [ "$DASH_VIEW" != "instances" ]; then DASH_VIEW=instances
       elif [ "$DASH_ZOOM" -eq 1 ]; then DASH_ZOOM=0           # the zoom first
       elif [ "$DASH_FOCUS" != "list" ]; then DASH_FOCUS=list  # then one step back, like the left arrow
       else DASH_QUIT=1; fi
@@ -568,17 +578,19 @@ dash_key_global() { # key ; returns 0 when handled
     1) DASH_VIEW=instances ;;
     2) DASH_VIEW=resources ;;
     3) DASH_VIEW=output ;;
+    4) DASH_VIEW=runs ;;
+    5) DASH_VIEW=procs ;;
     tab)
-      case "$DASH_VIEW" in instances) dash_focus_cycle 1 ;; resources) DASH_VIEW=output ;; *) DASH_VIEW=instances ;; esac
+      case "$DASH_VIEW" in instances) dash_focus_cycle 1 ;; resources) DASH_VIEW=output ;; output) DASH_VIEW=runs ;; runs) DASH_VIEW=procs ;; *) DASH_VIEW=instances ;; esac
       ;;
     btab)
-      case "$DASH_VIEW" in instances) dash_focus_cycle -1 ;; resources) DASH_VIEW=instances ;; *) DASH_VIEW=resources ;; esac
+      case "$DASH_VIEW" in instances) dash_focus_cycle -1 ;; resources) DASH_VIEW=instances ;; output) DASH_VIEW=resources ;; runs) DASH_VIEW=output ;; *) DASH_VIEW=runs ;; esac
       ;;
     $'\020') dash_open_palette ;;                                    # Ctrl+P
     '?') DASH_MODE=help ;;
     L) dash_toggle_language ;;
     T) dash_cycle_theme ;;
-    r) dash_refresh_request; DASH_ERRS_AT=(); dash_msg info "$(t tui.msg.refreshed)" ;;
+    r) dash_refresh_request; DASH_ERRS_AT=(); DASH_RUNS_AT=-1000; dash_msg info "$(t tui.msg.refreshed)" ;;
     p)
       if [ "$DASH_PAUSED" -eq 0 ]; then DASH_PAUSED=1; dash_msg info "$(t tui.msg.paused)"; else DASH_PAUSED=0; dash_msg info "$(t tui.msg.resumed)"; fi
       ;;
@@ -744,7 +756,7 @@ dash_pal_build() {
   fi
   dt tui.pal.go
   for i in "${!DASH_NAMES[@]}"; do dash_pal_add "${DTV//\{1\}/${DASH_NAMES[$i]}}" "inst:$i"; done
-  for v in instances resources output; do dt "tui.tab.$v"; id="$DTV"; dt tui.pal.view; dash_pal_add "${DTV//\{1\}/$id}" "view:$v"; done
+  for v in instances resources output runs procs; do dt "tui.tab.$v"; id="$DTV"; dt tui.pal.view; dash_pal_add "${DTV//\{1\}/$id}" "view:$v"; done
   dt tui.pal.theme
   for th in "${TH_THEMES[@]}"; do dash_pal_add "${DTV//\{1\}/$th}" "theme:$th"; done
   dt tui.pal.new; dash_pal_add "$DTV" "new"
@@ -932,7 +944,7 @@ dash_builtin() { # command args...
       ;;
     goto | view)
       case "${1:-}" in
-        instances | resources | output) DASH_VIEW="$1" ;;
+        instances | resources | output | runs | procs) DASH_VIEW="$1" ;;
         *) dash_con_add "$C_RED$(t tui.con.bad_view)$C_OFF" ;;
       esac
       ;;
@@ -1117,6 +1129,8 @@ dash_handle_key() {
         instances) dash_key_instances "$k" ;;
         resources) dash_key_resources "$k" ;;
         output) dash_key_output "$k" ;;
+        runs) dash_key_runs "$k" ;;
+        procs) dash_key_procs "$k" ;;
       esac
       ;;
   esac
