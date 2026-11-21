@@ -67,6 +67,17 @@ imágenes) → `perf(panel)` (segundo plano, dibujo rápido, caché del cuerpo).
   archivo temporal y un renombrado). El archivo son datos: una línea que no es un alias válido se ignora. Solo admiten órdenes de
   deltactl y del panel: uno que empiece por `!` (el terminal) se rechaza, igual que un nombre que taparía un comando. Se sustituyen
   una sola vez.
+- **Layout por reglas** (`lib/ui/layout.sh`): los repartos de la vista Instancias (ancha y compacta) se calculan con
+  `lay_split total "deseado:mínimo:máximo:crece[:opcional]"...`: cada panel empieza en su tamaño deseado dentro de sus límites;
+  si no caben, encogen primero los que crecen, luego caen los opcionales (la columna de eventos, la caja del servidor), luego los
+  demás bajan a su mínimo y, en último caso, se recortan; lo que sobra va a los que crecen según su peso y el resto al último panel,
+  de modo que siempre se llena el total. Se verificó con 990 fotogramas (11 anchos x 9 altos x varios escenarios) antes y después
+  del cambio: idénticos. El reparto interno del centro (tabla, gráficos de altura `2*R+5`, siguientes pasos y logs) sigue en su
+  panel porque sus alturas van a saltos.
+- **Caché por panel**: la lista, el servidor, el centro (tabla, gráficos y siguientes pasos) y el detalle de la vista compacta se
+  guardan con la firma del estado del que dependen (estado de Docker, cifras, errores, selección, foco, tamaño, tema e idioma) y
+  se reutilizan mientras no cambie; los logs y los eventos ya tenían la suya. Un fotograma tras una línea de log o una tecla
+  escrita pasa de ~21 a ~11 ms a 160x40 y de ~12 a ~6 ms a 110x30 (tras una muestra no cambia: ahí todo cambia de verdad).
 - **Ratón** (desactivado por defecto; se activa en Opciones, `TUI_MOUSE=on`): modo SGR (1000 + 1006). Clic en una pestaña abre su
   vista; en una instancia la selecciona y un segundo clic abre sus acciones (como Enter); en "+ Nueva instancia" la selecciona y otro
   clic abre el asistente; en la vista Consola da el teclado a la línea. La rueda hace lo que las flechas allí donde mueven algo y, en
@@ -92,6 +103,7 @@ con color) y en el muestreo (~10 ms). Los gráficos ya son incrementales (`gfx_a
 | `lib/cmd/dashboard_procs.sh` | Vista Procesos y tarjeta de la cabecera: árbol de `/proc` (`DELTACTL_PROC_ROOT` en los tests) y coste del panel |
 | `lib/cmd/dashboard_options.sh` | Pantalla de Opciones: lectura y validación de `TUI_*` en el archivo de configuración, cambios y diálogo |
 | `lib/cmd/dashboard_alias.sh` | Alias de la consola: validación, archivo `aliases`, órdenes `alias`/`unalias` y sustitución |
+| `lib/ui/layout.sh` | Motor de layout: `lay_split` reparte columnas o filas entre paneles por reglas (deseado, mínimo, máximo, crecimiento, opcional) |
 | `lib/ui/tui.sh` | Terminal: pantalla alterna, teclas, cajas, recorte con colores, dibujo incremental |
 | `lib/core/metrics.sh` | Muestreo de memoria/CPU por servicio, historial, formato (bytes, %, sparkline) |
 | `lib/core/jobs.sh` | Un comando en segundo plano: salida sin `fork`, cancelación (TERM y luego KILL a los 2 s) |
