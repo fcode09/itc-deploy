@@ -56,6 +56,22 @@ imágenes) → `perf(panel)` (segundo plano, dibujo rápido, caché del cuerpo).
   `~/.config/deltactl/config` que `UI_LANG` y `UI_THEME` (`TUI_SAMPLE`, `TUI_REFRESH`, `TUI_VIM=on|off`), con escritura atómica
   (`set_var`). `DELTACTL_THEME`, `DELTACTL_LANG`, `DELTACTL_METRICS_INTERVAL` y `DELTACTL_REFRESH` siguen mandando al arrancar, y la
   pantalla lo indica. Un valor del archivo que no sea un número dentro de su rango se ignora (vale el de por defecto).
+- **Consola a pantalla completa** (vista `6 Consola`): la misma consola de la vista Instancias ocupando todo el cuerpo. `6` (o
+  `goto console`, o un clic en la pestaña) la abre con la línea lista para escribir y, tras cada orden, la línea sigue lista, como en
+  un terminal; las órdenes se quedan en la consola en vez de abrir Salida. Esc suelta el teclado (↑↓, PgUp/PgDn casi una pantalla e
+  Inicio/Fin recorren lo escrito; Enter o `:` vuelven a escribir) y otra Esc vuelve a Instancias. Tab llega a ella desde Procesos sin
+  tomar el teclado, para que recorrer las vistas con Tab nunca se quede atascado en la línea.
+- **Alias de la consola** (`lib/cmd/dashboard_alias.sh`): `alias up=deploy colorado` hace que `up` valga por esa orden como primera
+  palabra (el resto de la línea va detrás: `alias lg=logs colorado` y luego `lg s0 -f`); `alias` los lista, `alias up` muestra uno y
+  `unalias up` lo borra; Tab completa sus nombres. Se guardan en `aliases`, junto al historial (modo 600, reescrito entero con un
+  archivo temporal y un renombrado). El archivo son datos: una línea que no es un alias válido se ignora. Solo admiten órdenes de
+  deltactl y del panel: uno que empiece por `!` (el terminal) se rechaza, igual que un nombre que taparía un comando. Se sustituyen
+  una sola vez.
+- **Ratón** (desactivado por defecto; se activa en Opciones, `TUI_MOUSE=on`): modo SGR (1000 + 1006). Clic en una pestaña abre su
+  vista; en una instancia la selecciona y un segundo clic abre sus acciones (como Enter); en "+ Nueva instancia" la selecciona y otro
+  clic abre el asistente; en la vista Consola da el teclado a la línea. La rueda hace lo que las flechas allí donde mueven algo y, en
+  una línea que se está escribiendo, desplaza lo escrito en vez de recorrer el historial. Mientras está activo, el texto se selecciona
+  con Mayús. Se apaga al salir, al abrir una shell o un asistente, y vuelve al regresar.
 - **Ver el resultado sin terminal**: `python3 tests/tools/pty_shot.py salida.json FILAS COLUMNAS sleep:10` captura el panel real con color
   (solo lectura sobre Docker) y `pwsh tests/tools/render_shot.ps1 -Json salida.json -Png salida.png` lo dibuja como imagen.
   `HARNESS_ROWS`/`HARNESS_COLS` hacen que `pty_harness.py` mida a otros tamaños.
@@ -75,6 +91,7 @@ con color) y en el muestreo (~10 ms). Los gráficos ya son incrementales (`gfx_a
 | `lib/cmd/dashboard_runs.sh` | Vista Ejecuciones: lectura del historial, detalle, comparación, estadísticas, visor de logs paginado, teclas |
 | `lib/cmd/dashboard_procs.sh` | Vista Procesos y tarjeta de la cabecera: árbol de `/proc` (`DELTACTL_PROC_ROOT` en los tests) y coste del panel |
 | `lib/cmd/dashboard_options.sh` | Pantalla de Opciones: lectura y validación de `TUI_*` en el archivo de configuración, cambios y diálogo |
+| `lib/cmd/dashboard_alias.sh` | Alias de la consola: validación, archivo `aliases`, órdenes `alias`/`unalias` y sustitución |
 | `lib/ui/tui.sh` | Terminal: pantalla alterna, teclas, cajas, recorte con colores, dibujo incremental |
 | `lib/core/metrics.sh` | Muestreo de memoria/CPU por servicio, historial, formato (bytes, %, sparkline) |
 | `lib/core/jobs.sh` | Un comando en segundo plano: salida sin `fork`, cancelación (TERM y luego KILL a los 2 s) |
@@ -186,7 +203,7 @@ Evitar patrones extglob en reemplazos (`//`) sobre cadenas largas.
 3. **Revisión nativa (RDD)** de los commits de esta rama: no se ejecutó (requiere tu consentimiento por cada commit).
 4. **Probar en el servidor real**: cgroup v2 con systemd está verificado en WSL; falta cgroup v1 real.
 5. Documentación: `README.md` y `lib/help/{,en/}cmd-menu.txt` ya describen el panel; falta una captura o guía corta de uso.
-6. Opcional: presets de layout y ratón (quedaron fuera de U5), historial de comandos persistente, filtro de instancias, vista nativa de imágenes, aviso visual de `oom` por eventos.
+6. Opcional: presets de layout (fuera de U5), ratón en más sitios (servicios, logs, menús), historial de comandos persistente, filtro de instancias, vista nativa de imágenes, aviso visual de `oom` por eventos.
 
 ## Límites conocidos
 
