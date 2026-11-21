@@ -482,14 +482,18 @@ dash_join() { # left_array right_array
 }
 
 dash_view_instances() { # body_height
-  local bh="$1" oh th lw rw lh dh name inner_h title off n="${#DASH_NAMES[@]}" lf=0
+  local bh="$1" oh th lw rw lh dh name inner_h title off n="${#DASH_NAMES[@]}" lf=0 mx
   [ "$DASH_FOCUS" != "list" ] || lf=1
+  # Rows: the panes on top grow, the console under them asks for more as the terminal gets taller.
   if [ "$bh" -ge 40 ]; then oh=$((bh * 3 / 10))   # tall terminal: the output of a command (a check is ~15 lines) fits whole
   elif [ "$bh" -ge 22 ]; then oh=8; elif [ "$bh" -ge 16 ]; then oh=6; else oh=4; fi
-  th=$((bh - oh))
+  lay_split "$bh" "0:0::1" "$oh:$oh:$oh"
+  th="${LAY[0]}" oh="${LAY[1]}"
   name="${DASH_NAMES[$DASH_SEL]:-}"
   if [ "$TUI_COLS" -ge 100 ]; then
-    lw=44; rw=$((TUI_COLS - lw))
+    # Columns: the list is fixed, the detail takes the rest.
+    lay_split "$TUI_COLS" "44:44:44" "0:0::1"
+    lw="${LAY[0]}" rw="${LAY[1]}"
     dash_list_lines $((th - 2))
     DASH_LIST_SHOWN=1 DASH_LIST_W="$lw"
     dt tui.instances
@@ -497,10 +501,10 @@ dash_view_instances() { # body_height
     dash_detail_box "$name" "$rw" "$th"; DASH_R=("${TUI_BOX[@]}")
     dash_join DASH_L DASH_R
   else
-    lh=$((n + 4))
-    [ "$lh" -le $((th / 2)) ] || lh=$((th / 2))
-    [ "$lh" -ge 4 ] || lh=4
-    dh=$((th - lh))
+    # One column: the list asks for a row per instance (at most half the rows, never less than 4), the detail takes the rest.
+    mx=$((th / 2)); [ "$mx" -ge 4 ] || mx=4
+    lay_split "$th" "$((n + 4)):4:$mx" "0:0::1"
+    lh="${LAY[0]}" dh="${LAY[1]}"
     dash_list_lines $((lh - 2))
     DASH_LIST_SHOWN=1 DASH_LIST_W="$TUI_COLS"
     dt tui.instances
@@ -890,22 +894,26 @@ DASH_EBOX=() DASH_EBOX_SIG="" DASH_LBOX=() DASH_LBOX_SIG=""
 
 # The whole overview body into TUI_FRAME ($1 lines).
 dash_view_overview() { # body_height
-  local bh="$1" lw=38 ew=0 cw cs top name i lh hh n="${#DASH_NAMES[@]}" lf=0
+  local bh="$1" lw=38 ew cw cs top name i lh hh n="${#DASH_NAMES[@]}" lf=0
   [ "$DASH_FOCUS" != "list" ] || lf=1
   local -a left=() center=() right=()
   name="${DASH_NAMES[$DASH_SEL]:-}"
+  # Columns: the list is fixed (wider on a wide terminal), the centre takes the rest but never less than 76, and the events column
+  # (36) only exists when it fits next to that.
   [ "$TUI_COLS" -lt 160 ] || lw=42
-  [ "$TUI_COLS" -lt 150 ] || ew=36
-  cw=$((TUI_COLS - lw - ew))
+  lay_split "$TUI_COLS" "$lw:$lw:$lw" "0:76::1" "36:36:36:0:1"
+  lw="${LAY[0]}" cw="${LAY[1]}" ew="${LAY[2]}"
+  # Rows: the panes grow, the console asks for 8 rows (22 % of a tall terminal, at most 16).
   cs=8
   [ "$bh" -lt 40 ] || cs=$((bh * 22 / 100))
   [ "$cs" -le 16 ] || cs=16
-  top=$((bh - cs))
-  # Left: the list takes what it needs (at most 40 %) and the server box the rest.
-  lh=$((n + 4)); [ "$lh" -ge 6 ] || lh=6
-  [ "$lh" -le $((top * 40 / 100)) ] || lh=$((top * 40 / 100))
-  hh=$((top - lh))
-  if [ "$hh" -lt 6 ]; then lh="$top"; hh=0; fi
+  lay_split "$bh" "0:0::1" "$cs:$cs:$cs"
+  top="${LAY[0]}" cs="${LAY[1]}"
+  # Left: the list asks for a row per instance (at least 6, at most 40 % of the rows); the server box takes the rest and is
+  # dropped when it would have less than 6.
+  lay_split "$top" "$((n + 4)):6:$((top * 40 / 100))" "0:6::1:1"
+  lh="${LAY[0]}" hh="${LAY[1]}"
+
   dash_list_lines $((lh - 2)) $((lw - 3))
   DASH_LIST_SHOWN=1 DASH_LIST_W="$lw"
   dt tui.instances
