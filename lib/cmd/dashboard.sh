@@ -602,7 +602,7 @@ dash_key_global() { # key ; returns 0 when handled
       esac
       ;;
     $'\020') dash_open_palette ;;                                    # Ctrl+P
-    '?') DASH_MODE=help ;;
+    '?') DASH_MODE=help DASH_HELP_OFF=-1 ;;
     L) dash_toggle_language ;;
     T) dash_cycle_theme ;;
     o) dash_open_options ;;
@@ -1193,7 +1193,7 @@ dash_handle_key() {
     confirm) dash_key_confirm "$k" ;;
     name | cmd | filter | find) dash_key_edit "$k" ;;
     palette) dash_key_palette "$k" ;;
-    help) DASH_MODE=normal ;;
+    help) dash_key_help "$k" ;;
     *)
       # The test mode has one more key: "wait" waits for the running command to end.
       if [ "$k" = "wait" ] && tui_test_mode; then
@@ -1219,6 +1219,29 @@ dash_handle_key() {
   esac
 }
 
+# The keys of the help (?): when it is taller than the screen, the arrows, PgUp/PgDn and Home/End move it; any other key goes back.
+dash_key_help() { # key
+  local page=$((TUI_ROWS - 8)) k="$1"
+  [ "$page" -ge 1 ] || page=1
+  # With the vim keys off, j k g G are letters like any other: they go back.
+  if [ "$DASH_VIM" -eq 0 ]; then case "$k" in j | k | g | G) k=other ;; esac; fi
+  if [ "$DASH_HELP_MAX" -gt 0 ]; then
+    case "$k" in
+      up | k) DASH_HELP_OFF=$((DASH_HELP_OFF - 1)) ;;
+      down | j) DASH_HELP_OFF=$((DASH_HELP_OFF + 1)) ;;
+      pgup) DASH_HELP_OFF=$((DASH_HELP_OFF - page)) ;;
+      pgdn) DASH_HELP_OFF=$((DASH_HELP_OFF + page)) ;;
+      home | g) DASH_HELP_OFF=0 ;;
+      end | G) DASH_HELP_OFF="$DASH_HELP_MAX" ;;
+      *) DASH_MODE=normal; return 0 ;;
+    esac
+    [ "$DASH_HELP_OFF" -ge 0 ] || DASH_HELP_OFF=0
+    [ "$DASH_HELP_OFF" -le "$DASH_HELP_MAX" ] || DASH_HELP_OFF="$DASH_HELP_MAX"
+    return 0
+  fi
+  DASH_MODE=normal
+}
+
 # --- Mouse (Options: off by default) ---------------------------------------------------------------------------
 # A click on a tab opens that view; on an instance it selects it, and a second click on the selected one opens its actions (like
 # Enter); on the New button it selects it, then starts the wizard. In the Console view a click gives the line the keyboard. The
@@ -1236,7 +1259,7 @@ dash_mouse() {
         dash_con_clamp
         return 0
       fi
-      case "$DASH_MODE" in name | filter | find | confirm | help) return 0 ;; esac
+      case "$DASH_MODE" in name | filter | find | confirm) return 0 ;; help) [ "$DASH_HELP_MAX" -gt 0 ] || return 0 ;; esac
       if [ "$b" -eq 64 ]; then TUI_KEY=up; else TUI_KEY=down; fi
       dash_handle_key
       return 0

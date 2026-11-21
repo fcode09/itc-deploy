@@ -67,6 +67,23 @@ imágenes) → `perf(panel)` (segundo plano, dibujo rápido, caché del cuerpo).
   archivo temporal y un renombrado). El archivo son datos: una línea que no es un alias válido se ignora. Solo admiten órdenes de
   deltactl y del panel: uno que empiece por `!` (el terminal) se rechaza, igual que un nombre que taparía un comando. Se sustituyen
   una sola vez.
+- **Barras de teclas que caben**: la última línea pierde elementos enteros, nunca medio: se quedan los primeros (cómo moverse) y
+  los dos últimos (ayuda y salir, o cómo volver); antes se cortaban a media palabra a 100 columnas (logs, zoom, consola) y casi
+  todas a 80.
+- **Pantalla de teclas (`?`)**: las líneas largas siguen debajo de su descripción (sangría francesa) en vez de cortarse; si no cabe
+  en la pantalla se desplaza (↑↓, PgUp/PgDn, Inicio/Fin, la rueda) y el título dice qué líneas muestra; abre en la sección de la
+  vista actual, resaltada. Tiene sección de Recursos, que faltaba.
+- **Matriz de terminales** (`tests/tools/pty_matrix.py`, fuera de la suite; necesita python3): lanza el panel en un pseudo-terminal
+  real contra un Docker simulado (12 instancias) y comprueba que arranca, que nada se dibuja más allá del borde derecho, que se
+  redibuja al redimensionar, el ratón, y que al salir deja la terminal como estaba (pantalla alterna, cursor, ratón, eco). Resultado
+  (2026-11-21): bien en xterm-256color (120x30 redimensionado a 80x24, y 200x55 a 160x40), xterm, screen-256color, consola de
+  Linux con `LANG=C`, vt100, `NO_COLOR`, truecolor con ratón, 60x14 y `TERM=dumb` (cae a la pantalla de inicio en texto). CPU
+  propia en reposo con 12 instancias simuladas a 120x30: Instancias 1,8 %, Recursos 1,8 %, Salida 0,5 %, Ejecuciones 0,5 %,
+  Procesos 0,75 % (2026-11-21, segunda pasada: 2,1 / 1,7 / 0,4 / 0,4 / 0,8 %). La herramienta mide también la CPU de lo que lanza el
+  panel: casi toda es la relectura del estado (cada 30 s con eventos de Docker), que con 12 instancias simuladas cuesta ~1 s de
+  reloj y ~1,25 s de CPU; buena parte es el Docker simulado (cada llamada arranca un script de Bash), así que hay que medirla con el
+  Docker real del servidor antes de concluir nada. Falta probar Windows Terminal/WSL y SSH reales.
+- **Guía de uso**: [panel.md](panel.md).
 - **Layout por reglas** (`lib/ui/layout.sh`): los repartos de la vista Instancias (ancha y compacta) se calculan con
   `lay_split total "deseado:mínimo:máximo:crece[:opcional]"...`: cada panel empieza en su tamaño deseado dentro de sus límites;
   si no caben, encogen primero los que crecen, luego caen los opcionales (la columna de eventos, la caja del servidor), luego los
@@ -214,7 +231,7 @@ Evitar patrones extglob en reemplazos (`//`) sobre cadenas largas.
    contenedores.
 3. **Revisión nativa (RDD)** de los commits de esta rama: no se ejecutó (requiere tu consentimiento por cada commit).
 4. **Probar en el servidor real**: cgroup v2 con systemd está verificado en WSL; falta cgroup v1 real.
-5. Documentación: `README.md` y `lib/help/{,en/}cmd-menu.txt` ya describen el panel; falta una captura o guía corta de uso.
+5. Documentación: guía corta en `docs/panel.md`; falta una captura.
 6. Opcional: presets de layout (fuera de U5), ratón en más sitios (servicios, logs, menús), historial de comandos persistente, filtro de instancias, vista nativa de imágenes, aviso visual de `oom` por eventos.
 
 ## Límites conocidos

@@ -1269,14 +1269,68 @@ dash_dialog_name() { # body_height
   dash_dialog "$1" "init" 50
 }
 
+# The keys (?): the help text over the body. A line too long for the screen goes on under its description (a hanging indent),
+# never cut; the heading of the current view stands out and, when the text is taller than the screen, it opens scrolled to it
+# (DASH_HELP_OFF -1) and the arrows, PgUp/PgDn and Home/End move it (dash_key_help).
+DASH_HELP_OFF=0 DASH_HELP_MAX=0
 dash_dialog_help() { # body_height
-  local line
-  DASH_DLG=("")
+  local bh="$1" w tw line i k ind n avail head hi=-1 acc first rest cur word pad title end started
+  local -a out=() words=()
+  w=$((TUI_COLS - 2)); [ "$w" -le 100 ] || w=100
+  tw=$((w - 6))     # the borders, the box's own space, two of indent and one of margin
+  acc="${TH[accent]:-$C_CYN}"
+  dt "tui.help.head.$DASH_VIEW"; head="$DTV"
   dt tui.help
-  while IFS= read -r line; do DASH_DLG+=("  $line"); done <<< "$DTV"
+  while IFS= read -r line; do
+    # (the heading of the current view is coloured after the line is wrapped: its colour codes take no room on screen)
+    first="${line%% *}"
+    [ -z "$first" ] || [ "$first" != "$head" ] || hi="${#out[@]}"
+    tui_vlen "$line"
+    if [ "$TUI_VL" -le "$tw" ]; then out+=("$line"); continue; fi
+    # Where the description starts: after the first run of three or more spaces (the padding of the keys' column), or after the
+    # first word of a heading at the start of the line ("RESOURCES ↑ ↓ ..."). The keys stay as they are on the first line; the
+    # lines that follow start under the description.
+    i=0; while [ "$i" -lt "${#line}" ] && [ "${line:$i:1}" = " " ]; do i=$((i + 1)); done
+    rest="${line:$i}" k=0
+    if [[ "$rest" == *"   "* ]]; then
+      word="${rest#*   }"; k=$((i + ${#rest} - ${#word}))
+    elif [ "$i" -eq 0 ] && [[ "$rest" == *" "* ]]; then
+      word="${rest#* }"; k=$((${#rest} - ${#word}))
+    fi
+    while [ "$k" -gt 0 ] && [ "$k" -lt "${#line}" ] && [ "${line:$k:1}" = " " ]; do k=$((k + 1)); done
+    if [ "$k" -gt 0 ] && [ "$k" -le $((tw / 2)) ]; then ind="$k"; cur="${line:0:$k}"; rest="${line:$k}"
+    else ind=$((i + 2)); cur="${line:0:$i}"; rest="${line:$i}"; fi
+    printf -v pad '%*s' "$ind" ''
+    read -ra words <<< "$rest"
+    started=0
+    for word in "${words[@]}"; do
+      if [ "$started" -eq 0 ]; then cur+="$word"; started=1
+      elif [ $((${#cur} + 1 + ${#word})) -gt "$tw" ]; then out+=("$cur"); cur="$pad$word"
+      else cur+=" $word"; fi
+    done
+    out+=("$cur")
+  done <<< "$DTV"
+  [ "$hi" -lt 0 ] || out[hi]="$acc$C_BLD$head$C_OFF${out[$hi]:${#head}}"
+  n="${#out[@]}"
+  avail=$((bh - 4)); [ "$avail" -ge 1 ] || avail=1
+  DASH_HELP_MAX=$((n - avail)); [ "$DASH_HELP_MAX" -ge 0 ] || DASH_HELP_MAX=0
+  if [ "$DASH_HELP_OFF" -lt 0 ]; then
+    DASH_HELP_OFF=0
+    [ "$hi" -lt "$avail" ] || DASH_HELP_OFF="$hi"
+  fi
+  [ "$DASH_HELP_OFF" -le "$DASH_HELP_MAX" ] || DASH_HELP_OFF="$DASH_HELP_MAX"
+  DASH_DLG=("")
+  for ((i = DASH_HELP_OFF; i < n && i < DASH_HELP_OFF + avail; i++)); do DASH_DLG+=("  ${out[$i]}"); done
   DASH_DLG+=("")
-  dt tui.help_title
-  dash_dialog "$1" "$DTV" 60
+  dt tui.help_title; title="$DTV"
+  if [ "$DASH_HELP_MAX" -gt 0 ]; then end=$((DASH_HELP_OFF + avail)); [ "$end" -le "$n" ] || end="$n"; title+=" $UI_S_DOT $((DASH_HELP_OFF + 1))-$end/$n"; fi
+  dash_dialog "$bh" "$title" "$w"
+}
+
+# The last line while the keys are shown: how to scroll them when they do not fit, or that any key goes back.
+dash_help_keys() { # width
+  if [ "$DASH_HELP_MAX" -gt 0 ]; then dt tui.help_scroll; dash_keyfit "${DTV//\{1\}/$DASH_UD}" "$1"
+  else dt tui.help_close; dash_keyfit "$DTV" "$1"; fi
 }
 
 # --- Frame ----------------------------------------------------------------------------------------------
@@ -1299,10 +1353,43 @@ dash_msg_line() {
 
 # Colours a key hint text ("Enter actions · u deploy · q quit"): the key of each item in the theme's key colour, its
 # description dim, the separators faint. Remembered per text. Result in DASH_KBV.
-dash_keybar() { # text
-  local t="$1" rest part first out=""
+# A key hint text that fits $2 cells, into DASH_KF. It loses whole items, never half of one: the first ones (how to move) and the
+# last two (help and quit, or how to go back) stay, and the ones before those go first, the latest first. Only when that is not
+# enough are the last ones given up too, keeping the items from the start that fit.
+dash_keyfit() { # text width
+  local t="$1" w="$2" rest part n d i j out
+  local -a it=()
+  DASH_KF="$t"
+  [ "${#t}" -gt "$w" ] || return 0
+  rest="$t"
+  while [ -n "$rest" ]; do
+    if [[ "$rest" == *" · "* ]]; then part="${rest%% · *}"; rest="${rest#* · }"; else part="$rest"; rest=""; fi
+    it+=("$part")
+  done
+  n="${#it[@]}"
+  local -a keep=()
+  for ((i = 0; i < n; i++)); do keep[i]=1; done
+  for ((d = n - 3; d >= 1; d--)); do
+    keep[d]=0
+    out=""
+    for ((j = 0; j < n; j++)); do [ "${keep[j]}" -eq 0 ] || out+="${out:+ · }${it[$j]}"; done
+    if [ "${#out}" -le "$w" ]; then DASH_KF="$out"; return 0; fi
+  done
+  out=""
+  for ((j = 0; j < n; j++)); do
+    [ $((${#out} + 3 + ${#it[$j]})) -le "$w" ] || [ -z "$out" ] || break
+    out+="${out:+ · }${it[$j]}"
+  done
+  DASH_KF="${out:0:$w}"
+}
+DASH_KF=""
+
+dash_keybar() { # text [width]
+  local t="$1" rest part first out="" ck
   if [ -z "$t" ]; then DASH_KBV=""; return 0; fi   # (an empty text is not a valid array key)
-  if [ -n "${DASH_KB[$t]+x}" ]; then DASH_KBV="${DASH_KB[$t]}"; return 0; fi
+  ck="${2:-0}|$t"
+  if [ -n "${DASH_KB[$ck]+x}" ]; then DASH_KBV="${DASH_KB[$ck]}"; return 0; fi
+  if [ "${2:-0}" -gt 0 ]; then dash_keyfit "$t" "$2"; t="$DASH_KF"; fi
   rest="$t"
   while [ -n "$rest" ]; do
     # The texts always separate the items with a middle dot, whatever the glyph set of the terminal is.
@@ -1315,19 +1402,19 @@ dash_keybar() { # text
     fi
     [ -z "$rest" ] || out+=" $C_DIM$UI_S_DOT$C_OFF "
   done
-  DASH_KB[$t]="$out"
+  DASH_KB[$ck]="$out"
   DASH_KBV="$out"
 }
 
 # The last line: the keys of the current view, or the command being typed.
 dash_key_line() {
-  local line kv
+  local line kv w=$((TUI_COLS - 1))
   TUI_CURSOR=""
   case "$DASH_MODE" in
     cmd)
       if [ "$DASH_VIEW" = "instances" ] || [ "$DASH_VIEW" = "console" ]; then
         # The console box holds the prompt: the last line only lists the keys of the line editor.
-        dt tui.con.keys; dash_keybar "${DTV//\{1\}/$DASH_UD}"
+        dt tui.con.keys; dash_keybar "${DTV//\{1\}/$DASH_UD}" "$w"
         TUI_FRAME+=(" $DASH_KBV")
         return 0
       fi
@@ -1337,19 +1424,19 @@ dash_key_line() {
       TUI_CURSOR="$TUI_ROWS;$((TUI_VL + 2))"
       return 0
       ;;
-    menu) dt tui.dialog.keys; TUI_FRAME+=(" $C_GRY${DTV//\{1\}/$DASH_UD}$C_OFF") ;;
+    menu) dt tui.dialog.keys; dash_keyfit "${DTV//\{1\}/$DASH_UD}" "$w"; TUI_FRAME+=(" $C_GRY$DASH_KF$C_OFF") ;;
     confirm)
       if [ "$UI_UTF8" -eq 1 ] && [ "$UI_RICH" -eq 1 ]; then dt tui.confirm.keys; else dt tui.confirm.keys.ascii; fi
-      TUI_FRAME+=(" $C_GRY$DTV$C_OFF")
+      dash_keyfit "$DTV" "$w"; TUI_FRAME+=(" $C_GRY$DASH_KF$C_OFF")
       ;;
-    name) dt tui.name.keys; TUI_FRAME+=(" $C_GRY$DTV$C_OFF") ;;
-    filter) dt tui.keys.filter; TUI_FRAME+=(" $C_GRY$DTV$C_OFF") ;;
-    find) dt tui.keys.find; TUI_FRAME+=(" $C_GRY$DTV$C_OFF") ;;
-    palette) dt tui.pal.keys; TUI_FRAME+=(" $C_GRY${DTV//\{1\}/$DASH_UD}$C_OFF") ;;
-    help) dt tui.help_close; TUI_FRAME+=(" $C_GRY$DTV$C_OFF") ;;
+    name) dt tui.name.keys; dash_keyfit "$DTV" "$w"; TUI_FRAME+=(" $C_GRY$DASH_KF$C_OFF") ;;
+    filter) dt tui.keys.filter; dash_keyfit "$DTV" "$w"; TUI_FRAME+=(" $C_GRY$DASH_KF$C_OFF") ;;
+    find) dt tui.keys.find; dash_keyfit "$DTV" "$w"; TUI_FRAME+=(" $C_GRY$DASH_KF$C_OFF") ;;
+    palette) dt tui.pal.keys; dash_keyfit "${DTV//\{1\}/$DASH_UD}" "$w"; TUI_FRAME+=(" $C_GRY$DASH_KF$C_OFF") ;;
+    help) dash_help_keys "$w"; TUI_FRAME+=(" $C_GRY$DASH_KF$C_OFF") ;;
     options)
       dt tui.opt.keys; line="${DTV//\{1\}/$DASH_UD}"
-      dash_keybar "${line//\{2\}/$DASH_LR}"; TUI_FRAME+=(" $DASH_KBV")
+      dash_keybar "${line//\{2\}/$DASH_LR}" "$w"; TUI_FRAME+=(" $DASH_KBV")
       ;;
     *)
       # The hints follow the focus: on the New button, inside the services, or on the list of instances.
@@ -1361,7 +1448,9 @@ dash_key_line() {
         elif [ "$DASH_FOCUS" = "logs" ]; then kv=logs; fi
       fi
       [ "$DASH_VIEW" != "runs" ] || { [ "$DASH_RUNS_MODE" != "stats" ] && [ "$DASH_RUNS_MODE" != "log" ]; } || kv="runs_$DASH_RUNS_MODE"
-      dash_keybar "${DASH_KEYS[$kv]}"
+      # (room is kept for "x cancel" while a command runs)
+      if job_running; then dt tui.keys.running; w=$((w - 3 - ${#DTV})); fi
+      dash_keybar "${DASH_KEYS[$kv]}" "$w"
       line="$DASH_KBV"
       if job_running; then dt tui.keys.running; line+=" $C_DIM$UI_S_DOT$C_OFF $C_YEL$DTV$C_OFF"; fi
       TUI_FRAME+=(" $line")
@@ -1384,6 +1473,7 @@ dash_build_body() { # body_height
   DASH_LIST_SHOWN=0
   if [ "$TUI_ROWS" -lt 14 ] || [ "$TUI_COLS" -lt 60 ]; then
     # Too small to draw anything useful: say so instead of drawing broken boxes.
+    DASH_HELP_MAX=0   # (no help is drawn: nothing to scroll)
     dt tui.too_small
     dash_wrap "${DTV//\{1\}/60x14}" $((TUI_COLS - 2))
     TUI_FRAME+=("")
@@ -1435,7 +1525,7 @@ dash_render() {
   [ "$DASH_MODE" != "name" ] || sig+="|$DASH_BUF"
   sig+="|$DASH_RUNS_SEL|$DASH_RUNS_OFF|$DASH_RUNS_MODE|$DASH_RUNS_N|$DASH_RUNS_STATS_INST|$DASH_RV_TOP|$DASH_RV_END|$DASH_RV_TOTAL|$DASH_PROCS_N|$DASH_PROCS_OFF|$DASH_PC_TXT"
   sig+="|$DASH_CON_N|$DASH_CON_SCROLL|$DASH_ZOOM|$DASH_LOG_SCROLL|$DASH_LOG_FILTER|$DASH_PAL_Q|$DASH_PAL_SEL"
-  sig+="|$DASH_LOG_ERRONLY|$DASH_LOG_FIND|$DASH_LS_PAUSED|$DASH_LS_PEND|$DASH_LOG_MIDX|$DASH_OPT_SEL|$DASH_OPT_N"
+  sig+="|$DASH_LOG_ERRONLY|$DASH_LOG_FIND|$DASH_LS_PAUSED|$DASH_LS_PEND|$DASH_LOG_MIDX|$DASH_OPT_SEL|$DASH_OPT_N|$DASH_HELP_OFF"
   { [ "$DASH_MODE" != "filter" ] && [ "$DASH_MODE" != "find" ]; } || sig+="|$DASH_BUF|$DASH_CUR"
   { [ "$DASH_MODE" != "cmd" ] || { [ "$DASH_VIEW" != "instances" ] && [ "$DASH_VIEW" != "console" ]; }; } || sig+="|$DASH_BUF|$DASH_CUR"
   if job_running; then sig+="|$SECONDS"; fi
