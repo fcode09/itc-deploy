@@ -481,36 +481,78 @@ dash_join() { # left_array right_array
   for i in "${!_l[@]}"; do TUI_FRAME+=("${_l[$i]}${_r[$i]:-}"); done
 }
 
+# --- Per-panel cache ------------------------------------------------------------------------------------------------
+# The body is rebuilt whenever anything on it changes: a log line, a typed character, a second of a running command. Most of its
+# boxes did not change then. Each of those is kept with the state it was drawn from (its signature) and reused while that state is
+# the same, so a rebuild only draws what moved. A box can carry a few values its drawing left behind (DASH_PC_M), which the caller
+# restores along with it.
+declare -gA DASH_PC_SIG=() DASH_PC_META=()
+DASH_PC_list=() DASH_PC_host=() DASH_PC_center=() DASH_PC_detail=() DASH_PC_M=""
+dash_pc_get() { # name signature -> 0 with TUI_BOX and DASH_PC_M when the box is still valid
+  [ "${DASH_PC_SIG[$1]-}" = "$2" ] || return 1
+  local -n _pc="DASH_PC_$1"
+  TUI_BOX=("${_pc[@]}")
+  DASH_PC_M="${DASH_PC_META[$1]-}"
+}
+dash_pc_put() { # name signature [meta]   (keeps TUI_BOX)
+  local -n _pc="DASH_PC_$1"
+  _pc=("${TUI_BOX[@]}")
+  DASH_PC_SIG[$1]="$2" DASH_PC_META[$1]="${3-}"
+}
+
+# The box of the list of instances, cached: what it shows changes with the state of Docker, the figures, the selection and the
+# focus. The rows it shows go with it (dash_mouse needs them).
+dash_list_box() { # width height inner_width focused
+  local sig="$1|$2|${3:-}|$4|$DASH_SEL|$DASH_ON_NEW|$DASH_FOCUS|$DASH_LIST_OFF|$DASH_REFRESH_N|$MT_SAMPLES|$DASH_LANG_N|${#DASH_NAMES[@]}"
+  if dash_pc_get list "$sig"; then
+    read -r DASH_LIST_START DASH_LIST_AVAIL DASH_LIST_OFF <<< "$DASH_PC_M"
+    return 0
+  fi
+  if [ -n "${3:-}" ]; then dash_list_lines $(($2 - 2)) "$3"; else dash_list_lines $(($2 - 2)); fi
+  dt tui.instances
+  tui_box "$DTV" "$1" "$2" DASH_LIST_LINES "" "$4"
+  # (stored under the signature it was asked with: a selection that moved the window gives another one next time)
+  dash_pc_put list "$sig" "$DASH_LIST_START $DASH_LIST_AVAIL $DASH_LIST_OFF"
+}
+
 dash_view_instances() { # body_height
-  local bh="$1" oh th lw rw lh dh name inner_h title off n="${#DASH_NAMES[@]}" lf=0
+  local bh="$1" oh th lw rw lh dh name inner_h title off n="${#DASH_NAMES[@]}" lf=0 mx
   [ "$DASH_FOCUS" != "list" ] || lf=1
+  # Rows: the panes on top grow, the console under them asks for more as the terminal gets taller.
   if [ "$bh" -ge 40 ]; then oh=$((bh * 3 / 10))   # tall terminal: the output of a command (a check is ~15 lines) fits whole
   elif [ "$bh" -ge 22 ]; then oh=8; elif [ "$bh" -ge 16 ]; then oh=6; else oh=4; fi
-  th=$((bh - oh))
+  lay_split "$bh" "0:0::1" "$oh:$oh:$oh"
+  th="${LAY[0]}" oh="${LAY[1]}"
   name="${DASH_NAMES[$DASH_SEL]:-}"
   if [ "$TUI_COLS" -ge 100 ]; then
-    lw=44; rw=$((TUI_COLS - lw))
-    dash_list_lines $((th - 2))
+    # Columns: the list is fixed, the detail takes the rest.
+    lay_split "$TUI_COLS" "44:44:44" "0:0::1"
+    lw="${LAY[0]}" rw="${LAY[1]}"
+    dash_list_box "$lw" "$th" "" "$lf"; DASH_L=("${TUI_BOX[@]}")
     DASH_LIST_SHOWN=1 DASH_LIST_W="$lw"
-    dt tui.instances
-    tui_box "$DTV" "$lw" "$th" DASH_LIST_LINES "" "$lf"; DASH_L=("${TUI_BOX[@]}")
-    dash_detail_box "$name" "$rw" "$th"; DASH_R=("${TUI_BOX[@]}")
+    dash_detail_box_cached "$name" "$rw" "$th"; DASH_R=("${TUI_BOX[@]}")
     dash_join DASH_L DASH_R
   else
-    lh=$((n + 4))
-    [ "$lh" -le $((th / 2)) ] || lh=$((th / 2))
-    [ "$lh" -ge 4 ] || lh=4
-    dh=$((th - lh))
-    dash_list_lines $((lh - 2))
+    # One column: the list asks for a row per instance (at most half the rows, never less than 4), the detail takes the rest.
+    mx=$((th / 2)); [ "$mx" -ge 4 ] || mx=4
+    lay_split "$th" "$((n + 4)):4:$mx" "0:0::1"
+    lh="${LAY[0]}" dh="${LAY[1]}"
+    dash_list_box "$TUI_COLS" "$lh" "" "$lf"
     DASH_LIST_SHOWN=1 DASH_LIST_W="$TUI_COLS"
-    dt tui.instances
-    tui_box "$DTV" "$TUI_COLS" "$lh" DASH_LIST_LINES "" "$lf"
     TUI_FRAME+=("${TUI_BOX[@]}")
-    dash_detail_box "$name" "$TUI_COLS" "$dh"
+    dash_detail_box_cached "$name" "$TUI_COLS" "$dh"
     TUI_FRAME+=("${TUI_BOX[@]}")
   fi
   dash_console_box "$TUI_COLS" "$oh"
   TUI_FRAME+=("${TUI_BOX[@]}")
+}
+
+# The detail box, cached (see dash_list_box). Its scroll goes with it.
+dash_detail_box_cached() { # instance width height
+  local sig="$1|$2|$3|$DASH_SVC|$DASH_FOCUS|$DASH_ON_NEW|$DASH_DET_OFF|$DASH_REFRESH_N|$MT_SAMPLES|$DASH_ERRS_N|$DASH_LANG_N"
+  if dash_pc_get detail "$sig"; then DASH_DET_OFF="$DASH_PC_M"; return 0; fi
+  dash_detail_box "$1" "$2" "$3"
+  dash_pc_put detail "$sig" "$DASH_DET_OFF"
 }
 
 # The box with the detail of an instance.
@@ -708,8 +750,29 @@ dash_summary_lines() { # instance
 }
 
 # The center column: services table, charts of the selected service and the summary. Result in DASH_CB ($3 lines).
+# The centre of the Overview: everything but its logs box is cached (see dash_list_box); the logs have their own cache.
 dash_center_boxes() { # instance width height
+  local sig="$1|$2|$3|$DASH_SVC|$DASH_FOCUS|$DASH_ON_NEW|$DASH_REFRESH_N|$MT_SAMPLES|$DASH_ERRS_N|$DASH_LANG_N" lh key svc
+  if dash_pc_get center "$sig"; then
+    DASH_CB=("${TUI_BOX[@]}")
+    IFS=$'\x1f' read -r lh key svc <<< "$DASH_PC_M"   # (a hand-made instance folder may have a space in its name)
+  else
+    dash_center_top "$1" "$2" "$3"
+    TUI_BOX=("${DASH_CB[@]}")
+    lh="$DASH_CT_LH" key="$DASH_CT_KEY" svc="$DASH_CT_SVC"
+    dash_pc_put center "$sig" "$lh"$'\x1f'"$key"$'\x1f'"$svc"
+  fi
+  if [ "$lh" -ge 5 ]; then
+    dash_logs_box "$key" "$svc" "$2" "$lh"
+    DASH_CB+=("${TUI_BOX[@]}")
+  fi
+}
+
+# The centre without its logs box, into DASH_CB; the height, the key and the service of the logs box go to DASH_CT_*.
+DASH_CT_LH=0 DASH_CT_KEY="" DASH_CT_SVC=""
+dash_center_top() { # instance width height
   local name="$1" w="$2" h="$3" n st rem R gh sh lh title key svc sf=0
+  DASH_CT_LH=0 DASH_CT_KEY="-" DASH_CT_SVC="-"
   [ "$DASH_FOCUS" != "svc" ] || sf=1
   local -a svcs shown=()
   DASH_CB=()
@@ -763,10 +826,7 @@ dash_center_boxes() { # instance width height
     tui_box "$DTV" "$w" "$sh" DASH_NX
     DASH_CB+=("${TUI_BOX[@]}")
   fi
-  if [ "$lh" -ge 5 ]; then
-    dash_logs_box "$key" "$svc" "$w" "$lh"
-    DASH_CB+=("${TUI_BOX[@]}")
-  fi
+  DASH_CT_LH="$lh" DASH_CT_KEY="$key" DASH_CT_SVC="$svc"
 }
 
 # The logs box: the last lines of the service's log (cleaned when they arrived), errors in red and warnings in yellow. With the
@@ -890,27 +950,32 @@ DASH_EBOX=() DASH_EBOX_SIG="" DASH_LBOX=() DASH_LBOX_SIG=""
 
 # The whole overview body into TUI_FRAME ($1 lines).
 dash_view_overview() { # body_height
-  local bh="$1" lw=38 ew=0 cw cs top name i lh hh n="${#DASH_NAMES[@]}" lf=0
+  local bh="$1" lw=38 ew cw cs top name i lh hh n="${#DASH_NAMES[@]}" lf=0 sig
   [ "$DASH_FOCUS" != "list" ] || lf=1
   local -a left=() center=() right=()
   name="${DASH_NAMES[$DASH_SEL]:-}"
+  # Columns: the list is fixed (wider on a wide terminal), the centre takes the rest but never less than 76, and the events column
+  # (36) only exists when it fits next to that.
   [ "$TUI_COLS" -lt 160 ] || lw=42
-  [ "$TUI_COLS" -lt 150 ] || ew=36
-  cw=$((TUI_COLS - lw - ew))
+  lay_split "$TUI_COLS" "$lw:$lw:$lw" "0:76::1" "36:36:36:0:1"
+  lw="${LAY[0]}" cw="${LAY[1]}" ew="${LAY[2]}"
+  # Rows: the panes grow, the console asks for 8 rows (22 % of a tall terminal, at most 16).
   cs=8
   [ "$bh" -lt 40 ] || cs=$((bh * 22 / 100))
   [ "$cs" -le 16 ] || cs=16
-  top=$((bh - cs))
-  # Left: the list takes what it needs (at most 40 %) and the server box the rest.
-  lh=$((n + 4)); [ "$lh" -ge 6 ] || lh=6
-  [ "$lh" -le $((top * 40 / 100)) ] || lh=$((top * 40 / 100))
-  hh=$((top - lh))
-  if [ "$hh" -lt 6 ]; then lh="$top"; hh=0; fi
-  dash_list_lines $((lh - 2)) $((lw - 3))
+  lay_split "$bh" "0:0::1" "$cs:$cs:$cs"
+  top="${LAY[0]}" cs="${LAY[1]}"
+  # Left: the list asks for a row per instance (at least 6, at most 40 % of the rows); the server box takes the rest and is
+  # dropped when it would have less than 6.
+  lay_split "$top" "$((n + 4)):6:$((top * 40 / 100))" "0:6::1:1"
+  lh="${LAY[0]}" hh="${LAY[1]}"
+  dash_list_box "$lw" "$lh" $((lw - 3)) "$lf"; left=("${TUI_BOX[@]}")
   DASH_LIST_SHOWN=1 DASH_LIST_W="$lw"
-  dt tui.instances
-  tui_box "$DTV" "$lw" "$lh" DASH_LIST_LINES "" "$lf"; left=("${TUI_BOX[@]}")
-  if [ "$hh" -gt 0 ]; then dash_host_box "$lw" "$hh"; left+=("${TUI_BOX[@]}"); fi
+  if [ "$hh" -gt 0 ]; then
+    sig="$lw|$hh|$MT_SAMPLES|$DASH_REFRESH_N|$DASH_LANG_N|$DASH_DOCKER_VER"
+    dash_pc_get host "$sig" || { dash_host_box "$lw" "$hh"; dash_pc_put host "$sig"; }
+    left+=("${TUI_BOX[@]}")
+  fi
   dash_center_boxes "$name" "$cw" "$top"; center=("${DASH_CB[@]}")
   if [ "$ew" -gt 0 ]; then dash_events_box "$ew" "$top"; right=("${TUI_BOX[@]}"); fi
   for ((i = 0; i < top; i++)); do TUI_FRAME+=("${left[$i]}${center[$i]:-}${right[$i]:-}"); done

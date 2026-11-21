@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# Layout engine of the panel (lib/ui/layout.sh): how lay_split shares a length between panels by their rules (want, min, max, grow,
+# optional). Pure functions: no Docker and no terminal needed. Run it from the root of the isolated copy (tests/run.sh).
+set -u
+# shellcheck source=tests/lib.sh
+source tests/lib.sh
+# shellcheck source=lib/ui/layout.sh
+source lib/ui/layout.sh
+
+# split "<expected sizes>" total panel...
+split() { local want="$1"; shift; lay_split "$@"; [ "${LAY[*]}" = "$want" ] || { echo "    lay_split $* -> ${LAY[*]} (expected $want)"; return 1; }; }
+
+section "1. panels that fit"
+check "a fixed panel and a growing one: the one that grows takes the rest" 'split "44 56" 100 44:44:44 0:0::1'
+check "want is kept within min and max" 'split "6 4" 10 2:6 0:0::1 && split "3 7" 10 9:0:3 0:0::1'
+check "when max is below min, max wins" 'split "3 7" 10 9:6:3 0:0::1'
+check "two panels that grow share the rest equally" 'split "5 5" 10 0:0::1 0:0::1'
+check "the shares follow the weights, the remainder goes to the first ones" 'split "7 3" 10 0:0::2 0:0::1 && split "4 3 3" 10 0:0::1 0:0::1 0:0::1'
+check "a panel that grows stops at its max and the rest goes to the others" 'split "6 4" 10 0:0::1 0:0:4:1'
+check "panels that fit exactly keep their size" 'split "5 5" 10 5:5:5 5:5:5'
+check "empty fields are allowed, and a panel of size 0 still takes what is left" 'split "4 6" 10 4 ::::'
+
+section "2. what is left over always fills the total"
+check "with nobody growing, the last panel takes what is left" 'split "3 7" 10 3:0:3 4:0:4'
+check "a single fixed panel fills the total" 'split "10" 10 3:0:3'
+check "after an optional panel is dropped, its room goes to the panel left" 'split "8 0" 8 7:6:3 0:6::1:1'
+
+section "3. panels that do not fit"
+check "the panels that grow shrink first, the last one first" 'split "4 3 3" 10 4:4:4 0:3::1 5:3::1'
+check "then the optional panels are dropped" 'split "38 111 0" 149 38:38:38 0:76::1 36:36:36:0:1'
+check "an optional panel stays while the others keep their minimum" 'split "38 76 36" 150 38:38:38 0:76::1 36:36:36:0:1 && split "42 82 36" 160 42:42:42 0:76::1 36:36:36:0:1'
+check "as a last resort the panels are cut, the last one first" 'split "5 2" 7 5:5:5 5:5:5 && split "3 0" 3 5:5:5 5:5:5 && split "0 0" 0 5:5:5 5:5:5'
+check "a list that may not pass 40 % keeps its server box while that box has 6 rows" 'split "3 6" 9 7:6:3 0:6::1:1 && split "4 8" 12 7:6:4 0:6::1:1'
+check "a max of zero is a real limit, not the lack of one" 'split "2 0" 2 7:6:0 0:6::1:1'
+check "a panel that does not grow comes down to its minimum before another is cut below its own" 'split "6 4" 10 8:2 4:4:4'
+check "a dropped panel never comes back, even when every panel was optional" 'split "0" 5 6:6:6:0:1'
+check "a negative total counts as zero" 'split "0 0" -3 5:5:5 0:0::1'
+
+section "4. the rules of the panel's views"
+# The Overview: a list of 38 (42 from 160 columns), a centre of at least 76 and the events column (36) only when it fits.
+ov() { local lw=38; [ "$1" -lt 160 ] || lw=42; lay_split "$1" "$lw:$lw:$lw" "0:76::1" "36:36:36:0:1"; echo "${LAY[*]}"; }
+check "Overview columns at 120, 149, 150, 159, 160 and 200" '[ "$(ov 120)|$(ov 149)|$(ov 150)|$(ov 159)|$(ov 160)|$(ov 200)" = "38 82 0|38 111 0|38 76 36|38 85 36|42 82 36|42 122 36" ]'
+check "the columns always add up to the width" 'for c in $(seq 120 240); do s=0; for v in $(ov "$c"); do s=$((s + v)); done; [ "$s" -eq "$c" ] || exit 1; done'
+check "every size from 0 to 60 is filled exactly, whatever the panels" 'for t in $(seq 0 60); do lay_split "$t" 7:6:9 0:6::1:1 3:2:5:2 0:0::1; s=0; for v in "${LAY[@]}"; do s=$((s + v)); done; [ "$s" -eq "$t" ] || exit 1; done'
+
+finish

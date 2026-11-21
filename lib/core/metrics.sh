@@ -30,7 +30,8 @@ mt_interval_us() {
 mt_reset() {
   MT_MEM=() MT_LIM=() MT_CPU=() MT_HMEM=() MT_HCPU=()
   MT_CG_PID=() MT_CG_VER=() MT_CG_MEMDIR=() MT_CG_CPUDIR=() MT_PREV_CPU=() MT_PREV_T=() MT_HN=()
-  MT_LAST_US=0 MT_SAMPLES=0 MT_HOST_HIST="" MT_INTERVAL_US=""
+  # (MT_SAMPLES keeps counting: the panel keys its cached boxes on it, so it must never come back to a value it had)
+  MT_LAST_US=0 MT_HOST_HIST="" MT_INTERVAL_US=""
 }
 
 # Is it time for another sample? MT_INTERVAL_MULT stretches the interval (the panel sets 2 while the view on screen shows no figure of

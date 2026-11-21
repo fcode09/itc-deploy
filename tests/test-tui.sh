@@ -1065,4 +1065,19 @@ rm -f "$FIX/al2/aliases"; mkdir "$FIX/al2/aliases"
 check "an aliases path that is a directory is not taken for a saved file" '! DELTACTL_CONFIG="$FIX/al2/config" run_lib "dash_alias_put x list; dash_alias_save" && [ -z "$(ls -A "$FIX/al2/aliases")" ]'
 rm -rf "$FIX/al2"
 
+section "28. the layout engine and the per-panel cache"
+# A wide Overview with the state loaded; then each piece that should not be drawn again is replaced by a counter.
+WIDE='COLUMNS=160; DELTACTL_TUI_ROWS=40; tui_size; dash_init; dash_refresh; mt_reset; mt_sample; dash_host_build; dash_render >/dev/null;'
+COUNT='PC_CALLS=0; dash_list_lines() { PC_CALLS=$((PC_CALLS + 1)); }; dash_host_box() { PC_CALLS=$((PC_CALLS + 10)); }; dash_center_top() { PC_CALLS=$((PC_CALLS + 100)); };'
+check "a log line draws the logs box again, not the list, the server or the centre" '[ "$(run_lib "$WIDE $COUNT DASH_LOGS_N=\$((DASH_LOGS_N + 1)); dash_render >/dev/null; echo \$PC_CALLS")" = "0" ]'
+check "a typed character draws only the console" '[ "$(run_lib "$WIDE $COUNT DASH_MODE=cmd; DASH_BUF=st; DASH_CUR=2; dash_render >/dev/null; DASH_BUF=sta; DASH_CUR=3; dash_render >/dev/null; echo \$PC_CALLS")" = "0" ]'
+check "a sample draws the list, the server and the centre again" '[ "$(run_lib "$WIDE $COUNT MT_SAMPLES=\$((MT_SAMPLES + 1)); dash_render >/dev/null; echo \$PC_CALLS")" = "111" ]'
+check "a new state of Docker draws them again too" '[ "$(run_lib "$WIDE $COUNT DASH_REFRESH_N=\$((DASH_REFRESH_N + 1)); dash_render >/dev/null; echo \$PC_CALLS")" = "111" ]'
+check "moving the selection draws the list and the centre, not the server" '[ "$(run_lib "$WIDE $COUNT DASH_SEL=1; dash_render >/dev/null; echo \$PC_CALLS")" = "101" ]'
+check "a new theme or language draws everything again" '[ "$(run_lib "$WIDE $COUNT DASH_LANG_N=\$((DASH_LANG_N + 1)); dash_render >/dev/null; echo \$PC_CALLS")" = "111" ]'
+check "the narrow view caches the list and the detail the same way" '[ "$(run_lib "COLUMNS=110; DELTACTL_TUI_ROWS=30; tui_size; dash_init; dash_refresh; dash_render >/dev/null; PC_CALLS=0; dash_list_lines() { PC_CALLS=\$((PC_CALLS + 1)); }; dash_detail_box() { PC_CALLS=\$((PC_CALLS + 10)); }; DASH_MODE=cmd; DASH_BUF=x; dash_render >/dev/null; a=\$PC_CALLS; MT_SAMPLES=\$((MT_SAMPLES + 1)); dash_render >/dev/null; echo \$a-\$PC_CALLS")" = "0-11" ]'
+check "the logs under a cached centre keep their instance even when its name has a space" 'o="$(run_lib "DASH_NAMES=(\"my inst\"); DASH_SVCS[\"my inst\"]=\"s0 s1\"; DASH_SEL=0; DASH_SVC=1; dash_logs_box() { LOG_ARGS+=\"[\$1|\$2|\$4]\"; TUI_BOX=(); }; LOG_ARGS=; dash_center_boxes \"my inst\" 82 30; dash_center_boxes \"my inst\" 82 30; echo \"\$LOG_ARGS\"")"; [[ "$o" =~ ^\[(my\ inst/s1\|s1\|[0-9]+)\]\[(.*)\]$ ]] && [ "${BASH_REMATCH[1]}" = "${BASH_REMATCH[2]}" ]'
+check "a cached list brings back the rows it shows, for the mouse" '[ "$(run_lib "dash_refresh; dash_list_box 38 10 35 1 >/dev/null; a=\"\$DASH_LIST_START \$DASH_LIST_AVAIL\"; DASH_LIST_START=99; DASH_LIST_AVAIL=99; dash_list_box 38 10 35 1 >/dev/null; echo \"\$a|\$DASH_LIST_START \$DASH_LIST_AVAIL\"")" = "0 6|0 6" ]'
+check "the Overview still has its three columns and the console under them" 'f="$(PANEL_COLS=160 panel q | frame_n 1)"; echo "$f" | grep -q "+- >Instancias" && echo "$f" | grep -q "+- Eventos" && echo "$f" | grep -q "+- Consola" && ! echo "$f" | awk "length(\$0) > 160 { found = 1 } END { exit !found }"'
+
 finish
