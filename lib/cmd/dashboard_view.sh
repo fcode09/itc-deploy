@@ -1239,6 +1239,10 @@ dash_key_line() {
     find) dt tui.keys.find; TUI_FRAME+=(" $C_GRY$DTV$C_OFF") ;;
     palette) dt tui.pal.keys; TUI_FRAME+=(" $C_GRY${DTV//\{1\}/$DASH_UD}$C_OFF") ;;
     help) dt tui.help_close; TUI_FRAME+=(" $C_GRY$DTV$C_OFF") ;;
+    options)
+      dt tui.opt.keys; line="${DTV//\{1\}/$DASH_UD}"
+      dash_keybar "${line//\{2\}/$DASH_LR}"; TUI_FRAME+=(" $DASH_KBV")
+      ;;
     *)
       # The hints follow the focus: on the New button, inside the services, or on the list of instances.
       kv="$DASH_VIEW"
@@ -1278,6 +1282,7 @@ dash_build_body() { # body_height
       confirm) dash_dialog_confirm "$bh" ;;
       name) dash_dialog_name "$bh" ;;
       help) dash_dialog_help "$bh" ;;
+      options) dash_dialog_options "$bh" ;;
       *)
         case "$DASH_VIEW" in
           instances)
@@ -1316,7 +1321,7 @@ dash_render() {
   [ "$DASH_MODE" != "name" ] || sig+="|$DASH_BUF"
   sig+="|$DASH_RUNS_SEL|$DASH_RUNS_OFF|$DASH_RUNS_MODE|$DASH_RUNS_N|$DASH_RUNS_STATS_INST|$DASH_RV_TOP|$DASH_RV_END|$DASH_RV_TOTAL|$DASH_PROCS_N|$DASH_PROCS_OFF|$DASH_PC_TXT"
   sig+="|$DASH_CON_N|$DASH_CON_SCROLL|$DASH_ZOOM|$DASH_LOG_SCROLL|$DASH_LOG_FILTER|$DASH_PAL_Q|$DASH_PAL_SEL"
-  sig+="|$DASH_LOG_ERRONLY|$DASH_LOG_FIND|$DASH_LS_PAUSED|$DASH_LS_PEND|$DASH_LOG_MIDX"
+  sig+="|$DASH_LOG_ERRONLY|$DASH_LOG_FIND|$DASH_LS_PAUSED|$DASH_LS_PEND|$DASH_LOG_MIDX|$DASH_OPT_SEL|$DASH_OPT_N"
   { [ "$DASH_MODE" != "filter" ] && [ "$DASH_MODE" != "find" ]; } || sig+="|$DASH_BUF|$DASH_CUR"
   { [ "$DASH_MODE" != "cmd" ] || [ "$DASH_VIEW" != "instances" ]; } || sig+="|$DASH_BUF|$DASH_CUR"
   if job_running; then sig+="|$SECONDS"; fi

@@ -18,8 +18,10 @@ MT_HOST_USED_KB="" MT_HOST_TOTAL_KB="" MT_HOST_PCT="" MT_HOST_LOAD="" MT_HOST_HI
 
 # Sampling interval in microseconds (DELTACTL_METRICS_INTERVAL, in seconds; 2 by default: the panel's charts, like btop's,
 # are meant for 2 s steps, and every sample costs a rebuild of the screen). 120 samples are 4 minutes of history.
+# MT_INTERVAL_S, when set, wins: the panel puts there the value it resolved (the variable, its options file or the default).
+MT_INTERVAL_S=""
 mt_interval_us() {
-  local s="${DELTACTL_METRICS_INTERVAL:-2}"
+  local s="${MT_INTERVAL_S:-${DELTACTL_METRICS_INTERVAL:-2}}"
   [[ "$s" =~ ^[0-9]+$ ]] && [ "$s" -gt 0 ] || s=2
   printf '%s' "$((s * 1000000))"
 }

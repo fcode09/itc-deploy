@@ -8,6 +8,7 @@ set -u
 source tests/lib.sh
 export LANG=C.UTF-8
 unset NO_COLOR DELTACTL_COLOR DELTACTL_UI DELTACTL_ASCII COLUMNS DELTACTL_TUI_KEYS DELTACTL_TUI_EVENTS DELTACTL_TUI_ROWS
+unset DELTACTL_THEME DELTACTL_REFRESH DELTACTL_METRICS_INTERVAL   # the Options screen reads them: a value from the shell would change what it shows
 
 FIX="$(mktemp -d)"
 export FIX
@@ -40,13 +41,13 @@ printf '0.82 0.50 0.40 1/200 1234\n' > "$FIX/loadavg"
 export DELTACTL_MEMINFO="$FIX/meminfo" DELTACTL_LOADAVG="$FIX/loadavg"
 export DELTACTL_PROC_ROOT="$FIX/proc" DELTACTL_CGROUP_ROOT="$FIX/cg"
 
-# Runs the panel with the keys given as arguments (one per line) and optional stdin. ASCII, no colors, 100 x 30.
+# Runs the panel with the keys given as arguments (one per line) and optional stdin. ASCII, no colors, 100 x 30 (PANEL_COLS changes the width).
 KEYS="$FIX/keys.txt"
 panel() { # key...  (stdin: answers to the confirmation prompts)
   # The history is saved on disk: every run starts without it, unless KEEP_HISTORY is set.
   [ -n "${KEEP_HISTORY:-}" ] || rm -f "$(dirname "${DELTACTL_CONFIG:-$FIX/none.cfg}")/history"
   printf '%s\n' "$@" > "$KEYS"
-  DELTACTL_TUI_KEYS="$KEYS" DELTACTL_UI=rich DELTACTL_COLOR=never DELTACTL_ASCII=1 COLUMNS=100 DELTACTL_TUI_ROWS=30 bash ./deltactl 2>&1
+  DELTACTL_TUI_KEYS="$KEYS" DELTACTL_UI=rich DELTACTL_COLOR=never DELTACTL_ASCII=1 COLUMNS="${PANEL_COLS:-100}" DELTACTL_TUI_ROWS=30 bash ./deltactl 2>&1
 }
 # The keys that type a text, one character per line.
 typed() {
@@ -899,5 +900,60 @@ check "the pane is updated every 2 s when it is only there to be looked at, ever
 check "the file is cut when it grows past its limit and everything in it was read, and the reading goes on from the start" '[ "$(run_lib "$LS printf \"a1\na2\na3\n\" > $FIX/rot.txt; DASH_LS_KEY=tui-a/s0; DASH_LS_FILE=$FIX/rot.txt; exec {DASH_LS_FD}< $FIX/rot.txt; DASH_LS_LIMIT=5; dash_ls_drain; a=\"\${#DASH_LS_RING[@]} \$([ -s $FIX/rot.txt ] && echo full || echo empty) \$DASH_LS_BYTES\"; printf \"b1\nb2\n\" >> $FIX/rot.txt; dash_ls_drain; echo \"\$a|\${DASH_LS_RING[*]}|\$DASH_LS_BYTES\"")" = "3 empty 0|a1 a2 a3 b1 b2|0" ]'
 check "a line cut in two by the end of what is written is not lost when the file is cut" '[ "$(run_lib "$LS printf \"x1\npar\" > $FIX/rot2.txt; DASH_LS_KEY=tui-a/s0; DASH_LS_FILE=$FIX/rot2.txt; exec {DASH_LS_FD}< $FIX/rot2.txt; DASH_LS_LIMIT=1; dash_ls_drain; a=\"[\$DASH_LS_PART] \$([ -s $FIX/rot2.txt ] && echo full || echo empty)\"; printf \"tial\n\" >> $FIX/rot2.txt; dash_ls_drain; echo \"\$a|\${DASH_LS_RING[*]}\"")" = "[par] full|x1 partial" ]'
 rm -f "$FIX/rot.txt" "$FIX/rot2.txt"
+
+section "23. the Options screen: theme, language, intervals and vim keys, remembered in the config file"
+export DELTACTL_CONFIG="$FIX/opts.cfg"
+rm -f "$FIX/opts.cfg"
+out="$(panel o q q)"
+check "o opens the Options screen with every option and its current value" 'f="$(echo "$out" | frame_n 2)"; echo "$f" | grep -q "Opciones" && echo "$f" | grep -qE "> Tema +<matrix>" && echo "$f" | grep -qE "Idioma +espa" && echo "$f" | grep -qE "Muestreo de cifras +2 s" && echo "$f" | grep -qE "Relectura del estado +5 s" && echo "$f" | grep -qE "Teclas vim +s"'
+check "the Options screen lists its keys and says where it saves" 'echo "$out" | frame_n 2 | grep -q "Up/Dn elegir . Lt/Rt cambiar" && echo "$out" | frame_n 2 | grep -q "Se guarda en .*opts.cfg"'
+check "q closes the Options screen" '! echo "$out" | frame_n 3 | grep -q "Teclas vim" && echo "$out" | frame_n 3 | grep -q "\[1 Instancias\]"'
+check "opening and closing the screen writes nothing" '[ ! -e "$FIX/opts.cfg" ]'
+out="$(panel o down down right down right down right esc q)"
+check "the arrows change the intervals and the vim keys, and each change is remembered" 'grep -qx "TUI_SAMPLE=3" "$FIX/opts.cfg" && grep -qx "TUI_REFRESH=10" "$FIX/opts.cfg" && grep -qx "TUI_VIM=off" "$FIX/opts.cfg"'
+check "a change says what it set" 'echo "$out" | frame_n 5 | grep -q "Muestreo de cifras: 3 s"'
+out="$(panel o q q)"
+check "the next panel starts with the remembered values" 'f="$(echo "$out" | frame_n 2)"; echo "$f" | grep -qE "Muestreo de cifras +3 s" && echo "$f" | grep -qE "Relectura del estado +10 s" && echo "$f" | grep -qE "Teclas vim +no"'
+out="$(panel j j q)"
+check "with the vim keys off, j does not move the selection" 'echo "$out" | frame_n 3 | grep -q "^| > .. tui-a"'
+out="$(panel down q)"
+check "with the vim keys off, the arrows still move it" 'echo "$out" | frame_n 2 | grep -q "^| > .. tui-b"'
+out="$(panel o j right q q)"
+check "with the vim keys off, j does not move inside Options either" 'grep -q "^UI_THEME=cyber$" "$FIX/opts.cfg"'
+out="$(panel o left q q)"
+check "left goes back through the themes and wraps" 'grep -q "^UI_THEME=matrix$" "$FIX/opts.cfg" && out2="$(panel o left q q)" && grep -q "^UI_THEME=mono$" "$FIX/opts.cfg"'
+out="$(panel o down down down right right right right right right right right q q)"
+check "an interval stops at the end of its list" 'grep -qx "TUI_REFRESH=60" "$FIX/opts.cfg"'
+# tests/run.sh fixes DELTACTL_LANG=es: without it the remembered language is the one the panel starts with.
+out="$(unset DELTACTL_LANG; panel o down right q q)"
+check "the language changes from the Options screen and the screen follows it" 'grep -qx "UI_LANG=en" "$FIX/opts.cfg" && echo "$out" | frame_n 4 | grep -q "Options" && echo "$out" | frame_n 4 | grep -qE "Language +<English>"'
+out="$(unset DELTACTL_LANG; panel o down right q q)"
+check "the next panel starts in the remembered language, and back to Spanish" 'echo "$out" | frame_n 2 | grep -q "Options" && grep -qx "UI_LANG=es" "$FIX/opts.cfg"'
+out="$(panel o down q q)"
+check "with DELTACTL_LANG set the screen says the variable wins at start" 'echo "$out" | frame_n 3 | grep -q "DELTACTL_LANG manda al arrancar"'
+out="$(DELTACTL_REFRESH=7 panel o down down down q q)"
+check "a variable wins at start, and the screen says it fixes that option" 'f="$(echo "$out" | frame_n 5)"; echo "$f" | grep -qE "Relectura del estado +<7 s>" && echo "$f" | grep -q "DELTACTL_REFRESH manda al arrancar"'
+check "the option fixed by a variable is not marked when the cursor is on another one" '! echo "$out" | frame_n 2 | grep -q "manda al arrancar"'
+out="$(DELTACTL_METRICS_INTERVAL=120 panel o down down q q)"
+check "a variable keeps the range its own layer accepts (2 minutes between samples)" 'echo "$out" | frame_n 4 | grep -qE "Muestreo de cifras +<120 s>"'
+out="$(PANEL_COLS=80 DELTACTL_METRICS_INTERVAL=7 panel o down down q q)"
+check "at 80 columns the long texts of the screen wrap instead of being cut" 'f="$(echo "$out" | frame_n 4)"; ! echo "$f" | awk "length(\$0) > 80 { found = 1 } END { exit !found }" && echo "$f" | grep -q "Cada cu.nto se leen memoria" && echo "$f" | grep -q "barato\.  *|" && echo "$f" | grep -q "pero vale la variable\.  *|"'
+out="$(panel $'\020' o p c i o n e s enter q q)"
+check "the palette opens the Options screen" 'echo "$out" | grep -q "Opciones del panel" && echo "$out" | frame_n 11 | grep -q "Teclas vim"'
+out="$(panel '?' x q)"
+check "the help lists the o key" 'echo "$out" | frame_n 2 | grep -q "o opciones"'
+
+# The values come from a file anybody may have edited: only short runs of digits reach an arithmetic expansion.
+printf 'TUI_SAMPLE=08\r\nTUI_REFRESH=a[$(touch %s/pwn)]\nTUI_VIM=OFF\n' "$FIX" > "$FIX/opts.cfg"
+check "a leading zero is read in base 10, CRLF is ignored and the vim switch is case-insensitive" '[ "$(run_lib "dash_opts_load; echo \$MT_INTERVAL_S-\$DASH_VIM")" = "8-0" ]'
+check "a value that is not a number falls back to the default and runs nothing" '[ "$(run_lib "dash_opts_load; echo \$DASH_REFRESH_SECONDS")" = "5" ] && [ ! -e "$FIX/pwn" ]'
+printf 'TUI_SAMPLE=99999\nTUI_REFRESH=0\n' > "$FIX/opts.cfg"
+check "values out of range fall back to the defaults" '[ "$(run_lib "dash_opts_load; echo \$MT_INTERVAL_S-\$DASH_REFRESH_SECONDS")" = "2-5" ]'
+check "an invalid variable does not win over the file" '[ "$(DELTACTL_METRICS_INTERVAL=abc run_lib "printf \"TUI_SAMPLE=5\n\" > $FIX/opts.cfg; dash_opts_load; echo \$MT_INTERVAL_S")" = "5" ]'
+check "the sampling interval of the panel reaches the metrics layer" '[ "$(run_lib "MT_INTERVAL_S=3; mt_interval_us")" = "3000000" ]'
+check "a step from a value outside the list goes to the nearest one in that direction" '[ "$(run_lib "dash_opt_step 7 1 2 5 10; a=\$DASH_OPT_V; dash_opt_step 7 -1 2 5 10; echo \$a-\$DASH_OPT_V")" = "10-5" ]'
+check "a step past either end stays there" '[ "$(run_lib "dash_opt_step 10 1 2 5 10; a=\$DASH_OPT_V; dash_opt_step 2 -1 2 5 10; echo \$a-\$DASH_OPT_V")" = "10-2" ]'
+rm -f "$FIX/opts.cfg"
+export DELTACTL_CONFIG="$FIX/none.cfg"
 
 finish
