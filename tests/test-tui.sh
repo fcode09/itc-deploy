@@ -151,8 +151,8 @@ out="$(panel 2 tab q)"
 check "Tab goes to the next view (outside the instances view)" 'echo "$out" | frame_n 3 | grep -q "\[3 Salida\]"'
 out="$(panel 2 tab tab q)"
 check "Tab goes on to the Runs view" 'echo "$out" | frame_n 4 | grep -q "\[4 Ejecuciones\]"'
-out="$(panel 2 tab tab tab tab q)"
-check "Tab wraps around the views" 'echo "$out" | frame_n 6 | grep -q "\[1 Instancias\]"'
+out="$(panel 2 tab tab tab tab tab q)"
+check "Tab wraps around the views" 'echo "$out" | frame_n 6 | grep -q "\[6 Consola\]" && echo "$out" | frame_n 7 | grep -q "\[1 Instancias\]"'
 out="$(panel tab q)"
 check "on the instances view Tab moves the focus to the services" 'echo "$out" | frame_n 2 | grep -q ">tui-a" && echo "$out" | frame_n 2 | grep -q "\[1 Instancias\]"'
 out="$(panel tab tab q)"
@@ -415,13 +415,13 @@ check "and ends with how it finished" 'echo "$out3" | tail -1 | grep -q "terminÃ
 section "13. panes, zoom, logs and the palette"
 check "tui_key reads Shift+Tab" '[ "$(printf "\033[Z" | tk)" = "btab" ]'
 out="$(panel z q)"
-check "z zooms the list: the console is gone and the list is focused" 'echo "$out" | frame_n 2 | grep -q ">Instancias" && ! echo "$out" | frame_n 2 | grep -q "Consola"'
+check "z zooms the list: the console is gone and the list is focused" 'echo "$out" | frame_n 2 | grep -q ">Instancias" && ! echo "$out" | frame_n 2 | grep -qE -- "\+- >?Consola"'
 out="$(panel z z q)"
 check "z again brings the layout back" 'echo "$out" | frame_n 3 | grep -q "Consola"'
 out="$(panel z esc q)"
 check "Esc closes the zoom before anything else" 'echo "$out" | frame_n 3 | grep -q "Consola" && echo "$out" | frame_n 3 | grep -q "\[1 Instancias\]"'
 out="$(panel tab z q)"
-check "zooming the services gives them the whole body" 'echo "$out" | frame_n 3 | grep -q ">tui-a" && ! echo "$out" | frame_n 3 | grep -q "Consola"'
+check "zooming the services gives them the whole body" 'echo "$out" | frame_n 3 | grep -q ">tui-a" && ! echo "$out" | frame_n 3 | grep -qE -- "\+- >?Consola"'
 check "the focus ring goes list, services, logs, list on a wide screen" '[ "$(run_lib "COLUMNS=160; DELTACTL_TUI_ROWS=40; tui_size; dash_refresh; for i in 1 2 3; do dash_focus_cycle 1; printf \"%s \" \$DASH_FOCUS; done")" = "svc logs list " ]'
 check "and goes the other way with Shift+Tab" '[ "$(run_lib "COLUMNS=160; DELTACTL_TUI_ROWS=40; tui_size; dash_refresh; for i in 1 2 3; do dash_focus_cycle -1; printf \"%s \" \$DASH_FOCUS; done")" = "logs svc list " ]'
 check "on a narrow screen there is no logs pane in the ring" '[ "$(run_lib "dash_refresh; for i in 1 2 3; do dash_focus_cycle 1; printf \"%s \" \$DASH_FOCUS; done")" = "svc list svc " ]'
@@ -528,8 +528,8 @@ out="$(panel 4 t s s q)"
 check "and pressing it again brings every instance back" 'echo "$out" | frame_n 5 | grep -q "^| *deploy" && ! echo "$out" | frame_n 5 | grep "QuÃ© cuesta" | grep -q "instancia"'
 out="$(panel 3 tab q)"
 check "Tab goes from Output to Runs" 'echo "$out" | frame_n 3 | grep -q "\[4 Ejecuciones\]"'
-out="$(panel 4 tab tab q)"
-check "and wraps from Runs to Instances" 'echo "$out" | frame_n 4 | grep -q "\[1 Instancias\]"'
+out="$(panel 4 tab tab tab q)"
+check "and wraps from Runs to Instances" 'echo "$out" | frame_n 5 | grep -q "\[1 Instancias\]"'
 out="$(panel 4 btab q)"
 check "Shift+Tab goes from Runs back to Output" 'echo "$out" | frame_n 3 | grep -q "\[3 Salida\]"'
 out="$(panel : $(typed "goto runs") enter q)"
@@ -691,8 +691,8 @@ check "PgDn scrolls and it stops at the last process, which is then shown" '[ "$
 check "Home goes back to the first row" '[ "$(run_lib "$SCROLL dash_key_procs pgdn; dash_key_procs home; echo \$DASH_PROCS_OFF")" = "0" ]'
 out="$(panel 4 tab q)"
 check "Tab goes from Runs to Processes" 'echo "$out" | frame_n 3 | grep -q "\[5 Procesos\]"'
-out="$(panel 5 tab q)"
-check "and wraps from Processes to Instances" 'echo "$out" | frame_n 3 | grep -q "\[1 Instancias\]"'
+out="$(panel 5 tab tab q)"
+check "and wraps from Processes, through the Console view, to Instances" 'echo "$out" | frame_n 3 | grep -q "\[6 Consola\]" && echo "$out" | frame_n 4 | grep -q "\[1 Instancias\]"'
 out="$(panel 5 btab q)"
 check "Shift+Tab goes from Processes back to Runs" 'echo "$out" | frame_n 3 | grep -q "\[4 Ejecuciones\]"'
 out="$(panel : $(typed "goto procs") enter q)"
@@ -955,5 +955,114 @@ check "a step from a value outside the list goes to the nearest one in that dire
 check "a step past either end stays there" '[ "$(run_lib "dash_opt_step 10 1 2 5 10; a=\$DASH_OPT_V; dash_opt_step 2 -1 2 5 10; echo \$a-\$DASH_OPT_V")" = "10-2" ]'
 rm -f "$FIX/opts.cfg"
 export DELTACTL_CONFIG="$FIX/none.cfg"
+
+section "24. the Console view: the console over the whole body"
+out="$(panel 6 esc esc q)"
+check "6 opens the Console view with the line ready to type" 'f="$(echo "$out" | frame_n 2)"; echo "$f" | grep -q "\[6 Consola\]" && echo "$f" | grep -q "+- >Consola" && echo "$f" | grep -q "^| [a-z-]* > |" && echo "$f" | tail -1 | grep -q "Enter ejecuta"'
+check "the console takes the whole body" '[ "$(echo "$out" | frame_n 2 | grep -c "^|.*|$")" -ge 22 ]'
+check "Esc lets go of the keyboard and stays in the view, a second Esc goes back to Instances" 'echo "$out" | frame_n 3 | grep -q "\[6 Consola\]" && echo "$out" | frame_n 3 | tail -1 | grep -q "Enter o : escribe" && echo "$out" | frame_n 4 | grep -q "\[1 Instancias\]"'
+out="$(panel 6 $(typed help) enter esc esc q)"
+check "a command of the panel answers in the view and the line stays ready for the next one" 'f="$(echo "$out" | frame_n 7)"; echo "$f" | grep -q "CONSOLA: escribe cualquier comando" && echo "$f" | grep -q "^| [a-z-]* > |"'
+out="$(panel 6 $(typed "status tui-a") enter esc wait q)"
+check "a deltactl command runs in the view, without jumping to Output" 'f="$(echo "$out" | last_frame)"; echo "$out" | grep -q "> ./deltactl status tui-a" && echo "$f" | grep -q "status tui-a: termin" && echo "$f" | grep -q "\[6 Consola\]" && ! echo "$out" | grep -q "\[3 Salida\]"'
+out="$(panel 6 esc enter q)"
+check "Enter gives the keyboard back to the line" 'echo "$out" | frame_n 4 | grep -q "^| [a-z-]* > |" && echo "$out" | frame_n 4 | tail -1 | grep -q "Enter ejecuta"'
+out="$(panel 5 tab tab q)"
+check "Tab goes from Processes to the Console view without taking the keyboard, and on to Instances" 'echo "$out" | frame_n 3 | grep -q "\[6 Consola\]" && echo "$out" | frame_n 3 | tail -1 | grep -q "Enter o : escribe" && echo "$out" | frame_n 4 | grep -q "\[1 Instancias\]"'
+out="$(panel 5 tab btab q)"
+check "Shift+Tab goes back from the Console view to Processes" 'echo "$out" | frame_n 4 | grep -q "\[5 Procesos\]"'
+out="$(panel : $(typed "goto console") enter q)"
+check "goto console opens the view" 'echo "$out" | last_frame | grep -q "\[6 Consola\]"'
+check "goto completes every view" '[ "$(run_lib "DASH_BUF=\"goto co\"; dash_complete; echo \"\$DASH_BUF\"")" = "goto console " ]'
+CON='DASH_VIEW=console; TUI_ROWS=30; for i in $(seq 1 30); do DASH_CON+=("l$i"); done;'
+check "PgUp moves almost a screen and stops when the first line reaches the top" '[ "$(run_lib "$CON dash_key_console pgup; a=\$DASH_CON_SCROLL; dash_key_console pgup; echo \$a-\$DASH_CON_SCROLL")" = "7-7" ]'
+check "Home goes to the first line, End and PgDn back to the end" '[ "$(run_lib "$CON dash_key_console home; a=\$DASH_CON_SCROLL; dash_key_console end; b=\$DASH_CON_SCROLL; dash_key_console home; dash_key_console pgdn; echo \$a-\$b-\$DASH_CON_SCROLL")" = "7-0-0" ]'
+check "the arrows move one line and never past either end" '[ "$(run_lib "$CON dash_key_console up; a=\$DASH_CON_SCROLL; dash_key_console down; dash_key_console down; echo \$a-\$DASH_CON_SCROLL")" = "1-0" ]'
+out="$(panel '?' x q)"
+check "the help lists the Console view" 'echo "$out" | frame_n 2 | grep -q "1-6  Instancias .* Consola" && echo "$out" | frame_n 2 | grep -q "CONSOLA  6 a pantalla completa"'
+
+section "25. aliases of the console: short names for commands, kept next to the history"
+mkdir -p "$FIX/al"; rm -f "$FIX/al/"*
+export DELTACTL_CONFIG="$FIX/al/config"
+out="$(panel 6 $(typed "alias st=status tui-a") enter $(typed alias) enter $(typed st) enter esc wait q)"
+check "alias defines one and says so" 'echo "$out" | grep -q "Alias st = status tui-a"'
+check "alias alone lists them" 'echo "$out" | grep -q "^|   st=status tui-a"'
+check "an alias as the first word runs its command" 'echo "$out" | grep -q "> ./deltactl status tui-a" && echo "$out" | last_frame | grep -q "status tui-a: termin"'
+check "the aliases are saved next to the history, readable only by their owner" 'grep -qx "st=status tui-a" "$FIX/al/aliases" && [ "$(stat -c %a "$FIX/al/aliases")" = "600" ]'
+check "the history keeps what was typed, not the expanded command" 'grep -qx "st" "$FIX/al/history"'
+out="$(panel 6 $(typed "alias lg=logs tui-a") enter $(typed "lg s0") enter esc wait q)"
+check "the rest of the line follows the command of the alias" 'echo "$out" | grep -q "> ./deltactl logs tui-a s0"'
+out="$(panel 6 $(typed alias) enter esc q)"
+check "the next panel starts with the saved aliases, in the order they were made" '[ "$(echo "$out" | last_frame | grep -c "^|   \(st\|lg\)=")" = "2" ] && echo "$out" | last_frame | grep -A1 "st=status" | grep -q "lg=logs"'
+out="$(panel 6 $(typed "unalias st") enter $(typed "unalias nope") enter esc q)"
+check "unalias removes one and the file follows" 'echo "$out" | grep -q "Alias st borrado" && ! grep -q "^st=" "$FIX/al/aliases" && grep -q "^lg=" "$FIX/al/aliases"'
+check "unalias of a name that does not exist says so" 'echo "$out" | grep -q "No existe el alias nope"'
+out="$(panel 6 $(typed "alias x=!rm -rf /") enter $(typed "alias status=list") enter $(typed "alias Bad=list") enter $(typed "alias e=") enter esc q)"
+check "an alias for the terminal is refused" 'echo "$out" | grep -q "Orden no v.lida" && ! grep -q "^x=" "$FIX/al/aliases"'
+check "a name that would hide a command, or with capitals, is refused" '[ "$(echo "$out" | grep -c "Nombre no v.lido: \(status\|Bad\)")" -ge 2 ] && ! grep -q "^status=\|^Bad=" "$FIX/al/aliases"'
+check "an empty command is refused" '! grep -q "^e=" "$FIX/al/aliases"'
+check "alias and unalias complete the names of the aliases" '[ "$(run_lib "dash_alias_load; DASH_BUF=\"unalias l\"; dash_complete; echo \"\$DASH_BUF\"")" = "unalias lg " ]'
+check "the first word completes aliases too" '[ "$(run_lib "dash_alias_put zz list; DASH_BUF=z; dash_complete; echo \"\$DASH_BUF\"")" = "zz " ]'
+check "an alias is replaced once: an alias inside an alias is just a word" '[ "$(run_lib "dash_alias_put a b; dash_alias_put b list; dash_alias_expand \"a x\"; echo \"\$DASH_ALIAS_LINE\"")" = "b x" ]'
+# The file is data: any line that is not a valid alias is skipped, and a name is never used as code.
+printf 'ok=list\r\n1bad=list\nsh=!rm -rf /\nctl=list\001\nnoequal\nstatus=list\n' > "$FIX/al/aliases"
+check "invalid lines of the file are skipped" '[ "$(run_lib "dash_alias_load; echo \"\${DASH_ALIAS_NAMES[*]}\"")" = "ok" ]'
+check "a name built to run code is only text" 'run_lib "dash_alias_load; dash_alias_cmd unalias \"a[\\\$(touch $FIX/pwn2)]\"; dash_alias_expand \"a[\\\$(touch $FIX/pwn3)] x\"" >/dev/null; [ ! -e "$FIX/pwn2" ] && [ ! -e "$FIX/pwn3" ]'
+rm -rf "$FIX/al"
+export DELTACTL_CONFIG="$FIX/none.cfg"
+
+section "26. the mouse: clicks on the tabs and the instances, and the wheel (off unless Options turns it on)"
+check "an SGR report is read as a mouse event" '[ "$(run_lib "tui_mouse_parse \"[<0;12;3M\"; echo \$TUI_KEY \$TUI_MB \$TUI_MX \$TUI_MY \$TUI_MUP")" = "mouse 0 12 3 0" ]'
+check "a release is marked as such" '[ "$(run_lib "tui_mouse_parse \"[<0;12;3m\"; echo \$TUI_MUP")" = "1" ]'
+check "a malformed report, or one with numbers too long, is only the key other" '[ "$(run_lib "tui_mouse_parse \"[<0;a;3M\"; a=\$TUI_KEY; tui_mouse_parse \"[<0;99999;3M\"; echo \$a-\$TUI_KEY")" = "other-other" ]'
+check "turning the mouse on and off sends the SGR mode sequences" '[ "$(run_lib "unset DELTACTL_TUI_KEYS; TUI_ACTIVE=1; tui_mouse 1; tui_mouse 1; tui_mouse 0" | cat -v)" = "^[[?1000h^[[?1006h^[[?1006l^[[?1000l" ]'
+check "leaving the screen turns the mouse off" 'run_lib "unset DELTACTL_TUI_KEYS; TUI_ACTIVE=1; TUI_MOUSE=1; tui_leave" | cat -v | grep -q "^\^\[\[?1006l\^\[\[?1000l"'
+check "the mouse is off unless the config file turns it on" '[ "$(run_lib "dash_opts_load; echo \$TUI_MOUSE")" = "0" ]'
+export DELTACTL_CONFIG="$FIX/ms.cfg"
+rm -f "$FIX/ms.cfg"
+out="$(panel o down down down down down right q q)"
+check "Options turns the mouse on and remembers it" 'grep -qx "TUI_MOUSE=on" "$FIX/ms.cfg" && echo "$out" | frame_n 8 | grep -qE "> Rat.n +<s.>" && [ "$(run_lib "dash_opts_load; echo \$TUI_MOUSE")" = "1" ]'
+rm -f "$FIX/ms.cfg"
+export DELTACTL_CONFIG="$FIX/none.cfg"
+out="$(panel mouse:0:33:2 q)"
+check "a click on a tab opens its view" 'echo "$out" | frame_n 2 | grep -q "\[3 Salida\]"'
+out="$(panel mouse:0:75:2 esc esc q)"
+check "a click on the Console tab opens it ready to type, like 6" 'echo "$out" | frame_n 2 | grep -q "\[6 Consola\]" && echo "$out" | frame_n 2 | tail -1 | grep -q "Enter ejecuta"'
+check "when the line shrinks the other tabs to their numbers, the clicks follow" '[ "$(run_lib "DASH_TAB_SHORT=1; DASH_VIEW=instances; dash_tab_at 17; a=\$DASH_TAB_I; dash_tab_at 20; echo \$a-\$DASH_TAB_I")" = "2-3" ]'
+out="$(panel mouse:0:10:7 q)"
+check "a click on an instance selects it" 'echo "$out" | frame_n 2 | grep -q "^| > .. tui-b"'
+out="$(panel mouse:0:10:7 mouse:0:10:7 esc q)"
+check "a second click on the selected instance opens its actions" '! echo "$out" | frame_n 2 | grep -q "Desplegar" && echo "$out" | frame_n 3 | grep -q "Desplegar"'
+out="$(panel mouse:0:10:4 q)"
+check "a click on the first row selects the New button" 'echo "$out" | frame_n 2 | grep -q "^| > + Nueva instancia"'
+out="$(panel mouse:0:10:7:up mouse:2:10:7 mouse:0:70:7 q)"
+check "a release, another button or a click outside the list change nothing" 'for n in 2 3 4; do echo "$out" | frame_n $n | grep -q "^| > .. tui-a" || exit 1; done'
+out="$(panel mouse:4:10:7 q)"
+check "a click with Shift held down is still a click" 'echo "$out" | frame_n 2 | grep -q "^| > .. tui-b"'
+out="$(panel mouse:65:10:10 mouse:64:10:10 mouse:64:10:10 q)"
+check "the wheel moves like the arrows" 'echo "$out" | frame_n 2 | grep -q "^| > .. tui-b" && echo "$out" | frame_n 3 | grep -q "^| > .. tui-a" && echo "$out" | frame_n 4 | grep -q "^| > + Nueva instancia"'
+out="$(panel o mouse:65:10:10 mouse:0:33:2 esc q)"
+check "in Options the wheel moves the cursor, and a click on a tab does nothing" 'echo "$out" | frame_n 3 | grep -qE "> Idioma" && echo "$out" | frame_n 4 | grep -q "Teclas vim" && echo "$out" | frame_n 5 | grep -q "\[1 Instancias\]"'
+out="$(panel 6 esc mouse:0:10:10 esc esc q)"
+check "in the Console view a click gives the line the keyboard" 'echo "$out" | frame_n 4 | tail -1 | grep -q "Enter ejecuta"'
+check "on a line being typed the wheel scrolls the transcript, not the history" '[ "$(run_lib "DASH_MODE=cmd; DASH_VIEW=instances; for i in \$(seq 1 30); do DASH_CON+=(l\$i); done; TUI_MB=64; TUI_MUP=0; dash_mouse; a=\$DASH_CON_SCROLL; TUI_MB=65; dash_mouse; echo \$a-\$DASH_CON_SCROLL-\$DASH_MODE-\$DASH_BUF")" = "3-0-cmd-" ]'
+out="$(panel '?' x q)"
+check "the help lists the mouse" 'echo "$out" | frame_n 2 | grep -q "RAT.N    (en Opciones) clic"'
+
+section "27. the mouse and the console: what a review found"
+check "a click of a terminal without the SGR mode is dropped whole, not typed as keys" '[ "$(run_lib "unset DELTACTL_TUI_KEYS; { tui_key 1; a=\$TUI_KEY; tui_key 1; echo \"\$a-\$TUI_KEY\"; } < <(printf \"\\033[M x!q\")")" = "other-q" ]'
+check "a real SGR report from the terminal is read as a mouse event" '[ "$(run_lib "unset DELTACTL_TUI_KEYS; tui_key 1 < <(printf \"\\033[<64;7;9M\"); echo \$TUI_KEY \$TUI_MB \$TUI_MX \$TUI_MY")" = "mouse 64 7 9" ]'
+check "a report longer than expected is dropped up to its end" '[ "$(run_lib "unset DELTACTL_TUI_KEYS; { tui_key 1; a=\$TUI_KEY; tui_key 1; echo \"\$a-\$TUI_KEY\"; } < <(printf \"\\033[<0;123456789;1Mq\")")" = "other-q" ]'
+LST='DASH_NAMES=(i0 i1 i2 i3 i4 i5 i6 i7 i8 i9);'
+check "the list keeps its first row while the selection stays inside the window" '[ "$(run_lib "$LST DASH_SEL=9; dash_list_lines 7; a=\$DASH_LIST_OFF; DASH_SEL=5; dash_list_lines 7; b=\$DASH_LIST_OFF; DASH_SEL=4; dash_list_lines 7; echo \$a-\$b-\$DASH_LIST_OFF")" = "5-5-4" ]'
+check "on a list too short to show an instance, no row can be clicked" '[ "$(run_lib "$LST DASH_SEL=3; dash_list_lines 2; echo \$DASH_LIST_AVAIL")" = "0" ]'
+CON2='DASH_VIEW=console; TUI_ROWS=30; for i in $(seq 1 40); do DASH_CON+=("l$i"); done;'
+check "someone reading older lines keeps them while new ones arrive" '[ "$(run_lib "$CON2 DASH_CON_SCROLL=5; dash_con_add new; a=\$DASH_CON_SCROLL; DASH_CON_SCROLL=0; dash_con_add new2; echo \$a-\$DASH_CON_SCROLL")" = "6-0" ]'
+check "a new command shows its output from its start" '[ "$(run_lib "$CON2 DASH_CON_SCROLL=5; DASH_BUF=refresh; dash_submit_cmd; echo \$DASH_CON_SCROLL")" = "0" ]'
+mkdir -p "$FIX/al2"; mkfifo "$FIX/al2/aliases"
+check "an aliases file that is not a regular file is never read (a pipe would block)" '[ "$(DELTACTL_CONFIG="$FIX/al2/config" timeout 5 bash -c "ROOT=\"$PWD\" DELTACTL_TUI_KEYS=/dev/null bash -c \"source lib/bootstrap.sh; source lib/cmd/dashboard.sh; dash_alias_load; echo ok\"")" = "ok" ]'
+rm -f "$FIX/al2/aliases"; mkdir "$FIX/al2/aliases"
+check "an aliases path that is a directory is not taken for a saved file" '! DELTACTL_CONFIG="$FIX/al2/config" run_lib "dash_alias_put x list; dash_alias_save" && [ -z "$(ls -A "$FIX/al2/aliases")" ]'
+rm -rf "$FIX/al2"
 
 finish

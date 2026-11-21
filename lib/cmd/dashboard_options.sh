@@ -12,6 +12,7 @@
 #   TUI_SAMPLE=<s>       seconds between two samples of the figures of the services (1-60)
 #   TUI_REFRESH=<s>      without Docker events, seconds between two readings of the state (1-3600)
 #   TUI_VIM=on|off       whether j k h g G move like the arrows, Home and End
+#   TUI_MOUSE=on|off     whether the panel takes clicks and the wheel (off by default: it takes the terminal's text selection)
 #
 # The variables DELTACTL_THEME, DELTACTL_LANG, DELTACTL_METRICS_INTERVAL and DELTACTL_REFRESH still win when the panel starts;
 # the screen says so next to the option they fix.
@@ -19,7 +20,7 @@
 # Every value read from the file is checked before it is used: only short runs of digits reach an arithmetic expansion. A variable
 # keeps the wider range its own layer always accepted (any whole number of seconds above zero, up to a day).
 
-DASH_OPT_IDS=(theme lang sample refresh vim)
+DASH_OPT_IDS=(theme lang sample refresh vim mouse)
 DASH_OPT_SAMPLES=(1 2 3 5 10)
 DASH_OPT_REFRESHES=(2 5 10 15 30 60)
 DASH_OPT_SEL=0 DASH_OPT_N=0 DASH_VIM=1 DASH_CFG_V="" DASH_OPT_FILE=""
@@ -76,6 +77,8 @@ dash_opts_load() {
   MT_INTERVAL_S="$DASH_OPT_V" MT_INTERVAL_US=""
   dash_cfg_get TUI_VIM
   case "${DASH_CFG_V,,}" in off | no | 0 | false) DASH_VIM=0 ;; *) DASH_VIM=1 ;; esac
+  dash_cfg_get TUI_MOUSE
+  case "${DASH_CFG_V,,}" in on | yes | 1 | true) tui_mouse 1 ;; *) tui_mouse 0 ;; esac
   # The path as the screen shows it, worked out once: under the home it starts with ~, and a long one keeps its end (the part that
   # tells the file), so it never widens the box.
   local f
@@ -138,6 +141,11 @@ dash_opt_change() { # dir
       if [ "$DASH_VIM" -eq 1 ]; then dash_cfg_set TUI_VIM on; else dash_cfg_set TUI_VIM off; fi
       dash_msg info "$(t tui.opt.set "$(t tui.opt.vim)" "$(dash_opt_onoff "$DASH_VIM")")"
       ;;
+    mouse)
+      tui_mouse $((1 - TUI_MOUSE))
+      if [ "$TUI_MOUSE" -eq 1 ]; then dash_cfg_set TUI_MOUSE on; else dash_cfg_set TUI_MOUSE off; fi
+      dash_msg info "$(t tui.opt.set "$(t tui.opt.mouse)" "$(dash_opt_onoff "$TUI_MOUSE")")"
+      ;;
   esac
   DASH_OPT_N=$((DASH_OPT_N + 1))
 }
@@ -164,6 +172,7 @@ dash_opt_value() { # id -> DASH_OPT_TXT
     sample) DASH_OPT_TXT="${MT_INTERVAL_S:-2} s" ;;
     refresh) DASH_OPT_TXT="$DASH_REFRESH_SECONDS s" ;;
     vim) if [ "$DASH_VIM" -eq 1 ]; then dt tui.opt.on; else dt tui.opt.off; fi; DASH_OPT_TXT="$DTV" ;;
+    mouse) if [ "$TUI_MOUSE" -eq 1 ]; then dt tui.opt.on; else dt tui.opt.off; fi; DASH_OPT_TXT="$DTV" ;;
   esac
 }
 DASH_OPT_TXT=""
