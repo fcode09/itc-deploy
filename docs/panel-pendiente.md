@@ -50,6 +50,12 @@ imágenes) → `perf(panel)` (segundo plano, dibujo rápido, caché del cuerpo).
   real), siguientes pasos (solo si hay) y logs en vivo | eventos (≥150 columnas), con la salida del último comando debajo. Por debajo
   de 120 columnas se mantiene la vista compacta.
 - **Historial**: una muestra cada 2 s (`DELTACTL_METRICS_INTERVAL`), 120 muestras = 4 minutos en los gráficos.
+- **Opciones** (tecla `o`, o "Opciones del panel" en Ctrl+P; `lib/cmd/dashboard_options.sh`): tema, idioma, muestreo de cifras
+  (1, 2, 3, 5 o 10 s), relectura del estado sin eventos de Docker (2, 5, 10, 15, 30 o 60 s) y teclas vim (`j k h g G`; con `no` solo
+  valen las flechas, Inicio y Fin). ↑↓ eligen, ←→ o Enter cambian, Esc cierra. Cada cambio se aplica al momento y se guarda en el mismo
+  `~/.config/deltactl/config` que `UI_LANG` y `UI_THEME` (`TUI_SAMPLE`, `TUI_REFRESH`, `TUI_VIM=on|off`), con escritura atómica
+  (`set_var`). `DELTACTL_THEME`, `DELTACTL_LANG`, `DELTACTL_METRICS_INTERVAL` y `DELTACTL_REFRESH` siguen mandando al arrancar, y la
+  pantalla lo indica. Un valor del archivo que no sea un número dentro de su rango se ignora (vale el de por defecto).
 - **Ver el resultado sin terminal**: `python3 tests/tools/pty_shot.py salida.json FILAS COLUMNAS sleep:10` captura el panel real con color
   (solo lectura sobre Docker) y `pwsh tests/tools/render_shot.ps1 -Json salida.json -Png salida.png` lo dibuja como imagen.
   `HARNESS_ROWS`/`HARNESS_COLS` hacen que `pty_harness.py` mida a otros tamaños.
@@ -68,6 +74,7 @@ con color) y en el muestreo (~10 ms). Los gráficos ya son incrementales (`gfx_a
 | `lib/cmd/dashboard_view.sh` | Dibujo: cabecera, pestañas, vistas, diálogos. Solo construye `TUI_FRAME`, nunca ejecuta nada |
 | `lib/cmd/dashboard_runs.sh` | Vista Ejecuciones: lectura del historial, detalle, comparación, estadísticas, visor de logs paginado, teclas |
 | `lib/cmd/dashboard_procs.sh` | Vista Procesos y tarjeta de la cabecera: árbol de `/proc` (`DELTACTL_PROC_ROOT` en los tests) y coste del panel |
+| `lib/cmd/dashboard_options.sh` | Pantalla de Opciones: lectura y validación de `TUI_*` en el archivo de configuración, cambios y diálogo |
 | `lib/ui/tui.sh` | Terminal: pantalla alterna, teclas, cajas, recorte con colores, dibujo incremental |
 | `lib/core/metrics.sh` | Muestreo de memoria/CPU por servicio, historial, formato (bytes, %, sparkline) |
 | `lib/core/jobs.sh` | Un comando en segundo plano: salida sin `fork`, cancelación (TERM y luego KILL a los 2 s) |
@@ -179,7 +186,7 @@ Evitar patrones extglob en reemplazos (`//`) sobre cadenas largas.
 3. **Revisión nativa (RDD)** de los commits de esta rama: no se ejecutó (requiere tu consentimiento por cada commit).
 4. **Probar en el servidor real**: cgroup v2 con systemd está verificado en WSL; falta cgroup v1 real.
 5. Documentación: `README.md` y `lib/help/{,en/}cmd-menu.txt` ya describen el panel; falta una captura o guía corta de uso.
-6. Opcional: ratón, historial de comandos persistente, filtro de instancias, vista nativa de imágenes, aviso visual de `oom` por eventos.
+6. Opcional: presets de layout y ratón (quedaron fuera de U5), historial de comandos persistente, filtro de instancias, vista nativa de imágenes, aviso visual de `oom` por eventos.
 
 ## Límites conocidos
 
