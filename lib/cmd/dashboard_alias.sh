@@ -50,7 +50,8 @@ dash_alias_load() {
   local f line name cmd
   DASH_ALIAS=() DASH_ALIAS_NAMES=()
   f="$(dash_alias_file)"
-  [ -r "$f" ] || return 0
+  # Only a regular file of the user's own: never a pipe (the read would wait forever) or a file somebody else left there.
+  { [ -f "$f" ] && [ -O "$f" ] && [ -r "$f" ]; } || return 0
   while IFS= read -r line || [ -n "$line" ]; do
     line="${line%$'\r'}"
     [[ "$line" == *=* ]] || continue
@@ -65,6 +66,7 @@ dash_alias_save() {
   local f tmp n
   f="$(dash_alias_file)"
   mkdir -p "$(dirname "$f")" 2>/dev/null || return 1
+  [ ! -d "$f" ] || return 1     # (mv would put the file inside it and say it worked)
   tmp="$(umask 077; mktemp "$f.XXXXXX" 2>/dev/null)" || return 1
   {
     if [ "${#DASH_ALIAS_NAMES[@]}" -gt 0 ]; then

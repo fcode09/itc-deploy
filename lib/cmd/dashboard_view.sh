@@ -204,7 +204,8 @@ dash_tabs_line() {
   tui_vlen "$left"; lw="$TUI_VL"
   tui_vlen "$right"; rw="$TUI_VL"
   # What the running command says matters more than the names of the other views: they shrink to their numbers first.
-  if [ $((lw + rw + 2)) -gt "$TUI_COLS" ]; then left="$short"; tui_vlen "$left"; lw="$TUI_VL"; fi
+  DASH_TAB_SHORT=0
+  if [ $((lw + rw + 2)) -gt "$TUI_COLS" ]; then left="$short" DASH_TAB_SHORT=1; tui_vlen "$left"; lw="$TUI_VL"; fi
   if [ $((lw + rw + 2)) -gt "$TUI_COLS" ]; then
     tui_clip "$right" $((TUI_COLS - lw - 2)); right="$TUI_OUT"; tui_vlen "$right"; rw="$TUI_VL"
   fi
@@ -213,7 +214,23 @@ dash_tabs_line() {
   printf -v TAB_PAD '%*s' "$pad" ''
   TUI_TABS="$left$TAB_PAD$right"
 }
-TUI_TABS="" TAB_PAD=""
+TUI_TABS="" TAB_PAD="" DASH_TAB_SHORT=0
+
+# The view whose tab is at column $1 of the tab line, into DASH_TAB_I (1-6). Every tab is its name plus five cells (" [1 Name]",
+# "  1 Name "), or four ("  1 ") when the line had to shrink the ones that are not active.
+DASH_TAB_I=0
+dash_tab_at() { # column
+  local v i=0 start=0 w
+  for v in instances resources output runs procs console; do
+    i=$((i + 1))
+    dt "tui.tab.$v"
+    w=$((${#DTV} + 5))
+    [ "$DASH_TAB_SHORT" -eq 0 ] || [ "$DASH_VIEW" = "$v" ] || w=4
+    if [ "$1" -gt "$start" ] && [ "$1" -le $((start + w)) ]; then DASH_TAB_I="$i"; return 0; fi
+    start=$((start + w))
+  done
+  return 1
+}
 
 # --- View: instances -------------------------------------------------------------------------------------
 
@@ -253,7 +270,21 @@ dash_list_lines() { # inner_height [inner_width]
   DASH_LIST_LINES+=("$C_GRY$row$C_OFF")
   avail=$((h - 2))
   [ "$avail" -ge 1 ] || avail=1
-  [ "$DASH_ON_NEW" -eq 1 ] || [ "$DASH_SEL" -lt "$avail" ] || start=$((DASH_SEL - avail + 1))
+  # The first instance shown stays where it was until the selection leaves the window: a list that jumped at every selection
+  # would move the instance away from under the pointer that clicked it.
+  if [ "$DASH_ON_NEW" -eq 1 ]; then
+    start=0
+  else
+    start="$DASH_LIST_OFF"
+    [ "$DASH_SEL" -ge "$start" ] || start="$DASH_SEL"
+    [ "$DASH_SEL" -lt $((start + avail)) ] || start=$((DASH_SEL - avail + 1))
+    [ "$start" -le $((n - avail)) ] || start=$((n - avail))
+    [ "$start" -ge 0 ] || start=0
+  fi
+  DASH_LIST_OFF="$start"
+  # Where a click lands (see dash_mouse): the rows really inside the box, which can be none on a short terminal.
+  DASH_LIST_START="$start" DASH_LIST_AVAIL=$((h - 2))
+  [ "$DASH_LIST_AVAIL" -ge 0 ] || DASH_LIST_AVAIL=0
   for ((i = start; i < n && i < start + avail; i++)); do
     name="${DASH_NAMES[$i]}"
     kind="${DASH_KIND[$name]}"
@@ -460,6 +491,7 @@ dash_view_instances() { # body_height
   if [ "$TUI_COLS" -ge 100 ]; then
     lw=44; rw=$((TUI_COLS - lw))
     dash_list_lines $((th - 2))
+    DASH_LIST_SHOWN=1 DASH_LIST_W="$lw"
     dt tui.instances
     tui_box "$DTV" "$lw" "$th" DASH_LIST_LINES "" "$lf"; DASH_L=("${TUI_BOX[@]}")
     dash_detail_box "$name" "$rw" "$th"; DASH_R=("${TUI_BOX[@]}")
@@ -470,6 +502,7 @@ dash_view_instances() { # body_height
     [ "$lh" -ge 4 ] || lh=4
     dh=$((th - lh))
     dash_list_lines $((lh - 2))
+    DASH_LIST_SHOWN=1 DASH_LIST_W="$TUI_COLS"
     dt tui.instances
     tui_box "$DTV" "$TUI_COLS" "$lh" DASH_LIST_LINES "" "$lf"
     TUI_FRAME+=("${TUI_BOX[@]}")
@@ -874,6 +907,7 @@ dash_view_overview() { # body_height
   hh=$((top - lh))
   if [ "$hh" -lt 6 ]; then lh="$top"; hh=0; fi
   dash_list_lines $((lh - 2)) $((lw - 3))
+  DASH_LIST_SHOWN=1 DASH_LIST_W="$lw"
   dt tui.instances
   tui_box "$DTV" "$lw" "$lh" DASH_LIST_LINES "" "$lf"; left=("${TUI_BOX[@]}")
   if [ "$hh" -gt 0 ]; then dash_host_box "$lw" "$hh"; left+=("${TUI_BOX[@]}"); fi
@@ -1044,6 +1078,7 @@ dash_view_zoom() { # body_height
     case "$DASH_FOCUS" in
       list)
         dash_list_lines $((bh - 2)) $((TUI_COLS - 3))
+        DASH_LIST_SHOWN=1 DASH_LIST_W="$TUI_COLS"
         dt tui.instances
         tui_box "$DTV" "$TUI_COLS" "$bh" DASH_LIST_LINES "" 1
         ;;
@@ -1275,8 +1310,13 @@ DASH_BODY=() DASH_BODY_SIG=""
 DASH_REFRESH_N=0 DASH_ERRS_N=0 DASH_LANG_N=0
 
 # Builds the body (everything between the tab line and the message line) into TUI_FRAME.
+# Where the list of instances is on screen, for the mouse: drawn in this body or not, its width, and the first instance it shows
+# and how many fit. Its box is always the first thing of the body, so its first row (the New button) is screen row 4.
+DASH_LIST_SHOWN=0 DASH_LIST_W=0 DASH_LIST_START=0 DASH_LIST_AVAIL=0 DASH_LIST_OFF=0
+
 dash_build_body() { # body_height
   local bh="$1" total i
+  DASH_LIST_SHOWN=0
   if [ "$TUI_ROWS" -lt 14 ] || [ "$TUI_COLS" -lt 60 ]; then
     # Too small to draw anything useful: say so instead of drawing broken boxes.
     dt tui.too_small

@@ -891,7 +891,9 @@ dash_con_add() { # text
   tui_sanitize "$1"
   DASH_CON+=("${TUI_OUT//"$rs"/$C_OFF}")
   if [ "${#DASH_CON[@]}" -gt "$DASH_CON_MAX" ]; then DASH_CON=("${DASH_CON[@]:100}"); fi
-  DASH_CON_N=$((DASH_CON_N + 1)) DASH_CON_SCROLL=0
+  DASH_CON_N=$((DASH_CON_N + 1))
+  # Someone reading older lines keeps them on screen while a command goes on printing (the new lines push the end further away).
+  if [ "$DASH_CON_SCROLL" -gt 0 ]; then DASH_CON_SCROLL=$((DASH_CON_SCROLL + 1)); dash_con_clamp; fi
 }
 
 # Copies to the transcript the lines the running command printed since the last time (the output buffer keeps only the last
@@ -1092,6 +1094,7 @@ dash_submit_cmd() {
   buf="${buf#"${buf%%[![:space:]]*}"}"
   buf="${buf%"${buf##*[![:space:]]}"}"
   [ -n "$buf" ] || return 0
+  DASH_CON_SCROLL=0   # what a new command prints is read from its start
   if [ "${#DASH_HIST[@]}" -eq 0 ] || [ "${DASH_HIST[-1]}" != "$buf" ]; then DASH_HIST+=("$buf"); dash_hist_save "$buf"; fi
   DASH_HIDX="${#DASH_HIST[@]}"
   case "$buf" in '!'*) term=1; buf="${buf#!}"; buf="${buf#"${buf%%[![:space:]]*}"}" ;; esac
@@ -1178,6 +1181,7 @@ dash_handle_key() {
   [ "$k" != "timeout" ] || return 0
   if [ "$k" = "eof" ]; then DASH_QUIT=1; return 0; fi
   DASH_DIRTY=1
+  if [ "$k" = "mouse" ]; then dash_mouse; return 0; fi
   # With the vim keys off (Options), j k h g G do nothing where they would move: they are only letters where text is typed.
   if [ "$DASH_VIM" -eq 0 ]; then
     case "$DASH_MODE" in normal | menu | options) case "$k" in j | k | h | g | G) return 0 ;; esac ;; esac
@@ -1212,6 +1216,51 @@ dash_handle_key() {
       esac
       ;;
   esac
+}
+
+# --- Mouse (Options: off by default) ---------------------------------------------------------------------------
+# A click on a tab opens that view; on an instance it selects it, and a second click on the selected one opens its actions (like
+# Enter); on the New button it selects it, then starts the wizard. In the Console view a click gives the line the keyboard. The
+# wheel moves like the arrows wherever they move something; on a line being typed it scrolls the transcript instead of walking the
+# history. Releases, drags and other buttons do nothing, and clicks only act where no dialog or line has the keyboard.
+dash_mouse() {
+  local b="$TUI_MB" y="$TUI_MY" x="$TUI_MX" j i n="${#DASH_NAMES[@]}"
+  [ "$TUI_MUP" -eq 0 ] || return 0
+  [ $((b & 32)) -eq 0 ] || return 0      # a drag
+  b=$((b & ~28))                          # Shift, Alt and Ctrl held down do not change the button
+  case "$b" in
+    64 | 65)
+      if [ "$DASH_MODE" = "cmd" ]; then
+        if [ "$b" -eq 64 ]; then DASH_CON_SCROLL=$((DASH_CON_SCROLL + 3)); else DASH_CON_SCROLL=$((DASH_CON_SCROLL - 3)); fi
+        dash_con_clamp
+        return 0
+      fi
+      case "$DASH_MODE" in name | filter | find | confirm | help) return 0 ;; esac
+      if [ "$b" -eq 64 ]; then TUI_KEY=up; else TUI_KEY=down; fi
+      dash_handle_key
+      return 0
+      ;;
+    0) ;;
+    *) return 0 ;;
+  esac
+  [ "$DASH_MODE" = "normal" ] || return 0
+  if [ "$y" -eq 2 ]; then
+    if dash_tab_at "$x"; then dash_key_global "$DASH_TAB_I"; fi
+    return 0
+  fi
+  if [ "$DASH_VIEW" = "console" ]; then dash_key_console enter; return 0; fi
+  { [ "$DASH_VIEW" = "instances" ] && [ "$DASH_LIST_SHOWN" -eq 1 ] && [ "$x" -le "$DASH_LIST_W" ]; } || return 0
+  if [ "$y" -eq 4 ]; then
+    if [ "$DASH_ON_NEW" -eq 1 ] && [ "$DASH_FOCUS" = "list" ]; then dash_key_instances enter; else DASH_ON_NEW=1 DASH_SVC=0 DASH_DET_OFF=0 DASH_FOCUS=list; fi
+    return 0
+  fi
+  [ "$n" -gt 0 ] || return 0
+  j=$((y - 6))
+  { [ "$j" -ge 0 ] && [ "$j" -lt "$DASH_LIST_AVAIL" ]; } || return 0
+  i=$((DASH_LIST_START + j))
+  [ "$i" -lt "$n" ] || return 0
+  if [ "$DASH_ON_NEW" -eq 0 ] && [ "$i" -eq "$DASH_SEL" ] && [ "$DASH_FOCUS" = "list" ]; then dash_key_instances enter; return 0; fi
+  DASH_ON_NEW=0 DASH_SEL="$i" DASH_SVC=0 DASH_DET_OFF=0 DASH_FOCUS=list
 }
 
 # --- Main loop ---------------------------------------------------------------------------------------------

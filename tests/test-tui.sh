@@ -1011,4 +1011,58 @@ check "a name built to run code is only text" 'run_lib "dash_alias_load; dash_al
 rm -rf "$FIX/al"
 export DELTACTL_CONFIG="$FIX/none.cfg"
 
+section "26. the mouse: clicks on the tabs and the instances, and the wheel (off unless Options turns it on)"
+check "an SGR report is read as a mouse event" '[ "$(run_lib "tui_mouse_parse \"[<0;12;3M\"; echo \$TUI_KEY \$TUI_MB \$TUI_MX \$TUI_MY \$TUI_MUP")" = "mouse 0 12 3 0" ]'
+check "a release is marked as such" '[ "$(run_lib "tui_mouse_parse \"[<0;12;3m\"; echo \$TUI_MUP")" = "1" ]'
+check "a malformed report, or one with numbers too long, is only the key other" '[ "$(run_lib "tui_mouse_parse \"[<0;a;3M\"; a=\$TUI_KEY; tui_mouse_parse \"[<0;99999;3M\"; echo \$a-\$TUI_KEY")" = "other-other" ]'
+check "turning the mouse on and off sends the SGR mode sequences" '[ "$(run_lib "unset DELTACTL_TUI_KEYS; TUI_ACTIVE=1; tui_mouse 1; tui_mouse 1; tui_mouse 0" | cat -v)" = "^[[?1000h^[[?1006h^[[?1006l^[[?1000l" ]'
+check "leaving the screen turns the mouse off" 'run_lib "unset DELTACTL_TUI_KEYS; TUI_ACTIVE=1; TUI_MOUSE=1; tui_leave" | cat -v | grep -q "^\^\[\[?1006l\^\[\[?1000l"'
+check "the mouse is off unless the config file turns it on" '[ "$(run_lib "dash_opts_load; echo \$TUI_MOUSE")" = "0" ]'
+export DELTACTL_CONFIG="$FIX/ms.cfg"
+rm -f "$FIX/ms.cfg"
+out="$(panel o down down down down down right q q)"
+check "Options turns the mouse on and remembers it" 'grep -qx "TUI_MOUSE=on" "$FIX/ms.cfg" && echo "$out" | frame_n 8 | grep -qE "> Rat.n +<s.>" && [ "$(run_lib "dash_opts_load; echo \$TUI_MOUSE")" = "1" ]'
+rm -f "$FIX/ms.cfg"
+export DELTACTL_CONFIG="$FIX/none.cfg"
+out="$(panel mouse:0:33:2 q)"
+check "a click on a tab opens its view" 'echo "$out" | frame_n 2 | grep -q "\[3 Salida\]"'
+out="$(panel mouse:0:75:2 esc esc q)"
+check "a click on the Console tab opens it ready to type, like 6" 'echo "$out" | frame_n 2 | grep -q "\[6 Consola\]" && echo "$out" | frame_n 2 | tail -1 | grep -q "Enter ejecuta"'
+check "when the line shrinks the other tabs to their numbers, the clicks follow" '[ "$(run_lib "DASH_TAB_SHORT=1; DASH_VIEW=instances; dash_tab_at 17; a=\$DASH_TAB_I; dash_tab_at 20; echo \$a-\$DASH_TAB_I")" = "2-3" ]'
+out="$(panel mouse:0:10:7 q)"
+check "a click on an instance selects it" 'echo "$out" | frame_n 2 | grep -q "^| > .. tui-b"'
+out="$(panel mouse:0:10:7 mouse:0:10:7 esc q)"
+check "a second click on the selected instance opens its actions" '! echo "$out" | frame_n 2 | grep -q "Desplegar" && echo "$out" | frame_n 3 | grep -q "Desplegar"'
+out="$(panel mouse:0:10:4 q)"
+check "a click on the first row selects the New button" 'echo "$out" | frame_n 2 | grep -q "^| > + Nueva instancia"'
+out="$(panel mouse:0:10:7:up mouse:2:10:7 mouse:0:70:7 q)"
+check "a release, another button or a click outside the list change nothing" 'for n in 2 3 4; do echo "$out" | frame_n $n | grep -q "^| > .. tui-a" || exit 1; done'
+out="$(panel mouse:4:10:7 q)"
+check "a click with Shift held down is still a click" 'echo "$out" | frame_n 2 | grep -q "^| > .. tui-b"'
+out="$(panel mouse:65:10:10 mouse:64:10:10 mouse:64:10:10 q)"
+check "the wheel moves like the arrows" 'echo "$out" | frame_n 2 | grep -q "^| > .. tui-b" && echo "$out" | frame_n 3 | grep -q "^| > .. tui-a" && echo "$out" | frame_n 4 | grep -q "^| > + Nueva instancia"'
+out="$(panel o mouse:65:10:10 mouse:0:33:2 esc q)"
+check "in Options the wheel moves the cursor, and a click on a tab does nothing" 'echo "$out" | frame_n 3 | grep -qE "> Idioma" && echo "$out" | frame_n 4 | grep -q "Teclas vim" && echo "$out" | frame_n 5 | grep -q "\[1 Instancias\]"'
+out="$(panel 6 esc mouse:0:10:10 esc esc q)"
+check "in the Console view a click gives the line the keyboard" 'echo "$out" | frame_n 4 | tail -1 | grep -q "Enter ejecuta"'
+check "on a line being typed the wheel scrolls the transcript, not the history" '[ "$(run_lib "DASH_MODE=cmd; DASH_VIEW=instances; for i in \$(seq 1 30); do DASH_CON+=(l\$i); done; TUI_MB=64; TUI_MUP=0; dash_mouse; a=\$DASH_CON_SCROLL; TUI_MB=65; dash_mouse; echo \$a-\$DASH_CON_SCROLL-\$DASH_MODE-\$DASH_BUF")" = "3-0-cmd-" ]'
+out="$(panel '?' x q)"
+check "the help lists the mouse" 'echo "$out" | frame_n 2 | grep -q "RAT.N    (en Opciones) clic"'
+
+section "27. the mouse and the console: what a review found"
+check "a click of a terminal without the SGR mode is dropped whole, not typed as keys" '[ "$(run_lib "unset DELTACTL_TUI_KEYS; { tui_key 1; a=\$TUI_KEY; tui_key 1; echo \"\$a-\$TUI_KEY\"; } < <(printf \"\\033[M x!q\")")" = "other-q" ]'
+check "a real SGR report from the terminal is read as a mouse event" '[ "$(run_lib "unset DELTACTL_TUI_KEYS; tui_key 1 < <(printf \"\\033[<64;7;9M\"); echo \$TUI_KEY \$TUI_MB \$TUI_MX \$TUI_MY")" = "mouse 64 7 9" ]'
+check "a report longer than expected is dropped up to its end" '[ "$(run_lib "unset DELTACTL_TUI_KEYS; { tui_key 1; a=\$TUI_KEY; tui_key 1; echo \"\$a-\$TUI_KEY\"; } < <(printf \"\\033[<0;123456789;1Mq\")")" = "other-q" ]'
+LST='DASH_NAMES=(i0 i1 i2 i3 i4 i5 i6 i7 i8 i9);'
+check "the list keeps its first row while the selection stays inside the window" '[ "$(run_lib "$LST DASH_SEL=9; dash_list_lines 7; a=\$DASH_LIST_OFF; DASH_SEL=5; dash_list_lines 7; b=\$DASH_LIST_OFF; DASH_SEL=4; dash_list_lines 7; echo \$a-\$b-\$DASH_LIST_OFF")" = "5-5-4" ]'
+check "on a list too short to show an instance, no row can be clicked" '[ "$(run_lib "$LST DASH_SEL=3; dash_list_lines 2; echo \$DASH_LIST_AVAIL")" = "0" ]'
+CON2='DASH_VIEW=console; TUI_ROWS=30; for i in $(seq 1 40); do DASH_CON+=("l$i"); done;'
+check "someone reading older lines keeps them while new ones arrive" '[ "$(run_lib "$CON2 DASH_CON_SCROLL=5; dash_con_add new; a=\$DASH_CON_SCROLL; DASH_CON_SCROLL=0; dash_con_add new2; echo \$a-\$DASH_CON_SCROLL")" = "6-0" ]'
+check "a new command shows its output from its start" '[ "$(run_lib "$CON2 DASH_CON_SCROLL=5; DASH_BUF=refresh; dash_submit_cmd; echo \$DASH_CON_SCROLL")" = "0" ]'
+mkdir -p "$FIX/al2"; mkfifo "$FIX/al2/aliases"
+check "an aliases file that is not a regular file is never read (a pipe would block)" '[ "$(DELTACTL_CONFIG="$FIX/al2/config" timeout 5 bash -c "ROOT=\"$PWD\" DELTACTL_TUI_KEYS=/dev/null bash -c \"source lib/bootstrap.sh; source lib/cmd/dashboard.sh; dash_alias_load; echo ok\"")" = "ok" ]'
+rm -f "$FIX/al2/aliases"; mkdir "$FIX/al2/aliases"
+check "an aliases path that is a directory is not taken for a saved file" '! DELTACTL_CONFIG="$FIX/al2/config" run_lib "dash_alias_put x list; dash_alias_save" && [ -z "$(ls -A "$FIX/al2/aliases")" ]'
+rm -rf "$FIX/al2"
+
 finish
