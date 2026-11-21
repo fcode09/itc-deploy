@@ -53,6 +53,7 @@ dash_texts_build() {
   DASH_KEYS[runs_stats]="$(t tui.keys.runs_stats)"
   DASH_KEYS[runs_log]="$(t tui.keys.runs_log "$DASH_UD")"
   DASH_KEYS[procs]="$(t tui.keys.procs "$DASH_UD")"
+  DASH_KEYS[console]="$(t tui.keys.console "$DASH_UD")"
 }
 
 # A usage bar in a variable: dash_bar <percent> [cells]  (green below 70 %, yellow below 85 %, red above). Remembered.
@@ -183,7 +184,7 @@ DASH_JL=""
 # The tab line: the views and, at the right, the state of the current command.
 dash_tabs_line() {
   local v i=0 left="" short="" right="" pad lw rw piece
-  for v in instances resources output runs procs; do
+  for v in instances resources output runs procs console; do
     i=$((i + 1))
     dt "tui.tab.$v"
     if [ "$DASH_VIEW" = "$v" ]; then
@@ -1020,6 +1021,13 @@ dash_view_resources() { # body_height
 
 # --- View: output ---------------------------------------------------------------------------------------
 
+# --- View: console ---------------------------------------------------------------------------------------------------
+# The console of the Overview over the whole body: a workspace to type commands and read what they printed.
+dash_view_console() { # body_height
+  dash_console_box "$TUI_COLS" "$1"
+  TUI_FRAME+=("${TUI_BOX[@]}")
+}
+
 dash_view_output() { # body_height
   dash_out_box "$TUI_COLS" "$1" "$DASH_OUT_SCROLL" "$DASH_OUT_ERRORS" 1
   TUI_FRAME+=("${TUI_BOX[@]}")
@@ -1176,7 +1184,7 @@ dash_dialog_help() { # body_height
 # The line under the body: the current message or, while typing a command, its help.
 dash_msg_line() {
   local col
-  if [ "$DASH_MODE" = "cmd" ] && [ "$DASH_VIEW" = "instances" ]; then
+  if [ "$DASH_MODE" = "cmd" ] && { [ "$DASH_VIEW" = "instances" ] || [ "$DASH_VIEW" = "console" ]; }; then
     TUI_FRAME+=("")
   elif [ "$DASH_MODE" = "cmd" ]; then
     if [ "$UI_UTF8" -eq 1 ] && [ "$UI_RICH" -eq 1 ]; then dt tui.cmd.keys; else dt tui.cmd.keys.ascii; fi
@@ -1217,7 +1225,7 @@ dash_key_line() {
   TUI_CURSOR=""
   case "$DASH_MODE" in
     cmd)
-      if [ "$DASH_VIEW" = "instances" ]; then
+      if [ "$DASH_VIEW" = "instances" ] || [ "$DASH_VIEW" = "console" ]; then
         # The console box holds the prompt: the last line only lists the keys of the line editor.
         dt tui.con.keys; dash_keybar "${DTV//\{1\}/$DASH_UD}"
         TUI_FRAME+=(" $DASH_KBV")
@@ -1294,6 +1302,7 @@ dash_build_body() { # body_height
           output) dash_view_output "$bh" ;;
           runs) dash_view_runs "$bh" ;;
           procs) dash_view_procs "$bh" ;;
+          console) dash_view_console "$bh" ;;
         esac
         ;;
     esac
@@ -1313,7 +1322,7 @@ dash_render() {
   # The figures (samples, state of Docker, errors, events, logs of a service) only matter to the views that draw them. The others keep
   # their body between samples: rebuilding it every 2 s would redraw exactly the same lines.
   case "$DASH_VIEW" in
-    output | runs | procs) data="" ;;
+    output | runs | procs | console) data="" ;;
     *) data="$MT_SAMPLES|$DASH_REFRESH_N|$DASH_ERRS_N|$DASH_EV_N|$DASH_LOGS_N" ;;
   esac
   sig="$DASH_VIEW|$DASH_MODE|$DASH_SEL|$DASH_SVC|$DASH_FOCUS|$DASH_ON_NEW|$DASH_RES_SEL|$DASH_RES_SORT|$data|$DASH_LANG_N"
@@ -1323,7 +1332,7 @@ dash_render() {
   sig+="|$DASH_CON_N|$DASH_CON_SCROLL|$DASH_ZOOM|$DASH_LOG_SCROLL|$DASH_LOG_FILTER|$DASH_PAL_Q|$DASH_PAL_SEL"
   sig+="|$DASH_LOG_ERRONLY|$DASH_LOG_FIND|$DASH_LS_PAUSED|$DASH_LS_PEND|$DASH_LOG_MIDX|$DASH_OPT_SEL|$DASH_OPT_N"
   { [ "$DASH_MODE" != "filter" ] && [ "$DASH_MODE" != "find" ]; } || sig+="|$DASH_BUF|$DASH_CUR"
-  { [ "$DASH_MODE" != "cmd" ] || [ "$DASH_VIEW" != "instances" ]; } || sig+="|$DASH_BUF|$DASH_CUR"
+  { [ "$DASH_MODE" != "cmd" ] || { [ "$DASH_VIEW" != "instances" ] && [ "$DASH_VIEW" != "console" ]; }; } || sig+="|$DASH_BUF|$DASH_CUR"
   if job_running; then sig+="|$SECONDS"; fi
   if [ "$sig" = "$DASH_BODY_SIG" ]; then
     TUI_FRAME+=("${DASH_BODY[@]}")

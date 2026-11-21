@@ -151,8 +151,8 @@ out="$(panel 2 tab q)"
 check "Tab goes to the next view (outside the instances view)" 'echo "$out" | frame_n 3 | grep -q "\[3 Salida\]"'
 out="$(panel 2 tab tab q)"
 check "Tab goes on to the Runs view" 'echo "$out" | frame_n 4 | grep -q "\[4 Ejecuciones\]"'
-out="$(panel 2 tab tab tab tab q)"
-check "Tab wraps around the views" 'echo "$out" | frame_n 6 | grep -q "\[1 Instancias\]"'
+out="$(panel 2 tab tab tab tab tab q)"
+check "Tab wraps around the views" 'echo "$out" | frame_n 6 | grep -q "\[6 Consola\]" && echo "$out" | frame_n 7 | grep -q "\[1 Instancias\]"'
 out="$(panel tab q)"
 check "on the instances view Tab moves the focus to the services" 'echo "$out" | frame_n 2 | grep -q ">tui-a" && echo "$out" | frame_n 2 | grep -q "\[1 Instancias\]"'
 out="$(panel tab tab q)"
@@ -415,13 +415,13 @@ check "and ends with how it finished" 'echo "$out3" | tail -1 | grep -q "terminÃ
 section "13. panes, zoom, logs and the palette"
 check "tui_key reads Shift+Tab" '[ "$(printf "\033[Z" | tk)" = "btab" ]'
 out="$(panel z q)"
-check "z zooms the list: the console is gone and the list is focused" 'echo "$out" | frame_n 2 | grep -q ">Instancias" && ! echo "$out" | frame_n 2 | grep -q "Consola"'
+check "z zooms the list: the console is gone and the list is focused" 'echo "$out" | frame_n 2 | grep -q ">Instancias" && ! echo "$out" | frame_n 2 | grep -qE -- "\+- >?Consola"'
 out="$(panel z z q)"
 check "z again brings the layout back" 'echo "$out" | frame_n 3 | grep -q "Consola"'
 out="$(panel z esc q)"
 check "Esc closes the zoom before anything else" 'echo "$out" | frame_n 3 | grep -q "Consola" && echo "$out" | frame_n 3 | grep -q "\[1 Instancias\]"'
 out="$(panel tab z q)"
-check "zooming the services gives them the whole body" 'echo "$out" | frame_n 3 | grep -q ">tui-a" && ! echo "$out" | frame_n 3 | grep -q "Consola"'
+check "zooming the services gives them the whole body" 'echo "$out" | frame_n 3 | grep -q ">tui-a" && ! echo "$out" | frame_n 3 | grep -qE -- "\+- >?Consola"'
 check "the focus ring goes list, services, logs, list on a wide screen" '[ "$(run_lib "COLUMNS=160; DELTACTL_TUI_ROWS=40; tui_size; dash_refresh; for i in 1 2 3; do dash_focus_cycle 1; printf \"%s \" \$DASH_FOCUS; done")" = "svc logs list " ]'
 check "and goes the other way with Shift+Tab" '[ "$(run_lib "COLUMNS=160; DELTACTL_TUI_ROWS=40; tui_size; dash_refresh; for i in 1 2 3; do dash_focus_cycle -1; printf \"%s \" \$DASH_FOCUS; done")" = "logs svc list " ]'
 check "on a narrow screen there is no logs pane in the ring" '[ "$(run_lib "dash_refresh; for i in 1 2 3; do dash_focus_cycle 1; printf \"%s \" \$DASH_FOCUS; done")" = "svc list svc " ]'
@@ -528,8 +528,8 @@ out="$(panel 4 t s s q)"
 check "and pressing it again brings every instance back" 'echo "$out" | frame_n 5 | grep -q "^| *deploy" && ! echo "$out" | frame_n 5 | grep "QuÃ© cuesta" | grep -q "instancia"'
 out="$(panel 3 tab q)"
 check "Tab goes from Output to Runs" 'echo "$out" | frame_n 3 | grep -q "\[4 Ejecuciones\]"'
-out="$(panel 4 tab tab q)"
-check "and wraps from Runs to Instances" 'echo "$out" | frame_n 4 | grep -q "\[1 Instancias\]"'
+out="$(panel 4 tab tab tab q)"
+check "and wraps from Runs to Instances" 'echo "$out" | frame_n 5 | grep -q "\[1 Instancias\]"'
 out="$(panel 4 btab q)"
 check "Shift+Tab goes from Runs back to Output" 'echo "$out" | frame_n 3 | grep -q "\[3 Salida\]"'
 out="$(panel : $(typed "goto runs") enter q)"
@@ -691,8 +691,8 @@ check "PgDn scrolls and it stops at the last process, which is then shown" '[ "$
 check "Home goes back to the first row" '[ "$(run_lib "$SCROLL dash_key_procs pgdn; dash_key_procs home; echo \$DASH_PROCS_OFF")" = "0" ]'
 out="$(panel 4 tab q)"
 check "Tab goes from Runs to Processes" 'echo "$out" | frame_n 3 | grep -q "\[5 Procesos\]"'
-out="$(panel 5 tab q)"
-check "and wraps from Processes to Instances" 'echo "$out" | frame_n 3 | grep -q "\[1 Instancias\]"'
+out="$(panel 5 tab tab q)"
+check "and wraps from Processes, through the Console view, to Instances" 'echo "$out" | frame_n 3 | grep -q "\[6 Consola\]" && echo "$out" | frame_n 4 | grep -q "\[1 Instancias\]"'
 out="$(panel 5 btab q)"
 check "Shift+Tab goes from Processes back to Runs" 'echo "$out" | frame_n 3 | grep -q "\[4 Ejecuciones\]"'
 out="$(panel : $(typed "goto procs") enter q)"
@@ -955,5 +955,30 @@ check "a step from a value outside the list goes to the nearest one in that dire
 check "a step past either end stays there" '[ "$(run_lib "dash_opt_step 10 1 2 5 10; a=\$DASH_OPT_V; dash_opt_step 2 -1 2 5 10; echo \$a-\$DASH_OPT_V")" = "10-2" ]'
 rm -f "$FIX/opts.cfg"
 export DELTACTL_CONFIG="$FIX/none.cfg"
+
+section "24. the Console view: the console over the whole body"
+out="$(panel 6 esc esc q)"
+check "6 opens the Console view with the line ready to type" 'f="$(echo "$out" | frame_n 2)"; echo "$f" | grep -q "\[6 Consola\]" && echo "$f" | grep -q "+- >Consola" && echo "$f" | grep -q "^| [a-z-]* > |" && echo "$f" | tail -1 | grep -q "Enter ejecuta"'
+check "the console takes the whole body" '[ "$(echo "$out" | frame_n 2 | grep -c "^|.*|$")" -ge 22 ]'
+check "Esc lets go of the keyboard and stays in the view, a second Esc goes back to Instances" 'echo "$out" | frame_n 3 | grep -q "\[6 Consola\]" && echo "$out" | frame_n 3 | tail -1 | grep -q "Enter o : escribe" && echo "$out" | frame_n 4 | grep -q "\[1 Instancias\]"'
+out="$(panel 6 $(typed help) enter esc esc q)"
+check "a command of the panel answers in the view and the line stays ready for the next one" 'f="$(echo "$out" | frame_n 7)"; echo "$f" | grep -q "CONSOLA: escribe cualquier comando" && echo "$f" | grep -q "^| [a-z-]* > |"'
+out="$(panel 6 $(typed "status tui-a") enter esc wait q)"
+check "a deltactl command runs in the view, without jumping to Output" 'f="$(echo "$out" | last_frame)"; echo "$out" | grep -q "> ./deltactl status tui-a" && echo "$f" | grep -q "status tui-a: termin" && echo "$f" | grep -q "\[6 Consola\]" && ! echo "$out" | grep -q "\[3 Salida\]"'
+out="$(panel 6 esc enter q)"
+check "Enter gives the keyboard back to the line" 'echo "$out" | frame_n 4 | grep -q "^| [a-z-]* > |" && echo "$out" | frame_n 4 | tail -1 | grep -q "Enter ejecuta"'
+out="$(panel 5 tab tab q)"
+check "Tab goes from Processes to the Console view without taking the keyboard, and on to Instances" 'echo "$out" | frame_n 3 | grep -q "\[6 Consola\]" && echo "$out" | frame_n 3 | tail -1 | grep -q "Enter o : escribe" && echo "$out" | frame_n 4 | grep -q "\[1 Instancias\]"'
+out="$(panel 5 tab btab q)"
+check "Shift+Tab goes back from the Console view to Processes" 'echo "$out" | frame_n 4 | grep -q "\[5 Procesos\]"'
+out="$(panel : $(typed "goto console") enter q)"
+check "goto console opens the view" 'echo "$out" | last_frame | grep -q "\[6 Consola\]"'
+check "goto completes every view" '[ "$(run_lib "DASH_BUF=\"goto co\"; dash_complete; echo \"\$DASH_BUF\"")" = "goto console " ]'
+CON='DASH_VIEW=console; TUI_ROWS=30; for i in $(seq 1 30); do DASH_CON+=("l$i"); done;'
+check "PgUp moves almost a screen and stops when the first line reaches the top" '[ "$(run_lib "$CON dash_key_console pgup; a=\$DASH_CON_SCROLL; dash_key_console pgup; echo \$a-\$DASH_CON_SCROLL")" = "7-7" ]'
+check "Home goes to the first line, End and PgDn back to the end" '[ "$(run_lib "$CON dash_key_console home; a=\$DASH_CON_SCROLL; dash_key_console end; b=\$DASH_CON_SCROLL; dash_key_console home; dash_key_console pgdn; echo \$a-\$b-\$DASH_CON_SCROLL")" = "7-0-0" ]'
+check "the arrows move one line and never past either end" '[ "$(run_lib "$CON dash_key_console up; a=\$DASH_CON_SCROLL; dash_key_console down; dash_key_console down; echo \$a-\$DASH_CON_SCROLL")" = "1-0" ]'
+out="$(panel '?' x q)"
+check "the help lists the Console view" 'echo "$out" | frame_n 2 | grep -q "1-6  Instancias .* Consola" && echo "$out" | frame_n 2 | grep -q "CONSOLA  6 a pantalla completa"'
 
 finish

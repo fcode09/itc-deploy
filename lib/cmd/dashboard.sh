@@ -25,7 +25,7 @@ source "$ROOT/lib/cmd/dashboard_procs.sh"
 source "$ROOT/lib/cmd/dashboard_logs.sh"
 source "$ROOT/lib/cmd/dashboard_options.sh"
 
-DASH_VIEW=instances       # instances | resources | output | runs | procs
+DASH_VIEW=instances       # instances | resources | output | runs | procs | console
 DASH_MODE=normal          # normal | menu | confirm | name | cmd | help
 DASH_SEL=0 DASH_SVC=0 DASH_RES_SEL=0 DASH_RES_SORT=name DASH_FOCUS=list DASH_ON_NEW=0
 DASH_ZOOM=0 DASH_LOG_SCROLL=0 DASH_LOG_FILTER="" DASH_PAL_Q="" DASH_PAL_SEL=0
@@ -421,7 +421,7 @@ dash_tick() {
       # In the test mode (synchronous) it waits for an idle tick, so a key press never blocks on Docker.
       if ! tui_test_mode || [ "$DASH_IDLE" -eq 1 ]; then dash_refresh_request; fi
     fi
-    case "$DASH_VIEW" in output | runs | procs) MT_INTERVAL_MULT=2 ;; *) MT_INTERVAL_MULT=1 ;; esac
+    case "$DASH_VIEW" in output | runs | procs | console) MT_INTERVAL_MULT=2 ;; *) MT_INTERVAL_MULT=1 ;; esac
     if mt_due; then
       mt_sample
       dash_host_build
@@ -586,11 +586,18 @@ dash_key_global() { # key ; returns 0 when handled
     3) DASH_VIEW=output ;;
     4) DASH_VIEW=runs ;;
     5) DASH_VIEW=procs ;;
+    6) dash_open_console ;;
     tab)
-      case "$DASH_VIEW" in instances) dash_focus_cycle 1 ;; resources) DASH_VIEW=output ;; output) DASH_VIEW=runs ;; runs) DASH_VIEW=procs ;; *) DASH_VIEW=instances ;; esac
+      case "$DASH_VIEW" in
+        instances) dash_focus_cycle 1 ;; resources) DASH_VIEW=output ;; output) DASH_VIEW=runs ;; runs) DASH_VIEW=procs ;;
+        procs) DASH_VIEW=console ;; *) DASH_VIEW=instances ;;
+      esac
       ;;
     btab)
-      case "$DASH_VIEW" in instances) dash_focus_cycle -1 ;; resources) DASH_VIEW=instances ;; output) DASH_VIEW=resources ;; runs) DASH_VIEW=output ;; *) DASH_VIEW=runs ;; esac
+      case "$DASH_VIEW" in
+        instances) dash_focus_cycle -1 ;; resources) DASH_VIEW=instances ;; output) DASH_VIEW=resources ;; runs) DASH_VIEW=output ;;
+        procs) DASH_VIEW=runs ;; *) DASH_VIEW=procs ;;
+      esac
       ;;
     $'\020') dash_open_palette ;;                                    # Ctrl+P
     '?') DASH_MODE=help ;;
@@ -771,7 +778,7 @@ dash_pal_build() {
   fi
   dt tui.pal.go
   for i in "${!DASH_NAMES[@]}"; do dash_pal_add "${DTV//\{1\}/${DASH_NAMES[$i]}}" "inst:$i"; done
-  for v in instances resources output runs procs; do dt "tui.tab.$v"; id="$DTV"; dt tui.pal.view; dash_pal_add "${DTV//\{1\}/$id}" "view:$v"; done
+  for v in instances resources output runs procs console; do dt "tui.tab.$v"; id="$DTV"; dt tui.pal.view; dash_pal_add "${DTV//\{1\}/$id}" "view:$v"; done
   dt tui.pal.theme
   for th in "${TH_THEMES[@]}"; do dash_pal_add "${DTV//\{1\}/$th}" "theme:$th"; done
   dt tui.pal.new; dash_pal_add "$DTV" "new"
@@ -904,6 +911,44 @@ dash_prompt_name() {
   if [ "$DASH_ON_NEW" -eq 0 ] && [ "${#DASH_NAMES[@]}" -gt 0 ]; then DASH_PN="${DASH_NAMES[$DASH_SEL]}"; else DASH_PN="deltactl"; fi
 }
 
+# --- The Console view (6): the same console, over the whole body. The key 6 (and `goto console`) give the line the keyboard at
+# once; Tab only shows the view. Without the keyboard, the arrows and PgUp/PgDn move along the transcript and Enter or : type.
+dash_open_console() {
+  DASH_VIEW=console DASH_MODE=cmd DASH_BUF="" DASH_CUR=0 DASH_HIDX="${#DASH_HIST[@]}"
+}
+
+# How far PgUp/PgDn move the transcript: five lines in the strip, almost a screen in the Console view. Into DASH_CON_PAGE.
+DASH_CON_PAGE=5
+dash_con_page() {
+  DASH_CON_PAGE=5
+  [ "$DASH_VIEW" != "console" ] || DASH_CON_PAGE=$((TUI_ROWS - 8))
+  [ "$DASH_CON_PAGE" -ge 1 ] || DASH_CON_PAGE=1
+}
+
+# Keeps the scroll of the transcript (0 = its end) between the end and the first line. In the Console view the first line stops at
+# the top of the box, so the box is never left half empty.
+dash_con_clamp() {
+  local smax=$((${#DASH_CON[@]} - 1))
+  [ "$DASH_VIEW" != "console" ] || smax=$((${#DASH_CON[@]} - (TUI_ROWS - 7)))
+  [ "$smax" -ge 0 ] || smax=0
+  [ "$DASH_CON_SCROLL" -ge 0 ] || DASH_CON_SCROLL=0
+  [ "$DASH_CON_SCROLL" -le "$smax" ] || DASH_CON_SCROLL="$smax"
+}
+dash_key_console() { # key
+  dash_con_page
+  case "$1" in
+    enter) DASH_MODE=cmd DASH_BUF="" DASH_CUR=0 DASH_HIDX="${#DASH_HIST[@]}" ;;
+    up | k) DASH_CON_SCROLL=$((DASH_CON_SCROLL + 1)) ;;
+    down | j) DASH_CON_SCROLL=$((DASH_CON_SCROLL - 1)) ;;
+    pgup) DASH_CON_SCROLL=$((DASH_CON_SCROLL + DASH_CON_PAGE)) ;;
+    pgdn) DASH_CON_SCROLL=$((DASH_CON_SCROLL - DASH_CON_PAGE)) ;;
+    home | g) DASH_CON_SCROLL=1000000 ;;
+    end | G) DASH_CON_SCROLL=0 ;;
+    $'\014') DASH_CON=() DASH_CON_N=$((DASH_CON_N + 1)) DASH_CON_SCROLL=0 ;;   # Ctrl+L
+  esac
+  dash_con_clamp
+}
+
 # --- History on disk (next to the config file), the last 200 lines are loaded at start.
 dash_hist_file() { printf '%s/history' "$(dirname "$(i18n_config_file)")"; }
 dash_hist_load() {
@@ -961,7 +1006,7 @@ dash_builtin() { # command args...
       ;;
     goto | view)
       case "${1:-}" in
-        instances | resources | output | runs | procs) DASH_VIEW="$1" ;;
+        instances | resources | output | runs | procs | console) DASH_VIEW="$1" ;;
         *) dash_con_add "$C_RED$(t tui.con.bad_view)$C_OFF" ;;
       esac
       ;;
@@ -1014,7 +1059,7 @@ dash_complete() {
     1)
       case "${toks[0]:-}" in
         theme) pool=("${TH_THEMES[@]}") ;;
-        goto | view) pool=(instances resources output) ;;
+        goto | view) pool=(instances resources output runs procs console) ;;
         *) pool=("${DASH_NAMES[@]}") ;;
       esac
       ;;
@@ -1062,8 +1107,8 @@ dash_submit_cmd() {
   # Wizards and the menu ask questions: they need the terminal.
   case " ${args[*]} " in *" --wizard "*) term=1 ;; esac
   case "${args[0]}" in menu) term=1 ;; new) [ "${#args[@]}" -gt 1 ] || term=1 ;; esac
-  # On the Overview the answer stays in the console; in the other views it opens the Output view, as before.
-  [ "$DASH_VIEW" != "instances" ] || view=stay
+  # On the Overview and in the Console view the answer stays in the console; in the other views it opens the Output view, as before.
+  case "$DASH_VIEW" in instances | console) view=stay ;; esac
   if [ "$term" -eq 1 ]; then dash_terminal "${args[@]}"; else dash_start_job "$view" "${args[@]}"; fi
 }
 
@@ -1082,6 +1127,8 @@ dash_key_edit() {
         [ -z "$DASH_LOG_FIND" ] || dash_logs_jump 0                                   # and a text goes to the newest match
       else
         dash_submit_cmd
+        # The Console view is a workspace: after a command the line is ready for the next one.
+        if [ "$DASH_VIEW" = "console" ] && [ "$DASH_MODE" = "normal" ] && [ "$DASH_QUIT" -eq 0 ]; then DASH_MODE=cmd DASH_BUF="" DASH_CUR=0; fi
       fi
       ;;
     esc) DASH_MODE=normal DASH_CUR=0; dash_msg info "$(t tui.msg.cancelled)" ;;
@@ -1112,8 +1159,8 @@ dash_key_edit() {
         DASH_CUR="${#DASH_BUF}"
       fi
       ;;
-    pgup) [ "$DASH_MODE" != "cmd" ] || DASH_CON_SCROLL=$((DASH_CON_SCROLL + 5)) ;;
-    pgdn) [ "$DASH_MODE" != "cmd" ] || { DASH_CON_SCROLL=$((DASH_CON_SCROLL - 5)); [ "$DASH_CON_SCROLL" -ge 0 ] || DASH_CON_SCROLL=0; } ;;
+    pgup) [ "$DASH_MODE" != "cmd" ] || { dash_con_page; DASH_CON_SCROLL=$((DASH_CON_SCROLL + DASH_CON_PAGE)); dash_con_clamp; } ;;
+    pgdn) [ "$DASH_MODE" != "cmd" ] || { dash_con_page; DASH_CON_SCROLL=$((DASH_CON_SCROLL - DASH_CON_PAGE)); dash_con_clamp; } ;;
     other | timeout) ;;
     *)
       if [ "${#k}" -eq 1 ] && [[ "$k" != [[:cntrl:]] ]]; then DASH_BUF="${DASH_BUF:0:$DASH_CUR}$k${DASH_BUF:$DASH_CUR}"; DASH_CUR=$((DASH_CUR + 1)); fi
@@ -1156,6 +1203,7 @@ dash_handle_key() {
         output) dash_key_output "$k" ;;
         runs) dash_key_runs "$k" ;;
         procs) dash_key_procs "$k" ;;
+        console) dash_key_console "$k" ;;
       esac
       ;;
   esac
