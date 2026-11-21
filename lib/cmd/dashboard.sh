@@ -24,6 +24,7 @@ source "$ROOT/lib/cmd/dashboard_runs.sh"
 source "$ROOT/lib/cmd/dashboard_procs.sh"
 source "$ROOT/lib/cmd/dashboard_logs.sh"
 source "$ROOT/lib/cmd/dashboard_options.sh"
+source "$ROOT/lib/cmd/dashboard_alias.sh"
 
 DASH_VIEW=instances       # instances | resources | output | runs | procs | console
 DASH_MODE=normal          # normal | menu | confirm | name | cmd | help
@@ -881,7 +882,7 @@ dash_key_palette() { # key
 
 DASH_CON=() DASH_CON_N=0 DASH_CON_SEQ=0 DASH_CON_COPIED=0 DASH_CON_MAX=500 DASH_CON_SCROLL=0
 DASH_CUR=0 DASH_SIGINT=0 DASH_LAST_INT=-10 DASH_PN="deltactl"
-DASH_BUILTINS=(help clear theme history goto refresh quit exit)
+DASH_BUILTINS=(help clear theme history goto alias unalias refresh quit exit)
 
 # Adds a line to the transcript. Colour sequences are kept, anything else dangerous is dropped (see tui_sanitize); a plain
 # reset is replaced by the theme's, so the background of the theme survives it.
@@ -975,7 +976,7 @@ dash_con_help() {
 dash_is_builtin() { # word [args...]
   case "$1" in
     help) [ "$#" -eq 1 ] ;;   # `help topic` is deltactl's own help
-    '?' | clear | cls | theme | history | goto | view | refresh | quit | exit) return 0 ;;
+    '?' | clear | cls | theme | history | goto | view | alias | unalias | refresh | quit | exit) return 0 ;;
     *) return 1 ;;
   esac
 }
@@ -1010,6 +1011,7 @@ dash_builtin() { # command args...
         *) dash_con_add "$C_RED$(t tui.con.bad_view)$C_OFF" ;;
       esac
       ;;
+    alias | unalias) dash_alias_cmd "$c" "$@" ;;
     refresh) dash_refresh_request; dash_con_add "$(t tui.msg.refreshed)" ;;
     quit | exit) DASH_QUIT=1 ;;
     *) return 1 ;;
@@ -1055,11 +1057,12 @@ dash_complete() {
   if [[ "$buf" == *" " ]]; then idx="${#toks[@]}" prefix=""; else idx=$((${#toks[@]} - 1)) prefix="${toks[$idx]:-}"; fi
   [ "$idx" -ge 0 ] || idx=0
   case "$idx" in
-    0) pool=("${HELP_COMMANDS[@]}" "${DASH_BUILTINS[@]}") ;;
+    0) pool=("${HELP_COMMANDS[@]}" "${DASH_BUILTINS[@]}" ${DASH_ALIAS_NAMES[@]+"${DASH_ALIAS_NAMES[@]}"}) ;;
     1)
       case "${toks[0]:-}" in
         theme) pool=("${TH_THEMES[@]}") ;;
         goto | view) pool=(instances resources output runs procs console) ;;
+        alias | unalias) pool=(${DASH_ALIAS_NAMES[@]+"${DASH_ALIAS_NAMES[@]}"}) ;;
         *) pool=("${DASH_NAMES[@]}") ;;
       esac
       ;;
@@ -1094,6 +1097,8 @@ dash_submit_cmd() {
   case "$buf" in '!'*) term=1; buf="${buf#!}"; buf="${buf#"${buf%%[![:space:]]*}"}" ;; esac
   # A lone `!` is a real shell.
   if [ "$term" -eq 1 ] && [ -z "$buf" ]; then dash_shell; return 0; fi
+  # An alias as the first word is replaced by its command (the history keeps what was typed).
+  if [ "$term" -eq 0 ]; then dash_alias_expand "$buf"; buf="$DASH_ALIAS_LINE"; fi
   read -ra args <<< "$buf"
   # The panel's own commands answer in the transcript (the other commands echo themselves when they start).
   if [ "$term" -eq 0 ] && dash_is_builtin "${args[@]}"; then
@@ -1256,6 +1261,7 @@ cmd_dashboard() {
   set +e
   dash_init
   dash_hist_load
+  dash_alias_load
   trap 'dash_shutdown' EXIT
   trap 'dash_shutdown; exit 130' TERM
   trap 'DASH_SIGINT=1' INT          # Ctrl+C is handled by the loop (see dash_ctrl_c), it does not end the panel by itself

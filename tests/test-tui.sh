@@ -981,4 +981,34 @@ check "the arrows move one line and never past either end" '[ "$(run_lib "$CON d
 out="$(panel '?' x q)"
 check "the help lists the Console view" 'echo "$out" | frame_n 2 | grep -q "1-6  Instancias .* Consola" && echo "$out" | frame_n 2 | grep -q "CONSOLA  6 a pantalla completa"'
 
+section "25. aliases of the console: short names for commands, kept next to the history"
+mkdir -p "$FIX/al"; rm -f "$FIX/al/"*
+export DELTACTL_CONFIG="$FIX/al/config"
+out="$(panel 6 $(typed "alias st=status tui-a") enter $(typed alias) enter $(typed st) enter esc wait q)"
+check "alias defines one and says so" 'echo "$out" | grep -q "Alias st = status tui-a"'
+check "alias alone lists them" 'echo "$out" | grep -q "^|   st=status tui-a"'
+check "an alias as the first word runs its command" 'echo "$out" | grep -q "> ./deltactl status tui-a" && echo "$out" | last_frame | grep -q "status tui-a: termin"'
+check "the aliases are saved next to the history, readable only by their owner" 'grep -qx "st=status tui-a" "$FIX/al/aliases" && [ "$(stat -c %a "$FIX/al/aliases")" = "600" ]'
+check "the history keeps what was typed, not the expanded command" 'grep -qx "st" "$FIX/al/history"'
+out="$(panel 6 $(typed "alias lg=logs tui-a") enter $(typed "lg s0") enter esc wait q)"
+check "the rest of the line follows the command of the alias" 'echo "$out" | grep -q "> ./deltactl logs tui-a s0"'
+out="$(panel 6 $(typed alias) enter esc q)"
+check "the next panel starts with the saved aliases, in the order they were made" '[ "$(echo "$out" | last_frame | grep -c "^|   \(st\|lg\)=")" = "2" ] && echo "$out" | last_frame | grep -A1 "st=status" | grep -q "lg=logs"'
+out="$(panel 6 $(typed "unalias st") enter $(typed "unalias nope") enter esc q)"
+check "unalias removes one and the file follows" 'echo "$out" | grep -q "Alias st borrado" && ! grep -q "^st=" "$FIX/al/aliases" && grep -q "^lg=" "$FIX/al/aliases"'
+check "unalias of a name that does not exist says so" 'echo "$out" | grep -q "No existe el alias nope"'
+out="$(panel 6 $(typed "alias x=!rm -rf /") enter $(typed "alias status=list") enter $(typed "alias Bad=list") enter $(typed "alias e=") enter esc q)"
+check "an alias for the terminal is refused" 'echo "$out" | grep -q "Orden no v.lida" && ! grep -q "^x=" "$FIX/al/aliases"'
+check "a name that would hide a command, or with capitals, is refused" '[ "$(echo "$out" | grep -c "Nombre no v.lido: \(status\|Bad\)")" -ge 2 ] && ! grep -q "^status=\|^Bad=" "$FIX/al/aliases"'
+check "an empty command is refused" '! grep -q "^e=" "$FIX/al/aliases"'
+check "alias and unalias complete the names of the aliases" '[ "$(run_lib "dash_alias_load; DASH_BUF=\"unalias l\"; dash_complete; echo \"\$DASH_BUF\"")" = "unalias lg " ]'
+check "the first word completes aliases too" '[ "$(run_lib "dash_alias_put zz list; DASH_BUF=z; dash_complete; echo \"\$DASH_BUF\"")" = "zz " ]'
+check "an alias is replaced once: an alias inside an alias is just a word" '[ "$(run_lib "dash_alias_put a b; dash_alias_put b list; dash_alias_expand \"a x\"; echo \"\$DASH_ALIAS_LINE\"")" = "b x" ]'
+# The file is data: any line that is not a valid alias is skipped, and a name is never used as code.
+printf 'ok=list\r\n1bad=list\nsh=!rm -rf /\nctl=list\001\nnoequal\nstatus=list\n' > "$FIX/al/aliases"
+check "invalid lines of the file are skipped" '[ "$(run_lib "dash_alias_load; echo \"\${DASH_ALIAS_NAMES[*]}\"")" = "ok" ]'
+check "a name built to run code is only text" 'run_lib "dash_alias_load; dash_alias_cmd unalias \"a[\\\$(touch $FIX/pwn2)]\"; dash_alias_expand \"a[\\\$(touch $FIX/pwn3)] x\"" >/dev/null; [ ! -e "$FIX/pwn2" ] && [ ! -e "$FIX/pwn3" ]'
+rm -rf "$FIX/al"
+export DELTACTL_CONFIG="$FIX/none.cfg"
+
 finish
