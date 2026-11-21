@@ -23,6 +23,7 @@ source "$ROOT/lib/cmd/dashboard_view.sh"
 source "$ROOT/lib/cmd/dashboard_runs.sh"
 source "$ROOT/lib/cmd/dashboard_procs.sh"
 source "$ROOT/lib/cmd/dashboard_logs.sh"
+source "$ROOT/lib/cmd/dashboard_options.sh"
 
 DASH_VIEW=instances       # instances | resources | output | runs | procs
 DASH_MODE=normal          # normal | menu | confirm | name | cmd | help
@@ -595,6 +596,7 @@ dash_key_global() { # key ; returns 0 when handled
     '?') DASH_MODE=help ;;
     L) dash_toggle_language ;;
     T) dash_cycle_theme ;;
+    o) dash_open_options ;;
     r) dash_refresh_request; DASH_ERRS_AT=(); DASH_RUNS_AT=-1000; dash_msg info "$(t tui.msg.refreshed)" ;;
     p)
       if [ "$DASH_PAUSED" -eq 0 ]; then DASH_PAUSED=1; dash_msg info "$(t tui.msg.paused)"; else DASH_PAUSED=0; dash_msg info "$(t tui.msg.resumed)"; fi
@@ -774,6 +776,7 @@ dash_pal_build() {
   for th in "${TH_THEMES[@]}"; do dash_pal_add "${DTV//\{1\}/$th}" "theme:$th"; done
   dt tui.pal.new; dash_pal_add "$DTV" "new"
   dt tui.pal.lang; dash_pal_add "$DTV" "lang"
+  dt tui.pal.options; dash_pal_add "$DTV" "options"
   dt tui.pal.clear; dash_pal_add "$DTV" "clear"
   dt tui.pal.quit; dash_pal_add "$DTV" "quit"
 }
@@ -845,6 +848,7 @@ dash_pal_run() {
     theme) if theme_apply "$arg"; then th_save "$arg"; dash_theme_refresh; fi ;;
     new) dash_terminal new --wizard ;;
     lang) dash_toggle_language ;;
+    options) dash_open_options ;;
     clear) DASH_CON=() DASH_CON_N=$((DASH_CON_N + 1)) ;;
     quit) DASH_QUIT=1 ;;
   esac
@@ -1122,8 +1126,13 @@ dash_handle_key() {
   [ "$k" != "timeout" ] || return 0
   if [ "$k" = "eof" ]; then DASH_QUIT=1; return 0; fi
   DASH_DIRTY=1
+  # With the vim keys off (Options), j k h g G do nothing where they would move: they are only letters where text is typed.
+  if [ "$DASH_VIM" -eq 0 ]; then
+    case "$DASH_MODE" in normal | menu | options) case "$k" in j | k | h | g | G) return 0 ;; esac ;; esac
+  fi
   case "$DASH_MODE" in
     menu) dash_key_menu "$k" ;;
+    options) dash_key_options "$k" ;;
     confirm) dash_key_confirm "$k" ;;
     name | cmd | filter | find) dash_key_edit "$k" ;;
     palette) dash_key_palette "$k" ;;
@@ -1178,6 +1187,7 @@ dash_loop() {
 dash_init() {
   # The theme first: the symbols and every cached string below are coloured with it.
   theme_apply "$(th_initial)" || theme_apply matrix || true
+  dash_opts_load
   DASH_HOST="$(host_name)"
   [ -n "$DASH_HOST" ] || DASH_HOST="$(t ui.host_fallback)"
   DK_READY_TTL=10   # `docker info` is not repeated at every refresh
