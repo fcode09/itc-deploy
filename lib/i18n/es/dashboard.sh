@@ -151,8 +151,15 @@ MSG_es["tui.confirm_stop"]="Detiene {1} de '{2}' sin eliminarlo (./deltactl depl
 
 # Help overlay
 MSG_es["tui.help_title"]="Teclas"
-MSG_es["tui.help"]="VISTAS   1-6  Instancias · Recursos · Salida · Ejecuciones · Procesos · Consola\n\nINSTANCIAS\n  ↑ ↓  (k j)          instancia (la primera fila es + Nueva) · → servicios · ← o Esc vuelve\n  Tab  Mayús+Tab      panel siguiente / anterior (instancias · servicios · logs)\n  z                   zoom del panel con el foco (Esc lo cierra)\n  Logs con foco       ↑ ↓ PgUp PgDn Inicio Fin desplazan · / filtra por texto · Espacio pausa · f sigue · e errores · s busca ([ ] saltan)\n  Enter · l u c s     acciones · logs · desplegar · comprobar · estado\n  Ctrl+P              paleta de acciones (busca: despl, logs, tema...)\n\nEJECUTAR\n  :  !                comando (status colorado, logs x -f ...) · igual, en el terminal\n  x · n d i           cancelar · nueva instancia · diagnóstico · imágenes\n\nSALIDA   ↑ ↓ PgUp PgDn desplazan · f sigue al final · e solo errores\nEJECUC.  ↑ ↓ elegir · PgUp PgDn detalle · t estadísticas (s: instancia) · Enter salida\nPROCES.  ↑ ↓ PgUp PgDn desplazan el árbol de procesos\nCONSOLA  6 a pantalla completa · Esc suelta el teclado · Enter o : vuelven a escribir\nRATÓN    (en Opciones) clic en una pestaña o instancia (otro clic: acciones) · rueda\nGENERAL  r refrescar · p pausar · L idioma · T tema · o opciones · ? ayuda · q o Esc salir"
+MSG_es["tui.help"]="VISTAS   1-6  Instancias · Recursos · Salida · Ejecuciones · Procesos · Consola\n\nINSTANCIAS\n  ↑ ↓  (k j)          instancia (la primera fila es + Nueva) · → servicios · ← o Esc vuelve\n  Tab  Mayús+Tab      panel siguiente / anterior (instancias · servicios · logs)\n  z                   zoom del panel con el foco (Esc lo cierra)\n  Logs con foco       ↑ ↓ PgUp PgDn Inicio Fin desplazan · / filtra por texto · Espacio pausa · f sigue · e errores · s busca ([ ] saltan)\n  Enter · l u c s     acciones · logs · desplegar · comprobar · estado\n  Ctrl+P              paleta de acciones (busca: despl, logs, tema...)\n\nEJECUTAR\n  :  !                comando (status colorado, logs x -f ...) · igual, en el terminal\n  x · n d i           cancelar · nueva instancia · diagnóstico · imágenes\n\nRECURSOS ↑ ↓ elegir · s ordena (nombre, memoria, CPU) · Enter abre la instancia del servicio\nSALIDA   ↑ ↓ PgUp PgDn desplazan · f sigue al final · e solo errores\nEJECUC.  ↑ ↓ elegir · PgUp PgDn detalle · t estadísticas (s: instancia) · Enter salida\nPROCES.  ↑ ↓ PgUp PgDn desplazan el árbol de procesos\nCONSOLA  6 a pantalla completa · Esc suelta el teclado · Enter o : vuelven a escribir\nRATÓN    (en Opciones) clic en una pestaña o instancia (otro clic: acciones) · rueda\nGENERAL  r refrescar · p pausar · L idioma · T tema · o opciones · ? ayuda · q o Esc salir"
 MSG_es["tui.help_close"]="Pulsa cualquier tecla para volver"
+MSG_es["tui.help_scroll"]="{1} PgUp PgDn desplazan · otra tecla vuelve"
+MSG_es["tui.help.head.instances"]="INSTANCIAS"
+MSG_es["tui.help.head.resources"]="RECURSOS"
+MSG_es["tui.help.head.output"]="SALIDA"
+MSG_es["tui.help.head.runs"]="EJECUC."
+MSG_es["tui.help.head.procs"]="PROCES."
+MSG_es["tui.help.head.console"]="CONSOLA"
 
 # Runs view (lib/cmd/dashboard_runs.sh)
 MSG_es["tui.tab.runs"]="Ejecuciones"

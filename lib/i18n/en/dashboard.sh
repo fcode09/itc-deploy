@@ -151,8 +151,15 @@ MSG_en["tui.confirm_stop"]="Stops {1} of '{2}' without removing it (./deltactl d
 
 # Help overlay
 MSG_en["tui.help_title"]="Keys"
-MSG_en["tui.help"]="VIEWS    1-6  Instances · Resources · Output · Runs · Processes · Console\n\nINSTANCES\n  ↑ ↓  (k j)          instance (the first row is + New) · → services · ← or Esc goes back\n  Tab  Shift+Tab      next / previous pane (instances · services · logs)\n  z                   zoom the focused pane (Esc closes it)\n  Logs (focused)      ↑ ↓ PgUp PgDn Home End scroll · / filters by text · Space pause · f follow · e errors · s search ([ ] jump)\n  Enter · l u c s     actions · logs · deploy · check · status\n  Ctrl+P              action palette (search: depl, logs, theme...)\n\nRUN\n  :  !                command (status colorado, logs x -f ...) · the same, in the terminal\n  x · n d i           cancel · new instance · diagnosis · images\n\nOUTPUT   ↑ ↓ PgUp PgDn scroll · f follows the end · e only errors\nRUNS     ↑ ↓ choose · PgUp PgDn detail · t statistics (s: instance) · Enter output\nPROCESS  ↑ ↓ PgUp PgDn scroll the process tree\nCONSOLE  6 full screen · Esc lets go of the keyboard · Enter or : type again\nMOUSE    (in Options) click a tab or an instance (a second click: actions) · wheel\nGENERAL  r refresh · p pause · L language · T theme · o options · ? help · q or Esc quit"
+MSG_en["tui.help"]="VIEWS    1-6  Instances · Resources · Output · Runs · Processes · Console\n\nINSTANCES\n  ↑ ↓  (k j)          instance (the first row is + New) · → services · ← or Esc goes back\n  Tab  Shift+Tab      next / previous pane (instances · services · logs)\n  z                   zoom the focused pane (Esc closes it)\n  Logs (focused)      ↑ ↓ PgUp PgDn Home End scroll · / filters by text · Space pause · f follow · e errors · s search ([ ] jump)\n  Enter · l u c s     actions · logs · deploy · check · status\n  Ctrl+P              action palette (search: depl, logs, theme...)\n\nRUN\n  :  !                command (status colorado, logs x -f ...) · the same, in the terminal\n  x · n d i           cancel · new instance · diagnosis · images\n\nRESOURCES ↑ ↓ choose · s sorts (name, memory, CPU) · Enter opens the instance of the service\nOUTPUT   ↑ ↓ PgUp PgDn scroll · f follows the end · e only errors\nRUNS     ↑ ↓ choose · PgUp PgDn detail · t statistics (s: instance) · Enter output\nPROCESS  ↑ ↓ PgUp PgDn scroll the process tree\nCONSOLE  6 full screen · Esc lets go of the keyboard · Enter or : type again\nMOUSE    (in Options) click a tab or an instance (a second click: actions) · wheel\nGENERAL  r refresh · p pause · L language · T theme · o options · ? help · q or Esc quit"
 MSG_en["tui.help_close"]="Press any key to go back"
+MSG_en["tui.help_scroll"]="{1} PgUp PgDn scroll · another key goes back"
+MSG_en["tui.help.head.instances"]="INSTANCES"
+MSG_en["tui.help.head.resources"]="RESOURCES"
+MSG_en["tui.help.head.output"]="OUTPUT"
+MSG_en["tui.help.head.runs"]="RUNS"
+MSG_en["tui.help.head.procs"]="PROCESS"
+MSG_en["tui.help.head.console"]="CONSOLE"
 
 # Runs view (lib/cmd/dashboard_runs.sh)
 MSG_en["tui.tab.runs"]="Runs"

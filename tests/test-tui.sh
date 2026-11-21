@@ -41,13 +41,14 @@ printf '0.82 0.50 0.40 1/200 1234\n' > "$FIX/loadavg"
 export DELTACTL_MEMINFO="$FIX/meminfo" DELTACTL_LOADAVG="$FIX/loadavg"
 export DELTACTL_PROC_ROOT="$FIX/proc" DELTACTL_CGROUP_ROOT="$FIX/cg"
 
-# Runs the panel with the keys given as arguments (one per line) and optional stdin. ASCII, no colors, 100 x 30 (PANEL_COLS changes the width).
+# Runs the panel with the keys given as arguments (one per line) and optional stdin. ASCII, no colors, 100 x 30 (PANEL_COLS and
+# PANEL_ROWS change the size).
 KEYS="$FIX/keys.txt"
 panel() { # key...  (stdin: answers to the confirmation prompts)
   # The history is saved on disk: every run starts without it, unless KEEP_HISTORY is set.
   [ -n "${KEEP_HISTORY:-}" ] || rm -f "$(dirname "${DELTACTL_CONFIG:-$FIX/none.cfg}")/history"
   printf '%s\n' "$@" > "$KEYS"
-  DELTACTL_TUI_KEYS="$KEYS" DELTACTL_UI=rich DELTACTL_COLOR=never DELTACTL_ASCII=1 COLUMNS="${PANEL_COLS:-100}" DELTACTL_TUI_ROWS=30 bash ./deltactl 2>&1
+  DELTACTL_TUI_KEYS="$KEYS" DELTACTL_UI=rich DELTACTL_COLOR=never DELTACTL_ASCII=1 COLUMNS="${PANEL_COLS:-100}" DELTACTL_TUI_ROWS="${PANEL_ROWS:-30}" bash ./deltactl 2>&1
 }
 # The keys that type a text, one character per line.
 typed() {
@@ -246,7 +247,7 @@ out="$(panel down enter down down down down down down down down down enter $(typ
 check "init runs when the name matches" 'echo "$out" | grep -q "Ejecutando: ./deltactl init tui-b --yes"'
 
 section "8. help, language, pause and refresh"
-out="$(panel '?' x q)"
+out="$(PANEL_ROWS=55 panel '?' x q)"
 check "? shows the keys over the whole body" 'echo "$out" | frame_n 2 | grep -q "Teclas" && echo "$out" | frame_n 2 | grep -q "q o Esc salir" && echo "$out" | frame_n 2 | grep -q "Pulsa cualquier tecla para volver"'
 check "any key closes the help" 'echo "$out" | frame_n 3 | grep -q "\[1 Instancias\]" && ! echo "$out" | frame_n 3 | grep -q "Pulsa cualquier tecla"'
 export DELTACTL_CONFIG="$FIX/config"
@@ -940,7 +941,7 @@ out="$(PANEL_COLS=80 DELTACTL_METRICS_INTERVAL=7 panel o down down q q)"
 check "at 80 columns the long texts of the screen wrap instead of being cut" 'f="$(echo "$out" | frame_n 4)"; ! echo "$f" | awk "length(\$0) > 80 { found = 1 } END { exit !found }" && echo "$f" | grep -q "Cada cu.nto se leen memoria" && echo "$f" | grep -q "barato\.  *|" && echo "$f" | grep -q "pero vale la variable\.  *|"'
 out="$(panel $'\020' o p c i o n e s enter q q)"
 check "the palette opens the Options screen" 'echo "$out" | grep -q "Opciones del panel" && echo "$out" | frame_n 11 | grep -q "Teclas vim"'
-out="$(panel '?' x q)"
+out="$(PANEL_ROWS=55 panel '?' x q)"
 check "the help lists the o key" 'echo "$out" | frame_n 2 | grep -q "o opciones"'
 
 # The values come from a file anybody may have edited: only short runs of digits reach an arithmetic expansion.
@@ -978,7 +979,7 @@ CON='DASH_VIEW=console; TUI_ROWS=30; for i in $(seq 1 30); do DASH_CON+=("l$i");
 check "PgUp moves almost a screen and stops when the first line reaches the top" '[ "$(run_lib "$CON dash_key_console pgup; a=\$DASH_CON_SCROLL; dash_key_console pgup; echo \$a-\$DASH_CON_SCROLL")" = "7-7" ]'
 check "Home goes to the first line, End and PgDn back to the end" '[ "$(run_lib "$CON dash_key_console home; a=\$DASH_CON_SCROLL; dash_key_console end; b=\$DASH_CON_SCROLL; dash_key_console home; dash_key_console pgdn; echo \$a-\$b-\$DASH_CON_SCROLL")" = "7-0-0" ]'
 check "the arrows move one line and never past either end" '[ "$(run_lib "$CON dash_key_console up; a=\$DASH_CON_SCROLL; dash_key_console down; dash_key_console down; echo \$a-\$DASH_CON_SCROLL")" = "1-0" ]'
-out="$(panel '?' x q)"
+out="$(PANEL_ROWS=55 panel '?' x q)"
 check "the help lists the Console view" 'echo "$out" | frame_n 2 | grep -q "1-6  Instancias .* Consola" && echo "$out" | frame_n 2 | grep -q "CONSOLA  6 a pantalla completa"'
 
 section "25. aliases of the console: short names for commands, kept next to the history"
@@ -1046,7 +1047,7 @@ check "in Options the wheel moves the cursor, and a click on a tab does nothing"
 out="$(panel 6 esc mouse:0:10:10 esc esc q)"
 check "in the Console view a click gives the line the keyboard" 'echo "$out" | frame_n 4 | tail -1 | grep -q "Enter ejecuta"'
 check "on a line being typed the wheel scrolls the transcript, not the history" '[ "$(run_lib "DASH_MODE=cmd; DASH_VIEW=instances; for i in \$(seq 1 30); do DASH_CON+=(l\$i); done; TUI_MB=64; TUI_MUP=0; dash_mouse; a=\$DASH_CON_SCROLL; TUI_MB=65; dash_mouse; echo \$a-\$DASH_CON_SCROLL-\$DASH_MODE-\$DASH_BUF")" = "3-0-cmd-" ]'
-out="$(panel '?' x q)"
+out="$(PANEL_ROWS=55 panel '?' x q)"
 check "the help lists the mouse" 'echo "$out" | frame_n 2 | grep -q "RAT.N    (en Opciones) clic"'
 
 section "27. the mouse and the console: what a review found"
@@ -1079,5 +1080,38 @@ check "the narrow view caches the list and the detail the same way" '[ "$(run_li
 check "the logs under a cached centre keep their instance even when its name has a space" 'o="$(run_lib "DASH_NAMES=(\"my inst\"); DASH_SVCS[\"my inst\"]=\"s0 s1\"; DASH_SEL=0; DASH_SVC=1; dash_logs_box() { LOG_ARGS+=\"[\$1|\$2|\$4]\"; TUI_BOX=(); }; LOG_ARGS=; dash_center_boxes \"my inst\" 82 30; dash_center_boxes \"my inst\" 82 30; echo \"\$LOG_ARGS\"")"; [[ "$o" =~ ^\[(my\ inst/s1\|s1\|[0-9]+)\]\[(.*)\]$ ]] && [ "${BASH_REMATCH[1]}" = "${BASH_REMATCH[2]}" ]'
 check "a cached list brings back the rows it shows, for the mouse" '[ "$(run_lib "dash_refresh; dash_list_box 38 10 35 1 >/dev/null; a=\"\$DASH_LIST_START \$DASH_LIST_AVAIL\"; DASH_LIST_START=99; DASH_LIST_AVAIL=99; dash_list_box 38 10 35 1 >/dev/null; echo \"\$a|\$DASH_LIST_START \$DASH_LIST_AVAIL\"")" = "0 6|0 6" ]'
 check "the Overview still has its three columns and the console under them" 'f="$(PANEL_COLS=160 panel q | frame_n 1)"; echo "$f" | grep -q "+- >Instancias" && echo "$f" | grep -q "+- Eventos" && echo "$f" | grep -q "+- Consola" && ! echo "$f" | awk "length(\$0) > 160 { found = 1 } END { exit !found }"'
+
+
+section "29. the key bars and the help fit the screen"
+check "a key bar too long loses whole items from before the last two" '[ "$(run_lib "dash_keyfit \"uno · dos · tres · cuatro · ayuda · salir\" 30; echo \"\$DASH_KF\"")" = "uno · dos · ayuda · salir" ]'
+check "a key bar that fits is left as it is" '[ "$(run_lib "dash_keyfit \"uno · dos\" 30; echo \"\$DASH_KF\"")" = "uno · dos" ]'
+check "when nothing else is enough, the items from the start that fit stay" '[ "$(run_lib "dash_keyfit \"uno · dos · tres\" 8; echo \"\$DASH_KF\"")" = "uno" ]'
+for w in 60 80 100; do
+  out="$(PANEL_COLS=$w panel z q)"
+  check "at $w columns the zoom keys fit and end with whole items" 'l="$(echo "$out" | frame_n 2 | tail -1)"; [ "${#l}" -le '"$w"' ] && echo "$l" | grep -q "q salir$"'
+  out="$(PANEL_COLS=$w panel : esc q)"
+  check "at $w columns the keys of the console line fit and still say how to leave it" 'l="$(echo "$out" | frame_n 2 | tail -1)"; [ "${#l}" -le '"$w"' ] && echo "$l" | grep -q "Esc vuelve$"'
+done
+out="$(PANEL_COLS=160 panel right right q)"
+check "on a wide screen the logs keys are not cut" 'echo "$out" | frame_n 3 | tail -1 | grep -q "Espacio pausa . f sigue . e errores . / filtro .*q salir$"'
+out="$(PANEL_COLS=60 panel '?' down end x q)"
+check "at 60 columns no line of the help passes the screen, and long ones go on under their description" '! echo "$out" | frame_n 2 | awk "length(\$0) > 60 { found = 1 } END { exit !found }" && echo "$out" | frame_n 2 | grep -qE "^ \| {20,}[^ ].*saltan\) *\|$"'
+check "the help says which lines it shows, and the arrows move it" 'echo "$out" | frame_n 2 | grep -q "Teclas . 1-22/" && echo "$out" | frame_n 3 | grep -q "Teclas . 2-23/"'
+check "End shows its last lines" 'echo "$out" | frame_n 4 | grep -q "GENERAL"'
+check "any other key goes back" 'echo "$out" | frame_n 5 | grep -q "\[1 Instancias\]"'
+check "while it scrolls, the last line says how" 'echo "$out" | frame_n 2 | tail -1 | grep -q "PgUp PgDn desplazan . otra tecla vuelve"'
+out="$(PANEL_ROWS=55 panel '?' down q)"
+check "when it fits, any key goes back, the arrows too" 'echo "$out" | frame_n 2 | tail -1 | grep -q "Pulsa cualquier tecla para volver" && echo "$out" | frame_n 3 | grep -q "\[1 Instancias\]"'
+out="$(PANEL_COLS=60 panel 4 '?' q)"
+check "opened from a view, it shows the keys of that view" 'echo "$out" | frame_n 3 | grep -q "EJECUC\." && ! echo "$out" | frame_n 3 | grep -q "Teclas . 1-22/"'
+out="$(PANEL_ROWS=55 panel '?' q)"
+check "the help has a section for the Resources view" 'echo "$out" | frame_n 2 | grep -q "RECURSOS .* s ordena"'
+out="$(PANEL_COLS=60 panel '?' mouse:65:10:10 q)"
+check "the wheel scrolls the help when it does not fit" 'echo "$out" | frame_n 3 | grep -q "Teclas . 2-23/"'
+check "with colours on, the highlighted heading wraps like the others" '[ "$(ROOT="$PWD" DELTACTL_TUI_KEYS=/dev/null DELTACTL_UI=rich DELTACTL_COLOR=always COLUMNS=60 bash -c "source lib/bootstrap.sh; source lib/cmd/dashboard.sh; tui_size; dash_init; DASH_VIEW=output; DASH_MODE=help; DASH_HELP_OFF=-1; dash_dialog_help 26; for l in \"\${DASH_DLG[@]}\"; do tui_strip_ansi \"\$l\"; echo \"\$TUI_OUT\"; done" | grep -A1 "^  SALIDA" | tail -1 | grep -c "^           · e solo errores$")" = "1" ]'
+printf 'TUI_VIM=off\n' > "$FIX/vim.cfg"
+out="$(DELTACTL_CONFIG="$FIX/vim.cfg" PANEL_ROWS=55 panel '?' j q)"
+check "with the vim keys off, j is a key like any other in the help: it goes back" 'echo "$out" | frame_n 3 | grep -q "\[1 Instancias\]"'
+rm -f "$FIX/vim.cfg"
 
 finish
