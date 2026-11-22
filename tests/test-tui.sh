@@ -205,7 +205,21 @@ check "Up recalls the previous command" 'echo "$out" | last_frame | grep -q "tui
 out="$(panel x q)"
 check "x with nothing running says so" 'echo "$out" | frame_n 2 | grep -q "No hay ningún comando en ejecución"'
 out="$(panel : $(typed "status tui-a") enter : $(typed "status tui-b") enter wait q)"
-check "a second command while one runs is refused or runs after it, never both" 'echo "$out" | grep -q "Hay un comando en ejecución\|Ejecutando: ./deltactl status tui-b"'
+cat > "$FIX/ended.sh" <<'EOF'
+source lib/bootstrap.sh; source lib/cmd/dashboard.sh
+tui_size; dash_init
+job_start t true
+for i in 1 2 3 4 5 6 7 8 9 10; do kill -0 "$JOB_PID" 2> /dev/null || break; sleep 0.1; done
+dash_start_job stay version; r=$?
+job_running && s=started || s=refused
+c=0; for l in "${DASH_CON[@]}"; do case "$l" in *"deltactl t: "*) c=1 ;; esac; done
+echo "$r $s $c"
+job_cancel > /dev/null 2>&1
+EOF
+ENDED="$(ROOT="$PWD" DELTACTL_TUI_KEYS=/dev/null DELTACTL_UI=rich DELTACTL_COLOR=never DELTACTL_ASCII=1 COLUMNS=100 bash "$FIX/ended.sh" 2>&1)"
+check "a command that has just ended does not refuse the next one, and its end is still announced" '[ "$ENDED" = "0 started 1" ] || { echo "$ENDED" | tail -5; false; }'
+# (a fast first command may be over before the second Enter; the second can then end before a frame shows it running)
+check "a second command while one runs is refused or runs after it, never both" 'echo "$out" | grep -q "Hay un comando en ejecución\|Ejecutando: ./deltactl status tui-b\|status tui-b:\? terminó"'
 out="$(panel 3 q)"
 check "the Output view without a command shows the empty message" 'echo "$out" | frame_n 2 | grep -q "Aún no has ejecutado nada"'
 

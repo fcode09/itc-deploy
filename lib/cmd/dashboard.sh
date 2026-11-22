@@ -349,6 +349,9 @@ dash_shutdown() {
 dash_start_job() { # view args...
   local view="$1" color=never
   shift
+  # A command that has just ended still counts as running until the next tick collects it: collect (and announce) it now, or the new
+  # command would be refused and that warning lost under the "finished" message of the old one.
+  if job_running; then dash_job_tick; fi
   if job_running; then dash_msg warn "$(t tui.msg.busy)"; return 1; fi
   [ "$UI_COLOR" -ne 1 ] || color=always
   job_start "$*" env COLUMNS=$((TUI_COLS - 4)) DELTACTL_UI=rich DELTACTL_COLOR="$color" \
