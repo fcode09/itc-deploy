@@ -9,6 +9,7 @@ source tests/lib.sh
 export LANG=C.UTF-8
 unset NO_COLOR DELTACTL_COLOR DELTACTL_UI DELTACTL_ASCII COLUMNS DELTACTL_TUI_KEYS DELTACTL_TUI_EVENTS DELTACTL_TUI_ROWS
 unset DELTACTL_THEME DELTACTL_REFRESH DELTACTL_METRICS_INTERVAL   # the Options screen reads them: a value from the shell would change what it shows
+unset DELTACTL_TUI_IDLE_AFTER                                     # (and this one changes how often an idle panel samples)
 
 FIX="$(mktemp -d)"
 export FIX
@@ -205,7 +206,32 @@ check "Up recalls the previous command" 'echo "$out" | last_frame | grep -q "tui
 out="$(panel x q)"
 check "x with nothing running says so" 'echo "$out" | frame_n 2 | grep -q "No hay ningún comando en ejecución"'
 out="$(panel : $(typed "status tui-a") enter : $(typed "status tui-b") enter wait q)"
-check "a second command while one runs is refused or runs after it, never both" 'echo "$out" | grep -q "Hay un comando en ejecución\|Ejecutando: ./deltactl status tui-b"'
+cat > "$FIX/ended.sh" <<'EOF'
+source lib/bootstrap.sh; source lib/cmd/dashboard.sh
+tui_size; dash_init
+job_start t true
+for i in 1 2 3 4 5 6 7 8 9 10; do kill -0 "$JOB_PID" 2> /dev/null || break; sleep 0.1; done
+dash_start_job stay version; r=$?
+job_running && s=started || s=refused
+c=0; for l in "${DASH_CON[@]}"; do case "$l" in *"deltactl t: "*) c=1 ;; esac; done
+echo "$r $s $c"
+job_cancel > /dev/null 2>&1
+EOF
+ENDED="$(ROOT="$PWD" DELTACTL_TUI_KEYS=/dev/null DELTACTL_UI=rich DELTACTL_COLOR=never DELTACTL_ASCII=1 COLUMNS=100 bash "$FIX/ended.sh" 2>&1)"
+check "a command that has just ended does not refuse the next one, and its end is still announced" '[ "$ENDED" = "0 started 1" ] || { echo "$ENDED" | tail -5; false; }'
+# (a fast first command may be over before the second Enter; the second can then end before a frame shows it running)
+cat > "$FIX/refused.sh" <<'EOF'
+source lib/bootstrap.sh; source lib/cmd/dashboard.sh
+tui_size; dash_init
+job_start t sleep 3
+dash_start_job stay version; r=$?
+c=0; for l in "${DASH_CON[@]}"; do case "$l" in *"Hay un comando en ejecución"*"(version)"*) c=1 ;; esac; done
+echo "$r $c"
+job_cancel > /dev/null 2>&1
+EOF
+REFUSED="$(ROOT="$PWD" DELTACTL_TUI_KEYS=/dev/null DELTACTL_UI=rich DELTACTL_COLOR=never DELTACTL_ASCII=1 COLUMNS=100 bash "$FIX/refused.sh" 2>&1)"
+check "a refused command is noted in the console too, where a finishing command cannot hide it" '[ "$REFUSED" = "1 1" ] || { echo "$REFUSED" | tail -5; false; }'
+check "a second command while one runs is refused or runs after it, never both" 'echo "$out" | grep -q "Hay un comando en ejecución\|Ejecutando: ./deltactl status tui-b\|status tui-b:\? terminó"'
 out="$(panel 3 q)"
 check "the Output view without a command shows the empty message" 'echo "$out" | frame_n 2 | grep -q "Aún no has ejecutado nada"'
 
@@ -790,6 +816,12 @@ check "the Instances and Resources bodies are built again with every sample (the
 check "a view that keeps its body still shows the new header" '[ "$(run_lib "$BODYENV DASH_VIEW=output; MT_HOST_PCT=50; MT_HOST_TOTAL_KB=8388608; MT_HOST_USED_KB=4194304; dash_host_build; dash_render >/dev/null; MT_HOST_PCT=90; MT_HOST_USED_KB=7549747; dash_host_build; dash_render | grep -c \"90%\"")" = "1" ]'
 check "the sampling interval is stretched while the view shows no figure of a service" '[ "$(run_lib "HOST_FAKE_NOW_US=10000000; MT_LAST_US=7000000; MT_INTERVAL_MULT=1; mt_due && a=due || a=wait; MT_INTERVAL_MULT=2; mt_due && b=due || b=wait; echo \$a \$b")" = "due wait" ]'
 check "the panel sets it by view: 2 for Output, Runs and Processes, 1 for the others" '[ "$(run_lib "$BODYENV for v in output runs procs instances resources; do DASH_VIEW=\$v; dash_tick >/dev/null 2>&1; printf \"%s \" \$MT_INTERVAL_MULT; done")" = "2 2 2 1 1 " ]'
+check "after 30 s without a key it samples half as often, in every view" '[ "$(run_lib "$BODYENV DASH_KEY_AT=\$((SECONDS - 30)); for v in output instances; do DASH_VIEW=\$v; dash_tick >/dev/null 2>&1; printf \"%s%s \" \$MT_INTERVAL_MULT \$DASH_AWAY; done; DASH_KEY_AT=\$((SECONDS - 29)); dash_tick >/dev/null 2>&1; echo \$MT_INTERVAL_MULT\$DASH_AWAY")" = "41 21 10" ]'
+check "not while a command runs: its figures are being watched" '[ "$(run_lib "$BODYENV DASH_KEY_AT=\$((SECONDS - 100)); job_start t sleep 3; DASH_VIEW=instances; dash_tick >/dev/null 2>&1; echo \$MT_INTERVAL_MULT\$DASH_AWAY; job_cancel >/dev/null 2>&1")" = "10" ]'
+check "the first key back takes a fresh sample at once; a key while not away does not" '[ "$(run_lib "MT_LAST_US=5; DASH_AWAY=1; dash_key_seen; a=\$MT_LAST_US\$DASH_AWAY; MT_LAST_US=5; dash_key_seen; echo \$a \$MT_LAST_US \$((SECONDS - DASH_KEY_AT))")" = "00 5 0" ]'
+check "DELTACTL_TUI_IDLE_AFTER sets how long, and a wrong value falls back to 30" '[ "$(DELTACTL_TUI_IDLE_AFTER=5 run_lib "echo \$DASH_IDLE_AFTER")" = "5" ] && [ "$(DELTACTL_TUI_IDLE_AFTER=x run_lib "echo \$DASH_IDLE_AFTER")" = "30" ]'
+check "0 and an endless number are wrong values too (0 would make every key a return from away)" '[ "$(DELTACTL_TUI_IDLE_AFTER=0 run_lib "echo \$DASH_IDLE_AFTER")" = "30" ] && [ "$(DELTACTL_TUI_IDLE_AFTER=99999999999999999999 run_lib "echo \$DASH_IDLE_AFTER")" = "30" ]'
+check "while away a state refresh does not force a sample; otherwise it does (the pids may have changed)" '[ "$(run_lib "MT_LAST_US=5; DASH_AWAY=1; dash_after_collect; a=\$MT_LAST_US; DASH_AWAY=0; dash_after_collect; echo \$a \$MT_LAST_US")" = "5 0" ]'
 
 section "19. interrupted runs nobody has reviewed"
 rm -rf "$RUNS"

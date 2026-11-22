@@ -38,6 +38,11 @@ DASH_MSG="" DASH_MSG_KIND=info DASH_MSG_UNTIL=0
 DASH_HOST="" DASH_DOCKER_VER=""
 DASH_REFRESH_SECONDS="${DELTACTL_REFRESH:-5}"   # without Docker events the state is read this often
 DASH_SAFETY_SECONDS=30                           # with events it is still read this often, just in case
+# Nobody at the keyboard for this long and nothing running: the figures are sampled half as often (and the error counts a quarter as
+# often) until the next key, which takes a fresh sample at once. An idle panel left open on a server costs half as much.
+DASH_IDLE_AFTER="${DELTACTL_TUI_IDLE_AFTER:-30}"
+[[ "$DASH_IDLE_AFTER" =~ ^[1-9][0-9]{0,5}$ ]] || DASH_IDLE_AFTER=30   # 1 s to ~11 days; 0 would make every key a "return"
+DASH_KEY_AT=0 DASH_AWAY=0
 DASH_REFRESH_AT=0 DASH_FORCE_REFRESH=0 DASH_EV_PENDING=0 DASH_JOB_DONE=0
 DASH_EV_FD="" DASH_EV_PID=""
 DASH_NAMES=()
@@ -65,7 +70,7 @@ dash_collect() {
   DSV_KIND=() DSV_TEXT=() DSV_UP=() DSV_PORT=() DSV_REF=() DSV_CODES=() DSV_NOTE=()
   for f in "$INSTANCES_DIR"/*/.env.instance; do
     [ -f "$f" ] || continue
-    name="$(basename "$(dirname "$f")")"
+    name="${f%/.env.instance}"; name="${name##*/}"
     st_enabled "$name"
     st_instance_hints "$name"
     n=0 m="${#ST_ENABLED[@]}" any=0
@@ -76,7 +81,7 @@ dash_collect() {
       [ "$E_KIND" != "ok" ] || n=$((n + 1))
       DSV_KIND[$key]="$E_KIND" DSV_TEXT[$key]="$E_TEXT" DSV_UP[$key]="$E_UP" DSV_PORT[$key]="$E_PORT"
       DSV_REF[$key]="$E_REF" DSV_CODES[$key]="$E_CODES"
-      case " $E_CODES " in *" tag-drift "*) DSV_NOTE[$key]="$(t tui.tag_drift "$E_RUN" "$E_CFG")" ;; esac
+      case " $E_CODES " in *" tag-drift "*) t_r tui.tag_drift "$E_RUN" "$E_CFG"; DSV_NOTE[$key]="$T_OUT" ;; esac
     done
     for key in "${!ST_STATE[@]}"; do [ "${key%%/*}" != "$name" ] || any=1; done
     if [ "$ST_DOCKER" -ne 1 ]; then kind=dim
@@ -89,7 +94,7 @@ dash_collect() {
     DASH_KIND[$name]="$kind"
     if [ "$ST_DOCKER" -eq 1 ]; then DASH_NM[$name]="$n/$m"; else DASH_NM[$name]="?/$m"; fi
     DASH_SVCS[$name]="${ST_ENABLED[*]:-}"
-    DASH_DATA[$name]="$(data_state "$name")"
+    data_state_r "$name"; DASH_DATA[$name]="$DS"
   done
   if [ "$ST_DOCKER" -eq 1 ] && [ -z "$DASH_DOCKER_VER" ]; then DASH_DOCKER_VER="$(dk_info ServerVersion)"; fi
 }
@@ -102,8 +107,9 @@ dash_after_collect() {
   if [ "${#DASH_NAMES[@]}" -eq 0 ]; then DASH_ON_NEW=1 DASH_FOCUS=list; fi
   [ "$ST_DOCKER" -ne 1 ] || DK_READY_AT="$SECONDS"
   DASH_REFRESH_AT="$SECONDS" DASH_FORCE_REFRESH=0 DASH_REFRESH_N=$((DASH_REFRESH_N + 1))
-  # The pids may have changed: read the figures again at the next tick.
-  MT_LAST_US=0
+  # The pids may have changed: read the figures again at the next tick (not while away: without Docker events this runs every few
+  # seconds, and sampling after each one would undo the slower pace; a new pid is still picked up at the next sample).
+  [ "$DASH_AWAY" -eq 1 ] || MT_LAST_US=0
   DASH_DIRTY=1
 }
 
@@ -349,7 +355,12 @@ dash_shutdown() {
 dash_start_job() { # view args...
   local view="$1" color=never
   shift
-  if job_running; then dash_msg warn "$(t tui.msg.busy)"; return 1; fi
+  # A command that has just ended still counts as running until the next tick collects it: collect (and announce) it now, or the new
+  # command would be refused and that warning lost under the "finished" message of the old one.
+  if job_running; then dash_job_tick; fi
+  # Refused: the console keeps it too, as the transcript of what was asked (the status line can be replaced by the running command's
+  # "finished" message before a frame shows the warning, when it ends right after).
+  if job_running; then dash_msg warn "$(t tui.msg.busy)"; dash_con_add "${DASH_SYM[warn]} $DASH_MSG ($*)"; return 1; fi
   [ "$UI_COLOR" -ne 1 ] || color=always
   job_start "$*" env COLUMNS=$((TUI_COLS - 4)) DELTACTL_UI=rich DELTACTL_COLOR="$color" \
     DELTACTL_LANG="${DELTACTL_LANG_ACTIVE:-es}" "$ROOT/deltactl" "$@"
@@ -373,6 +384,7 @@ dash_terminal() { # args...
   menu_pause
   tui_enter
   DASH_SIGINT=0                      # a Ctrl+C meant for the command must not reach the panel
+  dash_key_seen                      # (someone was at the keyboard all along)
   dash_refresh_request
 }
 
@@ -424,6 +436,11 @@ dash_tick() {
       if ! tui_test_mode || [ "$DASH_IDLE" -eq 1 ]; then dash_refresh_request; fi
     fi
     case "$DASH_VIEW" in output | runs | procs | console) MT_INTERVAL_MULT=2 ;; *) MT_INTERVAL_MULT=1 ;; esac
+    if [ $((SECONDS - DASH_KEY_AT)) -ge "$DASH_IDLE_AFTER" ] && ! job_running; then
+      DASH_AWAY=1 MT_INTERVAL_MULT=$((MT_INTERVAL_MULT * 2))
+    else
+      DASH_AWAY=0
+    fi
     if mt_due; then
       mt_sample
       dash_host_build
@@ -443,7 +460,7 @@ dash_tick() {
     # Error counts of the selected instance: when the user pauses on it, then every 30 s.
     if [ "$DASH_IDLE" -eq 1 ] && [ "$DASH_VIEW" = "instances" ] && [ "$DASH_ON_NEW" -eq 0 ] && [ "${#DASH_NAMES[@]}" -gt 0 ]; then
       local sel="${DASH_NAMES[$DASH_SEL]}"
-      if [ -z "${DASH_ERRS_AT[$sel]:-}" ] || [ $((SECONDS - DASH_ERRS_AT[$sel])) -ge 30 ]; then dash_errors_request "$sel"; fi
+      if [ -z "${DASH_ERRS_AT[$sel]:-}" ] || [ $((SECONDS - DASH_ERRS_AT[$sel])) -ge $((DASH_AWAY == 1 ? 120 : 30)) ]; then dash_errors_request "$sel"; fi
     fi
   fi
   if [ -n "$DASH_MSG" ] && [ "$SECONDS" -ge "$DASH_MSG_UNTIL" ]; then DASH_MSG=""; DASH_DIRTY=1; fi
@@ -1289,9 +1306,15 @@ dash_mouse() {
 
 # --- Main loop ---------------------------------------------------------------------------------------------
 
+# A key (or a click) arrived. Back from away, the figures on screen may be several seconds old: the next turn samples at once.
+dash_key_seen() {
+  [ "$DASH_AWAY" -eq 0 ] || MT_LAST_US=0
+  DASH_KEY_AT="$SECONDS" DASH_AWAY=0
+}
+
 dash_loop() {
   local tick
-  DASH_DIRTY=1
+  DASH_DIRTY=1 DASH_KEY_AT="$SECONDS"
   while [ "$DASH_QUIT" -eq 0 ]; do
     if [ "$TUI_RESIZED" -eq 1 ]; then tui_size; dash_host_build; DASH_DIRTY=1; fi
     dash_tick
@@ -1303,9 +1326,9 @@ dash_loop() {
     # A running command, a log that grows faster than one turn can read and a stream waiting to start all ask to be back soon.
     if job_running || [ "$DASH_LS_MORE" -eq 1 ]; then tick=0.2; elif [ "$DASH_LS_DEFER" -eq 1 ]; then tick=0.3; else tick=1; fi
     tui_key "$tick"
-    if [ "$DASH_SIGINT" -eq 1 ]; then DASH_SIGINT=0; dash_ctrl_c; DASH_DIRTY=1; fi
+    if [ "$DASH_SIGINT" -eq 1 ]; then DASH_SIGINT=0; dash_key_seen; dash_ctrl_c; DASH_DIRTY=1; fi
     DASH_IDLE=0
-    [ "$TUI_KEY" != "timeout" ] || DASH_IDLE=1
+    if [ "$TUI_KEY" = "timeout" ]; then DASH_IDLE=1; else dash_key_seen; fi
     dash_handle_key
   done
 }

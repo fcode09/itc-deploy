@@ -61,6 +61,10 @@ se aplica al momento y se guarda en `~/.config/deltactl/config`. Las variables `
 También: `T` cambia de tema, `L` de idioma, `p` pausa la actualización, `r` refresca, `n` crea una instancia, `d` diagnóstico,
 `i` imágenes.
 
+**En reposo**: tras 30 s sin tocar el teclado (y sin ningún comando en marcha) las cifras se leen la mitad de veces y el recuento de
+errores cada 2 minutos; la primera tecla vuelve al ritmo normal y toma una muestra al momento. `DELTACTL_TUI_IDLE_AFTER` cambia
+esos 30 s.
+
 ## Terminales
 
 - Mínimo 60 columnas x 14 filas; desde 120x28 aparece la vista ancha (con gráficos, logs y, desde 150 columnas, eventos).

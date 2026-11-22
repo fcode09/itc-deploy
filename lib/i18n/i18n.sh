@@ -82,8 +82,13 @@ i18n_init() {
 }
 
 # t <key> [arg1 ... arg9]   prints the message of the active language with {1}..{9} replaced.
-# Falls back to Spanish, then to ??key??.
+# Falls back to Spanish, then to ??key??. t_r does the same and leaves the message in T_OUT instead (no `$(...)`, no fork).
+T_OUT=""
 t() {
+  t_r "$@" || return 1
+  printf '%s' "$T_OUT"
+}
+t_r() {
   local key="$1" msg a i=1
   shift
   local -n _t_cat="MSG_${DELTACTL_LANG_ACTIVE:-$DELTACTL_DEFAULT_LANG}"
@@ -92,19 +97,19 @@ t() {
   elif [ -n "${MSG_es[$key]+x}" ]; then
     msg="${MSG_es[$key]}"
   else
+    T_OUT=""
     if [ "${DELTACTL_I18N_STRICT:-0}" = "1" ]; then
       printf 'i18n: missing key %s\n' "$key" >&2
       return 1
     fi
-    printf '??%s??' "$key"
+    T_OUT="??$key??"
     return 0
   fi
   for a in "$@"; do
     msg=${msg//"{$i}"/"$a"}
     i=$((i + 1))
   done
-  msg=${msg//\\n/$'\n'}
-  printf '%s' "$msg"
+  T_OUT=${msg//\\n/$'\n'}
 }
 
 # --- Help topics -------------------------------------------------------------------------------------
