@@ -296,6 +296,7 @@ runs_footprint() { # instance
   [ "$1" != "-" ] && [ "${DELTACTL_RUN_FOOTPRINT:-1}" != "0" ] && host_has docker || return 0
   ids="$(dk_instance_container_ids "$1" 2> /dev/null || true)"
   if [ -z "$ids" ]; then RUNS_FOOT="0/0 0 0"; return 0; fi
+  # shellcheck disable=SC2086  # one argument per container id
   while IFS='|' read -r proj svc st hl img started nm pid rs; do
     tot=$((tot + 1))
     [[ "$rs" =~ ^[0-9]+$ ]] && rst=$((rst + rs))
@@ -303,7 +304,6 @@ runs_footprint() { # instance
       run=$((run + 1))
       if host_cg_resolve "$pid" && host_cg_mem "$HOST_CG_MEM" "$HOST_CG_VER"; then mem=$((mem + CG_MEM_BYTES)); fi
     fi
-  # shellcheck disable=SC2086  # one argument per container id
   done < <(dk_container_rows $ids)
   RUNS_FOOT="$run/$tot $mem $rst"
 }
@@ -345,7 +345,7 @@ runs_exec() { # command args...
   fi
   dir="$state/runs/$id"
   log="$dir/out.log"
-  mkdir -p "$dir" 2> /dev/null && : > "$log" || { runs_unlock; die "$(t runs.cannot_record "$state")"; }
+  if ! { mkdir -p "$dir" 2> /dev/null && : > "$log"; }; then runs_unlock; die "$(t runs.cannot_record "$state")"; fi
   inst="$(runs_instance_of "$cmd" "$@")"
   host_now_us; t0="$HOST_NOW_US"
   RUN=()
