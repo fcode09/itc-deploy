@@ -181,6 +181,28 @@ rm -rf "$STATE"
 bash ./deltactl init rn-init --yes > /dev/null 2>&1; rc=$?
 check "init (which deploys twice inside) is a single run" '[ "$rc" -eq 0 ] && [ "$(runs_n)" = "1" ] && [ "$(mv_ "$(last_run)" OP)" = "init" ]'
 
+section "7b. an init killed in the middle of a seed is never seeded again by itself"
+# The seeds drop collections: nothing may run them again on its own, not the next operation, not reviewing the run, not init.
+newinst rn-ikill
+reset_fix; echo 30 > "$FIX/seed_slow_populating_data_s0"
+setsid bash ./deltactl init rn-ikill --yes > "$FIX/ikill.out" 2>&1 &
+KPID=$!
+for i in $(seq 1 50); do grep -q "dist/cli.js populating_data_s0" "$FIX/calls.log" && break; sleep 0.2; done
+KID="$(last_run)"
+seeds() { grep -c "dist/cli.js" "$FIX/calls.log"; }
+check "it was killed in the second seed, after the first one ran" '[ "$(mv_ "$KID" OP)" = "init" ] && [ "$(seeds)" = "2" ]'
+kill -9 -- "-$KPID" 2>/dev/null; wait "$KPID" 2>/dev/null
+rm -f "$FIX/seed_slow_populating_data_s0"
+check "the instance stays protected as incomplete" '[ "$(grep -E "^SOURCE=" instances/rn-ikill/.initialized | cut -d= -f2)" = "init-incomplete" ]'
+out="$(bash ./deltactl deploy rn-ikill 2>&1)"; rc=$?
+check "the next operation closes the run as interrupted and refuses to go on, without seeding" '[ "$(mv_ "$KID" STATE)" = "interrupted" ] && [ "$rc" -ne 0 ] && [ "$(seeds)" = "2" ]'
+bash ./deltactl runs resolve "$KID" --note "init matado de prueba" > /dev/null 2>&1
+check "reviewing the run does not seed either" '[ ! -e "$STATE/pending/$KID" ] && [ "$(seeds)" = "2" ]'
+out="$(bash ./deltactl init rn-ikill --yes 2>&1)"; rc=$?
+check "init refuses to run over it, and says it was left incomplete" '[ "$rc" -ne 0 ] && echo "$out" | grep -qi "incompleta" && [ "$(seeds)" = "2" ]'
+bash ./deltactl deploy rn-ikill > /dev/null 2>&1
+check "a deploy after it still never seeds" '[ "$(seeds)" = "2" ]'
+
 section "8. what a run consumed"
 newinst rn-cons
 rm -rf "$STATE"
