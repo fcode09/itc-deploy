@@ -39,7 +39,8 @@ $ nano instances/colorado/.env.s1
 ## 5. Firebase: `secrets/`
 $ cp fcm.json instances/colorado/secrets/fcm.json
 $ cp keeper-fcm.json instances/colorado/secrets/keeper-fcm.json
-! In `.env.s1` the paths must start with `/run/secrets/` (that is how the folder looks inside the container). See `./deltactl help secrets`.
+! In `.env.s1` the paths must start with `/run/secrets/` (that is how the folder looks inside the container). See `./deltactl
+  help secrets`.
 
 ## 6. Check and start
 $ ./deltactl check colorado

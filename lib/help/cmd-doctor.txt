@@ -10,7 +10,8 @@ $ ./deltactl doctor
 - Docker: daemon accesible y Compose v2.20 o superior
 - disco libre donde Docker guarda las imágenes (aviso por debajo de 10 GB, error por debajo de 3 GB)
 - memoria del servidor y suma de los límites de memoria de todas las instancias
-- MongoDB: que cada URI sea alcanzable por TCP desde donde la usan los contenedores (la puerta de enlace de Docker para `host.docker.internal`)
+- MongoDB: que cada URI sea alcanzable por TCP desde donde la usan los contenedores (la puerta de enlace de Docker para
+  `host.docker.internal`)
 - límite de archivos abiertos de `mongod` (recomendado 64000 o más con muchas instancias)
 - permisos de los `.env.*` (deben ser 600) y propietario de `data/` (uid 1000)
 - herramientas auxiliares: `ss`, `openssl` y `gunzip`

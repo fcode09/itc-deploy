@@ -10,12 +10,14 @@ Los archivos con punto no se ven con `ls`: usa `ls -a`.
   . `data/`  archivos que guardan los servicios (imágenes subidas, informes, respaldos)
   . `.deployed`  etiquetas e IDs de imagen desplegados por última vez
   . `.previous`  etiquetas anteriores, para `rollback`
-  . `.initialized`  marcador de datos: origen (`init` o `existing`), fecha y etiquetas de ese momento
+  . `.initialized`  marcador de datos: origen (`init` o `existing`), fecha y etiquetas de ese
+    momento
   . `init-logs/`  log de cada seed ejecutado por `init`
   i Todo `instances/` está en `.gitignore`: nunca se versiona.
 
 En la raíz del repositorio
-  . `deltactl`  la herramienta; `lib/` su código por capas (`core/`, `adapters/`, `ui/`, `i18n/`, `cmd/`, `help/`)
+  . `deltactl`  la herramienta; `lib/` su código por capas (`core/`, `adapters/`, `ui/`, `i18n/`,
+    `cmd/`, `help/`)
   . `compose.yaml` y `services/compose-sN.yaml`  definición de los servicios (uno por servicio)
   . `templates/`  plantillas `.env.*.example` que copia `./deltactl new`
   . `examples/`  ejemplo completo de una municipalidad

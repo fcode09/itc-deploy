@@ -2,6 +2,7 @@
 # Formato: "@ CLAVE | archivo | tipo | valor por defecto" y debajo la descripción hasta la siguiente "@".
 # tipo: obligatoria (la valida ./deltactl deploy) | opcional | fija (la fija el compose o la imagen: no va en el .env).
 # tests/test-help.sh comprueba que este archivo coincide con las plantillas y con las validaciones de deploy.sh.
+# Las descripciones se muestran tal cual: no admiten las líneas de continuación (dos espacios) de las demás páginas.
 
 @ INSTANCE | .env.instance | obligatoria | lo pone ./deltactl new
 Nombre de la instancia. Define el proyecto Compose, los contenedores (`s0_<INSTANCE>`, `s1_<INSTANCE>`)

@@ -10,15 +10,19 @@ Referencia completa
 
 Imágenes locales (REGISTRY vacío)
   . `deploy` nunca descarga nada de internet
-  . si la imagen no está cargada, se detiene con error: así Docker no baja de Docker Hub una imagen homónima que no es la nuestra
+  . si la imagen no está cargada, se detiene con error: así Docker no baja de Docker Hub una imagen
+    homónima que no es la nuestra
 
 Con registry
-`REGISTRY=registry.ejemplo.com/itc` hace que `deploy` baje `registry.ejemplo.com/itc/auth-backend:1.2.0`.
+`REGISTRY=registry.ejemplo.com/itc` hace que `deploy` baje
+`registry.ejemplo.com/itc/auth-backend:1.2.0`.
 
 Etiquetas
   . usa una etiqueta por versión o por commit; `latest` genera un aviso
-  . las etiquetas locales son mutables: reconstruir con la misma etiqueta cambia la imagen sin avisar
-  ! `status` y `deploy` lo detectan ("apunta a otra imagen"), pero lo correcto es no reutilizar etiquetas.
+  . las etiquetas locales son mutables: reconstruir con la misma etiqueta cambia la imagen sin
+    avisar
+  ! `status` y `deploy` lo detectan ("apunta a otra imagen"), pero lo correcto es no reutilizar
+    etiquetas.
 
 Nombre propio
 Si construiste la imagen con otro nombre:
@@ -37,7 +41,8 @@ Ver y limpiar
   ! Evita `docker image prune -a`: borraría también las versiones previas que necesita el rollback.
 
 Variables del shell
-`deltactl` ignora `S0_TAG`, `REGISTRY` y demás variables exportadas en tu shell: solo cuenta `.env.instance`.
+`deltactl` ignora `S0_TAG`, `REGISTRY` y demás variables exportadas en tu shell: solo cuenta
+`.env.instance`.
 
 Relacionado
   . `./deltactl help actualizar`, `./deltactl help load`

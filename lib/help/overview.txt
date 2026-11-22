@@ -10,7 +10,8 @@ $ ./deltactl help <comando>        ayuda detallada de un comando (o ./deltactl <
 $ ./deltactl help <tema>           guía completa paso a paso
 
 ## Instancias
-| new <instancia> [--services s0,s1] [--existing] | Crea instances/<instancia>/ desde las plantillas (--existing: la municipalidad YA tiene datos; no se sembrará nunca)
+| new <instancia> [--services s0,s1] [--existing] | Crea instances/<instancia>/ desde las plantillas (--existing: la
+  municipalidad YA tiene datos; no se sembrará nunca)
 | new --wizard | Asistente interactivo: pregunta lo esencial y lista lo que falta completar
 | init <instancia> [--yes] | Siembra los datos iniciales de una instancia NUEVA (una sola vez)
 | adopt <instancia> | Marca como ya inicializada una instancia que YA tiene datos

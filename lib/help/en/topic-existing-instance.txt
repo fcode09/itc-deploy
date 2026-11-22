@@ -9,7 +9,8 @@ To prevent it, the instance is marked as "existing".
 ## Steps
 $ ./deltactl new colorado --existing
 - edit `.env.s0` and `.env.s1` with the URIs of the CURRENT databases (`MONGO_URI`, `MONGO_*_URI`)
-- use the SAME secrets as the current installation (`JWT_SECRET`, `FEDERATION_ENCRYPTION_KEY`...): if they change, open sessions stop being valid and what was encrypted with the old key cannot be read
+- use the SAME secrets as the current installation (`JWT_SECRET`, `FEDERATION_ENCRYPTION_KEY`...): if they change, open sessions
+  stop being valid and what was encrypted with the old key cannot be read
 $ ./deltactl deploy colorado
 $ ./deltactl status colorado
 
