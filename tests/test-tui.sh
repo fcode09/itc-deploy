@@ -9,6 +9,7 @@ source tests/lib.sh
 export LANG=C.UTF-8
 unset NO_COLOR DELTACTL_COLOR DELTACTL_UI DELTACTL_ASCII COLUMNS DELTACTL_TUI_KEYS DELTACTL_TUI_EVENTS DELTACTL_TUI_ROWS
 unset DELTACTL_THEME DELTACTL_REFRESH DELTACTL_METRICS_INTERVAL   # the Options screen reads them: a value from the shell would change what it shows
+unset DELTACTL_TUI_IDLE_AFTER                                     # (and this one changes how often an idle panel samples)
 
 FIX="$(mktemp -d)"
 export FIX
@@ -804,6 +805,10 @@ check "the Instances and Resources bodies are built again with every sample (the
 check "a view that keeps its body still shows the new header" '[ "$(run_lib "$BODYENV DASH_VIEW=output; MT_HOST_PCT=50; MT_HOST_TOTAL_KB=8388608; MT_HOST_USED_KB=4194304; dash_host_build; dash_render >/dev/null; MT_HOST_PCT=90; MT_HOST_USED_KB=7549747; dash_host_build; dash_render | grep -c \"90%\"")" = "1" ]'
 check "the sampling interval is stretched while the view shows no figure of a service" '[ "$(run_lib "HOST_FAKE_NOW_US=10000000; MT_LAST_US=7000000; MT_INTERVAL_MULT=1; mt_due && a=due || a=wait; MT_INTERVAL_MULT=2; mt_due && b=due || b=wait; echo \$a \$b")" = "due wait" ]'
 check "the panel sets it by view: 2 for Output, Runs and Processes, 1 for the others" '[ "$(run_lib "$BODYENV for v in output runs procs instances resources; do DASH_VIEW=\$v; dash_tick >/dev/null 2>&1; printf \"%s \" \$MT_INTERVAL_MULT; done")" = "2 2 2 1 1 " ]'
+check "after 30 s without a key it samples half as often, in every view" '[ "$(run_lib "$BODYENV DASH_KEY_AT=\$((SECONDS - 30)); for v in output instances; do DASH_VIEW=\$v; dash_tick >/dev/null 2>&1; printf \"%s%s \" \$MT_INTERVAL_MULT \$DASH_AWAY; done; DASH_KEY_AT=\$((SECONDS - 29)); dash_tick >/dev/null 2>&1; echo \$MT_INTERVAL_MULT\$DASH_AWAY")" = "41 21 10" ]'
+check "not while a command runs: its figures are being watched" '[ "$(run_lib "$BODYENV DASH_KEY_AT=\$((SECONDS - 100)); job_start t sleep 3; DASH_VIEW=instances; dash_tick >/dev/null 2>&1; echo \$MT_INTERVAL_MULT\$DASH_AWAY; job_cancel >/dev/null 2>&1")" = "10" ]'
+check "the first key back takes a fresh sample at once; a key while not away does not" '[ "$(run_lib "MT_LAST_US=5; DASH_AWAY=1; dash_key_seen; a=\$MT_LAST_US\$DASH_AWAY; MT_LAST_US=5; dash_key_seen; echo \$a \$MT_LAST_US \$((SECONDS - DASH_KEY_AT))")" = "00 5 0" ]'
+check "DELTACTL_TUI_IDLE_AFTER sets how long, and a wrong value falls back to 30" '[ "$(DELTACTL_TUI_IDLE_AFTER=5 run_lib "echo \$DASH_IDLE_AFTER")" = "5" ] && [ "$(DELTACTL_TUI_IDLE_AFTER=x run_lib "echo \$DASH_IDLE_AFTER")" = "30" ]'
 
 section "19. interrupted runs nobody has reviewed"
 rm -rf "$RUNS"

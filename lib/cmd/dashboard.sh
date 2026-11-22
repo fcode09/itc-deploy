@@ -38,6 +38,11 @@ DASH_MSG="" DASH_MSG_KIND=info DASH_MSG_UNTIL=0
 DASH_HOST="" DASH_DOCKER_VER=""
 DASH_REFRESH_SECONDS="${DELTACTL_REFRESH:-5}"   # without Docker events the state is read this often
 DASH_SAFETY_SECONDS=30                           # with events it is still read this often, just in case
+# Nobody at the keyboard for this long and nothing running: the figures are sampled half as often (and the error counts a quarter as
+# often) until the next key, which takes a fresh sample at once. An idle panel left open on a server costs half as much.
+DASH_IDLE_AFTER="${DELTACTL_TUI_IDLE_AFTER:-30}"
+[[ "$DASH_IDLE_AFTER" =~ ^[0-9]+$ ]] || DASH_IDLE_AFTER=30
+DASH_KEY_AT=0 DASH_AWAY=0
 DASH_REFRESH_AT=0 DASH_FORCE_REFRESH=0 DASH_EV_PENDING=0 DASH_JOB_DONE=0
 DASH_EV_FD="" DASH_EV_PID=""
 DASH_NAMES=()
@@ -427,6 +432,11 @@ dash_tick() {
       if ! tui_test_mode || [ "$DASH_IDLE" -eq 1 ]; then dash_refresh_request; fi
     fi
     case "$DASH_VIEW" in output | runs | procs | console) MT_INTERVAL_MULT=2 ;; *) MT_INTERVAL_MULT=1 ;; esac
+    if [ $((SECONDS - DASH_KEY_AT)) -ge "$DASH_IDLE_AFTER" ] && ! job_running; then
+      DASH_AWAY=1 MT_INTERVAL_MULT=$((MT_INTERVAL_MULT * 2))
+    else
+      DASH_AWAY=0
+    fi
     if mt_due; then
       mt_sample
       dash_host_build
@@ -446,7 +456,7 @@ dash_tick() {
     # Error counts of the selected instance: when the user pauses on it, then every 30 s.
     if [ "$DASH_IDLE" -eq 1 ] && [ "$DASH_VIEW" = "instances" ] && [ "$DASH_ON_NEW" -eq 0 ] && [ "${#DASH_NAMES[@]}" -gt 0 ]; then
       local sel="${DASH_NAMES[$DASH_SEL]}"
-      if [ -z "${DASH_ERRS_AT[$sel]:-}" ] || [ $((SECONDS - DASH_ERRS_AT[$sel])) -ge 30 ]; then dash_errors_request "$sel"; fi
+      if [ -z "${DASH_ERRS_AT[$sel]:-}" ] || [ $((SECONDS - DASH_ERRS_AT[$sel])) -ge $((DASH_AWAY == 1 ? 120 : 30)) ]; then dash_errors_request "$sel"; fi
     fi
   fi
   if [ -n "$DASH_MSG" ] && [ "$SECONDS" -ge "$DASH_MSG_UNTIL" ]; then DASH_MSG=""; DASH_DIRTY=1; fi
@@ -1292,9 +1302,15 @@ dash_mouse() {
 
 # --- Main loop ---------------------------------------------------------------------------------------------
 
+# A key (or a click) arrived. Back from away, the figures on screen may be several seconds old: the next turn samples at once.
+dash_key_seen() {
+  [ "$DASH_AWAY" -eq 0 ] || MT_LAST_US=0
+  DASH_KEY_AT="$SECONDS" DASH_AWAY=0
+}
+
 dash_loop() {
   local tick
-  DASH_DIRTY=1
+  DASH_DIRTY=1 DASH_KEY_AT="$SECONDS"
   while [ "$DASH_QUIT" -eq 0 ]; do
     if [ "$TUI_RESIZED" -eq 1 ]; then tui_size; dash_host_build; DASH_DIRTY=1; fi
     dash_tick
@@ -1308,7 +1324,7 @@ dash_loop() {
     tui_key "$tick"
     if [ "$DASH_SIGINT" -eq 1 ]; then DASH_SIGINT=0; dash_ctrl_c; DASH_DIRTY=1; fi
     DASH_IDLE=0
-    [ "$TUI_KEY" != "timeout" ] || DASH_IDLE=1
+    if [ "$TUI_KEY" = "timeout" ]; then DASH_IDLE=1; else dash_key_seen; fi
     dash_handle_key
   done
 }
