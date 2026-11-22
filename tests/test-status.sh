@@ -199,4 +199,19 @@ host() { DELTACTL_MEMINFO="$FIX/meminfo" DELTACTL_LOADAVG="$FIX/loadavg" ROOT="$
 check "the host adapter reads memory, load and converts to GB" '[ "$(host host_mem_total_kb)" = "8388608" ] && [ "$(host host_mem_available_kb)" = "3145728" ] && [ "$(host host_load1)" = "0.82" ] && [ "$(host host_kb_to_gb 8388608)" = "8.0" ]'
 check "the host adapter prints nothing when the files are missing" '[ -z "$(DELTACTL_MEMINFO=/nonexistent DELTACTL_LOADAVG=/nonexistent ROOT="$PWD" bash -c "source lib/bootstrap.sh; host_mem_total_kb; host_load1")" ]'
 
+section "13. --json, the detail and --strict list what the table lists"
+newinst st-empty 1.0 1.0
+sed -i 's/^COMPOSE_PROFILES=.*/COMPOSE_PROFILES=/' instances/st-empty/.env.instance
+js="$(bash ./deltactl status --json 2>/dev/null)"
+check "the JSON is still valid" 'if command -v python3 >/dev/null; then echo "$js" | python3 -c "import json,sys; json.load(sys.stdin)"; else true; fi'
+check "a service outside the profile is in the JSON, as the table shows it" 'echo "$js" | grep -q "\"instance\":\"st-orph\",\"service\":\"s1\",\"configured_tag\":\"\",\"running_tag\":\"5.0\".*\"state\":\"running\".*\"status\":\"warn\".*\"issues\":\[\"orphan\"\]"'
+check "an instance with no valid service is in the JSON with an empty service" 'echo "$js" | grep -q "\"instance\":\"st-empty\",\"service\":\"\".*\"status\":\"err\".*\"issues\":\[\"empty-profile\"\]"'
+check "the JSON of that instance alone is not an empty list" '[ "$(bash ./deltactl status st-empty --json 2>/dev/null | grep -c "empty-profile")" = "1" ]'
+check "--strict fails on an orphan with the JSON as with the table" 'bash ./deltactl status st-orph --json --strict >/dev/null 2>&1; a=$?; bash ./deltactl status st-orph --strict >/dev/null 2>&1; b=$?; [ "$a" = "2" ] && [ "$b" = "2" ]'
+check "--strict fails on an empty profile with the JSON as with the table" 'bash ./deltactl status st-empty --json --strict >/dev/null 2>&1; a=$?; bash ./deltactl status st-empty --strict >/dev/null 2>&1; b=$?; [ "$a" = "2" ] && [ "$b" = "2" ]'
+out="$(status st-orph)"
+check "the detail shows the service outside the profile and how to stop it" 'echo "$out" | grep -q "Servicio s1" && echo "$out" | grep -q "fuera de perfil" && echo "$out" | grep -q "./deltactl stop st-orph s1"'
+out="$(status st-empty)"
+check "the detail of an empty profile says so instead of all fine" 'echo "$out" | grep -q "perfil vacío" && echo "$out" | grep -q "COMPOSE_PROFILES vacío o inválido" && ! echo "$out" | grep -q "todo en orden"'
+
 finish

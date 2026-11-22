@@ -66,33 +66,55 @@ status_table() { # [instance]
 
 # JSON output (without depending on jq). Every text is a code, never translated: data is
 # init | existing | unseeded, status is ok | warn | err | dim, issues are the mismatch codes.
+# It lists exactly what the table lists and counts the same issues (so --strict agrees): besides the services of the profile,
+# a service that runs outside COMPOSE_PROFILES ("orphan") and an instance with no valid service in it (an entry with an empty
+# service and "empty-profile").
+STATUS_JSON_FIRST=1
+status_json_row() { # instance service configured running deployed previous state health status port uptime data codes...
+  local codes="" c up="${11:-null}"
+  for c in "${@:13}"; do codes+="${codes:+,}\"$(ui_json_escape "$c")\""; done
+  [ "$STATUS_JSON_FIRST" -eq 1 ] || printf ',\n'
+  STATUS_JSON_FIRST=0
+  printf '  {"instance":"%s","service":"%s","configured_tag":"%s","running_tag":"%s","deployed_tag":"%s","previous_tag":"%s","state":"%s","health":"%s","status":"%s","port":"%s","uptime_seconds":%s,"data":"%s","issues":[%s]}' \
+    "$(ui_json_escape "$1")" "$(ui_json_escape "$2")" "$(ui_json_escape "$3")" "$(ui_json_escape "$4")" \
+    "$(ui_json_escape "$5")" "$(ui_json_escape "$6")" "$(ui_json_escape "$7")" "$(ui_json_escape "$8")" \
+    "$(ui_json_escape "$9")" "$(ui_json_escape "${10}")" "$up" "$(ui_json_escape "${12}")" "$codes"
+}
+
 status_json() { # [instance]
-  local only="${1:-}" f name svc first=1 codes c cfirst up
+  local only="${1:-}" f name svc key rt up
+  local -a orphans=()
+  STATUS_JSON_FIRST=1
   printf '[\n'
   for f in "$INSTANCES_DIR"/*/.env.instance; do
     [ -f "$f" ] || continue
     name="$(basename "$(dirname "$f")")"
     [ -z "$only" ] || [ "$only" = "$name" ] || continue
+    STATUS_INSTANCES=$((STATUS_INSTANCES + 1))
     st_enabled "$name"
-    for svc in ${ST_ENABLED[@]+"${ST_ENABLED[@]}"}; do
+    if [ "${#ST_ENABLED[@]}" -eq 0 ]; then
+      STATUS_ISSUES=$((STATUS_ISSUES + 1))
+      status_json_row "$name" "" "" "" "" "" "" "" err "" null "" empty-profile
+      continue
+    fi
+    for svc in "${ST_ENABLED[@]}"; do
       st_eval "$name" "$svc"
       st_notes "$name" "$svc"
+      STATUS_SERVICES=$((STATUS_SERVICES + 1))
       case "$E_KIND" in warn | err) STATUS_ISSUES=$((STATUS_ISSUES + 1)) ;; esac
-      [ "$first" -eq 1 ] || printf ',\n'
-      first=0
-      up="${E_UPSECS:-null}"
-      codes=""
-      cfirst=1
-      for c in $E_CODES; do
-        [ "$cfirst" -eq 1 ] || codes+=","
-        cfirst=0
-        codes+="\"$(ui_json_escape "$c")\""
-      done
-      printf '  {"instance":"%s","service":"%s","configured_tag":"%s","running_tag":"%s","deployed_tag":"%s","previous_tag":"%s","state":"%s","health":"%s","status":"%s","port":"%s","uptime_seconds":%s,"data":"%s","issues":[%s]}' \
-        "$(ui_json_escape "$name")" "$svc" "$(ui_json_escape "$E_CFG")" "$(ui_json_escape "$E_RUN")" \
-        "$(ui_json_escape "$E_DEP")" "$(ui_json_escape "$E_PREV")" "$(ui_json_escape "$E_STATE")" \
-        "$(ui_json_escape "$E_HEALTH")" "$(ui_json_escape "$E_KIND")" "$(ui_json_escape "$E_PORT")" \
-        "$up" "$(ui_json_escape "$E_DATA")" "$codes"
+      # shellcheck disable=SC2086  # one argument per code
+      status_json_row "$name" "$svc" "$E_CFG" "$E_RUN" "$E_DEP" "$E_PREV" "$E_STATE" "$E_HEALTH" "$E_KIND" "$E_PORT" \
+        "${E_UPSECS:-null}" "$E_DATA" $E_CODES
+    done
+    # What runs outside the profile: what Docker says about it, without the configuration it does not have.
+    mapfile -t orphans < <(st_orphans "$name")
+    for svc in ${orphans[@]+"${orphans[@]}"}; do
+      key="$name/$svc"
+      rt="$(st_tag_of "${ST_CIMAGE[$key]:-}")"
+      up="$(st_uptime_secs "${ST_STARTED[$key]:-}" 2>/dev/null || true)"
+      STATUS_ISSUES=$((STATUS_ISSUES + 1))
+      STATUS_SERVICES=$((STATUS_SERVICES + 1))
+      status_json_row "$name" "$svc" "" "${rt:-?}" "" "" "${ST_STATE[$key]:-}" "${ST_HEALTH[$key]:-}" warn "" "${up:-null}" "" orphan
     done
   done
   printf '\n]\n'
@@ -115,6 +137,14 @@ status_detail() { # instance
   fi
   ui_kv "$(t status.kv.images)" "$(if uses_local_images "$name"; then t status.detail.images_local; else t status.detail.images_registry "$(get_var "$dir/.env.instance" REGISTRY)"; fi)"
   ui_kv "$(t status.kv.folder)" "instances/$name"
+  # The same issues as the table: an instance with no valid service, and services that run outside the profile.
+  if [ "${#ST_ENABLED[@]}" -eq 0 ]; then
+    STATUS_ISSUES=$((STATUS_ISSUES + 1))
+    printf '  %s%-14s%s ' "$C_GRY" "$(t status.kv.state)" "$C_OFF"
+    ui_cell 12 st-err "$(t status.state.empty_profile)" 1
+    printf '\n'
+    ui_kv "$(t status.kv.notes)" "$(t status.empty_profile_note)"
+  fi
   for svc in ${ST_ENABLED[@]+"${ST_ENABLED[@]}"}; do
     st_eval "$name" "$svc"
     st_notes "$name" "$svc"
@@ -138,6 +168,17 @@ status_detail() { # instance
       ui_kv "$(t status.kv.errors)" "$(t status.detail.errors "${errs:-0}" "$name" "$svc")"
     fi
     [ -z "$E_NOTES" ] || ui_kv "$(t status.kv.notes)" "$E_NOTES"
+  done
+  local -a orphans=()
+  [ "${#ST_ENABLED[@]}" -eq 0 ] || mapfile -t orphans < <(st_orphans "$name")
+  for svc in ${orphans[@]+"${orphans[@]}"}; do
+    STATUS_SERVICES=$((STATUS_SERVICES + 1)) STATUS_ISSUES=$((STATUS_ISSUES + 1))
+    ui_h2 "$(t status.detail.service "$svc")"
+    printf '  %s%-14s%s ' "$C_GRY" "$(t status.kv.state)" "$C_OFF"
+    ui_cell 12 st-warn "$(t status.state.orphan)" 1
+    printf '\n'
+    ui_kv "$(t status.kv.notes)" "$(t status.orphan_note)"
+    st_hint "./deltactl stop $name $svc" "$(t status.hint.orphan "$svc" "$name")"
   done
 }
 
