@@ -11,13 +11,23 @@ default_repo() { # service
 }
 
 # Image name of a service: <SN>_IMAGE from the instance's .env.instance, or the default.
+# service_repo_r leaves it in SR without starting any process.
+SR=""
+service_repo_r() { # service [instance]
+  local svc="$1" name="${2:-}" def
+  SR=""
+  case "$svc" in
+    s0) def="auth-backend" ;;
+    s1) def="gueo-back-end" ;;
+    *) return 1 ;;
+  esac
+  GV=""
+  [ -z "$name" ] || get_var_r "$INSTANCES_DIR/$name/.env.instance" "${svc^^}_IMAGE"
+  SR="${GV:-$def}"
+}
 service_repo() { # service [instance]
-  local svc="$1" name="${2:-}" def val=""
-  def="$(default_repo "$svc")" || return 1
-  if [ -n "$name" ]; then
-    val="$(get_var "$(instance_dir "$name")/.env.instance" "${svc^^}_IMAGE")"
-  fi
-  printf '%s' "${val:-$def}"
+  service_repo_r "$@" || return 1
+  printf '%s' "$SR"
 }
 
 # Valid image name (no tag): lowercase letters, digits and separators . _ - ; / allowed for paths.

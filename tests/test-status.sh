@@ -214,4 +214,28 @@ check "the detail shows the service outside the profile and how to stop it" 'ech
 out="$(status st-empty)"
 check "the detail of an empty profile says so instead of all fine" 'echo "$out" | grep -q "perfil vacío" && echo "$out" | grep -q "COMPOSE_PROFILES vacío o inválido" && ! echo "$out" | grep -q "todo en orden"'
 
+section "14. the readers of the state refresh start no process and read the same as before"
+lib() { ROOT="$PWD" bash -c 'source lib/bootstrap.sh; "$@"' _ "$@"; }
+printf 'A=1\nB=x=y\r\nA=2\nAB=no\n#A=3\n C=no\nC=yes' > "$FIX/env"
+check "get_var: the last line of the key wins, CRLF is cut, = inside the value is kept, a last line without newline is read" '[ "$(lib get_var "$FIX/env" A)" = "2" ] && [ "$(lib get_var "$FIX/env" B)" = "x=y" ] && [ "$(lib get_var "$FIX/env" C)" = "yes" ]'
+check "get_var: a key is not a prefix of another, and a missing key, file or a folder give nothing (and no error)" '[ -z "$(lib get_var "$FIX/env" Z)" ] && [ -z "$(lib get_var "$FIX/none" A 2>&1)" ] && [ -z "$(lib get_var "$FIX" A 2>&1)" ] && [ "$(lib get_var "$FIX/env" AB)" = "no" ]'
+check "get_var_r leaves the value in GV" '[ "$(lib eval "get_var_r \"$FIX/env\" A; printf %s \"\$GV\"")" = "2" ]'
+same_secs() { # iso: the Bash conversion gives what date gives (or both fail)
+  local want got
+  want=$(( $(date +%s) - $(date -d "$1" +%s) ))
+  got="$(lib st_uptime_secs "$1")" || return 1
+  [ "$got" -ge "$want" ] && [ "$got" -le $((want + 2)) ]
+}
+check "the uptime of Docker's own dates matches date -d (leap days, ends of month and year, fractions)" 'same_secs 2024-02-29T23:59:59.999999999Z && same_secs 2025-12-31T00:00:00Z && same_secs 2000-03-01T12:34:56.5Z && same_secs 1999-12-31T23:59:59Z && same_secs 2026-01-01T00:00:01.000000001Z'
+check "a date that is not Docker's form still goes through date" 'same_secs "2025-06-01 10:00:00 UTC"'
+check "a container that never started, a future date or garbage give no uptime" '! lib st_uptime_secs 0001-01-01T00:00:00Z >/dev/null && ! lib st_uptime_secs 2999-01-01T00:00:00Z >/dev/null && ! lib st_uptime_secs garbage >/dev/null 2>&1'
+check "st_duration keeps its forms" '[ "$(lib st_duration 3725)" = "1h02m" ] && [ "$(lib st_duration 90061)" = "1d01h" ] && [ "$(lib st_duration 59)" = "59s" ] && [ "$(lib st_duration 120)" = "2m" ] && [ "$(lib st_duration x)" = "-" ] && [ "$(lib st_duration 08)" = "8s" ]'
+check "t_r gives what t prints, with arguments, and ??key?? for an unknown key" '[ "$(lib eval "t_r status.note.drift 1.0 2.0; printf %s \"\$T_OUT\"")" = "$(lib t status.note.drift 1.0 2.0)" ] && [ "$(lib eval "t_r no.such.key; printf %s \"\$T_OUT\"")" = "??no.such.key??" ]'
+check "service_repo: the default, the instance's own image, and an unknown service fails" '[ "$(lib service_repo s0)" = "auth-backend" ] && [ "$(lib service_repo s1 st-orph)" = "gueo-back-end" ] && ! lib service_repo s9 >/dev/null'
+newinst st-future 1.0 1.0
+printf 'st-future|s0|running|healthy|auth-backend:1.0|2999-01-01T00:00:00.000000000Z|/s0_st-future\nst-future|s1|running|healthy|gueo-back-end:1.0|garbage|/s1_st-future\n' >> "$FIX/containers.txt"
+out="$(status st-future)"; rc=$?
+check "a container that says it started in the future (or cannot say when) does not end status: it just has no uptime" '[ "$rc" -eq 0 ] && echo "$out" | grep -q "Servicio s1" && bash ./deltactl status --json >/dev/null 2>&1 && bash ./deltactl status >/dev/null 2>&1'
+check "a state refresh of the panel starts no subshell per instance or service" 'n="$(DELTACTL_TUI_KEYS=/dev/null ROOT="$PWD" bash -c "source lib/bootstrap.sh; source lib/cmd/dashboard.sh; set +e; exec 9>\"$FIX/xt\"; BASH_XTRACEFD=9; PS4=\"+\\\${BASHPID}|\"; set -x; dash_state_dump >/dev/null; set +x"; cut -d"|" -f1 "$FIX/xt" | sort -u | wc -l)"; [ "$n" -le 8 ]'
+
 finish

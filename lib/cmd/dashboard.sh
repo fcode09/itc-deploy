@@ -65,7 +65,7 @@ dash_collect() {
   DSV_KIND=() DSV_TEXT=() DSV_UP=() DSV_PORT=() DSV_REF=() DSV_CODES=() DSV_NOTE=()
   for f in "$INSTANCES_DIR"/*/.env.instance; do
     [ -f "$f" ] || continue
-    name="$(basename "$(dirname "$f")")"
+    name="${f%/.env.instance}"; name="${name##*/}"
     st_enabled "$name"
     st_instance_hints "$name"
     n=0 m="${#ST_ENABLED[@]}" any=0
@@ -76,7 +76,7 @@ dash_collect() {
       [ "$E_KIND" != "ok" ] || n=$((n + 1))
       DSV_KIND[$key]="$E_KIND" DSV_TEXT[$key]="$E_TEXT" DSV_UP[$key]="$E_UP" DSV_PORT[$key]="$E_PORT"
       DSV_REF[$key]="$E_REF" DSV_CODES[$key]="$E_CODES"
-      case " $E_CODES " in *" tag-drift "*) DSV_NOTE[$key]="$(t tui.tag_drift "$E_RUN" "$E_CFG")" ;; esac
+      case " $E_CODES " in *" tag-drift "*) t_r tui.tag_drift "$E_RUN" "$E_CFG"; DSV_NOTE[$key]="$T_OUT" ;; esac
     done
     for key in "${!ST_STATE[@]}"; do [ "${key%%/*}" != "$name" ] || any=1; done
     if [ "$ST_DOCKER" -ne 1 ]; then kind=dim
@@ -89,7 +89,7 @@ dash_collect() {
     DASH_KIND[$name]="$kind"
     if [ "$ST_DOCKER" -eq 1 ]; then DASH_NM[$name]="$n/$m"; else DASH_NM[$name]="?/$m"; fi
     DASH_SVCS[$name]="${ST_ENABLED[*]:-}"
-    DASH_DATA[$name]="$(data_state "$name")"
+    data_state_r "$name"; DASH_DATA[$name]="$DS"
   done
   if [ "$ST_DOCKER" -eq 1 ] && [ -z "$DASH_DOCKER_VER" ]; then DASH_DOCKER_VER="$(dk_info ServerVersion)"; fi
 }

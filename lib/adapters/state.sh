@@ -7,12 +7,22 @@
 
 instance_dir() { printf '%s/%s' "$INSTANCES_DIR" "$1"; }
 
-# Reads the value of a key from a .env file without executing it (tolerates CRLF).
-get_var() { # file key
+# Reads the value of a key from a .env file without executing it (tolerates CRLF; the last line of the key wins).
+# get_var_r leaves it in GV without starting any process: the state refresh reads hundreds of values, and every `$(...)` is a
+# fork of the whole program. A missing or unreadable file gives an empty value.
+GV=""
+get_var_r() { # file key
   local line
-  line="$(grep -E "^$2=" "$1" 2>/dev/null | tail -n1 || true)"
-  line="${line#*=}"
-  printf '%s' "${line%$'\r'}"
+  GV=""
+  [ -f "$1" ] && [ -r "$1" ] || return 0
+  while IFS= read -r line || [ -n "$line" ]; do
+    [[ "$line" == "$2="* ]] && GV="${line#*=}"
+  done < "$1"
+  GV="${GV%$'\r'}"
+}
+get_var() { # file key
+  get_var_r "$1" "$2"
+  printf '%s' "$GV"
 }
 
 # Replaces (or appends) KEY=value in a .env file.
@@ -59,5 +69,6 @@ write_marker() { # instance source(init|existing|init-incomplete)
 
 # Does the instance use images already loaded in this Docker? (empty REGISTRY in .env.instance)
 uses_local_images() { # instance
-  [ -z "$(get_var "$(instance_dir "$1")/.env.instance" REGISTRY)" ]
+  get_var_r "$INSTANCES_DIR/$1/.env.instance" REGISTRY
+  [ -z "$GV" ]
 }
