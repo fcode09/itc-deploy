@@ -15,9 +15,10 @@ get_var_r() { # file key
   local line
   GV=""
   [ -f "$1" ] && [ -r "$1" ] || return 0
-  while IFS= read -r line || [ -n "$line" ]; do
+  # (a file removed between the test and the read gives an empty value, never an error under errexit)
+  { while IFS= read -r line || [ -n "$line" ]; do
     [[ "$line" == "$2="* ]] && GV="${line#*=}"
-  done < "$1"
+  done < "$1"; } 2> /dev/null || true
   GV="${GV%$'\r'}"
 }
 get_var() { # file key

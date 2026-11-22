@@ -820,6 +820,8 @@ check "after 30 s without a key it samples half as often, in every view" '[ "$(r
 check "not while a command runs: its figures are being watched" '[ "$(run_lib "$BODYENV DASH_KEY_AT=\$((SECONDS - 100)); job_start t sleep 3; DASH_VIEW=instances; dash_tick >/dev/null 2>&1; echo \$MT_INTERVAL_MULT\$DASH_AWAY; job_cancel >/dev/null 2>&1")" = "10" ]'
 check "the first key back takes a fresh sample at once; a key while not away does not" '[ "$(run_lib "MT_LAST_US=5; DASH_AWAY=1; dash_key_seen; a=\$MT_LAST_US\$DASH_AWAY; MT_LAST_US=5; dash_key_seen; echo \$a \$MT_LAST_US \$((SECONDS - DASH_KEY_AT))")" = "00 5 0" ]'
 check "DELTACTL_TUI_IDLE_AFTER sets how long, and a wrong value falls back to 30" '[ "$(DELTACTL_TUI_IDLE_AFTER=5 run_lib "echo \$DASH_IDLE_AFTER")" = "5" ] && [ "$(DELTACTL_TUI_IDLE_AFTER=x run_lib "echo \$DASH_IDLE_AFTER")" = "30" ]'
+check "0 and an endless number are wrong values too (0 would make every key a return from away)" '[ "$(DELTACTL_TUI_IDLE_AFTER=0 run_lib "echo \$DASH_IDLE_AFTER")" = "30" ] && [ "$(DELTACTL_TUI_IDLE_AFTER=99999999999999999999 run_lib "echo \$DASH_IDLE_AFTER")" = "30" ]'
+check "while away a state refresh does not force a sample; otherwise it does (the pids may have changed)" '[ "$(run_lib "MT_LAST_US=5; DASH_AWAY=1; dash_after_collect; a=\$MT_LAST_US; DASH_AWAY=0; dash_after_collect; echo \$a \$MT_LAST_US")" = "5 0" ]'
 
 section "19. interrupted runs nobody has reviewed"
 rm -rf "$RUNS"

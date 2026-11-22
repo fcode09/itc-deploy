@@ -236,6 +236,9 @@ newinst st-future 1.0 1.0
 printf 'st-future|s0|running|healthy|auth-backend:1.0|2999-01-01T00:00:00.000000000Z|/s0_st-future\nst-future|s1|running|healthy|gueo-back-end:1.0|garbage|/s1_st-future\n' >> "$FIX/containers.txt"
 out="$(status st-future)"; rc=$?
 check "a container that says it started in the future (or cannot say when) does not end status: it just has no uptime" '[ "$rc" -eq 0 ] && echo "$out" | grep -q "Servicio s1" && bash ./deltactl status --json >/dev/null 2>&1 && bash ./deltactl status >/dev/null 2>&1'
+mkdir -p "$FIX/cg"; echo 1000 > "$FIX/cg/memory.current"; echo max > "$FIX/cg/memory.max"; printf 'anon 1\ninactive_file 200\n' > "$FIX/cg/memory.stat"
+check "reading memory.stat never ends a caller that runs with errexit" '[ "$(ROOT="$PWD" bash -c "set -euo pipefail; source lib/bootstrap.sh; host_cg_mem \"$FIX/cg\" 2; echo \$CG_MEM_BYTES")" = "800" ]'
+check "a value read from a file that is gone is empty, with no error and no exit under errexit" '[ "$(ROOT="$PWD" bash -c "set -euo pipefail; source lib/bootstrap.sh; get_var_r /nonexistent/x A; echo \"[\$GV]\"" 2>&1)" = "[]" ]'
 check "a state refresh of the panel starts no subshell per instance or service" 'n="$(DELTACTL_TUI_KEYS=/dev/null ROOT="$PWD" bash -c "source lib/bootstrap.sh; source lib/cmd/dashboard.sh; set +e; exec 9>\"$FIX/xt\"; BASH_XTRACEFD=9; PS4=\"+\\\${BASHPID}|\"; set -x; dash_state_dump >/dev/null; set +x"; cut -d"|" -f1 "$FIX/xt" | sort -u | wc -l)"; [ "$n" -le 8 ]'
 
 finish

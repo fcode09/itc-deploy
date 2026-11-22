@@ -41,7 +41,7 @@ DASH_SAFETY_SECONDS=30                           # with events it is still read 
 # Nobody at the keyboard for this long and nothing running: the figures are sampled half as often (and the error counts a quarter as
 # often) until the next key, which takes a fresh sample at once. An idle panel left open on a server costs half as much.
 DASH_IDLE_AFTER="${DELTACTL_TUI_IDLE_AFTER:-30}"
-[[ "$DASH_IDLE_AFTER" =~ ^[0-9]+$ ]] || DASH_IDLE_AFTER=30
+[[ "$DASH_IDLE_AFTER" =~ ^[1-9][0-9]{0,5}$ ]] || DASH_IDLE_AFTER=30   # 1 s to ~11 days; 0 would make every key a "return"
 DASH_KEY_AT=0 DASH_AWAY=0
 DASH_REFRESH_AT=0 DASH_FORCE_REFRESH=0 DASH_EV_PENDING=0 DASH_JOB_DONE=0
 DASH_EV_FD="" DASH_EV_PID=""
@@ -107,8 +107,9 @@ dash_after_collect() {
   if [ "${#DASH_NAMES[@]}" -eq 0 ]; then DASH_ON_NEW=1 DASH_FOCUS=list; fi
   [ "$ST_DOCKER" -ne 1 ] || DK_READY_AT="$SECONDS"
   DASH_REFRESH_AT="$SECONDS" DASH_FORCE_REFRESH=0 DASH_REFRESH_N=$((DASH_REFRESH_N + 1))
-  # The pids may have changed: read the figures again at the next tick.
-  MT_LAST_US=0
+  # The pids may have changed: read the figures again at the next tick (not while away: without Docker events this runs every few
+  # seconds, and sampling after each one would undo the slower pace; a new pid is still picked up at the next sample).
+  [ "$DASH_AWAY" -eq 1 ] || MT_LAST_US=0
   DASH_DIRTY=1
 }
 
@@ -383,6 +384,7 @@ dash_terminal() { # args...
   menu_pause
   tui_enter
   DASH_SIGINT=0                      # a Ctrl+C meant for the command must not reach the panel
+  dash_key_seen                      # (someone was at the keyboard all along)
   dash_refresh_request
 }
 
@@ -1324,7 +1326,7 @@ dash_loop() {
     # A running command, a log that grows faster than one turn can read and a stream waiting to start all ask to be back soon.
     if job_running || [ "$DASH_LS_MORE" -eq 1 ]; then tick=0.2; elif [ "$DASH_LS_DEFER" -eq 1 ]; then tick=0.3; else tick=1; fi
     tui_key "$tick"
-    if [ "$DASH_SIGINT" -eq 1 ]; then DASH_SIGINT=0; dash_ctrl_c; DASH_DIRTY=1; fi
+    if [ "$DASH_SIGINT" -eq 1 ]; then DASH_SIGINT=0; dash_key_seen; dash_ctrl_c; DASH_DIRTY=1; fi
     DASH_IDLE=0
     if [ "$TUI_KEY" = "timeout" ]; then DASH_IDLE=1; else dash_key_seen; fi
     dash_handle_key

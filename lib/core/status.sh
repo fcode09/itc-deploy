@@ -290,13 +290,13 @@ st_notes() { # instance service
         ;;
       image-missing)
         t_r status.note.missing "$E_REF"; notes+="$T_OUT; "
-        t_r status.hint.load_cmd; st_hint_t "$T_OUT" status.hint.load "$E_REF"
+        t_r status.hint.load_cmd || true; st_hint_t "$T_OUT" status.hint.load "$E_REF"
         ;;
       port-conflict)
         owners=""
         [ -z "$E_PORT" ] || owners="${ST_PORTS[$E_PORT]:-}"
         t_r status.note.port "$E_PORT" "$owners"; notes+="$T_OUT; "
-        t_r status.hint.port_cmd "$name"; st_hint_t "$T_OUT" status.hint.port "$E_PORT" "$owners"
+        t_r status.hint.port_cmd "$name" || true; st_hint_t "$T_OUT" status.hint.port "$E_PORT" "$owners"
         ;;
       stopped)
         t_r status.note.stopped; notes+="$T_OUT; "

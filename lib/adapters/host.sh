@@ -124,7 +124,7 @@ host_cg_mem() { # dir version
   if [ -r "$dir/memory.stat" ]; then
     # The whole file at once and the line cut out of it: `inactive_file` is some 20 lines down, and reading line by line to get there
     # cost about a millisecond per container and sample. `read -d ''` never forks (`$(< file)` does in a Bash older than 5.3).
-    IFS= read -rd '' stat < "$dir/memory.stat"
+    IFS= read -rd '' stat < "$dir/memory.stat" || true   # (it returns 1 at the end of the file, which is where it always stops)
     stat=$'\n'"$stat"$'\n'
     v="${stat#*$'\n'"$key "}"
     if [ "$v" != "$stat" ]; then inactive="${v%%$'\n'*}"; fi
