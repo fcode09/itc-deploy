@@ -10,7 +10,7 @@
 set -u
 # shellcheck source=tests/lib.sh
 source tests/lib.sh
-export LANG=C.UTF-8
+export LANG=C.UTF-8 LC_ALL=C.UTF-8   # (widths are counted in characters: an ambient LC_ALL=C would count bytes)
 unset NO_COLOR DELTACTL_COLOR DELTACTL_UI DELTACTL_ASCII COLUMNS
 H=lib/help
 
@@ -137,12 +137,10 @@ for v in $(grep -ohE 'help variable [A-Z][A-Z0-9_]+' $H/*.txt | awk '{ print $3 
 done
 check "todas las variables recomendadas existen en el glosario (${bad_var:-ok})" '[ -z "$bad_var" ]'
 # The old check was inverted (`! awk "... exit 1"` accepted exactly the long lines) and awk counts bytes, not characters.
-# Known debt: 16 lines are still wider than 130 characters because ui_render_file does not wrap text yet. This is a ratchet:
-# a NEW long line fails; lower the number as lines are fixed (the goal is 0).
-HELP_LONG_DEBT=16
-long_lines="$(cat $H/cmd-*.txt $H/topic-*.txt | grep -cE '.{131,}')"
+# ui_render_file wraps every item to the screen; a long item is written over several lines (the next ones start with two spaces).
+long_lines="$(cat $H/*.txt | grep -cE '.{131,}')"
 check "el detector de líneas largas funciona (cuenta caracteres, no bytes)" 'printf "%0200d\n" 0 | grep -qE ".{131,}" && ! printf "%0100d\n" 0 | grep -qE ".{131,}"'
-check "ninguna página nueva tiene líneas de más de 130 caracteres (deuda conocida: $HELP_LONG_DEBT, ahora $long_lines)" '[ "$long_lines" -le "$HELP_LONG_DEBT" ]'
+check "ninguna línea de la ayuda pasa de 130 caracteres (hay $long_lines)" '[ "$long_lines" -eq 0 ]'
 
 section "10. los errores apuntan a la ayuda"
 # Toda pista $(see X) del código debe señalar un tema o comando que exista.
@@ -179,5 +177,43 @@ check "el aviso de imagen faltante nombra la guía de imágenes" \
 check "los mensajes siguen mostrando su texto original" 'echo "$out" | grep -q "está vacía" && echo "$out" | grep -q "problema(s) en la configuración"'
 check "las pistas también salen sin color" '! echo "$out" | has_ansi'
 rm -rf instances/hp-test
+
+section "11. the help is wrapped to the screen"
+WR="$(mktemp -d)"
+cat > "$WR/page.txt" <<'PAGE'
+## Lista
+- uno dos tres cuatro cinco seis siete ocho nueve diez once doce trece catorce quince dieciséis diecisiete
+- primera parte de un punto
+  que sigue en la línea siguiente
+! un aviso largo con palabras suficientes para no caber en la pantalla estrecha de cuarenta columnas
+$ ./deltactl un comando muy largo que nunca se parte aunque no quepa en la pantalla de cuarenta columnas
+| ./deltactl status | una descripción que no cabe y sigue debajo de sí misma
+Un párrafo que no cabe en cuarenta columnas y se parte por palabras sin sangría.
+- con `un fragmento de código largo que cruza el final de la línea` y sigue
+- `.env.instance`  versiones (dos espacios de separación)
+| ./deltactl list
+PAGE
+render() { COLUMNS="$1" DELTACTL_UI="$2" DELTACTL_COLOR="$3" ROOT="$PWD" bash -c 'source lib/bootstrap.sh; ui_render_file "$1"' _ "$WR/page.txt"; }
+out="$(render 40 plain never)"
+check "an item longer than the screen goes on under its text (a hanging indent)" 'echo "$out" | grep -qx "  . uno dos tres cuatro cinco seis siete" && echo "$out" | grep -qx "    ocho nueve diez once doce trece"'
+check "no rendered line is wider than the screen, except a command" '! echo "$out" | grep -v "\$ ./deltactl" | grep -qE ".{41,}"'
+check "on a narrow screen a table row puts its description under the command" 'echo "$out" | grep -qx "  ./deltactl status" && echo "$out" | grep -qx "    una descripción que no cabe y sigue"'
+check "a line that starts with two spaces goes on the item above it" 'echo "$out" | grep -qx "  . primera parte de un punto que sigue" && echo "$out" | grep -qx "    en la línea siguiente"'
+check "a command line is never wrapped" 'echo "$out" | grep -qx "  \$ ./deltactl un comando muy largo que nunca se parte aunque no quepa en la pantalla de cuarenta columnas"'
+check "a plain line is wrapped without an indent" 'echo "$out" | grep -qx "Un párrafo que no cabe en cuarenta" && echo "$out" | grep -qx "columnas y se parte por palabras sin"'
+out="$(render 100 plain never)"
+check "on a wide screen an item that fits is one line, its two source lines joined" 'echo "$out" | grep -qx "  . primera parte de un punto que sigue en la línea siguiente"'
+check "and a table row goes on under its description, at column 52" 'echo "$out" | grep -A1 "^  ./deltactl status" | tail -1 | grep -qE "^ {52}misma$"'
+check "a run of spaces inside an item is kept" 'echo "$out" | grep -qx "  . \`.env.instance\`  versiones (dos espacios de separación)"'
+check "a table row without a description shows just the command" 'echo "$out" | grep -qx "  ./deltactl list"'
+check "an empty text wraps to one empty line" '[ "$(ROOT="$PWD" bash -c "source lib/bootstrap.sh; set -u; ui_wrap_text \"\" 40; echo \${#UI_WRAP[@]}:\${UI_WRAP[0]}")" = "1:" ]'
+out="$(render 40 rich always)"
+check "with colour a code span cut by the end of a line keeps its colour on both lines" '[ "$(echo "$out" | grep -c $'"'"'\033\[36m'"'"')" -ge 2 ] && ! echo "$out" | grep -q "\`"'
+out="$(COLUMNS=100 DELTACTL_UI=plain DELTACTL_COLOR=never bash ./deltactl help buscar rollback 2>&1)"
+check "the search shows an item whole, not the piece of it on a source line" 'echo "$out" | grep -A1 "^./deltactl help solucion-problemas" | tail -1 | grep -q "^    - \`unhealthy\`, \`reiniciando\`"'
+check "the search finds a phrase that falls where a source line was cut" 'COLUMNS=100 DELTACTL_UI=plain bash ./deltactl help buscar "actualización, \`./deltactl rollback\`" 2>&1 | grep -q "unhealthy"'
+out="$(COLUMNS=100 DELTACTL_UI=plain DELTACTL_COLOR=never bash ./deltactl help buscar "todos los servicios" 2>&1)"
+check "the search shows a command line as it is, never cut" 'echo "$out" | grep -q "^    \$ ./deltactl deploy colorado  *# todos los servicios"'
+rm -rf "$WR"
 
 finish

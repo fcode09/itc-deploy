@@ -33,13 +33,15 @@ $ nano instances/colorado/.env.s0
 $ nano instances/colorado/.env.s1
 - reemplaza cada valor `CAMBIAR...`; `deploy` no arranca mientras queden
 - usa bases de datos propias de la instancia (`..._colorado`)
-- los secretos deben ser únicos por instancia: `openssl rand -hex 32` (y `openssl rand -base64 32` para `FEDERATION_ENCRYPTION_KEY`)
+- los secretos deben ser únicos por instancia: `openssl rand -hex 32` (y `openssl rand -base64 32` para
+  `FEDERATION_ENCRYPTION_KEY`)
 > `./deltactl help variable` lista todas las variables; las obligatorias salen marcadas.
 
 ## 5. Firebase: `secrets/`
 $ cp fcm.json instances/colorado/secrets/fcm.json
 $ cp keeper-fcm.json instances/colorado/secrets/keeper-fcm.json
-! En `.env.s1` las rutas deben empezar con `/run/secrets/` (así se ve la carpeta dentro del contenedor). Ver `./deltactl help secretos`.
+! En `.env.s1` las rutas deben empezar con `/run/secrets/` (así se ve la carpeta dentro del contenedor). Ver `./deltactl help
+  secretos`.
 
 ## 6. Comprobar y levantar
 $ ./deltactl check colorado

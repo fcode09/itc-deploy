@@ -8,7 +8,8 @@
 
 ## Local images (empty REGISTRY)
 - `deploy` never downloads anything from the internet
-- if the image is not loaded, it stops with an error: that way Docker does not pull from Docker Hub a same-named image that is not ours
+- if the image is not loaded, it stops with an error: that way Docker does not pull from Docker Hub a same-named image that is
+  not ours
 
 ## With a registry
 `REGISTRY=registry.example.com/itc` makes `deploy` pull `registry.example.com/itc/auth-backend:1.2.0`.

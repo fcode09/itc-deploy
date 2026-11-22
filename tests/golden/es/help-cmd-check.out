@@ -9,7 +9,8 @@ Uso
   $ ./deltactl check <instancia> [servicio] [--mongo]
 
 Qué comprueba
-  . configuración: variables obligatorias completas, nombres de imagen válidos y JSON de Firebase presentes
+  . configuración: variables obligatorias completas, nombres de imagen válidos y JSON de Firebase
+    presentes
   . compose: que la definición de la instancia sea válida
   . imágenes: que estén cargadas en este servidor y que su arquitectura sea la del servidor
   . etiquetas: que ninguna apunte a otra imagen distinta de la desplegada
@@ -18,7 +19,8 @@ Qué comprueba
 
 Opciones
   . `servicio` comprueba solo `s0` o solo `s1`
-  . `--mongo` además prueba, con un contenedor de un solo uso, que cada servicio llegue a sus bases (tarda unos segundos)
+  . `--mongo` además prueba, con un contenedor de un solo uso, que cada servicio llegue a sus bases
+    (tarda unos segundos)
 
 Resultado
   . sin errores: "listo para desplegar" y el código de salida es 0

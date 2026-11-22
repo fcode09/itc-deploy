@@ -4,7 +4,8 @@ Datos iniciales (seeds)
 
 Qué es un seed
 Un comando de la propia imagen (`node dist/cli.js <seed>`) que carga datos de partida en las bases.
-Los seeds BORRAN lo que haya (drop de colecciones) antes de cargar: por eso se hacen una sola vez, en
+Los seeds BORRAN lo que haya (drop de colecciones) antes de cargar: por eso se hacen una sola vez,
+en
 municipalidades nuevas.
 
 Quién los ejecuta
@@ -20,7 +21,8 @@ Quién los ejecuta
 Por qué esa seguridad
   . `init` se niega si ya hay marcador `.initialized` o si las bases tienen usuarios
   . no existe `--force`
-  . los seeds terminan SIEMPRE con código 0 aunque fallen: `init` lee su log y exige un mínimo de pasos completados
+  . los seeds terminan SIEMPRE con código 0 aunque fallen: `init` lee su log y exige un mínimo de
+    pasos completados
 
 Estados de los datos (columna DATOS)
   . `init` sembrada con `./deltactl init`
