@@ -220,6 +220,17 @@ EOF
 ENDED="$(ROOT="$PWD" DELTACTL_TUI_KEYS=/dev/null DELTACTL_UI=rich DELTACTL_COLOR=never DELTACTL_ASCII=1 COLUMNS=100 bash "$FIX/ended.sh" 2>&1)"
 check "a command that has just ended does not refuse the next one, and its end is still announced" '[ "$ENDED" = "0 started 1" ] || { echo "$ENDED" | tail -5; false; }'
 # (a fast first command may be over before the second Enter; the second can then end before a frame shows it running)
+cat > "$FIX/refused.sh" <<'EOF'
+source lib/bootstrap.sh; source lib/cmd/dashboard.sh
+tui_size; dash_init
+job_start t sleep 3
+dash_start_job stay version; r=$?
+c=0; for l in "${DASH_CON[@]}"; do case "$l" in *"Hay un comando en ejecución"*"(version)"*) c=1 ;; esac; done
+echo "$r $c"
+job_cancel > /dev/null 2>&1
+EOF
+REFUSED="$(ROOT="$PWD" DELTACTL_TUI_KEYS=/dev/null DELTACTL_UI=rich DELTACTL_COLOR=never DELTACTL_ASCII=1 COLUMNS=100 bash "$FIX/refused.sh" 2>&1)"
+check "a refused command is noted in the console too, where a finishing command cannot hide it" '[ "$REFUSED" = "1 1" ] || { echo "$REFUSED" | tail -5; false; }'
 check "a second command while one runs is refused or runs after it, never both" 'echo "$out" | grep -q "Hay un comando en ejecución\|Ejecutando: ./deltactl status tui-b\|status tui-b:\? terminó"'
 out="$(panel 3 q)"
 check "the Output view without a command shows the empty message" 'echo "$out" | frame_n 2 | grep -q "Aún no has ejecutado nada"'
