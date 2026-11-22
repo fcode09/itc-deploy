@@ -13,6 +13,8 @@ $ ./deltactl status [instance] [--json] [--stats] [--strict] [--watch [seconds]]
 - `instance` detail view: image, previous version, memory/CPU and recent errors in the logs
 - `--stats` adds memory and CPU to the table (takes 1-2 s)
 - `--json` output for scripts; its values are not translated (`data` is `init`, `existing` or `unseeded`)
+  and it lists what the table lists: a service outside the profile has `issues` `["orphan"]` and an instance
+  with no valid service comes with an empty `service` and `issues` `["empty-profile"]`
 - `--strict` exits with code 2 if there are warnings (useful in monitoring)
 - `--watch [N]` repaints every N seconds (2 by default); it needs a terminal
 
