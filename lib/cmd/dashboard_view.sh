@@ -1430,6 +1430,7 @@ dash_key_line() {
       dash_keyfit "$DTV" "$w"; TUI_FRAME+=(" $C_GRY$DASH_KF$C_OFF")
       ;;
     name) dt tui.name.keys; dash_keyfit "$DTV" "$w"; TUI_FRAME+=(" $C_GRY$DASH_KF$C_OFF") ;;
+    wizard) dash_nw_keys "$w"; TUI_FRAME+=(" $DASH_KBV") ;;
     filter) dt tui.keys.filter; dash_keyfit "$DTV" "$w"; TUI_FRAME+=(" $C_GRY$DASH_KF$C_OFF") ;;
     find) dt tui.keys.find; dash_keyfit "$DTV" "$w"; TUI_FRAME+=(" $C_GRY$DASH_KF$C_OFF") ;;
     palette) dt tui.pal.keys; dash_keyfit "${DTV//\{1\}/$DASH_UD}" "$w"; TUI_FRAME+=(" $C_GRY$DASH_KF$C_OFF") ;;
@@ -1484,6 +1485,7 @@ dash_build_body() { # body_height
       palette) dash_dialog_palette "$bh" ;;
       confirm) dash_dialog_confirm "$bh" ;;
       name) dash_dialog_name "$bh" ;;
+      wizard) dash_dialog_wizard "$bh" ;;
       help) dash_dialog_help "$bh" ;;
       options) dash_dialog_options "$bh" ;;
       *)
@@ -1523,6 +1525,7 @@ dash_render() {
   sig="$DASH_VIEW|$DASH_MODE|$DASH_SEL|$DASH_SVC|$DASH_FOCUS|$DASH_ON_NEW|$DASH_RES_SEL|$DASH_RES_SORT|$data|$DASH_LANG_N"
   sig+="|$JOB_SEQ|$JOB_TOTAL|${JOB_RC-r}|$JOB_CANCELLED|$DASH_OUT_SCROLL|$DASH_OUT_ERRORS|$TUI_ROWS|$TUI_COLS|$DASH_MENU_SEL|$DASH_CONF_TEXT|$DASH_NAME_TARGET"
   [ "$DASH_MODE" != "name" ] || sig+="|$DASH_BUF"
+  [ "$DASH_MODE" != "wizard" ] || sig+="|$DASH_NW_I|$DASH_BUF|$DASH_CUR|$DASH_NW_ERR|$DASH_NW_EXISTING|$DASH_NW_GEN|${#DASH_NW_STEPS[@]}"
   sig+="|$DASH_RUNS_SEL|$DASH_RUNS_OFF|$DASH_RUNS_MODE|$DASH_RUNS_N|$DASH_RUNS_STATS_INST|$DASH_RV_TOP|$DASH_RV_END|$DASH_RV_TOTAL|$DASH_PROCS_N|$DASH_PROCS_OFF|$DASH_PC_TXT"
   sig+="|$DASH_CON_N|$DASH_CON_SCROLL|$DASH_ZOOM|$DASH_LOG_SCROLL|$DASH_LOG_FILTER|$DASH_PAL_Q|$DASH_PAL_SEL"
   sig+="|$DASH_LOG_ERRONLY|$DASH_LOG_FIND|$DASH_LS_PAUSED|$DASH_LS_PEND|$DASH_LOG_MIDX|$DASH_OPT_SEL|$DASH_OPT_N|$DASH_HELP_OFF"

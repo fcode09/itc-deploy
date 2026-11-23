@@ -178,4 +178,20 @@ check "los pendientes incluyen las variables obligatorias vacías" 'echo "$out" 
 check "conserva los siguientes pasos y apunta a la ayuda" 'echo "$out" | grep -q "Siguientes pasos" && echo "$out" | grep -q "./deltactl help variable"'
 rm -rf instances/wz-classic
 
+section "8. new con las respuestas del asistente como opciones (lo que usa el formulario del panel)"
+out="$(bash ./deltactl new wz-flags --services s1 --s1-image gueo-back-end --s1-tag 9.9 --ip http://1.2.3.4 --generate-secrets 2>&1)"; rc=$?
+d=instances/wz-flags
+check "crea la instancia sin hacer preguntas" '[ "$rc" -eq 0 ] && [ -f $d/.env.instance ] && echo "$out" | grep -q "creada en"'
+check "aplica el servicio, la etiqueta y la URL" 'grep -qx "COMPOSE_PROFILES=s1" $d/.env.instance && grep -qx "S1_TAG=9.9" $d/.env.instance && grep -qx "IP_SERVER=http://1.2.3.4" $d/.env.s1'
+check "--generate-secrets genera el JWT_SECRET y las claves" \
+  '[ "$(grep -E "^JWT_SECRET=" $d/.env.s1 | cut -d= -f2- | wc -c)" -eq 65 ] && [ -n "$(grep -E "^FEDERATION_ENCRYPTION_KEY=" $d/.env.s1 | cut -d= -f2-)" ]'
+check "no imprime los secretos generados" '! echo "$out" | grep -qF "$(grep -E "^JWT_SECRET=" $d/.env.s1 | cut -d= -f2-)"'
+rm -rf $d
+bash ./deltactl new wz-flags2 --s0-image mi-auth --s0-tag 1.1 > /dev/null 2>&1
+check "una imagen distinta de la de por defecto se escribe en S0_IMAGE" '[ -f instances/wz-flags2/.env.instance ] && grep -qx "S0_TAG=1.1" instances/wz-flags2/.env.instance && grep -qx "S0_IMAGE=mi-auth" instances/wz-flags2/.env.instance'
+rm -rf instances/wz-flags2
+check "una opción sin valor falla" 'bash ./deltactl new wz-flags3 --ip 2>&1 | grep -q "^ERROR --ip requiere un valor" && [ ! -e instances/wz-flags3 ]'
+check "un nombre de imagen inválido falla antes de crear nada" 'bash ./deltactl new wz-flags4 --s0-image Mala_Imagen 2>&1 | grep -q "no es un nombre de imagen válido" && [ ! -e instances/wz-flags4 ]'
+rm -rf instances/wz-flags*
+
 finish

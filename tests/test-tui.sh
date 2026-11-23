@@ -145,8 +145,8 @@ out="$(panel up right q)"
 check "right does nothing on the New button" 'echo "$out" | frame_n 3 | grep -q ">Instancias"'
 out="$(panel up q)"
 check "the New button explains what it does in the center" 'echo "$out" | frame_n 2 | grep -q "Nueva instancia" && echo "$out" | frame_n 2 | grep -q "asistente"'
-out="$(panel up enter q < /dev/null)"
-check "Enter on the New button opens the wizard in the terminal" 'echo "$out" | grep -q "new --wizard"'
+out="$(panel up enter esc q < /dev/null)"
+check "Enter on the New button opens the form inside the panel" 'echo "$out" | frame_n 3 | grep -q "Asistente: crear una instancia . 1/10" && ! echo "$out" | grep -q "Pasando al terminal"'
 out="$(panel 2 q)"
 check "2 opens the resources view" 'echo "$out" | frame_n 2 | grep -q "\[2 Recursos\]"'
 out="$(panel 2 tab q)"
@@ -161,6 +161,56 @@ out="$(panel tab tab q)"
 check "and on to the list again (the logs pane exists only on the wide layout)" 'echo "$out" | frame_n 3 | grep -q ">Instancias"'
 out="$(panel btab q)"
 check "Shift+Tab goes the other way round" 'echo "$out" | frame_n 2 | grep -q ">tui-a"'
+
+section "3b. the new-instance form (inside the panel)"
+# Each test ends with `down`, a key the form ignores, so the last frame is the state after the keys before it.
+BS5="backspace backspace backspace backspace backspace"   # (erases the s0,s1 that the services step starts with)
+out="$(panel n down)"
+check "n opens the form on its first step" 'echo "$out" | last_frame | grep -q "Asistente: crear una instancia . 1/10" && echo "$out" | last_frame | grep -q "Nombre de la instancia"'
+check "the last line gives the keys of the form" 'echo "$out" | last_frame | grep -q "Enter siguiente . Up atrás . Esc cancela"'
+check "it does not leave the panel for the terminal" '! echo "$out" | grep -q "Pasando al terminal"'
+out="$(panel : n e w enter down)"
+check "typing new in the command line opens the form too" 'echo "$out" | last_frame | grep -q "Asistente: crear una instancia . 1/10"'
+out="$(panel n B enter down)"
+check "an invalid name stays on the step and says why" 'echo "$out" | last_frame | grep -q "nombre de instancia inválido: .B." && echo "$out" | last_frame | grep -q "1/10"'
+out="$(panel n $(typed tui-a) enter down)"
+check "a name that already exists stays on the step" 'echo "$out" | last_frame | grep -q "la instancia .tui-a. ya existe" && echo "$out" | last_frame | grep -q "1/10"'
+out="$(panel n $(typed tui-form) enter down)"
+check "Enter goes on: the services start as s0,s1" 'echo "$out" | last_frame | grep -q "2/10" && echo "$out" | last_frame | grep -q "Servicios activos" && echo "$out" | last_frame | grep -q "s0,s1>"'
+out="$(panel n $(typed tui-form) enter up down)"
+check "Up goes back and the answer is still there" 'echo "$out" | last_frame | grep -q "1/10" && echo "$out" | last_frame | grep -q "tui-form>"'
+out="$(panel n $(typed tui-form) enter $BS5 $(typed s9) enter down)"
+check "an unknown service stays on the step" 'echo "$out" | last_frame | grep -q "servicio desconocido en el asistente: .s9." && echo "$out" | last_frame | grep -q "2/10"'
+out="$(panel n $(typed tui-form) enter $BS5 $(typed s1) enter down)"
+check "with only s1 the form has fewer steps" 'echo "$out" | last_frame | grep -q "3/8"'
+out="$(panel n $(typed tui-form) enter enter down)"
+check "the existing-data step shows its answers, its note and its keys" 'echo "$out" | last_frame | grep -q "3/10" && echo "$out" | last_frame | grep -q "\[ \] Sí    \[x\] No" && echo "$out" | last_frame | grep -q "Se marcará como existente" && echo "$out" | last_frame | grep -q "s sí . n no . Enter acepta lo marcado"'
+out="$(panel n $(typed tui-form) enter enter n down)"
+check "then it asks for the image of the first service, with the default name" 'echo "$out" | last_frame | grep -q "4/10" && echo "$out" | last_frame | grep -q "Nombre de la imagen de s0" && echo "$out" | last_frame | grep -q "auth-backend>"'
+if command -v openssl > /dev/null 2>&1; then
+  out="$(panel n $(typed tui-form) enter enter y down)"
+  check "an existing municipality has one step less (no secrets to generate)" 'echo "$out" | last_frame | grep -q "4/9"'
+fi
+out="$(panel n $(typed tui-form) esc down)"
+check "Esc cancels: back on the instances and nothing is created" 'echo "$out" | last_frame | grep -q ">Instancias" && echo "$out" | last_frame | grep -q "Cancelado" && [ ! -e instances/tui-form ]'
+out="$(panel n $(typed tui-form) esc n down)"
+check "the form starts empty each time" 'echo "$out" | last_frame | grep -q "1/10" && ! echo "$out" | last_frame | grep -q "tui-form"'
+out="$(panel '!' $(typed new) space $(typed --wizard) enter q < /dev/null)"
+check "with a leading ! the wizard still runs in the terminal" 'echo "$out" | grep -q "Pasando al terminal: ./deltactl new --wizard"'
+
+# The whole form: it creates the instance with the answers (and openssl, when there is one, generates the secrets).
+if command -v openssl > /dev/null 2>&1; then GEN=(y); else GEN=(); fi
+out="$(panel n $(typed tui-wz) enter enter n enter $(typed 1.5) enter enter $(typed 2.5) enter $(typed http://h) enter "${GEN[@]}" y wait down)"
+check "confirming creates the instance as a command of the panel" '[ -f instances/tui-wz/.env.instance ] && echo "$out" | grep -q "./deltactl new tui-wz --services s0,s1 --s0-image auth-backend --s0-tag 1.5"'   # (the console cuts the line at the width of the screen)
+check "the summary showed the answers before creating" 'echo "$out" | grep -q "instancia   tui-wz" && echo "$out" | grep -q "versiones   s0=1.5 s1=2.5" && echo "$out" | grep -q "URL pública http://h"'
+check "the answers are applied" 'grep -qx "S0_TAG=1.5" instances/tui-wz/.env.instance && grep -qx "S1_TAG=2.5" instances/tui-wz/.env.instance && grep -qx "IP_SERVER=http://h" instances/tui-wz/.env.s0'
+if command -v openssl > /dev/null 2>&1; then
+  check "and the secrets are generated" '[ "$(grep -E "^JWT_SECRET=" instances/tui-wz/.env.s0 | cut -d= -f2- | wc -c)" -eq 65 ]'
+fi
+check "the new instance shows in the list when the command ends" 'echo "$out" | last_frame | grep -q "tui-wz"'
+rm -rf instances/tui-wz
+out="$(panel n $(typed tui-no) enter enter n enter enter enter enter enter "${GEN[@]}" n down)"
+check "n on the summary cancels: nothing is created" '[ ! -e instances/tui-no ] && echo "$out" | last_frame | grep -q "Cancelado"'
 
 section "4. the resources view"
 out="$(panel 2 q)"

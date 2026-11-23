@@ -25,6 +25,11 @@ Tab y Mayús+Tab recorren las vistas (en Instancias, los paneles: lista, servici
 - **Actuar sobre ella**: Enter abre el menú de acciones (estado, comprobar, desplegar, rollback, logs, parar...). Atajos directos:
   `u` despliega, `c` comprueba, `s` muestra el estado, `l` sigue los logs del servicio.
 - **Buscar cualquier acción**: Ctrl+P abre la paleta; escribe parte del nombre ("despl", "logs", "tema") y Enter.
+- **Crear una instancia**: `n` (o Enter sobre «+ Nueva instancia», o `new` en la consola) abre un formulario dentro del panel, con
+  las mismas preguntas que `./deltactl new --wizard`: nombre, servicios, si ya tiene datos, imagen y etiqueta de cada servicio
+  (muestra las cargadas), URL pública, si generar los secretos y un resumen. Enter sigue, ↑ vuelve a la pregunta anterior, Esc
+  cancela. Al confirmar, el panel ejecuta `new` con las respuestas como opciones y la salida queda en la consola. Con `!` delante
+  (`!new --wizard`) el asistente sigue disponible en el terminal.
 - **Escribir un comando**: `:` da el teclado a la consola; escribe cualquier comando de deltactl sin el prefijo
   (`status colorado`, `logs colorado s0 -f`). `!` delante lo ejecuta en la terminal; `!` solo abre una shell. En la vista `6` la
   línea siempre está lista.
