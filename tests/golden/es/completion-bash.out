@@ -14,7 +14,7 @@ _deltactl_complete() {
   fi
 
   case "$cmd" in
-    new) flags="--services --existing --wizard" ;;
+    new) flags="--services --existing --wizard --s0-image --s1-image --s0-tag --s1-tag --ip --generate-secrets" ;;
     init) flags="--yes" ;;
     rollback) flags="--yes" ;;
     down) flags="--yes" ;;

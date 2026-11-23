@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # ./deltactl new <instance> [--services s0,s1] [--existing] [--wizard]: creates instances/<instance>/ from the templates.
 # Without a name and in a terminal (or with --wizard) it opens a wizard that asks the essentials.
+# The wizard's answers also exist as flags (--s0-image, --s1-image, --s0-tag, --s1-tag, --ip, --generate-secrets): the panel's
+# form (lib/cmd/dashboard_new.sh) collects the answers itself and starts `new <name> ...` with them.
 
 # REQUIRED_* and check_required come from deploy.sh
 source "$ROOT/lib/cmd/deploy.sh"
@@ -24,13 +26,6 @@ new_ask_yn() { # question [y|n]
   IFS= read -r ans || true
   ans="${ans:-$def}"
   [[ "$ans" =~ ^[sSyY]$ ]]
-}
-
-# Tags already loaded in this Docker for an image (one per line, without <none>).
-new_loaded_tags() { # image_name
-  dk_ready || return 0
-  dk_images_tags \
-    | awk -F'|' -v r="$1" '($1 == r || $1 ~ ("/" r "$")) && $2 != "<none>" { print $2 }'
 }
 
 # Wizard: fills name, services, existing and the W_* variables.
@@ -60,7 +55,7 @@ new_wizard() {
     new_ask "$(t new.ask_image "$svc")" "$(default_repo "$svc")"
     img="$REPLY_VAL"
     valid_image_name "$img" || die "$(t new.err_image_invalid "$img")$(see local-images)"
-    tags="$(new_loaded_tags "$img" | tr '\n' ' ')"
+    tags="$(loaded_tags "$img" | tr '\n' ' ')"
     [ -z "$tags" ] || printf '  %s%s%s\n' "$C_GRY" "$(t new.loaded_tags "$img" "$tags")" "$C_OFF" >&2
     new_ask "$(t new.ask_tag "$svc")"
     case "$svc" in
@@ -178,6 +173,22 @@ cmd_new() {
         wizard=1
         shift
         ;;
+      # What the wizard asks, as flags: the panel's form starts `new` with them, and scripts can too.
+      --s0-image | --s1-image | --s0-tag | --s1-tag | --ip)
+        [ "$#" -ge 2 ] || die "$(t new.opt_value "$a")"
+        case "$a" in
+          --s0-image) W_S0IMG="$2" ;;
+          --s1-image) W_S1IMG="$2" ;;
+          --s0-tag) W_S0TAG="$2" ;;
+          --s1-tag) W_S1TAG="$2" ;;
+          --ip) W_IP="$2" ;;
+        esac
+        shift 2
+        ;;
+      --generate-secrets)
+        W_GEN=1
+        shift
+        ;;
       -*) die "$(t new.unknown_option "$a")" ;;
       *)
         [ -z "$name" ] || die "$(t new.extra_arg "$a")"
@@ -196,6 +207,11 @@ cmd_new() {
   [ -n "$name" ] || die "$(t new.usage)"
   valid_instance_name "$name" \
     || die "$(t err.instance_name_invalid "$name")$(see new)"
+  local img
+  for img in "$W_S0IMG" "$W_S1IMG"; do
+    [ -z "$img" ] || valid_image_name "$img" || die "$(t new.err_image_invalid "$img")$(see local-images)"
+  done
+  if [ "$W_GEN" -eq 1 ] && ! command -v openssl > /dev/null 2>&1; then die "$(t new.err_generate_no_openssl)"; fi
 
   if [ -n "$services" ]; then
     local part

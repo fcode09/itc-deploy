@@ -59,6 +59,13 @@ valid_service() { # service
 # Tag variable of a service: s1 -> S1_TAG
 tag_var() { printf '%s_TAG' "${1^^}"; }
 
+# Tags already loaded in this Docker for an image (one per line, without <none>). Used by the wizards (terminal and panel) and the menu.
+loaded_tags() { # image_name
+  dk_ready || return 0
+  dk_images_tags \
+    | awk -F'|' -v r="$1" '($1 == r || $1 ~ ("/" r "$")) && $2 != "<none>" { print $2 }'
+}
+
 # Reads COMPOSE_PROFILES of the instance and leaves the active services in ENABLED.
 ENABLED=()
 load_enabled() { # instance

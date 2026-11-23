@@ -5,7 +5,7 @@
 # Destructive operations ask for confirmation here (init requires typing the instance name).
 # With "?" before a number (for example "?4") it shows the help of that option.
 
-# new_ask, new_ask_yn and new_loaded_tags come from new.sh
+# new_ask and new_ask_yn come from new.sh
 source "$ROOT/lib/cmd/new.sh"
 
 PICK=""
@@ -126,7 +126,7 @@ menu_update() {
   f="$(instance_dir "$inst")/.env.instance"
   repo="$(service_repo "$svc" "$inst")"
   cur="$(get_var "$f" "$(tag_var "$svc")")"
-  tags="$(new_loaded_tags "$repo" | tr '\n' ' ')"
+  tags="$(loaded_tags "$repo" | tr '\n' ' ')"
   printf '\n  %s %s%s%s\n' "$(t menu.current_tag "$svc")" "$C_BLD" "${cur:-$(t menu.empty_paren)}" "$C_OFF"
   [ -z "$tags" ] || printf '  %s%s%s\n' "$C_GRY" "$(t menu.loaded_of "$repo" "$tags")" "$C_OFF"
   new_ask "$(t menu.ask_new_tag "$svc")"

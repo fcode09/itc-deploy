@@ -13,7 +13,7 @@ source "$ROOT/lib/cmd/help.sh"
 
 # Options of each command (tests/test-completion.sh checks that they appear on its help page).
 COMPLETION_FLAGS=(
-  "new:--services --existing --wizard"
+  "new:--services --existing --wizard --s0-image --s1-image --s0-tag --s1-tag --ip --generate-secrets"
   "init:--yes"
   "rollback:--yes"
   "down:--yes"
