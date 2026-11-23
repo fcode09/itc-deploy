@@ -146,7 +146,7 @@ check "right does nothing on the New button" 'echo "$out" | frame_n 3 | grep -q 
 out="$(panel up q)"
 check "the New button explains what it does in the center" 'echo "$out" | frame_n 2 | grep -q "Nueva instancia" && echo "$out" | frame_n 2 | grep -q "asistente"'
 out="$(panel up enter esc q < /dev/null)"
-check "Enter on the New button opens the form inside the panel" 'echo "$out" | frame_n 3 | grep -q "Asistente: crear una instancia . 1/10" && ! echo "$out" | grep -q "Pasando al terminal"'
+check "Enter on the New button opens the form inside the panel" 'echo "$out" | frame_n 3 | grep -q ">Nombre de la instancia" && ! echo "$out" | grep -q "Pasando al terminal"'
 out="$(panel 2 q)"
 check "2 opens the resources view" 'echo "$out" | frame_n 2 | grep -q "\[2 Recursos\]"'
 out="$(panel 2 tab q)"
@@ -163,54 +163,93 @@ out="$(panel btab q)"
 check "Shift+Tab goes the other way round" 'echo "$out" | frame_n 2 | grep -q ">tui-a"'
 
 section "3b. the new-instance form (inside the panel)"
-# Each test ends with `down`, a key the form ignores, so the last frame is the state after the keys before it.
-BS5="backspace backspace backspace backspace backspace"   # (erases the s0,s1 that the services step starts with)
-out="$(panel n down)"
-check "n opens the form on its first step" 'echo "$out" | last_frame | grep -q "Asistente: crear una instancia . 1/10" && echo "$out" | last_frame | grep -q "Nombre de la instancia"'
-check "the last line gives the keys of the form" 'echo "$out" | last_frame | grep -q "Enter siguiente . Up atrás . Esc cancela"'
-check "it does not leave the panel for the terminal" '! echo "$out" | grep -q "Pasando al terminal"'
-out="$(panel : n e w enter down)"
-check "typing new in the command line opens the form too" 'echo "$out" | last_frame | grep -q "Asistente: crear una instancia . 1/10"'
-out="$(panel n B enter down)"
-check "an invalid name stays on the step and says why" 'echo "$out" | last_frame | grep -q "nombre de instancia inválido: .B." && echo "$out" | last_frame | grep -q "1/10"'
-out="$(panel n $(typed tui-a) enter down)"
-check "a name that already exists stays on the step" 'echo "$out" | last_frame | grep -q "la instancia .tui-a. ya existe" && echo "$out" | last_frame | grep -q "1/10"'
-out="$(panel n $(typed tui-form) enter down)"
-check "Enter goes on: the services start as s0,s1" 'echo "$out" | last_frame | grep -q "2/10" && echo "$out" | last_frame | grep -q "Servicios activos" && echo "$out" | last_frame | grep -q "s0,s1>"'
-out="$(panel n $(typed tui-form) enter up down)"
-check "Up goes back and the answer is still there" 'echo "$out" | last_frame | grep -q "1/10" && echo "$out" | last_frame | grep -q "tui-form>"'
-out="$(panel n $(typed tui-form) enter $BS5 $(typed s9) enter down)"
-check "an unknown service stays on the step" 'echo "$out" | last_frame | grep -q "servicio desconocido en el asistente: .s9." && echo "$out" | last_frame | grep -q "2/10"'
-out="$(panel n $(typed tui-form) enter $BS5 $(typed s1) enter down)"
-check "with only s1 the form has fewer steps" 'echo "$out" | last_frame | grep -q "3/8"'
-out="$(panel n $(typed tui-form) enter enter down)"
-check "the existing-data step shows its answers, its note and its keys" 'echo "$out" | last_frame | grep -q "3/10" && echo "$out" | last_frame | grep -q "\[ \] Sí    \[x\] No" && echo "$out" | last_frame | grep -q "Se marcará como existente" && echo "$out" | last_frame | grep -q "s sí . n no . Enter acepta lo marcado"'
-out="$(panel n $(typed tui-form) enter enter n down)"
-check "then it asks for the image of the first service, with the default name" 'echo "$out" | last_frame | grep -q "4/10" && echo "$out" | last_frame | grep -q "Nombre de la imagen de s0" && echo "$out" | last_frame | grep -q "auth-backend>"'
+out="$(panel n)"
+check "n opens the form: the sections on the left, the fields of the first one on the right" 'echo "$out" | last_frame | grep -q "Nueva instancia" && echo "$out" | last_frame | grep -q ">Nombre de la instancia"'
+check "the list shows the six sections, each with an icon at the start of its row" 'for s in "1 Nombre" "2 Servicios" "3 Datos" "4 Imágenes" "5 Acceso" "6 Resumen"; do echo "$out" | last_frame | grep -q "| [*!x.] $s" || exit 1; done'
+check "a name is proposed (the first instancia-N that is free)" 'echo "$out" | last_frame | grep -q "1 Nombre    instancia-1" && echo "$out" | last_frame | grep -q "Valor propuesto"'
+check "the mark of the field is at the start of the line, not after the text" 'echo "$out" | last_frame | grep -q "|  > instancia-1 " && ! echo "$out" | last_frame | grep -q "instancia-1>"'
+check "the list says how many sections are ready" 'echo "$out" | last_frame | grep -q "4 de 6 secciones listas"'
+check "the last line gives the keys of the form" 'echo "$out" | last_frame | grep -q "Enter siguiente . Up/Dn campo . PgUp/PgDn sección . Tab lista . Esc lista"'
+out="$(DELTACTL_TUI_SHOW_CURSOR=1 panel n)"
+check "the real cursor is on the text field, at the end of the text" '[ "$(echo "$out" | grep "=== cursor" | tail -1)" = "=== cursor 12;52 ===" ] && echo "$out" | last_frame | sed -n 13p | grep -q "> instancia-1"'
+out="$(DELTACTL_TUI_SHOW_CURSOR=1 panel n x y)"
+check "...and it follows the typing" '[ "$(echo "$out" | grep "=== cursor" | tail -1)" = "=== cursor 12;43 ===" ]'
+check "the first key typed replaces the proposed name" 'echo "$out" | last_frame | grep -q "1 Nombre    xy" && ! echo "$out" | last_frame | grep -q "instancia-1"'
+out="$(panel n left x)"
+check "moving inside the proposed name keeps it and adds to it" 'echo "$out" | last_frame | grep -q "instancia-x1"'
+out="$(panel n B)"
+check "an invalid name is marked in the list and explained under the field" 'echo "$out" | last_frame | grep -q "| x 1 Nombre    B" && echo "$out" | last_frame | grep -q "No es válido"'
+out="$(panel n $(typed tui-a))"
+check "a name that already exists is marked too" 'echo "$out" | last_frame | grep -q "Ya existe una instancia con ese nombre" && echo "$out" | last_frame | grep -q "| x 1 Nombre    tui-a"'
+out="$(panel n $(typed tui-a) enter)"
+check "Enter on a wrong name stays on it" 'echo "$out" | last_frame | grep -q ">Nombre de la instancia" && echo "$out" | last_frame | grep -q "Ya existe"'
+out="$(panel n backspace)"
+check "an empty name is a pending section" 'echo "$out" | last_frame | grep -q "Escribe un nombre" && echo "$out" | last_frame | grep -q "| . 1 Nombre    -"'
+out="$(panel n enter)"
+check "Enter accepts the proposed name and goes on to the services" 'echo "$out" | last_frame | grep -q ">Servicios a desplegar" && echo "$out" | last_frame | grep -q "\[x\] s0  Auth" && echo "$out" | last_frame | grep -q "\[x\] s1  Gue"'
+check "the services show their image, port and memory" 'echo "$out" | last_frame | grep -q "s0  Auth  auth-backend" && echo "$out" | last_frame | grep -q ":41[0-9]0" && echo "$out" | last_frame | grep -q "512m" && echo "$out" | last_frame | grep -q "2g"'
+check "the services say what they lack to be deployed" 'echo "$out" | last_frame | grep -q "ESTADO PARA DESPLEGAR" && echo "$out" | last_frame | grep -q "puerto 41[0-9]0 libre" && echo "$out" | last_frame | grep -q "puerto 41[0-9]1 libre"'
+check "the services not yet in Docker are listed, switched off" 'echo "$out" | last_frame | grep -q "walle . robin . link: aún sin Docker"'
+out="$(panel n enter space)"
+check "Space unchecks a service: the list and its state follow" 'echo "$out" | last_frame | grep -q "\[ \] s0  Auth" && echo "$out" | last_frame | grep -q "2 Servicios s1" && echo "$out" | last_frame | grep -q "s0  no se despliega"'
+out="$(panel n enter space down space)"
+check "with no service the section is marked and says so" 'echo "$out" | last_frame | grep -q "Marca al menos un servicio" && echo "$out" | last_frame | grep -q "| x 2 Servicios ninguno"'
+out="$(panel n enter space pgdn pgdn)"
+check "the images are asked only for the services that stay" 'echo "$out" | last_frame | grep -q ">Imagen y versión" && echo "$out" | last_frame | grep -q "s1  Gue" && echo "$out" | last_frame | grep -q "gueo-back-end" && ! echo "$out" | last_frame | grep -q "auth-backend"'
+out="$(panel n pgdn pgdn pgdn)"
+check "PgDn changes section; the default image name is proposed" 'echo "$out" | last_frame | grep -q "Imagen   *auth-backend" && echo "$out" | last_frame | grep -q "Versión"'
+check "the section with no version is a warning" 'echo "$out" | last_frame | grep -q "| ! 4 Imágenes  sin versión"'
+out="$(panel n pgdn pgdn)"
+check "the data section is a choice between new and existing" 'echo "$out" | last_frame | grep -q "(o) Nueva" && echo "$out" | last_frame | grep -q "( ) Ya tiene datos" && echo "$out" | last_frame | grep -q "Se sembrará con ./deltactl init"'
+out="$(panel n pgdn pgdn down space)"
+check "choosing existing data is reflected in the list" 'echo "$out" | last_frame | grep -q "(o) Ya tiene datos" && echo "$out" | last_frame | grep -q "3 Datos     existente"'
+out="$(panel n pgdn pgdn down space pgdn pgdn)"
+check "an existing municipality keeps its own secrets: nothing to generate" 'echo "$out" | last_frame | grep -q "Con datos existentes se usan sus mismos secretos"'
+out="$(panel n pgdn pgdn pgdn pgdn)"
+check "the access section asks for the public URL" 'echo "$out" | last_frame | grep -q ">URL y secretos" && echo "$out" | last_frame | grep -q "URL pública" && echo "$out" | last_frame | grep -q "| ! 5 Acceso    sin URL"'
 if command -v openssl > /dev/null 2>&1; then
-  out="$(panel n $(typed tui-form) enter enter y down)"
-  check "an existing municipality has one step less (no secrets to generate)" 'echo "$out" | last_frame | grep -q "4/9"'
+  check "...and whether to generate the unique secrets" 'echo "$out" | last_frame | grep -q "\[x\] Generar secretos únicos"'
 fi
-out="$(panel n $(typed tui-form) esc down)"
-check "Esc cancels: back on the instances and nothing is created" 'echo "$out" | last_frame | grep -q ">Instancias" && echo "$out" | last_frame | grep -q "Cancelado" && [ ! -e instances/tui-form ]'
-out="$(panel n $(typed tui-form) esc n down)"
-check "the form starts empty each time" 'echo "$out" | last_frame | grep -q "1/10" && ! echo "$out" | last_frame | grep -q "tui-form"'
+out="$(panel n pgdn pgdn pgdn pgdn pgdn)"
+check "the summary shows the answers and what is ready" 'echo "$out" | last_frame | grep -q ">Resumen y creación" && echo "$out" | last_frame | grep -q "instancia   instancia-1" && echo "$out" | last_frame | grep -q "Todo listo para crear" && echo "$out" | last_frame | grep -q "\[ Crear instancia \]"'
+out="$(panel n B pgdn pgdn pgdn pgdn pgdn enter)"
+check "creating with the name wrong goes back to it and says what is missing" 'echo "$out" | last_frame | grep -q ">Nombre de la instancia" && echo "$out" | last_frame | grep -q "Falta completar: Nombre" && [ ! -e instances/b ]'
+out="$(panel n tab)"
+check "Tab gives the keyboard to the list of sections" 'echo "$out" | last_frame | grep -q ">Nueva instancia" && echo "$out" | last_frame | grep -q "Enter editar . c crear . Tab campos . Esc cancela"'
+out="$(panel n tab down)"
+check "in the list Up and Down choose the section and the fields follow" 'echo "$out" | last_frame | grep -q "Servicios a desplegar"'
+out="$(panel n tab down enter space)"
+check "Enter takes the keyboard back to the fields" 'echo "$out" | last_frame | grep -q "\[ \] s0  Auth"'
+out="$(panel n esc)"
+check "Esc from the fields goes to the list" 'echo "$out" | last_frame | grep -q "c crear"'
+out="$(panel n esc esc)"
+check "Esc from the list cancels: back on the instances and nothing is created" 'echo "$out" | last_frame | grep -q ">Instancias" && echo "$out" | grep -q "Cancelado" && [ ! -e instances/instancia-1 ]'
+out="$(panel n x esc esc n)"
+check "the form starts afresh each time" 'echo "$out" | last_frame | grep -q "1 Nombre    instancia-1"'
+out="$(PANEL_COLS=80 panel n)"
+check "on a narrow terminal only the fields are drawn, with the section in the title" 'echo "$out" | last_frame | grep -q "Nueva instancia . 1/6 Nombre de la instancia" && ! echo "$out" | last_frame | grep -q "2 Servicios"'
+out="$(PANEL_COLS=80 panel n tab)"
+check "...and Tab changes section" 'echo "$out" | last_frame | grep -q "2/6 Servicios a desplegar"'
+out="$(PANEL_COLS=80 panel n esc)"
+check "...and Esc cancels" 'echo "$out" | last_frame | grep -q ">Instancias"'
 out="$(panel '!' $(typed new) space $(typed --wizard) enter q < /dev/null)"
 check "with a leading ! the wizard still runs in the terminal" 'echo "$out" | grep -q "Pasando al terminal: ./deltactl new --wizard"'
+out="$(panel : n e w enter)"
+check "typing new in the command line opens the form too" 'echo "$out" | last_frame | grep -q "Nueva instancia" && echo "$out" | last_frame | grep -q ">Nombre de la instancia"'
 
 # The whole form: it creates the instance with the answers (and openssl, when there is one, generates the secrets).
-if command -v openssl > /dev/null 2>&1; then GEN=(y); else GEN=(); fi
-out="$(panel n $(typed tui-wz) enter enter n enter $(typed 1.5) enter enter $(typed 2.5) enter $(typed http://h) enter "${GEN[@]}" y wait down)"
-check "confirming creates the instance as a command of the panel" '[ -f instances/tui-wz/.env.instance ] && echo "$out" | grep -q "./deltactl new tui-wz --services s0,s1 --s0-image auth-backend --s0-tag 1.5"'   # (the console cuts the line at the width of the screen)
-check "the summary showed the answers before creating" 'echo "$out" | grep -q "instancia   tui-wz" && echo "$out" | grep -q "versiones   s0=1.5 s1=2.5" && echo "$out" | grep -q "URL pública http://h"'
+if command -v openssl > /dev/null 2>&1; then GEN=(down); else GEN=(); fi
+out="$(panel n $(typed tui-wz) enter pgdn pgdn down $(typed 1.5) enter enter $(typed 2.5) enter $(typed http://h) enter "${GEN[@]}" enter wait)"
+check "creating runs the command of the panel with the answers as options" '[ -f instances/tui-wz/.env.instance ] && echo "$out" | grep -q "./deltactl new tui-wz --services s0,s1 --s0-image auth-backend --s0-tag 1.5"'
 check "the answers are applied" 'grep -qx "S0_TAG=1.5" instances/tui-wz/.env.instance && grep -qx "S1_TAG=2.5" instances/tui-wz/.env.instance && grep -qx "IP_SERVER=http://h" instances/tui-wz/.env.s0'
 if command -v openssl > /dev/null 2>&1; then
   check "and the secrets are generated" '[ "$(grep -E "^JWT_SECRET=" instances/tui-wz/.env.s0 | cut -d= -f2- | wc -c)" -eq 65 ]'
 fi
 check "the new instance shows in the list when the command ends" 'echo "$out" | last_frame | grep -q "tui-wz"'
 rm -rf instances/tui-wz
-out="$(panel n $(typed tui-no) enter enter n enter enter enter enter enter "${GEN[@]}" n down)"
-check "n on the summary cancels: nothing is created" '[ ! -e instances/tui-no ] && echo "$out" | last_frame | grep -q "Cancelado"'
+out="$(panel n $(typed tui-ls) tab c wait)"
+check "c in the list creates too" '[ -f instances/tui-ls/.env.instance ]'
+rm -rf instances/tui-ls
 
 section "4. the resources view"
 out="$(panel 2 q)"
