@@ -31,7 +31,7 @@ Un panel de una sola pantalla (`./deltactl` en una terminal, o `./deltactl menu`
 Además:
 
 - Los comandos corren **dentro** del panel, en segundo plano (`lib/core/jobs.sh`): `Enter` abre las acciones de la instancia, `:` escribe
-  cualquier comando (Tab completa, ↑ historial), `!` lo ejecuta en el terminal (asistentes), `x` cancela. Un solo comando a la vez.
+  cualquier comando (Tab completa, ↑ historial), `!` lo ejecuta en el terminal, `x` cancela. Un solo comando a la vez.
 - Confirmaciones dentro del panel (rollback, detener, bajar; `init` pide escribir el nombre).
 - Cifras en vivo leídas del kernel (cgroups v1/v2 y `/proc`) sin lanzar procesos; el estado de Docker se refresca por **eventos de
   Docker** (y cada 30 s por seguridad), en un proceso en segundo plano para que la pantalla nunca espere a Docker.
@@ -97,7 +97,7 @@ imágenes) → `perf(panel)` (segundo plano, dibujo rápido, caché del cuerpo).
   escrita pasa de ~21 a ~11 ms a 160x40 y de ~12 a ~6 ms a 110x30 (tras una muestra no cambia: ahí todo cambia de verdad).
 - **Ratón** (desactivado por defecto; se activa en Opciones, `TUI_MOUSE=on`): modo SGR (1000 + 1006). Clic en una pestaña abre su
   vista; en una instancia la selecciona y un segundo clic abre sus acciones (como Enter); en "+ Nueva instancia" la selecciona y otro
-  clic abre el asistente; en la vista Consola da el teclado a la línea. La rueda hace lo que las flechas allí donde mueven algo y, en
+  clic abre el formulario de nueva instancia; en la vista Consola da el teclado a la línea. La rueda hace lo que las flechas allí donde mueven algo y, en
   una línea que se está escribiendo, desplaza lo escrito en vez de recorrer el historial. Mientras está activo, el texto se selecciona
   con Mayús. Se apaga al salir, al abrir una shell o un asistente, y vuelve al regresar.
 - **Ver el resultado sin terminal**: `python3 tests/tools/pty_shot.py salida.json FILAS COLUMNAS sleep:10` captura el panel real con color
@@ -237,6 +237,10 @@ Evitar patrones extglob en reemplazos (`//`) sobre cadenas largas.
 ## Límites conocidos
 
 - Un solo comando a la vez; el resto espera o se rechaza con un aviso.
-- La línea de comandos separa por espacios (no admite comillas); los asistentes (`new --wizard`, `menu`) salen al terminal.
+- La línea de comandos separa por espacios (no admite comillas); `menu` y los comandos con `!` delante salen al terminal. El
+  asistente de `new` ya no sale: es un formulario del panel (`lib/cmd/dashboard_new.sh`) que repite las preguntas de `lib/cmd/new.sh`
+  y arranca `new <nombre> --services ... --s0-image ... --ip ... --generate-secrets`; si se cambia una pregunta, hay que cambiarla
+  en los dos sitios (las validaciones y los textos son compartidos). En una terminal de 14 filas el resumen se comprime (sin filas
+  en blanco) y el mínimo de filas sigue siendo 14.
 - "Errores (10 min)" cuesta un `docker logs` por servicio cada 30 s, solo de la instancia seleccionada.
 - Mínimo 60 columnas x 14 filas.

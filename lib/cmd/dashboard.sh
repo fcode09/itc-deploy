@@ -8,7 +8,8 @@
 # operations that changed something, lib/cmd/dashboard_runs.sh) and Processes (what the running command is made of and what the
 # panel itself costs, lib/cmd/dashboard_procs.sh).
 # Commands run in the background inside the panel (lib/core/jobs.sh): the screen keeps updating while they run and
-# `:` runs any ./deltactl command. Interactive commands (wizards) run in the terminal and come back.
+# `:` runs any ./deltactl command. The new-instance wizard is a form inside the panel (lib/cmd/dashboard_new.sh); the other
+# interactive commands (the menu, a leading `!`) run in the terminal and come back.
 #
 # What keeps it light: it sleeps in `read -t` between keys; the figures come from the kernel through Bash builtins
 # (lib/core/metrics.sh); Docker is queried only when it reports an event (or every 30 s as a safety net); and a frame
@@ -26,9 +27,10 @@ source "$ROOT/lib/cmd/dashboard_procs.sh"
 source "$ROOT/lib/cmd/dashboard_logs.sh"
 source "$ROOT/lib/cmd/dashboard_options.sh"
 source "$ROOT/lib/cmd/dashboard_alias.sh"
+source "$ROOT/lib/cmd/dashboard_new.sh"
 
 DASH_VIEW=instances       # instances | resources | output | runs | procs | console
-DASH_MODE=normal          # normal | menu | confirm | name | cmd | help
+DASH_MODE=normal          # normal | menu | confirm | name | cmd | help | wizard (and others: filter find palette options)
 DASH_SEL=0 DASH_SVC=0 DASH_RES_SEL=0 DASH_RES_SORT=name DASH_FOCUS=list DASH_ON_NEW=0
 DASH_ZOOM=0 DASH_LOG_SCROLL=0 DASH_LOG_FILTER="" DASH_PAL_Q="" DASH_PAL_SEL=0
 DASH_PAL_ALL_L=() DASH_PAL_ALL_A=() DASH_PAL_LABELS=() DASH_PAL_ACTS=() DASH_PAL_RECENT=() PAL_SCORE=0
@@ -632,7 +634,7 @@ dash_key_global() { # key ; returns 0 when handled
       ;;
     ':') DASH_MODE=cmd DASH_BUF="" DASH_CUR=0 DASH_HIDX="${#DASH_HIST[@]}" ;;
     '!') DASH_MODE=cmd DASH_BUF="!" DASH_CUR=1 DASH_HIDX="${#DASH_HIST[@]}" ;;
-    n) dash_terminal new --wizard ;;
+    n) dash_open_new ;;
     d) dash_start_job output doctor ;;
     i) dash_start_job output images ;;
     *) return 1 ;;
@@ -653,7 +655,7 @@ dash_key_instances() {
     left | h) DASH_FOCUS=list ;;
     right) if [ "$DASH_FOCUS" = "svc" ]; then dash_focus_logs; else dash_focus_services; fi ;;
     enter)
-      if [ "$DASH_ON_NEW" -eq 1 ]; then dash_terminal new --wizard
+      if [ "$DASH_ON_NEW" -eq 1 ]; then dash_open_new
       elif [ "$have" -eq 1 ]; then dash_open_actions "${DASH_NAMES[$DASH_SEL]}"; fi
       ;;
     l) [ "$have" -eq 0 ] || { dash_current_target && dash_start_job output logs "$DASH_T_INST" "$DASH_T_SVC" -f; } ;;
@@ -872,7 +874,7 @@ dash_pal_run() {
     svc) DASH_SVC="$arg" DASH_FOCUS=svc DASH_VIEW=instances ;;
     view) DASH_VIEW="$arg" ;;
     theme) if theme_apply "$arg"; then th_save "$arg"; dash_theme_refresh; fi ;;
-    new) dash_terminal new --wizard ;;
+    new) dash_open_new ;;
     lang) dash_toggle_language ;;
     options) dash_open_options ;;
     clear) DASH_CON=() DASH_CON_N=$((DASH_CON_N + 1)) ;;
@@ -1130,7 +1132,14 @@ dash_submit_cmd() {
   fi
   case "${args[0]:-}" in ./deltactl | deltactl) args=("${args[@]:1}") ;; esac
   [ "${#args[@]}" -gt 0 ] || return 0
-  # Wizards and the menu ask questions: they need the terminal.
+  # `new` and `new --wizard` open the form inside the panel (with a leading `!` they run in the terminal, as before).
+  if [ "$term" -eq 0 ] && [ "${args[0]}" = "new" ]; then
+    if [ "${#args[@]}" -eq 1 ] || { [ "${#args[@]}" -eq 2 ] && [ "${args[1]}" = "--wizard" ]; }; then
+      dash_open_new
+      return 0
+    fi
+  fi
+  # The other wizards and the menu ask questions: they need the terminal.
   case " ${args[*]} " in *" --wizard "*) term=1 ;; esac
   case "${args[0]}" in menu) term=1 ;; new) [ "${#args[@]}" -gt 1 ] || term=1 ;; esac
   # On the Overview and in the Console view the answer stays in the console; in the other views it opens the Output view, as before.
@@ -1209,6 +1218,7 @@ dash_handle_key() {
     options) dash_key_options "$k" ;;
     confirm) dash_key_confirm "$k" ;;
     name | cmd | filter | find) dash_key_edit "$k" ;;
+    wizard) dash_key_wizard "$k" ;;
     palette) dash_key_palette "$k" ;;
     help) dash_key_help "$k" ;;
     *)
@@ -1276,7 +1286,7 @@ dash_mouse() {
         dash_con_clamp
         return 0
       fi
-      case "$DASH_MODE" in name | filter | find | confirm) return 0 ;; help) [ "$DASH_HELP_MAX" -gt 0 ] || return 0 ;; esac
+      case "$DASH_MODE" in name | filter | find | confirm | wizard) return 0 ;; help) [ "$DASH_HELP_MAX" -gt 0 ] || return 0 ;; esac
       if [ "$b" -eq 64 ]; then TUI_KEY=up; else TUI_KEY=down; fi
       dash_handle_key
       return 0
