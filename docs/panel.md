@@ -25,11 +25,16 @@ Tab y Mayús+Tab recorren las vistas (en Instancias, los paneles: lista, servici
 - **Actuar sobre ella**: Enter abre el menú de acciones (estado, comprobar, desplegar, rollback, logs, parar...). Atajos directos:
   `u` despliega, `c` comprueba, `s` muestra el estado, `l` sigue los logs del servicio.
 - **Buscar cualquier acción**: Ctrl+P abre la paleta; escribe parte del nombre ("despl", "logs", "tema") y Enter.
-- **Crear una instancia**: `n` (o Enter sobre «+ Nueva instancia», o `new` en la consola) abre un formulario dentro del panel, con
-  las mismas preguntas que `./deltactl new --wizard`: nombre, servicios, si ya tiene datos, imagen y etiqueta de cada servicio
-  (muestra las cargadas), URL pública, si generar los secretos y un resumen. Enter sigue, ↑ vuelve a la pregunta anterior, Esc
-  cancela. Al confirmar, el panel ejecuta `new` con las respuestas como opciones y la salida queda en la consola. Con `!` delante
-  (`!new --wizard`) el asistente sigue disponible en el terminal.
+- **Crear una instancia**: `n` (o Enter sobre «+ Nueva instancia», o `new` en la consola) abre el formulario de nueva
+  instancia dentro del panel. A la izquierda están las secciones (Nombre, Servicios, Datos, Imágenes, Acceso y Resumen), cada una
+  con un icono al inicio de su fila que dice cómo va (● lista, ▲ falta algo opcional, ✖ error, ○ pendiente); a la derecha, los
+  campos de la sección elegida. El nombre viene propuesto (`instancia-N`): escribe encima para cambiarlo. En Servicios marcas con
+  Espacio cuáles desplegar y ves, de cada uno, si su imagen está cargada en Docker y si su puerto está libre. Los campos se validan
+  al escribir. ↑ ↓ recorren los campos y pasan a la sección vecina al llegar al borde; Enter sigue; PgUp/PgDn cambian de sección;
+  Tab da el teclado a la lista de secciones (allí, `c` crea); Esc vuelve a la lista y, desde ella, cancela. Con menos de 92
+  columnas o 20 filas solo se dibujan los campos (Tab cambia de sección). Al crear, el panel ejecuta `new` con las respuestas como
+  opciones y la salida queda en la consola; si falta algo obligatorio (nombre, servicios o imagen válida), te lleva a esa sección.
+  Con `!` delante (`!new --wizard`) el asistente sigue disponible en el terminal.
 - **Escribir un comando**: `:` da el teclado a la consola; escribe cualquier comando de deltactl sin el prefijo
   (`status colorado`, `logs colorado s0 -f`). `!` delante lo ejecuta en la terminal; `!` solo abre una shell. En la vista `6` la
   línea siempre está lista.

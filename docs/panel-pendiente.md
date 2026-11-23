@@ -238,9 +238,12 @@ Evitar patrones extglob en reemplazos (`//`) sobre cadenas largas.
 
 - Un solo comando a la vez; el resto espera o se rechaza con un aviso.
 - La línea de comandos separa por espacios (no admite comillas); `menu` y los comandos con `!` delante salen al terminal. El
-  asistente de `new` ya no sale: es un formulario del panel (`lib/cmd/dashboard_new.sh`) que repite las preguntas de `lib/cmd/new.sh`
+  asistente de `new` ya no sale: es un formulario del panel (`lib/cmd/dashboard_new.sh`) que repite lo que pregunta `lib/cmd/new.sh`
   y arranca `new <nombre> --services ... --s0-image ... --ip ... --generate-secrets`; si se cambia una pregunta, hay que cambiarla
-  en los dos sitios (las validaciones y los textos son compartidos). En una terminal de 14 filas el resumen se comprime (sin filas
-  en blanco) y el mínimo de filas sigue siendo 14.
+  en los dos sitios (las validaciones y los textos son compartidos). El formulario dibuja dos paneles desde 92 columnas y 20
+  filas; por debajo, solo los campos de la sección. Los servicios que aún no tienen Docker (walle, robin, link) se muestran
+  apagados y sus nombres están escritos a mano en `dash_nw_pane_services`; al dockerizar uno hay que sumarlo a `KNOWN_SERVICES` y
+  quitarlo de ahí.
+  El estado de las imágenes y los puertos se lee una vez al abrir el formulario: no se refresca mientras está abierto.
 - "Errores (10 min)" cuesta un `docker logs` por servicio cada 30 s, solo de la instancia seleccionada.
 - Mínimo 60 columnas x 14 filas.
