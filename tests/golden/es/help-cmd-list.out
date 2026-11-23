@@ -2,7 +2,8 @@
 list · resumen de instancias
 ------------------------------
 
-Una línea por instancia: servicios activos, puertos, etiquetas, estado de los datos y si está arriba.
+Una línea por instancia: servicios activos, puertos, etiquetas, estado de los datos y si está
+arriba.
 
 Uso
   $ ./deltactl list

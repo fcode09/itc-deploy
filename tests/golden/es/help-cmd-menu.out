@@ -2,7 +2,8 @@
 menu · menú interactivo
 -------------------------
 
-Todo lo que hace `deltactl`, a golpe de números. Cada opción pregunta lo necesario (instancia, servicio...),
+Todo lo que hace `deltactl`, a golpe de números. Cada opción pregunta lo necesario (instancia,
+servicio...),
 muestra el comando equivalente que va a ejecutar y lo ejecuta: el menú no hace nada que la línea de
 comandos no haga, y te enseña cómo se escribe.
 
@@ -10,13 +11,24 @@ Uso
   $ ./deltactl menu [--classic]
 
 El panel en vivo
-En una terminal real (también al ejecutar `./deltactl` sin argumentos) abre un panel de una sola pantalla con tres vistas
-(teclas `1`, `2`, `3` o Tab): Instancias (la lista, el detalle de la seleccionada con su memoria y CPU en vivo, y la salida
-del último comando), Recursos (cada servicio con memoria, CPU y tendencia) y Salida (la salida completa del último comando,
-con desplazamiento). Muévete con ↑ ↓ ← → y Enter abre las acciones de la instancia. Los comandos corren dentro del panel,
-sin salir: `:` escribe cualquier comando de `deltactl` (Tab completa, ↑ repite el anterior), `!` lo ejecuta en el terminal
-(asistentes como `new --wizard`) y `x` cancela el que está en marcha. Las cifras se leen del kernel cada segundo y el estado
-se actualiza cuando Docker avisa de un cambio. `L` cambia entre español e inglés, `?` muestra todas las teclas y `q` sale.
+En una terminal real (también al ejecutar `./deltactl` sin argumentos) abre un panel de una sola
+pantalla con cinco vistas
+(teclas `1` a `5` o Tab): Instancias (la lista, el detalle de la seleccionada con su memoria y CPU
+en vivo, y la salida
+del último comando), Recursos (cada servicio con memoria, CPU y tendencia), Salida (la salida
+completa del último comando,
+con desplazamiento), Ejecuciones (el historial de lo que cambió algo, con su resultado, su consumo,
+la comparación con
+las anteriores y su salida guardada; `t` da las estadísticas) y Procesos (los procesos del comando
+en curso y lo que
+cuesta el propio panel). Muévete con ↑ ↓ ← → y Enter abre las acciones de la instancia.
+Los comandos corren dentro del panel, sin salir: `:` escribe cualquier comando de `deltactl` (Tab
+completa, ↑ repite el
+anterior), `!` lo ejecuta en el terminal (asistentes como `new --wizard`) y `x` cancela el que está
+en marcha. Las cifras
+se leen del kernel cada segundo y el estado se actualiza cuando Docker avisa de un cambio. `L`
+cambia entre español e
+inglés, `?` muestra todas las teclas y `q` sale.
 Sin terminal (un pipe, un script) o con `--classic` se usa el menú numerado que sigue.
 
 Opciones del menú numerado
@@ -24,7 +36,8 @@ Opciones del menú numerado
   . 2. Crear una instancia: `./deltactl new --wizard`
   . 3. Comprobar una instancia: `./deltactl check` (con la opción de probar las bases)
   . 4. Desplegar: `./deltactl deploy` (todos los servicios o uno)
-  . 5. Actualizar a una versión nueva: cambia la etiqueta en `.env.instance`, comprueba y despliega solo ese servicio
+  . 5. Actualizar a una versión nueva: cambia la etiqueta en `.env.instance`, comprueba y despliega
+    solo ese servicio
   . 6. Volver a la versión anterior: `./deltactl rollback`
   . 7. Sembrar datos iniciales: `./deltactl init` (pide escribir el nombre de la instancia)
   . 8. Ver logs: `./deltactl logs` (también en vivo)
@@ -42,7 +55,8 @@ Escribe `?` delante de un número: `?4` muestra la ayuda de "Desplegar".
 Seguridad
   . las operaciones destructivas (init, down, rollback) piden confirmación en el propio menú
   . `init` exige escribir el nombre de la instancia
-  . la opción 5 pregunta antes de cambiar la etiqueta y, si la comprobación falla, ofrece restaurar la anterior
+  . la opción 5 pregunta antes de cambiar la etiqueta y, si la comprobación falla, ofrece restaurar
+    la anterior
 
 Relacionado
   . `./deltactl help status`, `./deltactl help actualizar`

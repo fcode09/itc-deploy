@@ -8,13 +8,16 @@ line does not do, and it teaches you how to type it.
 $ ./deltactl menu [--classic]
 
 ## The live panel
-In a real terminal (also when you run `./deltactl` without arguments) it opens a one-screen panel with three views
-(keys `1`, `2`, `3` or Tab): Instances (the list, the detail of the selected one with its live memory and CPU, and the output
-of the last command), Resources (every service with memory, CPU and trend) and Output (the full output of the last command,
-scrollable). Move with ↑ ↓ ← → and Enter opens the actions of the instance. Commands run inside the panel, without leaving it:
-`:` types any `deltactl` command (Tab completes, ↑ recalls the previous one), `!` runs it in the terminal (wizards such as
-`new --wizard`) and `x` cancels the one that is running. The figures are read from the kernel every second and the state is
-refreshed when Docker reports a change. `L` switches between Spanish and English, `?` shows all the keys and `q` quits.
+In a real terminal (also when you run `./deltactl` without arguments) it opens a one-screen panel with five views
+(keys `1` to `5` or Tab): Instances (the list, the detail of the selected one with its live memory and CPU, and the output
+of the last command), Resources (every service with memory, CPU and trend), Output (the full output of the last command,
+scrollable), Runs (the history of what changed something, with its result, its consumption, how it compares with the
+earlier ones and its saved output; `t` gives the statistics) and Processes (the processes of the running command and
+what the panel itself costs). Move with ↑ ↓ ← → and Enter opens the actions of the instance.
+Commands run inside the panel, without leaving it: `:` types any `deltactl` command (Tab completes, ↑ recalls the
+previous one), `!` runs it in the terminal (wizards such as `new --wizard`) and `x` cancels the one that is running. The
+figures are read from the kernel every second and the state is refreshed when Docker reports a change. `L` switches
+between Spanish and English, `?` shows all the keys and `q` quits.
 Without a terminal (a pipe, a script) or with `--classic` the numbered menu below is used.
 
 ## Numbered menu options

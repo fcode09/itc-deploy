@@ -11,7 +11,9 @@ Para impedirlo, la instancia queda marcada como "existente".
 Pasos
   $ ./deltactl new colorado --existing
   . edita `.env.s0` y `.env.s1` con las URI de las bases ACTUALES (`MONGO_URI`, `MONGO_*_URI`)
-  . usa los MISMOS secretos de la instalación actual (`JWT_SECRET`, `FEDERATION_ENCRYPTION_KEY`...): si cambian, las sesiones abiertas dejan de valer y lo cifrado con la clave anterior no se puede leer
+  . usa los MISMOS secretos de la instalación actual (`JWT_SECRET`, `FEDERATION_ENCRYPTION_KEY`...):
+    si cambian, las sesiones abiertas dejan de valer y lo cifrado con la clave anterior no se puede
+    leer
   $ ./deltactl deploy colorado
   $ ./deltactl status colorado
 
@@ -20,9 +22,11 @@ Si ya la creaste sin --existing
   i Solo deja el marcador; no toca bases ni contenedores.
 
 Convivencia con PM2 durante la transición
-  . los puertos de Docker (4100...) no chocan con los de PM2, pero ambos apuntarían a las mismas bases
+  . los puertos de Docker (4100...) no chocan con los de PM2, pero ambos apuntarían a las mismas
+    bases
   . para llegar desde un contenedor a algo que sigue en PM2 en el host usa `host.docker.internal`
-  . decide cuándo se corta el tráfico hacia la instalación antigua: este repositorio no mueve el proxy
+  . decide cuándo se corta el tráfico hacia la instalación antigua: este repositorio no mueve el
+    proxy
 
 Relacionado
   . `./deltactl help datos`, `./deltactl help nueva-instancia`

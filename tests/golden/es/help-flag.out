@@ -25,10 +25,14 @@ Ejemplos
   i Si cambias `S1_TAG` y despliegas, Compose recrea solo el contenedor que cambió.
 
 Errores típicos
-  . `falta la imagen X:tag` → cárgala (`./deltactl load`) o corrige la etiqueta (`./deltactl images`)
-  . `FCM_CERT apunta a ... pero falta secrets/...` → copia el JSON a `secrets/` (`./deltactl help secretos`)
-  . `no llegó a healthy` → `./deltactl logs <instancia> <servicio>`; para volver atrás `./deltactl rollback`
-  . `no está inicializada` (aviso) → `./deltactl init` si es nueva, `./deltactl adopt` si ya tiene datos
+  . `falta la imagen X:tag` → cárgala (`./deltactl load`) o corrige la etiqueta (`./deltactl
+    images`)
+  . `FCM_CERT apunta a ... pero falta secrets/...` → copia el JSON a `secrets/` (`./deltactl help
+    secretos`)
+  . `no llegó a healthy` → `./deltactl logs <instancia> <servicio>`; para volver atrás `./deltactl
+    rollback`
+  . `no está inicializada` (aviso) → `./deltactl init` si es nueva, `./deltactl adopt` si ya tiene
+    datos
 
 Relacionado
   . `./deltactl help actualizar`, `./deltactl help imagenes`, `./deltactl help solucion-problemas`

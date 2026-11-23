@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC2034  # the DASH_* and DSV_* variables are shared with lib/cmd/dashboard.sh
-# Drawing of the interactive panel: header, tabs, the three views (instances, resources, output), the dialogs and
+# Drawing of the interactive panel: header, tabs, the views (instances, resources, output; runs is in dashboard_runs.sh), the dialogs and
 # the key bars. Sourced by lib/cmd/dashboard.sh. It only builds TUI_FRAME; it never runs anything.
 #
 # Speed matters here: a frame is built at most once per change and every helper returns its result in a variable
@@ -49,6 +49,11 @@ dash_texts_build() {
   DASH_KEYS[zoom]="$(t tui.keys.zoom "$DASH_UD")"
   DASH_KEYS[resources]="$(t tui.keys.resources "$DASH_UD" "$DASH_LR")"
   DASH_KEYS[output]="$(t tui.keys.output "$DASH_UD" "$DASH_LR")"
+  DASH_KEYS[runs]="$(t tui.keys.runs "$DASH_UD")"
+  DASH_KEYS[runs_stats]="$(t tui.keys.runs_stats)"
+  DASH_KEYS[runs_log]="$(t tui.keys.runs_log "$DASH_UD")"
+  DASH_KEYS[procs]="$(t tui.keys.procs "$DASH_UD")"
+  DASH_KEYS[console]="$(t tui.keys.console "$DASH_UD")"
 }
 
 # A usage bar in a variable: dash_bar <percent> [cells]  (green below 70 %, yellow below 85 %, red above). Remembered.
@@ -176,24 +181,31 @@ dash_job_label() {
 }
 DASH_JL=""
 
-# The tab line: the three views and, at the right, the state of the current command.
+# The tab line: the views and, at the right, the state of the current command.
 dash_tabs_line() {
-  local v i=0 left="" right="" pad lw rw
-  for v in instances resources output; do
+  local v i=0 left="" short="" right="" pad lw rw piece
+  for v in instances resources output runs procs console; do
     i=$((i + 1))
     dt "tui.tab.$v"
     if [ "$DASH_VIEW" = "$v" ]; then
       # The active view is a filled pill; without colours it keeps the bracketed form.
-      if [ -n "${TH[sel]:-}" ]; then left+=" ${TH[sel]}$C_BLD $i $DTV $C_OFF"; else left+=" $DASH_REV$C_BLD$C_CYN[$i $DTV]$C_OFF"; fi
+      if [ -n "${TH[sel]:-}" ]; then piece=" ${TH[sel]}$C_BLD $i $DTV $C_OFF"; else piece=" $DASH_REV$C_BLD$C_CYN[$i $DTV]$C_OFF"; fi
+      left+="$piece" short+="$piece"
     else
       left+="  ${TH[key]:-}$i$C_OFF $C_GRY$DTV$C_OFF "
+      short+="  ${TH[key]:-}$i$C_OFF "
     fi
   done
   dash_job_label
   right="$DASH_JL"
+  # The card of the command that is running: how many processes it has and what they use (see dashboard_procs.sh).
+  if [ -n "$DASH_PC_TXT" ] && job_running; then right+=" $C_GRY$UI_S_DOT $DASH_PC_TXT$C_OFF"; fi
   if [ "$DASH_PAUSED" -eq 1 ]; then dt tui.paused; right="$C_YEL$DTV$C_OFF${right:+  $right}"; fi
   tui_vlen "$left"; lw="$TUI_VL"
   tui_vlen "$right"; rw="$TUI_VL"
+  # What the running command says matters more than the names of the other views: they shrink to their numbers first.
+  DASH_TAB_SHORT=0
+  if [ $((lw + rw + 2)) -gt "$TUI_COLS" ]; then left="$short" DASH_TAB_SHORT=1; tui_vlen "$left"; lw="$TUI_VL"; fi
   if [ $((lw + rw + 2)) -gt "$TUI_COLS" ]; then
     tui_clip "$right" $((TUI_COLS - lw - 2)); right="$TUI_OUT"; tui_vlen "$right"; rw="$TUI_VL"
   fi
@@ -202,7 +214,23 @@ dash_tabs_line() {
   printf -v TAB_PAD '%*s' "$pad" ''
   TUI_TABS="$left$TAB_PAD$right"
 }
-TUI_TABS="" TAB_PAD=""
+TUI_TABS="" TAB_PAD="" DASH_TAB_SHORT=0
+
+# The view whose tab is at column $1 of the tab line, into DASH_TAB_I (1-6). Every tab is its name plus five cells (" [1 Name]",
+# "  1 Name "), or four ("  1 ") when the line had to shrink the ones that are not active.
+DASH_TAB_I=0
+dash_tab_at() { # column
+  local v i=0 start=0 w
+  for v in instances resources output runs procs console; do
+    i=$((i + 1))
+    dt "tui.tab.$v"
+    w=$((${#DTV} + 5))
+    [ "$DASH_TAB_SHORT" -eq 0 ] || [ "$DASH_VIEW" = "$v" ] || w=4
+    if [ "$1" -gt "$start" ] && [ "$1" -le $((start + w)) ]; then DASH_TAB_I="$i"; return 0; fi
+    start=$((start + w))
+  done
+  return 1
+}
 
 # --- View: instances -------------------------------------------------------------------------------------
 
@@ -242,7 +270,21 @@ dash_list_lines() { # inner_height [inner_width]
   DASH_LIST_LINES+=("$C_GRY$row$C_OFF")
   avail=$((h - 2))
   [ "$avail" -ge 1 ] || avail=1
-  [ "$DASH_ON_NEW" -eq 1 ] || [ "$DASH_SEL" -lt "$avail" ] || start=$((DASH_SEL - avail + 1))
+  # The first instance shown stays where it was until the selection leaves the window: a list that jumped at every selection
+  # would move the instance away from under the pointer that clicked it.
+  if [ "$DASH_ON_NEW" -eq 1 ]; then
+    start=0
+  else
+    start="$DASH_LIST_OFF"
+    [ "$DASH_SEL" -ge "$start" ] || start="$DASH_SEL"
+    [ "$DASH_SEL" -lt $((start + avail)) ] || start=$((DASH_SEL - avail + 1))
+    [ "$start" -le $((n - avail)) ] || start=$((n - avail))
+    [ "$start" -ge 0 ] || start=0
+  fi
+  DASH_LIST_OFF="$start"
+  # Where a click lands (see dash_mouse): the rows really inside the box, which can be none on a short terminal.
+  DASH_LIST_START="$start" DASH_LIST_AVAIL=$((h - 2))
+  [ "$DASH_LIST_AVAIL" -ge 0 ] || DASH_LIST_AVAIL=0
   for ((i = start; i < n && i < start + avail; i++)); do
     name="${DASH_NAMES[$i]}"
     kind="${DASH_KIND[$name]}"
@@ -439,34 +481,78 @@ dash_join() { # left_array right_array
   for i in "${!_l[@]}"; do TUI_FRAME+=("${_l[$i]}${_r[$i]:-}"); done
 }
 
+# --- Per-panel cache ------------------------------------------------------------------------------------------------
+# The body is rebuilt whenever anything on it changes: a log line, a typed character, a second of a running command. Most of its
+# boxes did not change then. Each of those is kept with the state it was drawn from (its signature) and reused while that state is
+# the same, so a rebuild only draws what moved. A box can carry a few values its drawing left behind (DASH_PC_M), which the caller
+# restores along with it.
+declare -gA DASH_PC_SIG=() DASH_PC_META=()
+DASH_PC_list=() DASH_PC_host=() DASH_PC_center=() DASH_PC_detail=() DASH_PC_M=""
+dash_pc_get() { # name signature -> 0 with TUI_BOX and DASH_PC_M when the box is still valid
+  [ "${DASH_PC_SIG[$1]-}" = "$2" ] || return 1
+  local -n _pc="DASH_PC_$1"
+  TUI_BOX=("${_pc[@]}")
+  DASH_PC_M="${DASH_PC_META[$1]-}"
+}
+dash_pc_put() { # name signature [meta]   (keeps TUI_BOX)
+  local -n _pc="DASH_PC_$1"
+  _pc=("${TUI_BOX[@]}")
+  DASH_PC_SIG[$1]="$2" DASH_PC_META[$1]="${3-}"
+}
+
+# The box of the list of instances, cached: what it shows changes with the state of Docker, the figures, the selection and the
+# focus. The rows it shows go with it (dash_mouse needs them).
+dash_list_box() { # width height inner_width focused
+  local sig="$1|$2|${3:-}|$4|$DASH_SEL|$DASH_ON_NEW|$DASH_FOCUS|$DASH_LIST_OFF|$DASH_REFRESH_N|$MT_SAMPLES|$DASH_LANG_N|${#DASH_NAMES[@]}"
+  if dash_pc_get list "$sig"; then
+    read -r DASH_LIST_START DASH_LIST_AVAIL DASH_LIST_OFF <<< "$DASH_PC_M"
+    return 0
+  fi
+  if [ -n "${3:-}" ]; then dash_list_lines $(($2 - 2)) "$3"; else dash_list_lines $(($2 - 2)); fi
+  dt tui.instances
+  tui_box "$DTV" "$1" "$2" DASH_LIST_LINES "" "$4"
+  # (stored under the signature it was asked with: a selection that moved the window gives another one next time)
+  dash_pc_put list "$sig" "$DASH_LIST_START $DASH_LIST_AVAIL $DASH_LIST_OFF"
+}
+
 dash_view_instances() { # body_height
-  local bh="$1" oh th lw rw lh dh name inner_h title off n="${#DASH_NAMES[@]}" lf=0
+  local bh="$1" oh th lw rw lh dh name inner_h title off n="${#DASH_NAMES[@]}" lf=0 mx
   [ "$DASH_FOCUS" != "list" ] || lf=1
+  # Rows: the panes on top grow, the console under them asks for more as the terminal gets taller.
   if [ "$bh" -ge 40 ]; then oh=$((bh * 3 / 10))   # tall terminal: the output of a command (a check is ~15 lines) fits whole
   elif [ "$bh" -ge 22 ]; then oh=8; elif [ "$bh" -ge 16 ]; then oh=6; else oh=4; fi
-  th=$((bh - oh))
+  lay_split "$bh" "0:0::1" "$oh:$oh:$oh"
+  th="${LAY[0]}" oh="${LAY[1]}"
   name="${DASH_NAMES[$DASH_SEL]:-}"
   if [ "$TUI_COLS" -ge 100 ]; then
-    lw=44; rw=$((TUI_COLS - lw))
-    dash_list_lines $((th - 2))
-    dt tui.instances
-    tui_box "$DTV" "$lw" "$th" DASH_LIST_LINES "" "$lf"; DASH_L=("${TUI_BOX[@]}")
-    dash_detail_box "$name" "$rw" "$th"; DASH_R=("${TUI_BOX[@]}")
+    # Columns: the list is fixed, the detail takes the rest.
+    lay_split "$TUI_COLS" "44:44:44" "0:0::1"
+    lw="${LAY[0]}" rw="${LAY[1]}"
+    dash_list_box "$lw" "$th" "" "$lf"; DASH_L=("${TUI_BOX[@]}")
+    DASH_LIST_SHOWN=1 DASH_LIST_W="$lw"
+    dash_detail_box_cached "$name" "$rw" "$th"; DASH_R=("${TUI_BOX[@]}")
     dash_join DASH_L DASH_R
   else
-    lh=$((n + 4))
-    [ "$lh" -le $((th / 2)) ] || lh=$((th / 2))
-    [ "$lh" -ge 4 ] || lh=4
-    dh=$((th - lh))
-    dash_list_lines $((lh - 2))
-    dt tui.instances
-    tui_box "$DTV" "$TUI_COLS" "$lh" DASH_LIST_LINES "" "$lf"
+    # One column: the list asks for a row per instance (at most half the rows, never less than 4), the detail takes the rest.
+    mx=$((th / 2)); [ "$mx" -ge 4 ] || mx=4
+    lay_split "$th" "$((n + 4)):4:$mx" "0:0::1"
+    lh="${LAY[0]}" dh="${LAY[1]}"
+    dash_list_box "$TUI_COLS" "$lh" "" "$lf"
+    DASH_LIST_SHOWN=1 DASH_LIST_W="$TUI_COLS"
     TUI_FRAME+=("${TUI_BOX[@]}")
-    dash_detail_box "$name" "$TUI_COLS" "$dh"
+    dash_detail_box_cached "$name" "$TUI_COLS" "$dh"
     TUI_FRAME+=("${TUI_BOX[@]}")
   fi
   dash_console_box "$TUI_COLS" "$oh"
   TUI_FRAME+=("${TUI_BOX[@]}")
+}
+
+# The detail box, cached (see dash_list_box). Its scroll goes with it.
+dash_detail_box_cached() { # instance width height
+  local sig="$1|$2|$3|$DASH_SVC|$DASH_FOCUS|$DASH_ON_NEW|$DASH_DET_OFF|$DASH_REFRESH_N|$MT_SAMPLES|$DASH_ERRS_N|$DASH_LANG_N"
+  if dash_pc_get detail "$sig"; then DASH_DET_OFF="$DASH_PC_M"; return 0; fi
+  dash_detail_box "$1" "$2" "$3"
+  dash_pc_put detail "$sig" "$DASH_DET_OFF"
 }
 
 # The box with the detail of an instance.
@@ -664,8 +750,29 @@ dash_summary_lines() { # instance
 }
 
 # The center column: services table, charts of the selected service and the summary. Result in DASH_CB ($3 lines).
+# The centre of the Overview: everything but its logs box is cached (see dash_list_box); the logs have their own cache.
 dash_center_boxes() { # instance width height
+  local sig="$1|$2|$3|$DASH_SVC|$DASH_FOCUS|$DASH_ON_NEW|$DASH_REFRESH_N|$MT_SAMPLES|$DASH_ERRS_N|$DASH_LANG_N" lh key svc
+  if dash_pc_get center "$sig"; then
+    DASH_CB=("${TUI_BOX[@]}")
+    IFS=$'\x1f' read -r lh key svc <<< "$DASH_PC_M"   # (a hand-made instance folder may have a space in its name)
+  else
+    dash_center_top "$1" "$2" "$3"
+    TUI_BOX=("${DASH_CB[@]}")
+    lh="$DASH_CT_LH" key="$DASH_CT_KEY" svc="$DASH_CT_SVC"
+    dash_pc_put center "$sig" "$lh"$'\x1f'"$key"$'\x1f'"$svc"
+  fi
+  if [ "$lh" -ge 5 ]; then
+    dash_logs_box "$key" "$svc" "$2" "$lh"
+    DASH_CB+=("${TUI_BOX[@]}")
+  fi
+}
+
+# The centre without its logs box, into DASH_CB; the height, the key and the service of the logs box go to DASH_CT_*.
+DASH_CT_LH=0 DASH_CT_KEY="" DASH_CT_SVC=""
+dash_center_top() { # instance width height
   local name="$1" w="$2" h="$3" n st rem R gh sh lh title key svc sf=0
+  DASH_CT_LH=0 DASH_CT_KEY="-" DASH_CT_SVC="-"
   [ "$DASH_FOCUS" != "svc" ] || sf=1
   local -a svcs shown=()
   DASH_CB=()
@@ -719,61 +826,64 @@ dash_center_boxes() { # instance width height
     tui_box "$DTV" "$w" "$sh" DASH_NX
     DASH_CB+=("${TUI_BOX[@]}")
   fi
-  if [ "$lh" -ge 5 ]; then
-    dash_logs_box "$key" "$svc" "$w" "$lh"
-    DASH_CB+=("${TUI_BOX[@]}")
-  fi
+  DASH_CT_LH="$lh" DASH_CT_KEY="$key" DASH_CT_SVC="$svc"
 }
 
 # The logs box: the last lines of the service's log (cleaned when they arrived), errors in red and warnings in yellow. With the
 # focus it scrolls (the title says how far back it is) and `/` filters the lines by a text (case-insensitive).
 dash_logs_box() { # key service width height [focused]
-  local key="$1" svc="$2" w="$3" h="$4" foc="${5:-0}" inner n i start end line sig flt="$DASH_LOG_FILTER" title before at after
-  local -a all=() sel=() body=()
+  local key="$1" svc="$2" w="$3" h="$4" foc="${5:-0}" inner n i start end line sig flt="$DASH_LOG_FILTER" title before at after f low ed=0 mark
+  local -a body=()
+  { [ "$DASH_MODE" = "filter" ] || [ "$DASH_MODE" = "find" ]; } && ed=1
   [ "$DASH_FOCUS" != "logs" ] || foc=1
-  sig="$key|$DASH_LOGS_N|$w|$h|$foc|$DASH_LOG_SCROLL|$flt|$DASH_MODE|$TH_NAME|$DASH_LANG_N"
-  [ "$DASH_MODE" != "filter" ] || sig+="|$DASH_BUF|$DASH_CUR"
+  sig="$key|$DASH_LOGS_N|$w|$h|$foc|$DASH_LOG_SCROLL|$flt|$DASH_MODE|$TH_NAME|$DASH_LANG_N|$DASH_LOG_ERRONLY|$DASH_LOG_FIND|$DASH_LS_PAUSED|$DASH_LS_PEND|$DASH_LOG_MIDX"
+  [ "$ed" -eq 0 ] || sig+="|$DASH_BUF|$DASH_CUR"
   if [ "$sig" = "$DASH_LBOX_SIG" ]; then TUI_BOX=("${DASH_LBOX[@]}"); return 0; fi
   inner=$((h - 2))
-  [ "$DASH_MODE" != "filter" ] || inner=$((inner - 1))     # one line for the filter prompt
+  [ "$ed" -eq 0 ] || inner=$((inner - 1))     # one line for the prompt of the filter or of the search
   [ "$inner" -ge 1 ] || inner=1
+  DASH_LOG_INNER="$inner"
+  f="${DASH_LOG_FIND,,}"
   if [ -z "${DASH_LOGS_AT[$key]+x}" ]; then
     dt tui.logs.loading; body=("$C_GRY$DTV$C_OFF")
   elif [ -z "${DASH_LOGS[$key]}" ]; then
     dt tui.logs.none; body=("$C_GRY$DTV$C_OFF")
   else
-    mapfile -t all <<< "${DASH_LOGS[$key]}"
-    if [ -n "$flt" ]; then
-      for line in "${all[@]}"; do
-        if [[ "${line,,}" == *"${flt,,}"* ]]; then sel+=("$line"); fi
-      done
-    else
-      sel=("${all[@]}")
-    fi
-    n="${#sel[@]}"
+    dash_logs_select "$key"
+    n="${#DASH_LS_SEL[@]}"
     [ "$DASH_LOG_SCROLL" -le $((n - inner)) ] || DASH_LOG_SCROLL=$((n - inner))   # never past the oldest line
     [ "$DASH_LOG_SCROLL" -ge 0 ] || DASH_LOG_SCROLL=0
     end=$((n - DASH_LOG_SCROLL))
     start=$((end - inner)); [ "$start" -ge 0 ] || start=0
     if [ "$n" -eq 0 ]; then dt tui.logs.no_match; body=("$C_GRY$DTV$C_OFF"); fi
     for ((i = start; i < end; i++)); do
-      line="${sel[$i]}"
-      case "$line" in
-        *[Ee][Rr][Rr][Oo][Rr]* | *ECONN* | *[Ff][Aa][Ii][Ll]* | *"Unable to"*) body+=("$C_RED$line$C_OFF") ;;
-        *[Ww][Aa][Rr][Nn]*) body+=("$C_YEL$line$C_OFF") ;;
+      line="${DASH_LS_SEL[$i]}"
+      low="${line,,}"
+      dash_log_class_l "$low"
+      if [ -n "$f" ]; then dash_log_mark "$line" "$f"; line="$DASH_LH"; fi
+      case "$DASH_LC" in
+        err) body+=("$C_RED$line$C_OFF") ;;
+        warn) body+=("$C_YEL$line$C_OFF") ;;
         *) body+=("$C_GRY$line$C_OFF") ;;
       esac
     done
   fi
-  if [ "$DASH_MODE" = "filter" ]; then
+  if [ "$ed" -eq 1 ]; then
     before="${DASH_BUF:0:$DASH_CUR}"; at="${DASH_BUF:$DASH_CUR:1}"; after="${DASH_BUF:$((DASH_CUR + 1))}"
+    mark="/"; [ "$DASH_MODE" != "find" ] || mark="~"
     while [ "${#body[@]}" -lt "$inner" ]; do body+=(""); done
-    if [ -n "$DASH_REV" ]; then body+=("${TH[accent]:-$C_CYN}/$C_OFF $before$DASH_REV${at:- }$C_OFF$after"); else body+=("/ $before|$at$after"); fi
+    if [ -n "$DASH_REV" ]; then body+=("${TH[accent]:-$C_CYN}$mark$C_OFF $before$DASH_REV${at:- }$C_OFF$after"); else body+=("$mark $before|$at$after"); fi
   fi
   dt tui.logs.title; title="$DTV $UI_S_DOT $svc"
+  if [ "$DASH_LS_PAUSED" -eq 1 ]; then
+    if [ "$DASH_LS_PEND" -gt 0 ]; then dtf tui.logs.paused_n "$DASH_LS_PEND"; else dt tui.logs.paused; DTF="$DTV"; fi
+    title+=" $UI_S_DOT $DTF"
+  fi
+  if [ "$DASH_LOG_ERRONLY" -eq 1 ]; then dt tui.logs.errors; title+=" $UI_S_DOT $DTV"; fi
   [ -z "$flt" ] || title+=" $UI_S_DOT /$flt"
+  [ -z "$DASH_LOG_FIND" ] || title+=" $UI_S_DOT ~$DASH_LOG_FIND"
   if [ "$DASH_LOG_SCROLL" -gt 0 ]; then dt tui.logs.scrolled; title+=" $UI_S_DOT ${DTV//\{1\}/$DASH_LOG_SCROLL}"
-  else dt tui.logs.follow; title+=" $UI_S_DOT $DTV"; fi
+  elif [ "$DASH_LS_PAUSED" -eq 0 ]; then dt tui.logs.follow; title+=" $UI_S_DOT $DTV"; fi
   tui_box "$title" "$w" "$h" body "" "$foc"
   DASH_LBOX=("${TUI_BOX[@]}") DASH_LBOX_SIG="$sig"
 }
@@ -840,26 +950,32 @@ DASH_EBOX=() DASH_EBOX_SIG="" DASH_LBOX=() DASH_LBOX_SIG=""
 
 # The whole overview body into TUI_FRAME ($1 lines).
 dash_view_overview() { # body_height
-  local bh="$1" lw=38 ew=0 cw cs top name i lh hh n="${#DASH_NAMES[@]}" lf=0
+  local bh="$1" lw=38 ew cw cs top name i lh hh n="${#DASH_NAMES[@]}" lf=0 sig
   [ "$DASH_FOCUS" != "list" ] || lf=1
   local -a left=() center=() right=()
   name="${DASH_NAMES[$DASH_SEL]:-}"
+  # Columns: the list is fixed (wider on a wide terminal), the centre takes the rest but never less than 76, and the events column
+  # (36) only exists when it fits next to that.
   [ "$TUI_COLS" -lt 160 ] || lw=42
-  [ "$TUI_COLS" -lt 150 ] || ew=36
-  cw=$((TUI_COLS - lw - ew))
+  lay_split "$TUI_COLS" "$lw:$lw:$lw" "0:76::1" "36:36:36:0:1"
+  lw="${LAY[0]}" cw="${LAY[1]}" ew="${LAY[2]}"
+  # Rows: the panes grow, the console asks for 8 rows (22 % of a tall terminal, at most 16).
   cs=8
   [ "$bh" -lt 40 ] || cs=$((bh * 22 / 100))
   [ "$cs" -le 16 ] || cs=16
-  top=$((bh - cs))
-  # Left: the list takes what it needs (at most 40 %) and the server box the rest.
-  lh=$((n + 4)); [ "$lh" -ge 6 ] || lh=6
-  [ "$lh" -le $((top * 40 / 100)) ] || lh=$((top * 40 / 100))
-  hh=$((top - lh))
-  if [ "$hh" -lt 6 ]; then lh="$top"; hh=0; fi
-  dash_list_lines $((lh - 2)) $((lw - 3))
-  dt tui.instances
-  tui_box "$DTV" "$lw" "$lh" DASH_LIST_LINES "" "$lf"; left=("${TUI_BOX[@]}")
-  if [ "$hh" -gt 0 ]; then dash_host_box "$lw" "$hh"; left+=("${TUI_BOX[@]}"); fi
+  lay_split "$bh" "0:0::1" "$cs:$cs:$cs"
+  top="${LAY[0]}" cs="${LAY[1]}"
+  # Left: the list asks for a row per instance (at least 6, at most 40 % of the rows); the server box takes the rest and is
+  # dropped when it would have less than 6.
+  lay_split "$top" "$((n + 4)):6:$((top * 40 / 100))" "0:6::1:1"
+  lh="${LAY[0]}" hh="${LAY[1]}"
+  dash_list_box "$lw" "$lh" $((lw - 3)) "$lf"; left=("${TUI_BOX[@]}")
+  DASH_LIST_SHOWN=1 DASH_LIST_W="$lw"
+  if [ "$hh" -gt 0 ]; then
+    sig="$lw|$hh|$MT_SAMPLES|$DASH_REFRESH_N|$DASH_LANG_N|$DASH_DOCKER_VER"
+    dash_pc_get host "$sig" || { dash_host_box "$lw" "$hh"; dash_pc_put host "$sig"; }
+    left+=("${TUI_BOX[@]}")
+  fi
   dash_center_boxes "$name" "$cw" "$top"; center=("${DASH_CB[@]}")
   if [ "$ew" -gt 0 ]; then dash_events_box "$ew" "$top"; right=("${TUI_BOX[@]}"); fi
   for ((i = 0; i < top; i++)); do TUI_FRAME+=("${left[$i]}${center[$i]:-}${right[$i]:-}"); done
@@ -1004,6 +1120,13 @@ dash_view_resources() { # body_height
 
 # --- View: output ---------------------------------------------------------------------------------------
 
+# --- View: console ---------------------------------------------------------------------------------------------------
+# The console of the Overview over the whole body: a workspace to type commands and read what they printed.
+dash_view_console() { # body_height
+  dash_console_box "$TUI_COLS" "$1"
+  TUI_FRAME+=("${TUI_BOX[@]}")
+}
+
 dash_view_output() { # body_height
   dash_out_box "$TUI_COLS" "$1" "$DASH_OUT_SCROLL" "$DASH_OUT_ERRORS" 1
   TUI_FRAME+=("${TUI_BOX[@]}")
@@ -1020,6 +1143,7 @@ dash_view_zoom() { # body_height
     case "$DASH_FOCUS" in
       list)
         dash_list_lines $((bh - 2)) $((TUI_COLS - 3))
+        DASH_LIST_SHOWN=1 DASH_LIST_W="$TUI_COLS"
         dt tui.instances
         tui_box "$DTV" "$TUI_COLS" "$bh" DASH_LIST_LINES "" 1
         ;;
@@ -1145,14 +1269,68 @@ dash_dialog_name() { # body_height
   dash_dialog "$1" "init" 50
 }
 
+# The keys (?): the help text over the body. A line too long for the screen goes on under its description (a hanging indent),
+# never cut; the heading of the current view stands out and, when the text is taller than the screen, it opens scrolled to it
+# (DASH_HELP_OFF -1) and the arrows, PgUp/PgDn and Home/End move it (dash_key_help).
+DASH_HELP_OFF=0 DASH_HELP_MAX=0
 dash_dialog_help() { # body_height
-  local line
-  DASH_DLG=("")
+  local bh="$1" w tw line i k ind n avail head hi=-1 acc first rest cur word pad title end started
+  local -a out=() words=()
+  w=$((TUI_COLS - 2)); [ "$w" -le 100 ] || w=100
+  tw=$((w - 6))     # the borders, the box's own space, two of indent and one of margin
+  acc="${TH[accent]:-$C_CYN}"
+  dt "tui.help.head.$DASH_VIEW"; head="$DTV"
   dt tui.help
-  while IFS= read -r line; do DASH_DLG+=("  $line"); done <<< "$DTV"
+  while IFS= read -r line; do
+    # (the heading of the current view is coloured after the line is wrapped: its colour codes take no room on screen)
+    first="${line%% *}"
+    [ -z "$first" ] || [ "$first" != "$head" ] || hi="${#out[@]}"
+    tui_vlen "$line"
+    if [ "$TUI_VL" -le "$tw" ]; then out+=("$line"); continue; fi
+    # Where the description starts: after the first run of three or more spaces (the padding of the keys' column), or after the
+    # first word of a heading at the start of the line ("RESOURCES ↑ ↓ ..."). The keys stay as they are on the first line; the
+    # lines that follow start under the description.
+    i=0; while [ "$i" -lt "${#line}" ] && [ "${line:$i:1}" = " " ]; do i=$((i + 1)); done
+    rest="${line:$i}" k=0
+    if [[ "$rest" == *"   "* ]]; then
+      word="${rest#*   }"; k=$((i + ${#rest} - ${#word}))
+    elif [ "$i" -eq 0 ] && [[ "$rest" == *" "* ]]; then
+      word="${rest#* }"; k=$((${#rest} - ${#word}))
+    fi
+    while [ "$k" -gt 0 ] && [ "$k" -lt "${#line}" ] && [ "${line:$k:1}" = " " ]; do k=$((k + 1)); done
+    if [ "$k" -gt 0 ] && [ "$k" -le $((tw / 2)) ]; then ind="$k"; cur="${line:0:$k}"; rest="${line:$k}"
+    else ind=$((i + 2)); cur="${line:0:$i}"; rest="${line:$i}"; fi
+    printf -v pad '%*s' "$ind" ''
+    read -ra words <<< "$rest"
+    started=0
+    for word in "${words[@]}"; do
+      if [ "$started" -eq 0 ]; then cur+="$word"; started=1
+      elif [ $((${#cur} + 1 + ${#word})) -gt "$tw" ]; then out+=("$cur"); cur="$pad$word"
+      else cur+=" $word"; fi
+    done
+    out+=("$cur")
+  done <<< "$DTV"
+  [ "$hi" -lt 0 ] || out[hi]="$acc$C_BLD$head$C_OFF${out[$hi]:${#head}}"
+  n="${#out[@]}"
+  avail=$((bh - 4)); [ "$avail" -ge 1 ] || avail=1
+  DASH_HELP_MAX=$((n - avail)); [ "$DASH_HELP_MAX" -ge 0 ] || DASH_HELP_MAX=0
+  if [ "$DASH_HELP_OFF" -lt 0 ]; then
+    DASH_HELP_OFF=0
+    [ "$hi" -lt "$avail" ] || DASH_HELP_OFF="$hi"
+  fi
+  [ "$DASH_HELP_OFF" -le "$DASH_HELP_MAX" ] || DASH_HELP_OFF="$DASH_HELP_MAX"
+  DASH_DLG=("")
+  for ((i = DASH_HELP_OFF; i < n && i < DASH_HELP_OFF + avail; i++)); do DASH_DLG+=("  ${out[$i]}"); done
   DASH_DLG+=("")
-  dt tui.help_title
-  dash_dialog "$1" "$DTV" 60
+  dt tui.help_title; title="$DTV"
+  if [ "$DASH_HELP_MAX" -gt 0 ]; then end=$((DASH_HELP_OFF + avail)); [ "$end" -le "$n" ] || end="$n"; title+=" $UI_S_DOT $((DASH_HELP_OFF + 1))-$end/$n"; fi
+  dash_dialog "$bh" "$title" "$w"
+}
+
+# The last line while the keys are shown: how to scroll them when they do not fit, or that any key goes back.
+dash_help_keys() { # width
+  if [ "$DASH_HELP_MAX" -gt 0 ]; then dt tui.help_scroll; dash_keyfit "${DTV//\{1\}/$DASH_UD}" "$1"
+  else dt tui.help_close; dash_keyfit "$DTV" "$1"; fi
 }
 
 # --- Frame ----------------------------------------------------------------------------------------------
@@ -1160,7 +1338,7 @@ dash_dialog_help() { # body_height
 # The line under the body: the current message or, while typing a command, its help.
 dash_msg_line() {
   local col
-  if [ "$DASH_MODE" = "cmd" ] && [ "$DASH_VIEW" = "instances" ]; then
+  if [ "$DASH_MODE" = "cmd" ] && { [ "$DASH_VIEW" = "instances" ] || [ "$DASH_VIEW" = "console" ]; }; then
     TUI_FRAME+=("")
   elif [ "$DASH_MODE" = "cmd" ]; then
     if [ "$UI_UTF8" -eq 1 ] && [ "$UI_RICH" -eq 1 ]; then dt tui.cmd.keys; else dt tui.cmd.keys.ascii; fi
@@ -1175,10 +1353,43 @@ dash_msg_line() {
 
 # Colours a key hint text ("Enter actions · u deploy · q quit"): the key of each item in the theme's key colour, its
 # description dim, the separators faint. Remembered per text. Result in DASH_KBV.
-dash_keybar() { # text
-  local t="$1" rest part first out=""
+# A key hint text that fits $2 cells, into DASH_KF. It loses whole items, never half of one: the first ones (how to move) and the
+# last two (help and quit, or how to go back) stay, and the ones before those go first, the latest first. Only when that is not
+# enough are the last ones given up too, keeping the items from the start that fit.
+dash_keyfit() { # text width
+  local t="$1" w="$2" rest part n d i j out
+  local -a it=()
+  DASH_KF="$t"
+  [ "${#t}" -gt "$w" ] || return 0
+  rest="$t"
+  while [ -n "$rest" ]; do
+    if [[ "$rest" == *" · "* ]]; then part="${rest%% · *}"; rest="${rest#* · }"; else part="$rest"; rest=""; fi
+    it+=("$part")
+  done
+  n="${#it[@]}"
+  local -a keep=()
+  for ((i = 0; i < n; i++)); do keep[i]=1; done
+  for ((d = n - 3; d >= 1; d--)); do
+    keep[d]=0
+    out=""
+    for ((j = 0; j < n; j++)); do [ "${keep[j]}" -eq 0 ] || out+="${out:+ · }${it[$j]}"; done
+    if [ "${#out}" -le "$w" ]; then DASH_KF="$out"; return 0; fi
+  done
+  out=""
+  for ((j = 0; j < n; j++)); do
+    [ $((${#out} + 3 + ${#it[$j]})) -le "$w" ] || [ -z "$out" ] || break
+    out+="${out:+ · }${it[$j]}"
+  done
+  DASH_KF="${out:0:$w}"
+}
+DASH_KF=""
+
+dash_keybar() { # text [width]
+  local t="$1" rest part first out="" ck
   if [ -z "$t" ]; then DASH_KBV=""; return 0; fi   # (an empty text is not a valid array key)
-  if [ -n "${DASH_KB[$t]+x}" ]; then DASH_KBV="${DASH_KB[$t]}"; return 0; fi
+  ck="${2:-0}|$t"
+  if [ -n "${DASH_KB[$ck]+x}" ]; then DASH_KBV="${DASH_KB[$ck]}"; return 0; fi
+  if [ "${2:-0}" -gt 0 ]; then dash_keyfit "$t" "$2"; t="$DASH_KF"; fi
   rest="$t"
   while [ -n "$rest" ]; do
     # The texts always separate the items with a middle dot, whatever the glyph set of the terminal is.
@@ -1191,19 +1402,19 @@ dash_keybar() { # text
     fi
     [ -z "$rest" ] || out+=" $C_DIM$UI_S_DOT$C_OFF "
   done
-  DASH_KB[$t]="$out"
+  DASH_KB[$ck]="$out"
   DASH_KBV="$out"
 }
 
 # The last line: the keys of the current view, or the command being typed.
 dash_key_line() {
-  local line kv
+  local line kv w=$((TUI_COLS - 1))
   TUI_CURSOR=""
   case "$DASH_MODE" in
     cmd)
-      if [ "$DASH_VIEW" = "instances" ]; then
+      if [ "$DASH_VIEW" = "instances" ] || [ "$DASH_VIEW" = "console" ]; then
         # The console box holds the prompt: the last line only lists the keys of the line editor.
-        dt tui.con.keys; dash_keybar "${DTV//\{1\}/$DASH_UD}"
+        dt tui.con.keys; dash_keybar "${DTV//\{1\}/$DASH_UD}" "$w"
         TUI_FRAME+=(" $DASH_KBV")
         return 0
       fi
@@ -1213,15 +1424,20 @@ dash_key_line() {
       TUI_CURSOR="$TUI_ROWS;$((TUI_VL + 2))"
       return 0
       ;;
-    menu) dt tui.dialog.keys; TUI_FRAME+=(" $C_GRY${DTV//\{1\}/$DASH_UD}$C_OFF") ;;
+    menu) dt tui.dialog.keys; dash_keyfit "${DTV//\{1\}/$DASH_UD}" "$w"; TUI_FRAME+=(" $C_GRY$DASH_KF$C_OFF") ;;
     confirm)
       if [ "$UI_UTF8" -eq 1 ] && [ "$UI_RICH" -eq 1 ]; then dt tui.confirm.keys; else dt tui.confirm.keys.ascii; fi
-      TUI_FRAME+=(" $C_GRY$DTV$C_OFF")
+      dash_keyfit "$DTV" "$w"; TUI_FRAME+=(" $C_GRY$DASH_KF$C_OFF")
       ;;
-    name) dt tui.name.keys; TUI_FRAME+=(" $C_GRY$DTV$C_OFF") ;;
-    filter) dt tui.keys.filter; TUI_FRAME+=(" $C_GRY$DTV$C_OFF") ;;
-    palette) dt tui.pal.keys; TUI_FRAME+=(" $C_GRY${DTV//\{1\}/$DASH_UD}$C_OFF") ;;
-    help) dt tui.help_close; TUI_FRAME+=(" $C_GRY$DTV$C_OFF") ;;
+    name) dt tui.name.keys; dash_keyfit "$DTV" "$w"; TUI_FRAME+=(" $C_GRY$DASH_KF$C_OFF") ;;
+    filter) dt tui.keys.filter; dash_keyfit "$DTV" "$w"; TUI_FRAME+=(" $C_GRY$DASH_KF$C_OFF") ;;
+    find) dt tui.keys.find; dash_keyfit "$DTV" "$w"; TUI_FRAME+=(" $C_GRY$DASH_KF$C_OFF") ;;
+    palette) dt tui.pal.keys; dash_keyfit "${DTV//\{1\}/$DASH_UD}" "$w"; TUI_FRAME+=(" $C_GRY$DASH_KF$C_OFF") ;;
+    help) dash_help_keys "$w"; TUI_FRAME+=(" $C_GRY$DASH_KF$C_OFF") ;;
+    options)
+      dt tui.opt.keys; line="${DTV//\{1\}/$DASH_UD}"
+      dash_keybar "${line//\{2\}/$DASH_LR}" "$w"; TUI_FRAME+=(" $DASH_KBV")
+      ;;
     *)
       # The hints follow the focus: on the New button, inside the services, or on the list of instances.
       kv="$DASH_VIEW"
@@ -1231,7 +1447,10 @@ dash_key_line() {
         elif [ "$DASH_FOCUS" = "svc" ]; then kv=services
         elif [ "$DASH_FOCUS" = "logs" ]; then kv=logs; fi
       fi
-      dash_keybar "${DASH_KEYS[$kv]}"
+      [ "$DASH_VIEW" != "runs" ] || { [ "$DASH_RUNS_MODE" != "stats" ] && [ "$DASH_RUNS_MODE" != "log" ]; } || kv="runs_$DASH_RUNS_MODE"
+      # (room is kept for "x cancel" while a command runs)
+      if job_running; then dt tui.keys.running; w=$((w - 3 - ${#DTV})); fi
+      dash_keybar "${DASH_KEYS[$kv]}" "$w"
       line="$DASH_KBV"
       if job_running; then dt tui.keys.running; line+=" $C_DIM$UI_S_DOT$C_OFF $C_YEL$DTV$C_OFF"; fi
       TUI_FRAME+=(" $line")
@@ -1245,10 +1464,16 @@ DASH_BODY=() DASH_BODY_SIG=""
 DASH_REFRESH_N=0 DASH_ERRS_N=0 DASH_LANG_N=0
 
 # Builds the body (everything between the tab line and the message line) into TUI_FRAME.
+# Where the list of instances is on screen, for the mouse: drawn in this body or not, its width, and the first instance it shows
+# and how many fit. Its box is always the first thing of the body, so its first row (the New button) is screen row 4.
+DASH_LIST_SHOWN=0 DASH_LIST_W=0 DASH_LIST_START=0 DASH_LIST_AVAIL=0 DASH_LIST_OFF=0
+
 dash_build_body() { # body_height
   local bh="$1" total i
+  DASH_LIST_SHOWN=0
   if [ "$TUI_ROWS" -lt 14 ] || [ "$TUI_COLS" -lt 60 ]; then
     # Too small to draw anything useful: say so instead of drawing broken boxes.
+    DASH_HELP_MAX=0   # (no help is drawn: nothing to scroll)
     dt tui.too_small
     dash_wrap "${DTV//\{1\}/60x14}" $((TUI_COLS - 2))
     TUI_FRAME+=("")
@@ -1260,6 +1485,7 @@ dash_build_body() { # body_height
       confirm) dash_dialog_confirm "$bh" ;;
       name) dash_dialog_name "$bh" ;;
       help) dash_dialog_help "$bh" ;;
+      options) dash_dialog_options "$bh" ;;
       *)
         case "$DASH_VIEW" in
           instances)
@@ -1269,6 +1495,9 @@ dash_build_body() { # body_height
             ;;
           resources) dash_view_resources "$bh" ;;
           output) dash_view_output "$bh" ;;
+          runs) dash_view_runs "$bh" ;;
+          procs) dash_view_procs "$bh" ;;
+          console) dash_view_console "$bh" ;;
         esac
         ;;
     esac
@@ -1281,16 +1510,24 @@ dash_build_body() { # body_height
 
 # Builds the whole frame for the current state and draws it.
 dash_render() {
-  local bh i sig
+  local bh i sig data
   bh=$((TUI_ROWS - 4))
   dash_tabs_line
   TUI_FRAME=("$DASH_HOSTLINE" "$TUI_TABS")
-  sig="$DASH_VIEW|$DASH_MODE|$DASH_SEL|$DASH_SVC|$DASH_FOCUS|$DASH_ON_NEW|$DASH_RES_SEL|$DASH_RES_SORT|$MT_SAMPLES|$DASH_REFRESH_N|$DASH_ERRS_N|$DASH_LANG_N"
-  sig+="|$DASH_EV_N|$DASH_LOGS_N|$JOB_SEQ|$JOB_TOTAL|${JOB_RC-r}|$JOB_CANCELLED|$DASH_OUT_SCROLL|$DASH_OUT_ERRORS|$TUI_ROWS|$TUI_COLS|$DASH_MENU_SEL|$DASH_CONF_TEXT|$DASH_NAME_TARGET"
+  # The figures (samples, state of Docker, errors, events, logs of a service) only matter to the views that draw them. The others keep
+  # their body between samples: rebuilding it every 2 s would redraw exactly the same lines.
+  case "$DASH_VIEW" in
+    output | runs | procs | console) data="" ;;
+    *) data="$MT_SAMPLES|$DASH_REFRESH_N|$DASH_ERRS_N|$DASH_EV_N|$DASH_LOGS_N" ;;
+  esac
+  sig="$DASH_VIEW|$DASH_MODE|$DASH_SEL|$DASH_SVC|$DASH_FOCUS|$DASH_ON_NEW|$DASH_RES_SEL|$DASH_RES_SORT|$data|$DASH_LANG_N"
+  sig+="|$JOB_SEQ|$JOB_TOTAL|${JOB_RC-r}|$JOB_CANCELLED|$DASH_OUT_SCROLL|$DASH_OUT_ERRORS|$TUI_ROWS|$TUI_COLS|$DASH_MENU_SEL|$DASH_CONF_TEXT|$DASH_NAME_TARGET"
   [ "$DASH_MODE" != "name" ] || sig+="|$DASH_BUF"
+  sig+="|$DASH_RUNS_SEL|$DASH_RUNS_OFF|$DASH_RUNS_MODE|$DASH_RUNS_N|$DASH_RUNS_STATS_INST|$DASH_RV_TOP|$DASH_RV_END|$DASH_RV_TOTAL|$DASH_PROCS_N|$DASH_PROCS_OFF|$DASH_PC_TXT"
   sig+="|$DASH_CON_N|$DASH_CON_SCROLL|$DASH_ZOOM|$DASH_LOG_SCROLL|$DASH_LOG_FILTER|$DASH_PAL_Q|$DASH_PAL_SEL"
-  [ "$DASH_MODE" != "filter" ] || sig+="|$DASH_BUF|$DASH_CUR"
-  { [ "$DASH_MODE" != "cmd" ] || [ "$DASH_VIEW" != "instances" ]; } || sig+="|$DASH_BUF|$DASH_CUR"
+  sig+="|$DASH_LOG_ERRONLY|$DASH_LOG_FIND|$DASH_LS_PAUSED|$DASH_LS_PEND|$DASH_LOG_MIDX|$DASH_OPT_SEL|$DASH_OPT_N|$DASH_HELP_OFF"
+  { [ "$DASH_MODE" != "filter" ] && [ "$DASH_MODE" != "find" ]; } || sig+="|$DASH_BUF|$DASH_CUR"
+  { [ "$DASH_MODE" != "cmd" ] || { [ "$DASH_VIEW" != "instances" ] && [ "$DASH_VIEW" != "console" ]; }; } || sig+="|$DASH_BUF|$DASH_CUR"
   if job_running; then sig+="|$SECONDS"; fi
   if [ "$sig" = "$DASH_BODY_SIG" ]; then
     TUI_FRAME+=("${DASH_BODY[@]}")

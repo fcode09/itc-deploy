@@ -1,6 +1,7 @@
 # Glossary of the environment variables of deltactl.
 # Format: "@ KEY | file | type | default value" and below it the description up to the next "@".
-# type: required (validated by ./deltactl deploy) | optional | fixed (set by the compose or the image: it does not go in the .env).
+# type: required (validated by ./deltactl deploy) | optional | fixed (set by the compose or the image: it does not go in the
+# .env).
 # tests/test-help.sh checks that this file matches the templates and the validations of deploy.sh.
 
 @ INSTANCE | .env.instance | required | set by ./deltactl new

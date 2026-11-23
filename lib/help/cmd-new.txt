@@ -15,7 +15,8 @@ Al terminar muestra un resumen, pide confirmación y lista lo que aún falta com
 
 ## Opciones
 - `--services s0,s1` servicios activos en la instancia (por defecto s0,s1). Ej.: `--services s1` crea una instancia solo con Gue.
-- `--existing` la municipalidad YA tiene datos: se marca como inicializada y `./deltactl init` no podrá ejecutarse nunca sobre ella.
+- `--existing` la municipalidad YA tiene datos: se marca como inicializada y `./deltactl init` no podrá ejecutarse nunca sobre
+  ella.
 
 ## Qué crea
 - `.env.instance`  variables de la instancia: versiones, puertos, servicios activos, memoria

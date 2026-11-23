@@ -74,23 +74,50 @@ st_collect_stats() {
 }
 
 # 3725 -> 1h02m
-st_duration() { # seconds
+# st_duration_r leaves it in DUR.
+DUR=""
+st_duration_r() { # seconds
   local s="$1" d h m
-  [[ "$s" =~ ^[0-9]+$ ]] || { printf -- '-'; return 0; }
+  [[ "$s" =~ ^[0-9]+$ ]] || { DUR=-; return 0; }
+  s=$((10#$s))
   d=$((s / 86400)); h=$(((s % 86400) / 3600)); m=$(((s % 3600) / 60))
-  if [ "$d" -gt 0 ]; then printf '%dd%02dh' "$d" "$h"
-  elif [ "$h" -gt 0 ]; then printf '%dh%02dm' "$h" "$m"
-  elif [ "$m" -gt 0 ]; then printf '%dm' "$m"
-  else printf '%ds' "$s"; fi
+  if [ "$d" -gt 0 ]; then printf -v DUR '%dd%02dh' "$d" "$h"
+  elif [ "$h" -gt 0 ]; then printf -v DUR '%dh%02dm' "$h" "$m"
+  elif [ "$m" -gt 0 ]; then printf -v DUR '%dm' "$m"
+  else printf -v DUR '%ds' "$s"; fi
+}
+st_duration() { # seconds
+  st_duration_r "$1"
+  printf '%s' "$DUR"
 }
 
 # Seconds elapsed since an ISO 8601 instant (containers report StartedAt in UTC).
-st_uptime_secs() { # iso
-  local t now
-  t="$(date -d "$1" +%s 2>/dev/null)" || return 1
-  now="$(date +%s)"
+# st_uptime_secs_r leaves them in UPS. Docker's own form (2026-01-31T12:00:00.123456789Z) is converted in Bash, without
+# starting `date` (the state refresh does it for every running container); any other form still goes to `date -d`.
+UPS=""
+st_uptime_secs_r() { # iso
+  local t now y m d
+  UPS=""
+  if [[ "$1" =~ ^([0-9]{4})-([0-9]{2})-([0-9]{2})T([0-9]{2}):([0-9]{2}):([0-9]{2})(\.[0-9]+)?Z$ ]]; then
+    # Days from the civil date (proleptic Gregorian), then seconds since the epoch.
+    y=$((10#${BASH_REMATCH[1]})) m=$((10#${BASH_REMATCH[2]})) d=$((10#${BASH_REMATCH[3]}))
+    [ "$m" -gt 2 ] || y=$((y - 1))
+    local era=$(((y >= 0 ? y : y - 399) / 400))
+    local yoe=$((y - era * 400))
+    local doy=$(((153 * (m > 2 ? m - 3 : m + 9) + 2) / 5 + d - 1))
+    local doe=$((yoe * 365 + yoe / 4 - yoe / 100 + doy))
+    t=$(((era * 146097 + doe - 719468) * 86400 + 10#${BASH_REMATCH[4]} * 3600 + 10#${BASH_REMATCH[5]} * 60 + 10#${BASH_REMATCH[6]}))
+  else
+    t="$(date -d "$1" +%s 2>/dev/null)" || return 1
+    [[ "$t" =~ ^-?[0-9]+$ ]] || return 1
+  fi
+  printf -v now '%(%s)T' -1
   [ "$t" -gt 0 ] && [ "$now" -ge "$t" ] || return 1
-  printf '%s' "$((now - t))"
+  UPS=$((now - t))
+}
+st_uptime_secs() { # iso
+  st_uptime_secs_r "$1" || return 1
+  printf '%s' "$UPS"
 }
 
 # Records a next-step suggestion (without repeating it).
@@ -99,6 +126,14 @@ st_hint() { # command reason
   HINT_SEEN["$1"]=1
   HINTS+=("$1|$2")
 }
+# The same with the reason as a catalog key and its arguments: it is only translated when the hint is new.
+st_hint_t() { # command key [args...]
+  [ -z "${HINT_SEEN[$1]:-}" ] || return 0
+  local cmd="$1"
+  shift
+  t_r "$@" || true
+  st_hint "$cmd" "$T_OUT"
+}
 
 # Active services of an instance, error tolerant (it does not abort the panel if a file is wrong).
 ST_ENABLED=()
@@ -106,7 +141,8 @@ st_enabled() { # instance
   ST_ENABLED=()
   local raw part
   local -a parts=()
-  raw="$(get_var "$(instance_dir "$1")/.env.instance" COMPOSE_PROFILES)"
+  get_var_r "$INSTANCES_DIR/$1/.env.instance" COMPOSE_PROFILES
+  raw="$GV"
   IFS=',' read -ra parts <<< "$raw"
   for part in ${parts[@]+"${parts[@]}"}; do
     part="${part// /}"
@@ -115,12 +151,18 @@ st_enabled() { # instance
 }
 
 # Image reference that Compose would use for the service (the same rule as the compose files).
+# st_ref_r leaves it in REF without starting any process.
+REF=""
+st_ref_r() { # instance service
+  local f="$INSTANCES_DIR/$1/.env.instance" reg
+  get_var_r "$f" REGISTRY; reg="$GV"
+  service_repo_r "$2" "$1" || true   # (an unknown service has no image name, as before: errexit must not end the caller)
+  get_var_r "$f" "${2^^}_TAG"
+  REF="${reg:+$reg/}$SR:$GV"
+}
 st_ref() { # instance service
-  local dir reg tag
-  dir="$(instance_dir "$1")"
-  reg="$(get_var "$dir/.env.instance" REGISTRY)"
-  tag="$(get_var "$dir/.env.instance" "$(tag_var "$2")")"
-  printf '%s%s:%s' "${reg:+$reg/}" "$(service_repo "$2" "$1")" "$tag"
+  st_ref_r "$1" "$2"
+  printf '%s' "$REF"
 }
 
 # Tag of a reference "[registry/]name:tag"; empty if it has none.
@@ -135,10 +177,10 @@ st_load_ports() {
   local f name svc p
   for f in "$INSTANCES_DIR"/*/.env.instance; do
     [ -f "$f" ] || continue
-    name="$(basename "$(dirname "$f")")"
+    name="${f%/.env.instance}"; name="${name##*/}"
     st_enabled "$name"
     for svc in ${ST_ENABLED[@]+"${ST_ENABLED[@]}"}; do
-      p="$(get_var "$f" "${svc^^}_PORT")"
+      get_var_r "$f" "${svc^^}_PORT"; p="$GV"
       [ -n "$p" ] || continue
       ST_PORTS["$p"]="${ST_PORTS[$p]:+${ST_PORTS[$p]} }$name/$svc"
     done
@@ -152,32 +194,34 @@ st_load_ports() {
 E_KIND="" E_TEXT="" E_CODES="" E_CFG="" E_RUN="" E_DEP="" E_PREV="" E_PORT="" E_UP="" E_UPSECS=""
 E_DATA="" E_NOTES="" E_REF="" E_HEALTH="" E_STATE=""
 st_eval() { # instance service
-  local name="$1" svc="$2" dir key f cur_id dep_id owners
-  dir="$(instance_dir "$name")"
+  # (no `$(...)` in here: it runs for every service at every state refresh, and each one would be a fork)
+  local name="$1" svc="$2" dir key f cur_id dep_id owners tv="${2^^}_TAG"
+  dir="$INSTANCES_DIR/$name"
   f="$dir/.env.instance"
   key="$name/$svc"
   E_KIND="" E_TEXT="" E_CODES="" E_NOTES="" E_UP="" E_UPSECS=""
-  E_CFG="$(get_var "$f" "$(tag_var "$svc")")"
-  E_PORT="$(get_var "$f" "${svc^^}_PORT")"
-  E_DEP="$(get_var "$dir/.deployed" "$(tag_var "$svc")")"
-  E_PREV="$(get_var "$dir/.previous" "$(tag_var "$svc")")"
-  E_REF="$(st_ref "$name" "$svc")"
+  get_var_r "$f" "$tv"; E_CFG="$GV"
+  get_var_r "$f" "${svc^^}_PORT"; E_PORT="$GV"
+  get_var_r "$dir/.deployed" "$tv"; E_DEP="$GV"
+  get_var_r "$dir/.previous" "$tv"; E_PREV="$GV"
+  st_ref_r "$name" "$svc"; E_REF="$REF"
   E_STATE="${ST_STATE[$key]:-}"
   E_HEALTH="${ST_HEALTH[$key]:-}"
   E_RUN="-"
-  E_DATA="$(data_state "$name")"
+  data_state_r "$name"; E_DATA="$DS"
 
   if [ "$ST_DOCKER" -eq 0 ]; then
-    E_KIND=warn E_TEXT="$(t status.state.no_docker)"
+    t_r status.state.no_docker; E_KIND=warn E_TEXT="$T_OUT"
     return 0
   fi
 
   if [ -z "$E_STATE" ]; then
-    E_KIND=dim E_TEXT="$(t status.state.not_created)"
+    t_r status.state.not_created; E_KIND=dim E_TEXT="$T_OUT"
     E_CODES="not-created"
   else
-    local rt
-    rt="$(st_tag_of "${ST_CIMAGE[$key]:-}")"
+    local rt="${ST_CIMAGE[$key]:-}"
+    rt="${rt##*/}"
+    case "$rt" in *:*) rt="${rt##*:}" ;; *) rt="" ;; esac   # (st_tag_of, inline)
     E_RUN="${rt:-?}"
     case "$E_STATE" in
       running)
@@ -187,11 +231,12 @@ st_eval() { # instance service
           unhealthy) E_KIND=err E_TEXT=unhealthy E_CODES+=" unhealthy" ;;
           *) E_KIND=ok E_TEXT=running ;;
         esac
-        E_UPSECS="$(st_uptime_secs "${ST_STARTED[$key]:-}" 2>/dev/null || true)"
-        E_UP="$(st_duration "$E_UPSECS")"
+        st_uptime_secs_r "${ST_STARTED[$key]:-}" 2> /dev/null || true   # (./deltactl runs with errexit: no uptime is not an error)
+        E_UPSECS="$UPS"
+        st_duration_r "$E_UPSECS"; E_UP="$DUR"
         ;;
-      restarting) E_KIND=err E_TEXT="$(t status.state.restarting)" E_CODES+=" restarting" ;;
-      exited | dead) E_KIND=warn E_TEXT="$(t status.state.stopped)" E_CODES+=" stopped" ;;
+      restarting) t_r status.state.restarting; E_KIND=err E_TEXT="$T_OUT" E_CODES+=" restarting" ;;
+      exited | dead) t_r status.state.stopped; E_KIND=warn E_TEXT="$T_OUT" E_CODES+=" stopped" ;;
       *) E_KIND=warn E_TEXT="$E_STATE" E_CODES+=" stopped" ;;
     esac
     # The running tag is not the configured one: a `deploy` is missing.
@@ -207,9 +252,9 @@ st_eval() { # instance service
       E_CODES+=" image-missing"
       [ "$E_KIND" = "err" ] || E_KIND=warn
     else
-      dep_id="$(get_var "$dir/.deployed" "${svc^^}_IMAGE_ID")"
+      get_var_r "$dir/.deployed" "${svc^^}_IMAGE_ID"; dep_id="$GV"
       if [ -n "$dep_id" ] && [ "$E_DEP" = "$E_CFG" ]; then
-        cur_id="$(st_image_id "$E_REF")"
+        if [ "$ST_IMG_LOADED" -eq 1 ]; then cur_id="${ST_IMG[$E_REF]:-}"; else cur_id="$(st_image_id "$E_REF")"; fi
         if [ -n "$cur_id" ] && [ "$cur_id" != "$dep_id" ]; then
           E_CODES+=" image-rebuilt"
           [ "$E_KIND" = "err" ] || E_KIND=warn
@@ -236,46 +281,45 @@ st_notes() { # instance service
   for code in $E_CODES; do
     case "$code" in
       tag-drift)
-        notes+="$(t status.note.drift "$E_CFG" "$E_RUN"); "
-        st_hint "./deltactl deploy $name $svc" "$(t status.hint.drift "$name" "$svc" "$E_RUN" "$E_CFG")"
+        t_r status.note.drift "$E_CFG" "$E_RUN"; notes+="$T_OUT; "
+        st_hint_t "./deltactl deploy $name $svc" status.hint.drift "$name" "$svc" "$E_RUN" "$E_CFG"
         ;;
       image-rebuilt)
-        notes+="$(t status.note.rebuilt "$E_CFG"); "
-        st_hint "./deltactl deploy $name $svc" "$(t status.hint.rebuilt "$name" "$svc")"
+        t_r status.note.rebuilt "$E_CFG"; notes+="$T_OUT; "
+        st_hint_t "./deltactl deploy $name $svc" status.hint.rebuilt "$name" "$svc"
         ;;
       image-missing)
-        notes+="$(t status.note.missing "$E_REF"); "
-        st_hint "$(t status.hint.load_cmd)" "$(t status.hint.load "$E_REF")"
+        t_r status.note.missing "$E_REF"; notes+="$T_OUT; "
+        t_r status.hint.load_cmd || true; st_hint_t "$T_OUT" status.hint.load "$E_REF"
         ;;
       port-conflict)
         owners=""
         [ -z "$E_PORT" ] || owners="${ST_PORTS[$E_PORT]:-}"
-        notes+="$(t status.note.port "$E_PORT" "$owners"); "
-        st_hint "$(t status.hint.port_cmd "$name")" "$(t status.hint.port "$E_PORT" "$owners")"
+        t_r status.note.port "$E_PORT" "$owners"; notes+="$T_OUT; "
+        t_r status.hint.port_cmd "$name" || true; st_hint_t "$T_OUT" status.hint.port "$E_PORT" "$owners"
         ;;
       stopped)
-        notes+="$(t status.note.stopped); "
-        st_hint "./deltactl deploy $name $svc" "$(t status.hint.stopped "$name" "$svc")"
+        t_r status.note.stopped; notes+="$T_OUT; "
+        st_hint_t "./deltactl deploy $name $svc" status.hint.stopped "$name" "$svc"
         ;;
       unhealthy | restarting)
-        notes+="$(t status.note.unhealthy); "
-        st_hint "./deltactl logs $name $svc" "$(t status.hint.unhealthy "$name" "$svc")"
+        t_r status.note.unhealthy; notes+="$T_OUT; "
+        st_hint_t "./deltactl logs $name $svc" status.hint.unhealthy "$name" "$svc"
         ;;
       not-created)
-        st_hint "./deltactl deploy $name" "$(t status.hint.not_created "$name")"
+        st_hint_t "./deltactl deploy $name" status.hint.not_created "$name"
         ;;
     esac
   done
-  if [ -n "$E_PREV" ] && [ "$E_PREV" != "$E_CFG" ]; then notes+="$(t status.note.previous "$E_PREV"); "; fi
+  if [ -n "$E_PREV" ] && [ "$E_PREV" != "$E_CFG" ]; then t_r status.note.previous "$E_PREV"; notes+="$T_OUT; "; fi
   E_NOTES="${notes%; }"
 }
 
 # Hints at instance level (not service level).
 st_instance_hints() { # instance
-  local name="$1" marker
-  marker="$(marker_file "$name")"
-  if [ ! -f "$marker" ]; then
-    st_hint "./deltactl init $name" "$(t status.hint.no_data "$name")"
+  local name="$1"
+  if [ ! -f "$INSTANCES_DIR/$name/.initialized" ]; then
+    st_hint_t "./deltactl init $name" status.hint.no_data "$name"
   fi
 }
 

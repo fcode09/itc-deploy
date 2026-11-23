@@ -2,7 +2,8 @@
 load · cargar imágenes en este servidor
 -----------------------------------------
 
-Atajo de `docker load`: carga las imágenes de un archivo creado con `docker save` (también `.tar.gz`).
+Atajo de `docker load`: carga las imágenes de un archivo creado con `docker save` (también
+`.tar.gz`).
 
 Uso
   $ ./deltactl load <archivo.tar|archivo.tar.gz>

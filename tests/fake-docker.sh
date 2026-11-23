@@ -49,8 +49,10 @@ case "$1" in
         exit 0 ;;
       *dist/cli.js*)
         # A seed of the image's CLI. $FIX/seed_out_<command> replaces its output, $FIX/seed_rc_<command> sets its exit code
-        # (real seeds exit 0 even when they fail), and $FIX/no_users_after keeps the user collections empty.
+        # (real seeds exit 0 even when they fail), $FIX/seed_slow_<command> holds the seconds it takes before it writes anything
+        # (to have a seed to kill), and $FIX/no_users_after keeps the user collections empty.
         all="$*"; cmd="${all#*dist/cli.js }"; cmd="${cmd%% *}"   # (${*#...} would trim each argument separately)
+        if [ -f "$FIX/seed_slow_$cmd" ]; then sleep "$(cat "$FIX/seed_slow_$cmd")"; fi
         if [ -f "$FIX/seed_out_$cmd" ]; then
           cat "$FIX/seed_out_$cmd"
         else
@@ -80,6 +82,8 @@ case "$1" in
         --images) imgs=1; shift ;;
         up | pull | ps | stop | down | logs)
           echo "COMPOSE $1" >> "$FIX/calls.log"
+          # $FIX/slow_<command> holds the seconds that command takes (to have a real operation to cancel or kill)
+          if [ -f "$FIX/slow_$1" ]; then sleep "$(cat "$FIX/slow_$1")"; fi
           # $FIX/fail_<command> holds the exit code that command must return (for example fail_pull=23)
           if [ -f "$FIX/fail_$1" ]; then exit "$(cat "$FIX/fail_$1")"; fi
           exit 0 ;;

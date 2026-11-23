@@ -108,7 +108,7 @@ host_cg_resolve() { # pid
 # The usage excludes the inactive file cache, as `docker stats` does.
 CG_MEM_BYTES="" CG_MEM_LIMIT=""
 host_cg_mem() { # dir version
-  local dir="$1" ver="$2" cur lim inactive k v key
+  local dir="$1" ver="$2" cur lim inactive v key stat
   CG_MEM_BYTES="" CG_MEM_LIMIT=0
   if [ "$ver" = 2 ]; then
     host_read1 "$dir/memory.current" || return 1
@@ -122,9 +122,12 @@ host_cg_mem() { # dir version
   [[ "$cur" =~ ^[0-9]+$ ]] || return 1
   inactive=0
   if [ -r "$dir/memory.stat" ]; then
-    while read -r k v; do
-      if [ "$k" = "$key" ]; then inactive="$v"; break; fi
-    done < "$dir/memory.stat"
+    # The whole file at once and the line cut out of it: `inactive_file` is some 20 lines down, and reading line by line to get there
+    # cost about a millisecond per container and sample. `read -d ''` never forks (`$(< file)` does in a Bash older than 5.3).
+    IFS= read -rd '' stat < "$dir/memory.stat" || true   # (it returns 1 at the end of the file, which is where it always stops)
+    stat=$'\n'"$stat"$'\n'
+    v="${stat#*$'\n'"$key "}"
+    if [ "$v" != "$stat" ]; then inactive="${v%%$'\n'*}"; fi
   fi
   [[ "$inactive" =~ ^[0-9]+$ ]] || inactive=0
   [ "$inactive" -le "$cur" ] || inactive=0

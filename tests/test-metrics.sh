@@ -47,6 +47,14 @@ check "an unknown pid does not resolve" '! lib "host_cg_resolve 99999"; [ "$(lib
 check "a non numeric pid does not resolve" '[ "$(lib "host_cg_resolve abc || echo none")" = "none" ]'
 check "v2 memory excludes the inactive cache and reads the limit" '[ "$(lib "host_cg_mem $FIX/cg/system.slice/docker-abc.scope 2; echo \$CG_MEM_BYTES \$CG_MEM_LIMIT")" = "83886080 536870912" ]'
 check "v2 memory.max=max means no limit" '[ "$(lib "host_cg_mem $FIX/cg/system.slice/docker-def.scope 2; echo \$CG_MEM_BYTES \$CG_MEM_LIMIT")" = "2147483648 0" ]'
+mkdir -p "$FIX/cg/stat-a" "$FIX/cg/stat-b" "$FIX/cg/stat-c"
+for d in a b c; do echo 104857600 > "$FIX/cg/stat-$d/memory.current"; echo max > "$FIX/cg/stat-$d/memory.max"; done
+printf 'total_inactive_file 99999999\ninactive_file 7340032\nactive_file 5\n' > "$FIX/cg/stat-a/memory.stat"
+printf 'anon 1\ntotal_inactive_file 52428800\n' > "$FIX/cg/stat-b/memory.stat"
+printf 'inactive_file 1048576' > "$FIX/cg/stat-c/memory.stat"
+check "memory.stat: the line is found by its exact name (not as the end of another one)" '[ "$(lib "host_cg_mem $FIX/cg/stat-a 2; echo \$CG_MEM_BYTES")" = "97517568" ]'
+check "memory.stat: a name that only appears inside another one counts as absent" '[ "$(lib "host_cg_mem $FIX/cg/stat-b 2; echo \$CG_MEM_BYTES")" = "104857600" ]'
+check "memory.stat: the first line and a file with no final newline are read too" '[ "$(lib "host_cg_mem $FIX/cg/stat-c 2; echo \$CG_MEM_BYTES")" = "103809024" ]'
 check "v1 memory uses total_inactive_file and treats the huge limit as none" '[ "$(lib "host_cg_mem $FIX/cg/memory/docker/xyz 1; echo \$CG_MEM_BYTES \$CG_MEM_LIMIT")" = "157286400 0" ]'
 check "v2 CPU time is usage_usec" '[ "$(lib "host_cg_cpu $FIX/cg/system.slice/docker-abc.scope 2; echo \$CG_CPU_USEC")" = "5000000" ]'
 check "v1 CPU time converts nanoseconds to microseconds" '[ "$(lib "host_cg_cpu $FIX/cg/cpu,cpuacct/docker/xyz 1; echo \$CG_CPU_USEC")" = "7000000" ]'
@@ -64,6 +72,11 @@ check "sparkline keeps only the last cells" '[ "$(lib "mt_spark \"0 0 10 10\" 0 
 check "sparkline with a fixed scale" '[ "$(lib "mt_spark \"5 5\" 100 2")" = "__" ]'
 check "sparkline of nothing is empty" '[ -z "$(lib "mt_spark \"\" 0")" ]'
 check "the history keeps the configured number of values" '[ "$(lib "MT_HIST_LEN=3; h=\"\"; for i in 1 2 3 4 5; do mt_push \"\$h\" \$i; h=\"\$MT_H\"; done; echo \$h")" = "3 4 5" ]'
+check "with a counter key the history is cut the same way and the count is remembered" '[ "$(lib "MT_HIST_LEN=3; h=\"\"; for i in 1 2 3 4 5 6; do mt_push \"\$h\" \$i k; h=\"\$MT_H\"; done; echo \"\$h \${MT_HN[k]}\"")" = "4 5 6 3" ]'
+check "an empty history starts the count again, even if a counter was left behind" '[ "$(lib "MT_HIST_LEN=3; MT_HN[k]=3; mt_push \"\" 9 k; echo \"\$MT_H \${MT_HN[k]}\"")" = "9 1" ]'
+check "a history that already holds more than the limit is cut down to it on the first counted push" '[ "$(lib "MT_HIST_LEN=3; mt_push \"1 2 3 4 5\" 6 k; echo \"\$MT_H \${MT_HN[k]}\"")" = "4 5 6 3" ]'
+check "forgetting a service forgets its counters, and a reset forgets all" '[ "$(lib "MT_HN[mem/a/s0]=5; MT_HN[cpu/a/s0]=5; mt_forget a/s0; echo \${#MT_HN[@]}; MT_HN[x]=1; mt_reset; echo \${#MT_HN[@]}")" = "0
+0" ]'
 
 section "3. the sampler"
 SAMPLER='

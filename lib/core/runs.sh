@@ -25,13 +25,15 @@
 #   runs/<id>/docker.tsv  duration in ms and the docker subcommand of every call
 #   runs.idx              id, started, command, instance, state, exit code, duration in ms (tab separated, append only)
 #   active/<id>           the PID of the wrapper while the run is going (a missing PID means it was interrupted)
+#   pending/<id>          an interrupted run nobody has reviewed ("command<TAB>instance"): while one exists no operation runs;
+#                         `runs resolve <id>` clears it. Nothing says what an interrupted run left half done, so someone has to look
 #   locks/mutation.lock   folder created with mkdir (atomic); pid inside
 # DELTACTL_NO_RUNS=1 turns the whole thing off; DELTACTL_RUN_FOOTPRINT=0 skips the before/after look at the containers.
 
 declare -gA RUN=()
 RUNS_OWNER_PID="" RUNS_OWNER_RUN="" RUNS_OWNER_WHAT="" RUNS_FOOT="" RUNS_SAMPLER=""
 RUNS_META_KEYS=(RUN_ID OP ARGS INSTANCE STATE STARTED_AT ENDED_AT DURATION_MS RC PID HOST USER VERSION
-  CPU_MS DOCKER_CALLS DOCKER_MS DOCKER_SLOW PEAK_RSS_KB PEAK_PROCS OUT_LINES OUT_BYTES FOOT_BEFORE FOOT_AFTER)
+  CPU_MS DOCKER_CALLS DOCKER_MS DOCKER_SLOW PEAK_RSS_KB PEAK_PROCS OUT_LINES OUT_BYTES FOOT_BEFORE FOOT_AFTER RESOLVED_AT NOTE)
 
 runs_dir() { printf '%s/.deltactl' "$INSTANCES_DIR"; }
 
@@ -146,7 +148,8 @@ runs_unlock() {
 
 # --- Recovery -----------------------------------------------------------------------------------------------------------
 
-# A run whose wrapper is gone (killed, power loss) is still marked as running: it is closed as `interrupted`, never as a success.
+# A run whose wrapper is gone (killed, power loss) is still marked as running: it is closed as `interrupted`, never as a success, and
+# it is left pending review (pending/<id>): until someone looks at what it did and says so, no new operation starts.
 runs_recover() {
   local f id dir pid now
   for f in "$(runs_dir)"/active/*; do
@@ -159,10 +162,29 @@ runs_recover() {
       now="$(runs_now_iso)"
       RUN[STATE]="interrupted" RUN[ENDED_AT]="$now" RUN[RC]="-"
       runs_meta_write "$dir" && runs_idx_add
+      mkdir -p "$(runs_dir)/pending" && printf '%s\t%s\n' "${RUN[OP]:-?}" "${RUN[INSTANCE]:--}" > "$(runs_dir)/pending/$id"
       warn "$(t runs.recovered "$id")"
     fi
     rm -f "$f"
   done
+}
+
+# The interrupted runs nobody has reviewed: how many (RUNS_PEND_N) and the first one (RUNS_PEND_ID, RUNS_PEND_WHAT = "command instance").
+# Returns 0 when there is at least one.
+RUNS_PEND_N=0 RUNS_PEND_ID="" RUNS_PEND_WHAT=""
+runs_pending() {
+  local f op="" ins=""
+  RUNS_PEND_N=0 RUNS_PEND_ID="" RUNS_PEND_WHAT=""
+  for f in "$(runs_dir)"/pending/*; do
+    [ -f "$f" ] || continue
+    RUNS_PEND_N=$((RUNS_PEND_N + 1))
+    if [ -z "$RUNS_PEND_ID" ]; then
+      RUNS_PEND_ID="${f##*/}"
+      IFS=$'\t' read -r op ins 2> /dev/null < "$f" || true
+      RUNS_PEND_WHAT="$op $ins"
+    fi
+  done
+  [ "$RUNS_PEND_N" -gt 0 ]
 }
 
 # --- Measuring ----------------------------------------------------------------------------------------------------------
@@ -274,6 +296,7 @@ runs_footprint() { # instance
   [ "$1" != "-" ] && [ "${DELTACTL_RUN_FOOTPRINT:-1}" != "0" ] && host_has docker || return 0
   ids="$(dk_instance_container_ids "$1" 2> /dev/null || true)"
   if [ -z "$ids" ]; then RUNS_FOOT="0/0 0 0"; return 0; fi
+  # shellcheck disable=SC2086  # one argument per container id
   while IFS='|' read -r proj svc st hl img started nm pid rs; do
     tot=$((tot + 1))
     [[ "$rs" =~ ^[0-9]+$ ]] && rst=$((rst + rs))
@@ -281,7 +304,6 @@ runs_footprint() { # instance
       run=$((run + 1))
       if host_cg_resolve "$pid" && host_cg_mem "$HOST_CG_MEM" "$HOST_CG_VER"; then mem=$((mem + CG_MEM_BYTES)); fi
     fi
-  # shellcheck disable=SC2086  # one argument per container id
   done < <(dk_container_rows $ids)
   RUNS_FOOT="$run/$tot $mem $rst"
 }
@@ -315,6 +337,7 @@ runs_exec() { # command args...
   umask 077
   mkdir -p "$state/runs" "$state/active" 2> /dev/null || die "$(t runs.cannot_record "$state")"
   runs_recover
+  if runs_pending; then die "$(t runs.blocked "$RUNS_PEND_ID" "$RUNS_PEND_WHAT" "$RUNS_PEND_N")"; fi
   what="$cmd $*"
   id="$(date -u +%Y%m%dT%H%M%SZ)-$$"
   if ! runs_lock "$id" "$what"; then
@@ -322,7 +345,7 @@ runs_exec() { # command args...
   fi
   dir="$state/runs/$id"
   log="$dir/out.log"
-  mkdir -p "$dir" 2> /dev/null && : > "$log" || { runs_unlock; die "$(t runs.cannot_record "$state")"; }
+  if ! { mkdir -p "$dir" 2> /dev/null && : > "$log"; }; then runs_unlock; die "$(t runs.cannot_record "$state")"; fi
   inst="$(runs_instance_of "$cmd" "$@")"
   host_now_us; t0="$HOST_NOW_US"
   RUN=()

@@ -29,11 +29,13 @@ Qué NO pasa al actualizar
   . `data/`, `secrets/` y las bases de Mongo no se tocan
 
 Varias instancias
-Cada instancia tiene su propia etiqueta: puedes actualizar una y dejar otras con la versión anterior.
+Cada instancia tiene su propia etiqueta: puedes actualizar una y dejar otras con la versión
+anterior.
 Conserva las imágenes antiguas hasta que ninguna instancia las use (`./deltactl images` las marca).
 
 Si la versión exige variables nuevas
-Añádelas a `.env.s0` o `.env.s1` ANTES de desplegar (`./deltactl help variable` explica las conocidas).
+Añádelas a `.env.s0` o `.env.s1` ANTES de desplegar (`./deltactl help variable` explica las
+conocidas).
 
 Relacionado
   . `./deltactl help imagenes`, `./deltactl help servicios`

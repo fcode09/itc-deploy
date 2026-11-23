@@ -99,10 +99,59 @@ section "5. an interrupted run is never a success"
 mkdir -p "$STATE/runs/20260101T000000Z-1" "$STATE/active"
 printf 'RUN_ID=20260101T000000Z-1\nOP=deploy\nARGS=deploy rn-ok\nINSTANCE=rn-ok\nSTATE=running\nSTARTED_AT=2026-01-01T00:00:00Z\nENDED_AT=\nDURATION_MS=\nRC=\nPID=999999\nHOST=h\nUSER=u\nVERSION=0\n' > "$STATE/runs/20260101T000000Z-1/meta"
 echo 999999 > "$STATE/active/20260101T000000Z-1"
-out="$(bash ./deltactl deploy rn-ok 2>&1)"
+out="$(bash ./deltactl deploy rn-ok 2>&1)"; rc=$?
 check "the next operation says it closed the dead run" 'echo "$out" | grep -q "20260101T000000Z-1" && echo "$out" | grep -q "interrumpida"'
 check "its state is interrupted, with an end time and no exit code" '[ "$(mv_ 20260101T000000Z-1 STATE)" = "interrupted" ] && [ -n "$(mv_ 20260101T000000Z-1 ENDED_AT)" ] && [ "$(mv_ 20260101T000000Z-1 RC)" = "-" ]'
 check "it is in the index as interrupted and its marker is gone" 'grep -q "20260101T000000Z-1.*interrupted" "$STATE/runs.idx" && [ ! -e "$STATE/active/20260101T000000Z-1" ]'
+
+section "5b. an interrupted run blocks new operations until someone reviews it"
+IR=20260101T000000Z-1
+check "the operation that found the dead run is refused, and says how to go on" '[ "$rc" -ne 0 ] && echo "$out" | grep -q "nadie la ha revisado" && echo "$out" | grep -q "runs resolve $IR"'
+check "the run is left pending review" '[ -f "$STATE/pending/$IR" ] && grep -q "^deploy" "$STATE/pending/$IR"'
+n="$(runs_n)"; c0="$(wc -l < "$FIX/calls.log")"
+out="$(bash ./deltactl deploy rn-ok 2>&1)"; rc=$?
+check "the next operation is refused as well, with no run recorded and no call to docker" '[ "$rc" -ne 0 ] && echo "$out" | grep -q "nadie la ha revisado" && [ "$(runs_n)" = "$n" ] && [ "$(wc -l < "$FIX/calls.log")" = "$c0" ]'
+check "any other operation is refused too, whatever the instance" '! bash ./deltactl deploy rn-pull >/dev/null 2>&1'
+out="$(bash ./deltactl runs list 2>&1)"
+check "runs list marks it and says that nothing runs meanwhile" 'echo "$out" | grep -q "sin revisar" && echo "$out" | grep -q "no se ejecuta ninguna operación"'
+check "--json says so too" 'bash ./deltactl runs list --json | grep -q "\"pending_review\":true" && bash ./deltactl runs list --json | grep -q "\"pending_review\":false"'
+out="$(bash ./deltactl runs show $IR 2>&1)"
+check "runs show says it is pending, and that stopping does not undo what Docker already did" 'echo "$out" | grep -q "pendiente: ./deltactl runs resolve $IR" && echo "$out" | grep -q "no deshace lo que ya había cambiado en Docker"'
+check "resolve needs an id" '! bash ./deltactl runs resolve >/dev/null 2>&1 && bash ./deltactl runs resolve 2>&1 | grep -q "uso: ./deltactl runs resolve"'
+check "a run that is not pending cannot be resolved" 'id="$(ls "$STATE/runs" | grep -v "^20260101" | head -n 1)"; ! bash ./deltactl runs resolve "$id" >/dev/null 2>&1 && bash ./deltactl runs resolve "$id" 2>&1 | grep -q "no está pendiente"'
+check "an unknown run is refused, and none of those mistakes resolved anything" '! bash ./deltactl runs resolve nope-nope >/dev/null 2>&1 && [ -f "$STATE/pending/$IR" ]'
+out="$(bash ./deltactl runs resolve $IR --note "revisado a mano: sin cambios" 2>&1)"; rc=$?
+check "resolve marks it as reviewed and removes the pending mark" '[ "$rc" -eq 0 ] && echo "$out" | grep -q "marcada como revisada" && [ ! -e "$STATE/pending/$IR" ]'
+check "the review stays in its record: when, and the note" '[ -n "$(mv_ $IR RESOLVED_AT)" ] && [ "$(mv_ $IR NOTE)" = "revisado a mano: sin cambios" ]'
+check "it is still an interrupted run: reviewing it does not make it a success" '[ "$(mv_ $IR STATE)" = "interrupted" ] && bash ./deltactl runs show $IR 2>&1 | grep -q "interrumpida" && bash ./deltactl runs show $IR 2>&1 | grep -q "revisada el" && bash ./deltactl runs show $IR 2>&1 | grep -q "revisado a mano"'
+out="$(bash ./deltactl deploy rn-ok 2>&1)"; rc=$?
+check "once reviewed, operations run again" '[ "$rc" -eq 0 ] && [ "$(runs_n)" = "$((n + 1))" ]'
+check "resolve --all with nothing pending says so and is not an error" 'bash ./deltactl runs resolve --all 2>&1 | grep -q "No hay ejecuciones interrumpidas" && bash ./deltactl runs resolve --all >/dev/null 2>&1'
+# two pending at once, one without a record of its own
+mkdir -p "$STATE/pending"
+printf 'deploy\trn-ok\n' > "$STATE/pending/20260102T000000Z-7"; printf 'stop\trn-ok\n' > "$STATE/pending/20260102T000000Z-8"
+out="$(bash ./deltactl deploy rn-ok 2>&1)"; rc=$?
+check "with several pending the message counts them" '[ "$rc" -ne 0 ] && echo "$out" | grep -q "2 pendiente"'
+check "--all reviews every one, and then operations run" 'bash ./deltactl runs resolve --all >/dev/null 2>&1 && [ -z "$(ls "$STATE/pending" 2>/dev/null)" ] && bash ./deltactl deploy rn-ok >/dev/null 2>&1'
+
+section "5c. a real operation that is killed is never a success"
+newinst rn-kill
+bash ./deltactl runs resolve --all > /dev/null 2>&1
+reset_fix; echo 30 > "$FIX/slow_up"
+setsid bash ./deltactl deploy rn-kill > "$FIX/kill.out" 2>&1 &
+KPID=$!
+for i in $(seq 1 50); do ls "$STATE/active"/* > /dev/null 2>&1 && grep -q "COMPOSE up" "$FIX/calls.log" && break; sleep 0.2; done
+KID="$(last_run)"
+check "while it runs it is a run in progress with its marker" '[ "$(mv_ "$KID" STATE)" = "running" ] && [ -f "$STATE/active/$KID" ]'
+kill -9 -- "-$KPID" 2>/dev/null; wait "$KPID" 2>/dev/null
+rm -f "$FIX/slow_up"
+check "killing it leaves a record that still says running: nothing could write the end" '[ "$(mv_ "$KID" STATE)" = "running" ] && [ -z "$(mv_ "$KID" ENDED_AT)" ]'
+out="$(bash ./deltactl deploy rn-kill 2>&1)"; rc=$?
+check "the next operation closes it as interrupted (never succeeded), with no exit code, and refuses to go on" '[ "$(mv_ "$KID" STATE)" = "interrupted" ] && [ "$(mv_ "$KID" RC)" = "-" ] && [ "$rc" -ne 0 ] && [ -f "$STATE/pending/$KID" ]'
+check "it is in the index only as interrupted" '[ "$(grep -c "^$KID" "$STATE/runs.idx")" = "1" ] && grep "^$KID" "$STATE/runs.idx" | grep -q "interrupted" && ! grep "^$KID" "$STATE/runs.idx" | grep -q "succeeded"'
+check "the killed deploy did not finish: no call to docker after the kill" '[ "$(grep -c "COMPOSE up" "$FIX/calls.log")" = "1" ]'
+bash ./deltactl runs resolve "$KID" --note "kill -9 de prueba" > /dev/null 2>&1
+check "after reviewing it, the same deploy runs and succeeds as a new run" 'bash ./deltactl deploy rn-kill > /dev/null 2>&1 && [ "$(mv_ "$(last_run)" STATE)" = "succeeded" ] && [ "$(mv_ "$KID" STATE)" = "interrupted" ]'
 
 section "6. reading the history"
 out="$(bash ./deltactl runs list 2>&1)"; rc=$?
@@ -113,7 +162,7 @@ check "-n limits the rows" '[ "$(bash ./deltactl runs list -n 1 2>&1 | grep -c "
 check "--json is a JSON array with the fields of a run" 'j="$(bash ./deltactl runs list --json)"; echo "$j" | head -1 | grep -q "^\[" && echo "$j" | grep -q "\"state\":\"succeeded\"" && echo "$j" | grep -q "\"exit_code\":0" && echo "$j" | grep -q "\"duration_ms\":[0-9]" && echo "$j" | tail -1 | grep -q "^\]"'
 check "--json has no colours and no banner" '! bash ./deltactl runs list --json | grep -q "$(printf "\033")"'
 out="$(bash ./deltactl runs show last 2>&1)"; rc=$?
-check "runs show last describes the newest run" '[ "$rc" -eq 0 ] && echo "$out" | grep -q "Ejecución" && echo "$out" | grep -q "rn-ok" && echo "$out" | grep -q "código de salida"'
+check "runs show last describes the newest run" '[ "$rc" -eq 0 ] && echo "$out" | grep -q "Ejecución" && echo "$out" | grep -q "rn-kill" && echo "$out" | grep -q "código de salida"'
 id="$(ls "$STATE/runs" | grep -v "^20260101" | head -n 1)"
 check "the start of an id is enough" 'bash ./deltactl runs show "${id:0:14}" 2>&1 | grep -q "Ejecución" || true; bash ./deltactl runs show "$id" 2>&1 | grep -q "$id"'
 check "an unknown run is an error" '! bash ./deltactl runs show nope-nope >/dev/null 2>&1 && bash ./deltactl runs show nope-nope 2>&1 | grep -q "no existe la ejecución"'
@@ -131,6 +180,28 @@ newinst rn-init
 rm -rf "$STATE"
 bash ./deltactl init rn-init --yes > /dev/null 2>&1; rc=$?
 check "init (which deploys twice inside) is a single run" '[ "$rc" -eq 0 ] && [ "$(runs_n)" = "1" ] && [ "$(mv_ "$(last_run)" OP)" = "init" ]'
+
+section "7b. an init killed in the middle of a seed is never seeded again by itself"
+# The seeds drop collections: nothing may run them again on its own, not the next operation, not reviewing the run, not init.
+newinst rn-ikill
+reset_fix; echo 30 > "$FIX/seed_slow_populating_data_s0"
+setsid bash ./deltactl init rn-ikill --yes > "$FIX/ikill.out" 2>&1 &
+KPID=$!
+for i in $(seq 1 50); do grep -q "dist/cli.js populating_data_s0" "$FIX/calls.log" && break; sleep 0.2; done
+KID="$(last_run)"
+seeds() { grep -c "dist/cli.js" "$FIX/calls.log"; }
+check "it was killed in the second seed, after the first one ran" '[ "$(mv_ "$KID" OP)" = "init" ] && [ "$(seeds)" = "2" ]'
+kill -9 -- "-$KPID" 2>/dev/null; wait "$KPID" 2>/dev/null
+rm -f "$FIX/seed_slow_populating_data_s0"
+check "the instance stays protected as incomplete" '[ "$(grep -E "^SOURCE=" instances/rn-ikill/.initialized | cut -d= -f2)" = "init-incomplete" ]'
+out="$(bash ./deltactl deploy rn-ikill 2>&1)"; rc=$?
+check "the next operation closes the run as interrupted and refuses to go on, without seeding" '[ "$(mv_ "$KID" STATE)" = "interrupted" ] && [ "$rc" -ne 0 ] && [ "$(seeds)" = "2" ]'
+bash ./deltactl runs resolve "$KID" --note "init matado de prueba" > /dev/null 2>&1
+check "reviewing the run does not seed either" '[ ! -e "$STATE/pending/$KID" ] && [ "$(seeds)" = "2" ]'
+out="$(bash ./deltactl init rn-ikill --yes 2>&1)"; rc=$?
+check "init refuses to run over it, and says it was left incomplete" '[ "$rc" -ne 0 ] && echo "$out" | grep -qi "incompleta" && [ "$(seeds)" = "2" ]'
+bash ./deltactl deploy rn-ikill > /dev/null 2>&1
+check "a deploy after it still never seeds" '[ "$(seeds)" = "2" ]'
 
 section "8. what a run consumed"
 newinst rn-cons
@@ -173,5 +244,54 @@ check "stats counts the failed ones" 'echo "$out" | grep -E "^deploy" | awk "{ e
 check "stats can be narrowed to an instance" 'bash ./deltactl runs stats --instance rn-cons 2>&1 | grep -q "^deploy" && ! bash ./deltactl runs stats --instance rn-cons 2>&1 | grep -q "^new"'
 check "stats with a bad option shows the usage" '! bash ./deltactl runs stats --nope >/dev/null 2>&1 && ! bash ./deltactl runs stats -n 0 >/dev/null 2>&1'
 rm -f "$FIX/containers.txt"
+
+section "8. runs prune"
+rm -rf "$STATE"; mkdir -p "$STATE/runs" "$STATE/active" "$STATE/pending"
+# mkprune <id> [kilobytes of output] [state]
+mkprune() {
+  local d="$STATE/runs/$1"
+  mkdir -p "$d"
+  printf 'RUN_ID=%s\nOP=deploy\nARGS=x\nINSTANCE=pr-a\nSTATE=%s\nSTARTED_AT=2025-01-01T00:00:00Z\nRC=0\nDURATION_MS=1000\n' "$1" "${3:-succeeded}" > "$d/meta"
+  head -c $((${2:-1} * 1024)) /dev/zero | tr '\0' x > "$d/out.log"
+  printf '%s\t2025-01-01T00:00:00Z\tdeploy\tpr-a\t%s\t0\t1000\n' "$1" "${3:-succeeded}" >> "$STATE/runs.idx"
+}
+now_id() { date -u -d "$1" +%Y%m%dT%H%M%SZ; }
+OLD1=20250101T000000Z-1; OLDP=20250102T000000Z-2; OLDA=20250103T000000Z-3; OLD4=20250104T000000Z-4
+R1="$(now_id '3 hours ago')-11"; R2="$(now_id '2 hours ago')-12"; R3="$(now_id '1 hour ago')-13"
+mkprune $OLD1; mkprune $OLDP 1 interrupted; mkprune $OLDA 1 running; mkprune $OLD4
+mkprune $R1 600; mkprune $R2 600; mkprune $R3 600
+printf 'deploy\tpr-a\n' > "$STATE/pending/$OLDP"; echo 999999 > "$STATE/active/$OLDA"
+lines0="$(wc -l < "$STATE/runs.idx")"
+out="$(bash ./deltactl runs prune --dry-run 2>&1)"; rc=$?
+check "--dry-run lists what would go (the old ones) and says so" '[ "$rc" -eq 0 ] && echo "$out" | grep -q "Se borrarían 2 de 7" && echo "$out" | grep -q "$OLD1" && echo "$out" | grep -q "$OLD4" && echo "$out" | grep -q "más de 30 días"'
+check "...without listing what it keeps" '! echo "$out" | grep -q "$OLDP" && ! echo "$out" | grep -q "$OLDA" && ! echo "$out" | grep -q "$R1"'
+check "--dry-run deletes nothing and leaves the index alone" '[ "$(ls "$STATE/runs" | wc -l | tr -d " ")" = "7" ] && [ "$(wc -l < "$STATE/runs.idx")" = "$lines0" ]'
+out="$(bash ./deltactl runs prune 2>&1)"; rc=$?
+check "prune deletes the runs past the age limit" '[ "$rc" -eq 0 ] && echo "$out" | grep -q "Borradas 2 de 7" && [ ! -e "$STATE/runs/$OLD1" ] && [ ! -e "$STATE/runs/$OLD4" ]'
+check "it keeps the recent ones, the one in progress and the unreviewed one, however old they are" '[ -d "$STATE/runs/$R1" ] && [ -d "$STATE/runs/$R3" ] && [ -d "$STATE/runs/$OLDP" ] && [ -d "$STATE/runs/$OLDA" ] && [ -f "$STATE/pending/$OLDP" ] && [ -f "$STATE/active/$OLDA" ]'
+check "the index loses the deleted runs and nothing else" '! grep -q "$OLD1" "$STATE/runs.idx" && ! grep -q "$OLD4" "$STATE/runs.idx" && [ "$(wc -l < "$STATE/runs.idx")" = "$((lines0 - 2))" ] && grep -q "$R2" "$STATE/runs.idx" && grep -q "$OLDP" "$STATE/runs.idx"'
+check "the history still reads after pruning" 'bash ./deltactl runs list 2>&1 | grep -q "$R3" && bash ./deltactl runs stats >/dev/null 2>&1'
+out="$(bash ./deltactl runs prune 2>&1)"
+check "with nothing past the limits it says so" 'echo "$out" | grep -q "No hay nada que borrar" && echo "$out" | grep -q "30 días y 1024 MB"'
+out="$(bash ./deltactl runs prune --dry-run --max-mb 1 2>&1)"
+check "the size limit keeps the newest runs that fit and drops the older ones, with their size" 'echo "$out" | grep -q "Se borrarían 2 de 5" && echo "$out" | grep -q "$R1" && echo "$out" | grep -q "$R2" && ! echo "$out" | grep -q "$R3" && echo "$out" | grep -qE "6[0-9]{2} KB" && echo "$out" | grep -q "pasa de 1 MB"'
+bash ./deltactl runs prune --max-mb 1 > /dev/null 2>&1
+check "and prune does it" '[ ! -e "$STATE/runs/$R1" ] && [ ! -e "$STATE/runs/$R2" ] && [ -d "$STATE/runs/$R3" ] && [ -d "$STATE/runs/$OLDP" ]'
+check "bad options show the usage" '! bash ./deltactl runs prune --days abc >/dev/null 2>&1 && ! bash ./deltactl runs prune --max-mb >/dev/null 2>&1 && bash ./deltactl runs prune --days abc 2>&1 | grep -q "uso: ./deltactl runs prune" && ! bash ./deltactl runs prune --nope >/dev/null 2>&1'
+# While an operation is running it does not delete (a dry run is only a look and is allowed).
+mkprune 20250105T000000Z-5
+mkdir -p "$STATE/locks/mutation.lock"
+bash -c 'exec -a deltactl-fake sleep 60' &
+SLEEPER=$!
+printf '%s\n' "$SLEEPER" > "$STATE/locks/mutation.lock/pid"; echo "20260101T000000Z-9" > "$STATE/locks/mutation.lock/run"; echo "deploy pr-a" > "$STATE/locks/mutation.lock/what"
+out="$(bash ./deltactl runs prune 2>&1)"; rc=$?
+check "prune is refused while an operation runs, and deletes nothing" '[ "$rc" -ne 0 ] && echo "$out" | grep -q "hay una operación en curso" && [ -d "$STATE/runs/20250105T000000Z-5" ]'
+check "a dry run is allowed then" 'bash ./deltactl runs prune --dry-run 2>&1 | grep -q "20250105T000000Z-5"'
+kill "$SLEEPER" 2>/dev/null; SLEEPER=""
+sleep 0.3
+bash ./deltactl runs prune > /dev/null 2>&1
+check "once it ends, prune works and leaves no lock behind" '[ ! -e "$STATE/runs/20250105T000000Z-5" ] && [ ! -d "$STATE/locks/mutation.lock" ]'
+check "nothing in the code prunes by itself: only the runs command calls it" '! grep -rn "runs_prune" lib | grep -v "^lib/cmd/runs.sh"'
+rm -rf "$STATE"
 
 finish

@@ -12,7 +12,8 @@ Uso
   $ ./deltactl help temas                 solo la lista de guías
 
 Consejo
-Si no sabes por dónde empezar: `./deltactl help nueva-instancia`. Si algo falló: `./deltactl help solucion-problemas`.
+Si no sabes por dónde empezar: `./deltactl help nueva-instancia`. Si algo falló: `./deltactl help
+solucion-problemas`.
 
 Relacionado
   . `./deltactl menu` menú interactivo con ayuda en cada opción (`?4`)

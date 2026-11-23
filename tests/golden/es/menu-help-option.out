@@ -57,8 +57,10 @@ estén healthy. Con servicio, solo toca ese servicio. NUNCA siembra datos.
 
 [1mErrores típicos[0m
   [90m·[0m [36mfalta la imagen X:tag[0m → cárgala ([36m./deltactl load[0m) o corrige la etiqueta ([36m./deltactl images[0m)
-  [90m·[0m [36mFCM_CERT apunta a ... pero falta secrets/...[0m → copia el JSON a [36msecrets/[0m ([36m./deltactl help secretos[0m)
-  [90m·[0m [36mno llegó a healthy[0m → [36m./deltactl logs <instancia> <servicio>[0m; para volver atrás [36m./deltactl rollback[0m
+  [90m·[0m [36mFCM_CERT apunta a ... pero falta secrets/...[0m → copia el JSON a [36msecrets/[0m ([36m./deltactl help[0m
+    [36msecretos[0m)
+  [90m·[0m [36mno llegó a healthy[0m → [36m./deltactl logs <instancia> <servicio>[0m; para volver atrás [36m./deltactl[0m
+    [36mrollback[0m
   [90m·[0m [36mno está inicializada[0m (aviso) → [36m./deltactl init[0m si es nueva, [36m./deltactl adopt[0m si ya tiene datos
 
 [1mRelacionado[0m

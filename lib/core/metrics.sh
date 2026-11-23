@@ -11,14 +11,17 @@
 MT_HIST_LEN=120   # enough for a wide chart (one value per second)
 declare -gA MT_MEM=() MT_LIM=() MT_CPU=() MT_HMEM=() MT_HCPU=()
 declare -gA MT_CG_PID=() MT_CG_VER=() MT_CG_MEMDIR=() MT_CG_CPUDIR=() MT_PREV_CPU=() MT_PREV_T=()
+declare -gA MT_HN=()   # how many values each history holds (see mt_push)
 MT_LAST_US=0
 MT_SAMPLES=0
 MT_HOST_USED_KB="" MT_HOST_TOTAL_KB="" MT_HOST_PCT="" MT_HOST_LOAD="" MT_HOST_HIST=""
 
 # Sampling interval in microseconds (DELTACTL_METRICS_INTERVAL, in seconds; 2 by default: the panel's charts, like btop's,
 # are meant for 2 s steps, and every sample costs a rebuild of the screen). 120 samples are 4 minutes of history.
+# MT_INTERVAL_S, when set, wins: the panel puts there the value it resolved (the variable, its options file or the default).
+MT_INTERVAL_S=""
 mt_interval_us() {
-  local s="${DELTACTL_METRICS_INTERVAL:-2}"
+  local s="${MT_INTERVAL_S:-${DELTACTL_METRICS_INTERVAL:-2}}"
   [[ "$s" =~ ^[0-9]+$ ]] && [ "$s" -gt 0 ] || s=2
   printf '%s' "$((s * 1000000))"
 }
@@ -26,28 +29,40 @@ mt_interval_us() {
 # Forgets every reading (used when the panel starts or the containers are reloaded).
 mt_reset() {
   MT_MEM=() MT_LIM=() MT_CPU=() MT_HMEM=() MT_HCPU=()
-  MT_CG_PID=() MT_CG_VER=() MT_CG_MEMDIR=() MT_CG_CPUDIR=() MT_PREV_CPU=() MT_PREV_T=()
-  MT_LAST_US=0 MT_SAMPLES=0 MT_HOST_HIST="" MT_INTERVAL_US=""
+  MT_CG_PID=() MT_CG_VER=() MT_CG_MEMDIR=() MT_CG_CPUDIR=() MT_PREV_CPU=() MT_PREV_T=() MT_HN=()
+  # (MT_SAMPLES keeps counting: the panel keys its cached boxes on it, so it must never come back to a value it had)
+  MT_LAST_US=0 MT_HOST_HIST="" MT_INTERVAL_US=""
 }
 
-# Is it time for another sample?
-MT_INTERVAL_US=""
+# Is it time for another sample? MT_INTERVAL_MULT stretches the interval (the panel sets 2 while the view on screen shows no figure of
+# a service: only the header does, and it moves slowly).
+MT_INTERVAL_US="" MT_INTERVAL_MULT=1
 mt_due() {
   # The interval is read once: a `$(...)` here would be a process on every wake-up of the loop.
   [ -n "$MT_INTERVAL_US" ] || MT_INTERVAL_US="$(mt_interval_us)"
   host_now_us
-  [ $((HOST_NOW_US - MT_LAST_US)) -ge "$MT_INTERVAL_US" ]
+  [ $((HOST_NOW_US - MT_LAST_US)) -ge $((MT_INTERVAL_US * MT_INTERVAL_MULT)) ]
 }
 
 # Appends a value to a history string (kept to MT_HIST_LEN values). Result in MT_H.
+# With a counter key ($3) the number of values is remembered in MT_HN, so a push is a concatenation and, once the history is full,
+# one cut at the front. Without it the values are counted every time (counting the spaces of a 120-value history costs ~1.5 ms,
+# and a sample pushes two histories per container). An empty history always starts the count again.
 MT_H=""
-mt_push() { # history value
-  local h="${1:+$1 }$2" spaces
+mt_push() { # history value [counter_key]
+  local h="${1:+$1 }$2" ck="${3:-}" n spaces
+  if [ -n "$ck" ] && [ -n "$1" ] && [ -n "${MT_HN[$ck]+x}" ]; then
+    n=$((MT_HN[$ck] + 1))
+    if [ "$n" -gt "$MT_HIST_LEN" ]; then h="${h#* }"; n=$((n - 1)); fi
+    MT_HN[$ck]="$n" MT_H="$h"
+    return 0
+  fi
   spaces="${h//[^ ]/}"
   while [ "${#spaces}" -ge "$MT_HIST_LEN" ]; do
     h="${h#* }"
     spaces="${spaces#?}"
   done
+  if [ -n "$ck" ]; then MT_HN[$ck]=$((${#spaces} + 1)); fi
   MT_H="$h"
 }
 
@@ -60,7 +75,7 @@ mt_sample() {
     MT_HOST_TOTAL_KB="$HOST_MEM_TOTAL_KB"
     MT_HOST_USED_KB=$((HOST_MEM_TOTAL_KB - HOST_MEM_AVAIL_KB))
     MT_HOST_PCT=$((MT_HOST_USED_KB * 100 / HOST_MEM_TOTAL_KB))
-    mt_push "$MT_HOST_HIST" "$MT_HOST_PCT"; MT_HOST_HIST="$MT_H"
+    mt_push "$MT_HOST_HIST" "$MT_HOST_PCT" host; MT_HOST_HIST="$MT_H"
   else
     MT_HOST_TOTAL_KB="" MT_HOST_USED_KB="" MT_HOST_PCT=""
   fi
@@ -85,7 +100,7 @@ mt_sample() {
     fi
     if host_cg_mem "${MT_CG_MEMDIR[$key]}" "${MT_CG_VER[$key]}"; then
       MT_MEM[$key]="$CG_MEM_BYTES" MT_LIM[$key]="$CG_MEM_LIMIT"
-      mt_push "${MT_HMEM[$key]:-}" "$CG_MEM_BYTES"; MT_HMEM[$key]="$MT_H"
+      mt_push "${MT_HMEM[$key]:-}" "$CG_MEM_BYTES" "mem/$key"; MT_HMEM[$key]="$MT_H"
     fi
     if host_cg_cpu "${MT_CG_CPUDIR[$key]}" "${MT_CG_VER[$key]}"; then
       cur="$CG_CPU_USEC"
@@ -95,7 +110,7 @@ mt_sample() {
         if [ "$dt" -gt 0 ]; then
           dcpu=$((cur - prev))
           MT_CPU[$key]=$((dcpu * 1000 / dt))
-          mt_push "${MT_HCPU[$key]:-}" "${MT_CPU[$key]}"; MT_HCPU[$key]="$MT_H"
+          mt_push "${MT_HCPU[$key]:-}" "${MT_CPU[$key]}" "cpu/$key"; MT_HCPU[$key]="$MT_H"
         fi
       fi
       MT_PREV_CPU[$key]="$cur" MT_PREV_T[$key]="$now"
@@ -107,7 +122,7 @@ mt_sample() {
 
 mt_forget() { # key
   unset "MT_CG_PID[$1]" "MT_CG_VER[$1]" "MT_CG_MEMDIR[$1]" "MT_CG_CPUDIR[$1]" "MT_PREV_CPU[$1]" "MT_PREV_T[$1]" \
-    "MT_MEM[$1]" "MT_LIM[$1]" "MT_CPU[$1]" "MT_HMEM[$1]" "MT_HCPU[$1]"
+    "MT_MEM[$1]" "MT_LIM[$1]" "MT_CPU[$1]" "MT_HMEM[$1]" "MT_HCPU[$1]" "MT_HN[mem/$1]" "MT_HN[cpu/$1]"
 }
 
 # Totals of an instance over its services: MT_SUM_MEM, MT_SUM_LIM (bytes) and MT_SUM_CPU (tenths of a percent).

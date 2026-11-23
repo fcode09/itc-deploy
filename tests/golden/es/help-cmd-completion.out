@@ -2,7 +2,8 @@
 completion · autocompletado con Tab
 -------------------------------------
 
-Imprime el autocompletado de bash para `./deltactl`. Con él, Tab completa comandos, instancias, servicios,
+Imprime el autocompletado de bash para `./deltactl`. Con él, Tab completa comandos, instancias,
+servicios,
 opciones, temas de ayuda y nombres de variables.
 
 Uso
@@ -16,13 +17,16 @@ Activarlo
 
 Qué completa
   . escribir `de` y pulsar Tab completa el comando: `deploy`
-  . después de `deploy` y un espacio, Tab muestra las instancias que existen; con otra Tab, los servicios
+  . después de `deploy` y un espacio, Tab muestra las instancias que existen; con otra Tab, los
+    servicios
   . después de `status --`, Tab muestra `--json --stats --strict --watch`
   . después de `help nue`, Tab completa el tema: `nueva-instancia`
-  . después de `help variable` y las primeras letras de una variable, Tab muestra las que empiezan así
+  . después de `help variable` y las primeras letras de una variable, Tab muestra las que empiezan
+    así
 
 Cuándo regenerarlo
-Los comandos, temas, servicios y variables se toman del código al generarlo: si actualizas `deltactl`,
+Los comandos, temas, servicios y variables se toman del código al generarlo: si actualizas
+`deltactl`,
 vuelve a generar el archivo. Las instancias se leen en cada Tab, así que no hace falta.
 
 Relacionado

@@ -10,7 +10,8 @@ $ ./deltactl help <command>        detailed help for a command (or ./deltactl <c
 $ ./deltactl help <topic>          full step-by-step guide
 
 ## Instances
-| new <instance> [--services s0,s1] [--existing] | Creates instances/<instance>/ from the templates (--existing: the municipality ALREADY has data; it will never be seeded)
+| new <instance> [--services s0,s1] [--existing] | Creates instances/<instance>/ from the templates (--existing: the
+  municipality ALREADY has data; it will never be seeded)
 | new --wizard | Interactive wizard: asks the essentials and lists what is still missing
 | init <instance> [--yes] | Seeds the initial data of a NEW instance (only once)
 | adopt <instance> | Marks as already initialized an instance that ALREADY has data

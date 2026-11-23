@@ -281,10 +281,73 @@ ui_inline() { # text
   printf '%s' "$out$s"
 }
 
+# Splits a text of the help into lines of at most $2 visible cells, by words, into UI_WRAP. Backticks are not visible when there
+# is colour (ui_inline turns them into colour): they do not count then, and a `code span` cut by the end of a line is closed there
+# and opened again on the next, so each line keeps its colour. A word longer than the width stays whole on its own line. Runs of
+# spaces inside the text are kept (some pages use two spaces as a separator); at the start of a wrapped line they are dropped.
+UI_WRAP=()
+ui_wrap_text() { # text width
+  local w="$2" word line="" n=0 wl ticks open=0 reopen=0 t rest="$1"
+  local -a words=()
+  UI_WRAP=()
+  rest="${rest#"${rest%%[! ]*}"}"; rest="${rest%"${rest##*[! ]}"}"
+  # Split on single spaces: an empty word stands for one more space of a run.
+  while [[ "$rest" == *" "* ]]; do words+=("${rest%% *}"); rest="${rest#* }"; done
+  words+=("$rest")
+  for word in "${words[@]}"; do
+    [ -n "$word" ] || [ -n "$line" ] || continue          # a space never starts a line
+    wl="${#word}"
+    if [ "$UI_COLOR" -eq 1 ]; then t="${word//[!\`]/}"; ticks="${#t}"; wl=$((wl - ticks)); else ticks=0; fi
+    if [ -n "$line" ] && [ $((n + 1 + wl)) -gt "$w" ]; then
+      # The line is full: a code span open at its end is closed here and opened again with the next word.
+      line="${line%"${line##*[! ]}"}"
+      if [ "$open" -eq 1 ]; then UI_WRAP+=("$line\`"); reopen=1; else UI_WRAP+=("$line"); fi
+      line="" n=0
+      [ -n "$word" ] || continue
+    fi
+    if [ -z "$line" ]; then
+      line="$word" n="$wl"
+      if [ "$reopen" -eq 1 ]; then line="\`$line"; reopen=0; fi
+    else
+      line+=" $word" n=$((n + 1 + wl))
+    fi
+    [ $((ticks % 2)) -eq 0 ] || open=$((1 - open))
+  done
+  [ -z "$line" ] || UI_WRAP+=("$line")
+  [ "${#UI_WRAP[@]}" -gt 0 ] || UI_WRAP=("")
+}
+
+# Prints a help text wrapped to the width of the screen: the first line after $2 (already coloured, $3 cells wide), the others
+# under it, indented by as many spaces.
+ui_render_wrapped() { # text prefix prefix_width
+  local i pad
+  ui_wrap_text "$1" $((UI_W - $3))
+  printf -v pad '%*s' "$3" ''
+  printf '%s%s\n' "$2" "$(ui_inline "${UI_WRAP[0]}")"
+  for ((i = 1; i < ${#UI_WRAP[@]}; i++)); do printf '%s%s\n' "$pad" "$(ui_inline "${UI_WRAP[$i]}")"; done
+}
+
+# Renders a help page. Items of a list (-, !, >), table rows (| command | description) and plain lines are wrapped to the width of
+# the screen, the following lines under the text of their item (a hanging indent); a line that starts with two spaces right after
+# an item or a row goes on that item, so a long one can be written over several lines. Command lines ($) are never wrapped.
 ui_render_file() { # file
-  local line rest cmd desc pad blank=1
-  while IFS= read -r line || [ -n "$line" ]; do
-    line="${line%$'\r'}"
+  local line rest cmd desc pad blank=1 i n next
+  local -a lines=()
+  mapfile -t lines < "$1"
+  n="${#lines[@]}"
+  for ((i = 0; i < n; i++)); do
+    line="${lines[$i]%$'\r'}"
+    # An item or a row takes the lines that go on it.
+    case "$line" in
+      '- '* | '! '* | '> '* | '| '*)
+        while [ $((i + 1)) -lt "$n" ]; do
+          next="${lines[$((i + 1))]%$'\r'}"
+          [[ "$next" == "  "[![:space:]]* ]] || break
+          line+=" ${next#"${next%%[![:space:]]*}"}"
+          i=$((i + 1))
+        done
+        ;;
+    esac
     # Sections already get a blank line before them: if the file brings one, it is not duplicated.
     if [ "${line:0:3}" = "## " ] && [ "$blank" -eq 1 ]; then
       printf '%s%s%s\n' "$C_BLD" "${line#\#\# }" "$C_OFF"
@@ -296,20 +359,29 @@ ui_render_file() { # file
       '# '*) ui_h1 "${line#\# }" ;;
       '## '*) ui_h2 "${line#\#\# }" ;;
       '$ '*) printf '  %s$%s %s%s%s\n' "$C_GRY" "$C_OFF" "$C_GRN" "${line#\$ }" "$C_OFF" ;;
-      '! '*) printf '  %s %s\n' "$(ui_sym warn)" "$(ui_inline "${line#! }")" ;;
-      '> '*) printf '  %s %s\n' "$(ui_sym info)" "$(ui_inline "${line#> }")" ;;
-      '- '*) printf '  %s%s%s %s\n' "$C_GRY" "$UI_S_DOT" "$C_OFF" "$(ui_inline "${line#- }")" ;;
+      '! '*) ui_render_wrapped "${line#! }" "  $(ui_sym warn) " 4 ;;
+      '> '*) ui_render_wrapped "${line#> }" "  $(ui_sym info) " 4 ;;
+      '- '*) ui_render_wrapped "${line#- }" "  $C_GRY$UI_S_DOT$C_OFF " 4 ;;
       '| '*)
-        # Table row "| command | description": command in green, aligned at column 50.
+        # Table row "| command | description": command in green, the description at column 52 going on under itself; on a screen
+        # too narrow for that, the description goes under the command.
         rest="${line#| }"
         cmd="${rest%% | *}"
         desc="${rest#* | }"
         [ "$rest" != "$cmd" ] || desc=""
         pad=$((50 - ${#cmd}))
         [ "$pad" -ge 1 ] || pad=1
-        printf '  %s%s%s%*s%s\n' "$C_GRN" "$cmd" "$C_OFF" "$pad" "" "$(ui_inline "$desc")"
+        if [ -z "$desc" ]; then
+          printf '  %s%s%s\n' "$C_GRN" "$cmd" "$C_OFF"
+        elif [ $((UI_W - 2 - ${#cmd} - pad)) -ge 24 ]; then
+          ui_render_wrapped "$desc" "  $C_GRN$cmd$C_OFF$(printf '%*s' "$pad" '')" $((2 + ${#cmd} + pad))
+        else
+          printf '  %s%s%s\n' "$C_GRN" "$cmd" "$C_OFF"
+          [ -z "$desc" ] || ui_render_wrapped "$desc" "    " 4
+        fi
         ;;
-      *) printf '%s\n' "$(ui_inline "$line")" ;;
+      '') printf '\n' ;;
+      *) ui_render_wrapped "$line" "" 0 ;;
     esac
-  done < "$1"
+  done
 }

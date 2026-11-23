@@ -165,8 +165,17 @@ help_variable() { # [KEY]
   fi
 }
 
+# The lines of a help page as they are read: an item (-, !, >, |) with the lines that go on it (those that start with two spaces),
+# joined into one, so a search finds an item whole, even a phrase that falls where the source line was cut.
+help_logical_lines() { # file
+  awk '{ sub(/\r$/, "") }
+    /^  [^ ]/ && item { sub(/^ +/, ""); buf = buf " " $0; next }
+    { if (started) print buf; buf = $0; started = 1; item = ($0 ~ /^(- |! |> |\| )/) }
+    END { if (started) print buf }' "$1"
+}
+
 help_search() { # text...
-  local q="$*" f base n pf found=0
+  local q="$*" f base n pf found=0 lines line
   [ -n "$q" ] || die "$(t help.search_usage)"
   # The Spanish files give the list and the order; each page is searched in the UI language.
   for f in "$HELP_DIR"/*.txt; do
@@ -179,10 +188,18 @@ help_search() { # text...
       *) continue ;;
     esac
     [ -n "$pf" ] || pf="$f"
-    grep -qiF -- "$q" "$pf" || continue
+    lines="$(help_logical_lines "$pf")"
+    grep -qiF -- "$q" <<< "$lines" || continue
     found=1
     ui_h2 "./deltactl help $n"
-    grep -iF -m3 -- "$q" "$pf" | while IFS= read -r line; do printf '    %s\n' "$(ui_inline "$line")"; done
+    # (a command line is shown as it is, never cut; an item goes on under its text)
+    while IFS= read -r line; do
+      case "$line" in
+        '$ '*) printf '    %s\n' "$line" ;;
+        '- '* | '! '* | '> '*) ui_render_wrapped "${line:2}" "    ${line:0:2}" 6 ;;
+        *) ui_render_wrapped "$line" "    " 4 ;;
+      esac
+    done < <(grep -iF -m3 -- "$q" <<< "$lines")
   done
   [ "$found" -eq 1 ] || { warn "$(t help.search_none "$q")"; return 1; }
 }

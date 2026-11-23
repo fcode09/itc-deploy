@@ -16,8 +16,10 @@ cargadas), URL pública y, en instancias nuevas, si generar los secretos únicos
 Al terminar muestra un resumen, pide confirmación y lista lo que aún falta completar.
 
 Opciones
-  . `--services s0,s1` servicios activos en la instancia (por defecto s0,s1). Ej.: `--services s1` crea una instancia solo con Gue.
-  . `--existing` la municipalidad YA tiene datos: se marca como inicializada y `./deltactl init` no podrá ejecutarse nunca sobre ella.
+  . `--services s0,s1` servicios activos en la instancia (por defecto s0,s1). Ej.: `--services s1`
+    crea una instancia solo con Gue.
+  . `--existing` la municipalidad YA tiene datos: se marca como inicializada y `./deltactl init` no
+    podrá ejecutarse nunca sobre ella.
 
 Qué crea
   . `.env.instance`  variables de la instancia: versiones, puertos, servicios activos, memoria
@@ -38,8 +40,10 @@ Después de crearla
   $ ./deltactl deploy <instancia>
 
 Errores típicos
-  . el puerto ya lo usa otra instancia, o ya está ocupado en el servidor: edita `S0_PORT`/`S1_PORT` en `.env.instance`.
-  . `data/` pertenece a otro usuario: los contenedores usan el uid 1000, ejecuta el `sudo chown -R 1000:1000 ...` que se indica.
+  . el puerto ya lo usa otra instancia, o ya está ocupado en el servidor: edita `S0_PORT`/`S1_PORT`
+    en `.env.instance`.
+  . `data/` pertenece a otro usuario: los contenedores usan el uid 1000, ejecuta el `sudo chown -R
+    1000:1000 ...` que se indica.
 
 Relacionado
   . `./deltactl help nueva-instancia` guía completa

@@ -8,11 +8,14 @@ del servicio (`s0`, `s1`) y no pueden ver los de otras instancias.
 
 Cómo se hablan los servicios
   . `s1` llama a `s0` por HTTP: `AUTH_URL=http://s0:3200` en `.env.s1`
-  . `s0` llama a `s1` por TCP (puerto 5020): `IP_INTERNAL_CONNECTION=s1` en `.env.s0` y `TCP_LISTEN_HOST=0.0.0.0` en `.env.s1`
-  i Sin `TCP_LISTEN_HOST=0.0.0.0`, `s1` solo escucha dentro de su propio contenedor y `s0` no lo alcanza.
+  . `s0` llama a `s1` por TCP (puerto 5020): `IP_INTERNAL_CONNECTION=s1` en `.env.s0` y
+    `TCP_LISTEN_HOST=0.0.0.0` en `.env.s1`
+  i Sin `TCP_LISTEN_HOST=0.0.0.0`, `s1` solo escucha dentro de su propio contenedor y `s0` no lo
+    alcanza.
 
 Puertos hacia afuera
-  . los servicios solo se publican en `127.0.0.1` (4100, 4101...): hacia internet va tu proxy con TLS
+  . los servicios solo se publican en `127.0.0.1` (4100, 4101...): hacia internet va tu proxy con
+    TLS
   ! El 5020 de `s1` NO se publica nunca: ese microservicio no tiene autenticación.
 
 MongoDB del servidor
@@ -21,7 +24,8 @@ MongoDB del servidor
   . `127.0.0.1` dentro de un contenedor es el propio contenedor, no el servidor
 
 Errores de conexión que verás en los logs
-  . `ECONNREFUSED ...:5050` en `s0`: busca un servidor "Spider" que no forma parte de este despliegue
+  . `ECONNREFUSED ...:5050` en `s0`: busca un servidor "Spider" que no forma parte de este
+    despliegue
   . `ECONNREFUSED 127.0.0.1:7050` en `s1`: busca el microservicio AddressLocator, tampoco desplegado
   i No impiden arrancar; solo fallan las funciones que dependen de esos servicios.
 

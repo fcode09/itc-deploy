@@ -140,6 +140,11 @@ dk_logs_tail() { # container lines
   docker logs --tail "$2" "$1" 2>&1
 }
 
+# The log of a container, followed (stdout and stderr together). Run it in a subshell: it replaces that process with `docker logs -f`.
+dk_logs_stream() { # container lines
+  exec docker logs --tail "$2" -f "$1" 2>&1
+}
+
 # Number of log lines of the last 10 minutes that look like errors.
 dk_log_error_count() { # container
   docker logs --since 10m "$1" 2>&1 | grep -acE 'ERROR|ECONNREFUSED|Unable to connect' || true

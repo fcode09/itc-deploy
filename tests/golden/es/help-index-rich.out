@@ -21,39 +21,57 @@ Servicios: [36ms0[0m = auth-backend (Auth) y [36ms1[0m = gueo-back-end (Gue)
   [90m$[0m [32m./deltactl help <tema>           guía completa paso a paso[0m
 
 [1mInstancias[0m
-  [32mnew <instancia> [--services s0,s1] [--existing][0m   Crea instances/<instancia>/ desde las plantillas (--existing: la municipalidad YA tiene datos; no se sembrará nunca)
-  [32mnew --wizard[0m                                      Asistente interactivo: pregunta lo esencial y lista lo que falta completar
-  [32minit <instancia> [--yes][0m                          Siembra los datos iniciales de una instancia NUEVA (una sola vez)
-  [32madopt <instancia>[0m                                 Marca como ya inicializada una instancia que YA tiene datos
+  [32mnew <instancia> [--services s0,s1] [--existing][0m   Crea instances/<instancia>/ desde las plantillas
+                                                    (--existing: la municipalidad YA tiene datos; no
+                                                    se sembrará nunca)
+  [32mnew --wizard[0m                                      Asistente interactivo: pregunta lo esencial y
+                                                    lista lo que falta completar
+  [32minit <instancia> [--yes][0m                          Siembra los datos iniciales de una instancia
+                                                    NUEVA (una sola vez)
+  [32madopt <instancia>[0m                                 Marca como ya inicializada una instancia que YA
+                                                    tiene datos
 
 [1mDespliegue[0m
-  [32mcheck <instancia> [servicio] [--mongo][0m            Comprueba todo lo que deploy exigiría, sin levantar nada
-  [32mdeploy <instancia> [servicio][0m                     Valida, comprueba las imágenes y levanta (espera a healthy)
+  [32mcheck <instancia> [servicio] [--mongo][0m            Comprueba todo lo que deploy exigiría, sin
+                                                    levantar nada
+  [32mdeploy <instancia> [servicio][0m                     Valida, comprueba las imágenes y levanta (espera
+                                                    a healthy)
   [32mrollback <instancia> [servicio] [--yes][0m           Vuelve a las etiquetas del despliegue anterior
   [32mstop <instancia> <servicio>[0m                       Detiene un servicio sin tocar los demás
-  [32mdown <instancia> [--yes][0m                          Detiene y elimina los contenedores (los datos se conservan)
+  [32mdown <instancia> [--yes][0m                          Detiene y elimina los contenedores (los datos se
+                                                    conservan)
 
 [1mImágenes[0m
   [32mload <archivo.tar|.tar.gz>[0m                        Carga imágenes en el Docker de este servidor
-  [32mimages [servicio] [--json][0m                        Versiones de imagen disponibles y qué instancias las usan (alias: versions)
+  [32mimages [servicio] [--json][0m                        Versiones de imagen disponibles y qué instancias
+                                                    las usan (alias: versions)
 
 [1mInformación[0m
-  [32mstatus [instancia] [--json|--stats][0m               Panel de estado: versiones, salud, desajustes y siguientes pasos
-  [32mruns [list|show|logs][0m                             Historial de operaciones: cuándo, cuánto tardó, cómo terminó y su salida completa
-  [32mdoctor[0m                                            Diagnóstico del servidor: Docker, disco, memoria, Mongo y permisos
-  [32mlist[0m                                              Instancias, servicios, puertos, etiquetas y estado
+  [32mstatus [instancia] [--json|--stats][0m               Panel de estado: versiones, salud, desajustes y
+                                                    siguientes pasos
+  [32mruns [list|show|logs][0m                             Historial de operaciones: cuándo, cuánto tardó,
+                                                    cómo terminó y su salida completa
+  [32mdoctor[0m                                            Diagnóstico del servidor: Docker, disco,
+                                                    memoria, Mongo y permisos
+  [32mlist[0m                                              Instancias, servicios, puertos, etiquetas y
+                                                    estado
   [32mps <instancia>[0m                                    Estado de los contenedores
   [32mlogs <instancia> [servicio] [-f][0m                  Logs (últimas 200 líneas)
-  [32mmenu [--classic][0m                                  Panel interactivo con flechas (o menú numerado sin terminal) con todas las acciones y confirmaciones
-  [32mcompletion bash[0m                                   Autocompletado con Tab (source <(./deltactl completion bash))
+  [32mmenu [--classic][0m                                  Panel interactivo con flechas (o menú numerado
+                                                    sin terminal) con todas las acciones y
+                                                    confirmaciones
+  [32mcompletion bash[0m                                   Autocompletado con Tab (source <(./deltactl
+                                                    completion bash))
   [32mhelp [comando|tema][0m                               Esta ayuda
 
 [1mInicio rápido (instancia nueva)[0m
   [90m·[0m 1. [36m./deltactl load s0.tar.gz[0m y [36m./deltactl load s1.tar.gz[0m: cargar las imágenes en el servidor
   [90m·[0m 2. [36m./deltactl new colorado[0m: crear la instancia
-  [90m·[0m 3. editar [36minstances/colorado/.env.instance[0m, [36m.env.s0[0m y [36m.env.s1[0m, y copiar los JSON de Firebase a [36msecrets/[0m
+  [90m·[0m 3. editar [36minstances/colorado/.env.instance[0m, [36m.env.s0[0m y [36m.env.s1[0m, y copiar los JSON de Firebase a
+    [36msecrets/[0m
   [90m·[0m 4. [36m./deltactl deploy colorado[0m: levantar
-  [90m·[0m 5. [36m./deltactl init colorado[0m: sembrar los datos iniciales (solo una vez, solo en instancias nuevas)
+  [90m·[0m 5. [36m./deltactl init colorado[0m: sembrar los datos iniciales (solo una vez, solo en instancias
+    nuevas)
   [36mℹ[0m Guía completa con todos los detalles: [36m./deltactl help nueva-instancia[0m
 
 [1mGuías  (./deltactl help <tema>)[0m

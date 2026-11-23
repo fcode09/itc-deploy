@@ -178,7 +178,8 @@ glossary_keys() { grep -E "^@ " "$1" | awk -F" [|] " "{ sub(/^@ /, \"\", \$1); p
 check "the English glossary has the same variables, files and order" '[ ! -f lib/help/en/variables.txt ] || diff <(glossary_keys lib/help/en/variables.txt) <(glossary_keys lib/help/variables.txt) >/dev/null'
 glossary_types() { grep -E "^@ " "$1" | awk -F" [|] " "{ print \$3 }" | sed -e "s/obligatoria/required/" -e "s/opcional/optional/" -e "s/fija/fixed/"; }
 check "the English glossary types are required, optional or fixed, as in Spanish" '[ ! -f lib/help/en/variables.txt ] || diff <(glossary_types lib/help/en/variables.txt) <(glossary_types lib/help/variables.txt) >/dev/null'
-check "English pages fit in 130 columns" '! awk "length(\$0) > 130 { exit 1 }" lib/help/en/*.txt'
+# (it used to be `! awk "... exit 1"`, which passed exactly when a long line was there, and awk counted bytes)
+check "English pages fit in 130 columns" '[ "$(cat lib/help/en/*.txt | grep -cE ".{131,}")" -eq 0 ]'
 check "English pages have no accented letters or inverted punctuation" '! LC_ALL=C.UTF-8 grep -nE "[áéíóúñÁÉÍÓÚÑ¿¡]" lib/help/en/*.txt'
 check "English pages refer to guides by English id" '! grep -nE "help (nueva-instancia|instancia-existente|actualizar|imagenes|servicios|red|datos|secretos|archivos|puertos|solucion-problemas|glosario)\b" lib/help/en/*.txt'
 

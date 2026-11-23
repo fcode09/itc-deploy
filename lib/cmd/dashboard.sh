@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC2034  # the DASH_* and DSV_* variables are shared with lib/cmd/dashboard_view.sh
-# The interactive panel: one screen, three views, live figures. It is what ./deltactl and ./deltactl menu open in a
+# The interactive panel: one screen, four views, live figures. It is what ./deltactl and ./deltactl menu open in a
 # real terminal; without one (a pipe, a script, TERM=dumb) they keep showing the static home screen and the numbered menu.
 #
-# Views (1, 2, 3 or Tab): Instances (list + detail of the selected one + output of the last command), Resources (every
-# service with memory, CPU and trend) and Output (the full output of the last command, scrollable).
+# Views (1 to 5 or Tab): Instances (list + detail of the selected one + output of the last command), Resources (every
+# service with memory, CPU and trend), Output (the full output of the last command, scrollable) and Runs (the history of the
+# operations that changed something, lib/cmd/dashboard_runs.sh) and Processes (what the running command is made of and what the
+# panel itself costs, lib/cmd/dashboard_procs.sh).
 # Commands run in the background inside the panel (lib/core/jobs.sh): the screen keeps updating while they run and
 # `:` runs any ./deltactl command. Interactive commands (wizards) run in the terminal and come back.
 #
@@ -17,9 +19,15 @@ source "$ROOT/lib/cmd/menu.sh"
 source "$ROOT/lib/cmd/status.sh"
 source "$ROOT/lib/cmd/help.sh"
 source "$ROOT/lib/ui/tui.sh"
+source "$ROOT/lib/ui/layout.sh"
 source "$ROOT/lib/cmd/dashboard_view.sh"
+source "$ROOT/lib/cmd/dashboard_runs.sh"
+source "$ROOT/lib/cmd/dashboard_procs.sh"
+source "$ROOT/lib/cmd/dashboard_logs.sh"
+source "$ROOT/lib/cmd/dashboard_options.sh"
+source "$ROOT/lib/cmd/dashboard_alias.sh"
 
-DASH_VIEW=instances       # instances | resources | output
+DASH_VIEW=instances       # instances | resources | output | runs | procs | console
 DASH_MODE=normal          # normal | menu | confirm | name | cmd | help
 DASH_SEL=0 DASH_SVC=0 DASH_RES_SEL=0 DASH_RES_SORT=name DASH_FOCUS=list DASH_ON_NEW=0
 DASH_ZOOM=0 DASH_LOG_SCROLL=0 DASH_LOG_FILTER="" DASH_PAL_Q="" DASH_PAL_SEL=0
@@ -30,6 +38,11 @@ DASH_MSG="" DASH_MSG_KIND=info DASH_MSG_UNTIL=0
 DASH_HOST="" DASH_DOCKER_VER=""
 DASH_REFRESH_SECONDS="${DELTACTL_REFRESH:-5}"   # without Docker events the state is read this often
 DASH_SAFETY_SECONDS=30                           # with events it is still read this often, just in case
+# Nobody at the keyboard for this long and nothing running: the figures are sampled half as often (and the error counts a quarter as
+# often) until the next key, which takes a fresh sample at once. An idle panel left open on a server costs half as much.
+DASH_IDLE_AFTER="${DELTACTL_TUI_IDLE_AFTER:-30}"
+[[ "$DASH_IDLE_AFTER" =~ ^[1-9][0-9]{0,5}$ ]] || DASH_IDLE_AFTER=30   # 1 s to ~11 days; 0 would make every key a "return"
+DASH_KEY_AT=0 DASH_AWAY=0
 DASH_REFRESH_AT=0 DASH_FORCE_REFRESH=0 DASH_EV_PENDING=0 DASH_JOB_DONE=0
 DASH_EV_FD="" DASH_EV_PID=""
 DASH_NAMES=()
@@ -57,7 +70,7 @@ dash_collect() {
   DSV_KIND=() DSV_TEXT=() DSV_UP=() DSV_PORT=() DSV_REF=() DSV_CODES=() DSV_NOTE=()
   for f in "$INSTANCES_DIR"/*/.env.instance; do
     [ -f "$f" ] || continue
-    name="$(basename "$(dirname "$f")")"
+    name="${f%/.env.instance}"; name="${name##*/}"
     st_enabled "$name"
     st_instance_hints "$name"
     n=0 m="${#ST_ENABLED[@]}" any=0
@@ -68,7 +81,7 @@ dash_collect() {
       [ "$E_KIND" != "ok" ] || n=$((n + 1))
       DSV_KIND[$key]="$E_KIND" DSV_TEXT[$key]="$E_TEXT" DSV_UP[$key]="$E_UP" DSV_PORT[$key]="$E_PORT"
       DSV_REF[$key]="$E_REF" DSV_CODES[$key]="$E_CODES"
-      case " $E_CODES " in *" tag-drift "*) DSV_NOTE[$key]="$(t tui.tag_drift "$E_RUN" "$E_CFG")" ;; esac
+      case " $E_CODES " in *" tag-drift "*) t_r tui.tag_drift "$E_RUN" "$E_CFG"; DSV_NOTE[$key]="$T_OUT" ;; esac
     done
     for key in "${!ST_STATE[@]}"; do [ "${key%%/*}" != "$name" ] || any=1; done
     if [ "$ST_DOCKER" -ne 1 ]; then kind=dim
@@ -81,7 +94,7 @@ dash_collect() {
     DASH_KIND[$name]="$kind"
     if [ "$ST_DOCKER" -eq 1 ]; then DASH_NM[$name]="$n/$m"; else DASH_NM[$name]="?/$m"; fi
     DASH_SVCS[$name]="${ST_ENABLED[*]:-}"
-    DASH_DATA[$name]="$(data_state "$name")"
+    data_state_r "$name"; DASH_DATA[$name]="$DS"
   done
   if [ "$ST_DOCKER" -eq 1 ] && [ -z "$DASH_DOCKER_VER" ]; then DASH_DOCKER_VER="$(dk_info ServerVersion)"; fi
 }
@@ -94,8 +107,9 @@ dash_after_collect() {
   if [ "${#DASH_NAMES[@]}" -eq 0 ]; then DASH_ON_NEW=1 DASH_FOCUS=list; fi
   [ "$ST_DOCKER" -ne 1 ] || DK_READY_AT="$SECONDS"
   DASH_REFRESH_AT="$SECONDS" DASH_FORCE_REFRESH=0 DASH_REFRESH_N=$((DASH_REFRESH_N + 1))
-  # The pids may have changed: read the figures again at the next tick.
-  MT_LAST_US=0
+  # The pids may have changed: read the figures again at the next tick (not while away: without Docker events this runs every few
+  # seconds, and sampling after each one would undo the slower pace; a new pid is still picked up at the next sample).
+  [ "$DASH_AWAY" -eq 1 ] || MT_LAST_US=0
   DASH_DIRTY=1
 }
 
@@ -245,6 +259,7 @@ dash_async_tick() {
   if dash_async_take state; then dash_state_apply "$DASH_AS_TEXT"; changed=0; fi
   if dash_async_take errors; then dash_errors_apply "${DASH_AS_ARG[errors]}" "$DASH_AS_TEXT"; changed=0; fi
   if dash_async_take logs; then dash_logs_apply "${DASH_AS_ARG[logs]}" "$DASH_AS_TEXT"; changed=0; fi
+  if dash_async_take rvidx; then dash_runs_log_index "${DASH_AS_ARG[rvidx]}" "$DASH_AS_TEXT"; changed=0; fi
   return "$changed"
 }
 
@@ -327,6 +342,8 @@ dash_shutdown() {
   tui_leave
   theme_restore
   [ -z "$DASH_EV_PID" ] || kill "$DASH_EV_PID" 2>/dev/null || true
+  dash_runs_log_cancel_scan
+  dash_ls_stop
   dash_async_stop
   DASH_EV_PID=""
   job_cleanup
@@ -338,7 +355,12 @@ dash_shutdown() {
 dash_start_job() { # view args...
   local view="$1" color=never
   shift
-  if job_running; then dash_msg warn "$(t tui.msg.busy)"; return 1; fi
+  # A command that has just ended still counts as running until the next tick collects it: collect (and announce) it now, or the new
+  # command would be refused and that warning lost under the "finished" message of the old one.
+  if job_running; then dash_job_tick; fi
+  # Refused: the console keeps it too, as the transcript of what was asked (the status line can be replaced by the running command's
+  # "finished" message before a frame shows the warning, when it ends right after).
+  if job_running; then dash_msg warn "$(t tui.msg.busy)"; dash_con_add "${DASH_SYM[warn]} $DASH_MSG ($*)"; return 1; fi
   [ "$UI_COLOR" -ne 1 ] || color=always
   job_start "$*" env COLUMNS=$((TUI_COLS - 4)) DELTACTL_UI=rich DELTACTL_COLOR="$color" \
     DELTACTL_LANG="${DELTACTL_LANG_ACTIVE:-es}" "$ROOT/deltactl" "$@"
@@ -362,6 +384,7 @@ dash_terminal() { # args...
   menu_pause
   tui_enter
   DASH_SIGINT=0                      # a Ctrl+C meant for the command must not reach the panel
+  dash_key_seen                      # (someone was at the keyboard all along)
   dash_refresh_request
 }
 
@@ -391,6 +414,7 @@ dash_job_tick() {
       dash_con_add "${DASH_SYM[err]} $(t tui.msg.finished_err "./deltactl $JOB_TITLE" "$JOB_RC" "$secs")"
     fi
     dash_refresh_request
+    DASH_RUNS_AT=-1000   # the command left a run: the Runs view reads the history again
   fi
 }
 
@@ -402,11 +426,20 @@ dash_tick() {
   if dash_events_drain; then DASH_EV_PENDING=1; fi
   # What finished in the background is applied at once, even while paused (it was already asked for).
   if dash_async_tick; then DASH_DIRTY=1; fi
+  dash_runs_tick
+  dash_procs_tick
+  dash_ls_tick
   if [ "$DASH_PAUSED" -eq 0 ]; then
     if [ -n "$DASH_EV_FD" ]; then interval="$DASH_SAFETY_SECONDS"; else interval="$DASH_REFRESH_SECONDS"; fi
     if [ "$DASH_EV_PENDING" -eq 1 ] || [ $((SECONDS - DASH_REFRESH_AT)) -ge "$interval" ]; then
       # In the test mode (synchronous) it waits for an idle tick, so a key press never blocks on Docker.
       if ! tui_test_mode || [ "$DASH_IDLE" -eq 1 ]; then dash_refresh_request; fi
+    fi
+    case "$DASH_VIEW" in output | runs | procs | console) MT_INTERVAL_MULT=2 ;; *) MT_INTERVAL_MULT=1 ;; esac
+    if [ $((SECONDS - DASH_KEY_AT)) -ge "$DASH_IDLE_AFTER" ] && ! job_running; then
+      DASH_AWAY=1 MT_INTERVAL_MULT=$((MT_INTERVAL_MULT * 2))
+    else
+      DASH_AWAY=0
     fi
     if mt_due; then
       mt_sample
@@ -419,14 +452,15 @@ dash_tick() {
       # While the user reads older lines the log stands still (no new request); a focused pane refreshes faster.
       local every=5
       [ "$DASH_FOCUS" != "logs" ] || every=3
-      if [ "${ST_STATE[$lk]:-}" = "running" ] && [ "$DASH_LOG_SCROLL" -eq 0 ] && { [ -z "${DASH_LOGS_AT[$lk]:-}" ] || [ $((SECONDS - DASH_LOGS_AT[$lk])) -ge "$every" ]; }; then
+      # (a stream feeds the pane when there is one; paused, the pane stands still)
+      if [ "${ST_STATE[$lk]:-}" = "running" ] && [ "$DASH_LOG_SCROLL" -eq 0 ] && [ "$DASH_LS_PAUSED" -eq 0 ] && ! dash_ls_active "$lk" && { [ -z "${DASH_LOGS_AT[$lk]:-}" ] || [ $((SECONDS - DASH_LOGS_AT[$lk])) -ge "$every" ]; }; then
         dash_logs_request "$lk"
       fi
     fi
     # Error counts of the selected instance: when the user pauses on it, then every 30 s.
     if [ "$DASH_IDLE" -eq 1 ] && [ "$DASH_VIEW" = "instances" ] && [ "$DASH_ON_NEW" -eq 0 ] && [ "${#DASH_NAMES[@]}" -gt 0 ]; then
       local sel="${DASH_NAMES[$DASH_SEL]}"
-      if [ -z "${DASH_ERRS_AT[$sel]:-}" ] || [ $((SECONDS - DASH_ERRS_AT[$sel])) -ge 30 ]; then dash_errors_request "$sel"; fi
+      if [ -z "${DASH_ERRS_AT[$sel]:-}" ] || [ $((SECONDS - DASH_ERRS_AT[$sel])) -ge $((DASH_AWAY == 1 ? 120 : 30)) ]; then dash_errors_request "$sel"; fi
     fi
   fi
   if [ -n "$DASH_MSG" ] && [ "$SECONDS" -ge "$DASH_MSG_UNTIL" ]; then DASH_MSG=""; DASH_DIRTY=1; fi
@@ -560,7 +594,8 @@ dash_key_global() { # key ; returns 0 when handled
   case "$1" in
     q) DASH_QUIT=1 ;;
     esc)
-      if [ "$DASH_VIEW" != "instances" ]; then DASH_VIEW=instances
+      if [ "$DASH_VIEW" = "runs" ] && [ "$DASH_RUNS_MODE" != "list" ]; then DASH_RUNS_MODE=list   # the statistics first
+      elif [ "$DASH_VIEW" != "instances" ]; then DASH_VIEW=instances
       elif [ "$DASH_ZOOM" -eq 1 ]; then DASH_ZOOM=0           # the zoom first
       elif [ "$DASH_FOCUS" != "list" ]; then DASH_FOCUS=list  # then one step back, like the left arrow
       else DASH_QUIT=1; fi
@@ -568,17 +603,27 @@ dash_key_global() { # key ; returns 0 when handled
     1) DASH_VIEW=instances ;;
     2) DASH_VIEW=resources ;;
     3) DASH_VIEW=output ;;
+    4) DASH_VIEW=runs ;;
+    5) DASH_VIEW=procs ;;
+    6) dash_open_console ;;
     tab)
-      case "$DASH_VIEW" in instances) dash_focus_cycle 1 ;; resources) DASH_VIEW=output ;; *) DASH_VIEW=instances ;; esac
+      case "$DASH_VIEW" in
+        instances) dash_focus_cycle 1 ;; resources) DASH_VIEW=output ;; output) DASH_VIEW=runs ;; runs) DASH_VIEW=procs ;;
+        procs) DASH_VIEW=console ;; *) DASH_VIEW=instances ;;
+      esac
       ;;
     btab)
-      case "$DASH_VIEW" in instances) dash_focus_cycle -1 ;; resources) DASH_VIEW=instances ;; *) DASH_VIEW=resources ;; esac
+      case "$DASH_VIEW" in
+        instances) dash_focus_cycle -1 ;; resources) DASH_VIEW=instances ;; output) DASH_VIEW=resources ;; runs) DASH_VIEW=output ;;
+        procs) DASH_VIEW=runs ;; *) DASH_VIEW=procs ;;
+      esac
       ;;
     $'\020') dash_open_palette ;;                                    # Ctrl+P
-    '?') DASH_MODE=help ;;
+    '?') DASH_MODE=help DASH_HELP_OFF=-1 ;;
     L) dash_toggle_language ;;
     T) dash_cycle_theme ;;
-    r) dash_refresh_request; DASH_ERRS_AT=(); dash_msg info "$(t tui.msg.refreshed)" ;;
+    o) dash_open_options ;;
+    r) dash_refresh_request; DASH_ERRS_AT=(); DASH_RUNS_AT=-1000; dash_msg info "$(t tui.msg.refreshed)" ;;
     p)
       if [ "$DASH_PAUSED" -eq 0 ]; then DASH_PAUSED=1; dash_msg info "$(t tui.msg.paused)"; else DASH_PAUSED=0; dash_msg info "$(t tui.msg.resumed)"; fi
       ;;
@@ -715,8 +760,16 @@ dash_key_logs() { # key
     pgup) DASH_LOG_SCROLL=$((DASH_LOG_SCROLL + page)) ;;
     pgdn) DASH_LOG_SCROLL=$((DASH_LOG_SCROLL - page)); [ "$DASH_LOG_SCROLL" -ge 0 ] || DASH_LOG_SCROLL=0 ;;
     home) DASH_LOG_SCROLL=100000 ;;           # clamped to the oldest line when drawn
-    end | G) DASH_LOG_SCROLL=0 ;;
+    end | G | f)                              # follow the end again (and resume, if it was paused)
+      DASH_LOG_SCROLL=0 DASH_LOG_MIDX=-1
+      [ "$DASH_LS_PAUSED" -eq 0 ] || dash_logs_pause_toggle
+      ;;
+    space | ' ') dash_logs_pause_toggle ;;
+    e) DASH_LOG_ERRONLY=$((1 - DASH_LOG_ERRONLY)) DASH_LOG_SCROLL=0 DASH_LOG_MIDX=-1 ;;
     '/') DASH_MODE=filter DASH_BUF="$DASH_LOG_FILTER" DASH_CUR="${#DASH_LOG_FILTER}" ;;
+    s) DASH_MODE=find DASH_BUF="$DASH_LOG_FIND" DASH_CUR="${#DASH_LOG_FIND}" ;;
+    ']') dash_logs_jump 1 ;;
+    '[') dash_logs_jump -1 ;;
     left | h) DASH_FOCUS=svc ;;
     *) return 1 ;;
   esac
@@ -744,11 +797,12 @@ dash_pal_build() {
   fi
   dt tui.pal.go
   for i in "${!DASH_NAMES[@]}"; do dash_pal_add "${DTV//\{1\}/${DASH_NAMES[$i]}}" "inst:$i"; done
-  for v in instances resources output; do dt "tui.tab.$v"; id="$DTV"; dt tui.pal.view; dash_pal_add "${DTV//\{1\}/$id}" "view:$v"; done
+  for v in instances resources output runs procs console; do dt "tui.tab.$v"; id="$DTV"; dt tui.pal.view; dash_pal_add "${DTV//\{1\}/$id}" "view:$v"; done
   dt tui.pal.theme
   for th in "${TH_THEMES[@]}"; do dash_pal_add "${DTV//\{1\}/$th}" "theme:$th"; done
   dt tui.pal.new; dash_pal_add "$DTV" "new"
   dt tui.pal.lang; dash_pal_add "$DTV" "lang"
+  dt tui.pal.options; dash_pal_add "$DTV" "options"
   dt tui.pal.clear; dash_pal_add "$DTV" "clear"
   dt tui.pal.quit; dash_pal_add "$DTV" "quit"
 }
@@ -820,6 +874,7 @@ dash_pal_run() {
     theme) if theme_apply "$arg"; then th_save "$arg"; dash_theme_refresh; fi ;;
     new) dash_terminal new --wizard ;;
     lang) dash_toggle_language ;;
+    options) dash_open_options ;;
     clear) DASH_CON=() DASH_CON_N=$((DASH_CON_N + 1)) ;;
     quit) DASH_QUIT=1 ;;
   esac
@@ -845,7 +900,7 @@ dash_key_palette() { # key
 
 DASH_CON=() DASH_CON_N=0 DASH_CON_SEQ=0 DASH_CON_COPIED=0 DASH_CON_MAX=500 DASH_CON_SCROLL=0
 DASH_CUR=0 DASH_SIGINT=0 DASH_LAST_INT=-10 DASH_PN="deltactl"
-DASH_BUILTINS=(help clear theme history goto refresh quit exit)
+DASH_BUILTINS=(help clear theme history goto alias unalias refresh quit exit)
 
 # Adds a line to the transcript. Colour sequences are kept, anything else dangerous is dropped (see tui_sanitize); a plain
 # reset is replaced by the theme's, so the background of the theme survives it.
@@ -854,7 +909,9 @@ dash_con_add() { # text
   tui_sanitize "$1"
   DASH_CON+=("${TUI_OUT//"$rs"/$C_OFF}")
   if [ "${#DASH_CON[@]}" -gt "$DASH_CON_MAX" ]; then DASH_CON=("${DASH_CON[@]:100}"); fi
-  DASH_CON_N=$((DASH_CON_N + 1)) DASH_CON_SCROLL=0
+  DASH_CON_N=$((DASH_CON_N + 1))
+  # Someone reading older lines keeps them on screen while a command goes on printing (the new lines push the end further away).
+  if [ "$DASH_CON_SCROLL" -gt 0 ]; then DASH_CON_SCROLL=$((DASH_CON_SCROLL + 1)); dash_con_clamp; fi
 }
 
 # Copies to the transcript the lines the running command printed since the last time (the output buffer keeps only the last
@@ -873,6 +930,44 @@ dash_con_mirror() {
 # The name in the prompt: the selected instance, or deltactl when there is none (or the New button is selected).
 dash_prompt_name() {
   if [ "$DASH_ON_NEW" -eq 0 ] && [ "${#DASH_NAMES[@]}" -gt 0 ]; then DASH_PN="${DASH_NAMES[$DASH_SEL]}"; else DASH_PN="deltactl"; fi
+}
+
+# --- The Console view (6): the same console, over the whole body. The key 6 (and `goto console`) give the line the keyboard at
+# once; Tab only shows the view. Without the keyboard, the arrows and PgUp/PgDn move along the transcript and Enter or : type.
+dash_open_console() {
+  DASH_VIEW=console DASH_MODE=cmd DASH_BUF="" DASH_CUR=0 DASH_HIDX="${#DASH_HIST[@]}"
+}
+
+# How far PgUp/PgDn move the transcript: five lines in the strip, almost a screen in the Console view. Into DASH_CON_PAGE.
+DASH_CON_PAGE=5
+dash_con_page() {
+  DASH_CON_PAGE=5
+  [ "$DASH_VIEW" != "console" ] || DASH_CON_PAGE=$((TUI_ROWS - 8))
+  [ "$DASH_CON_PAGE" -ge 1 ] || DASH_CON_PAGE=1
+}
+
+# Keeps the scroll of the transcript (0 = its end) between the end and the first line. In the Console view the first line stops at
+# the top of the box, so the box is never left half empty.
+dash_con_clamp() {
+  local smax=$((${#DASH_CON[@]} - 1))
+  [ "$DASH_VIEW" != "console" ] || smax=$((${#DASH_CON[@]} - (TUI_ROWS - 7)))
+  [ "$smax" -ge 0 ] || smax=0
+  [ "$DASH_CON_SCROLL" -ge 0 ] || DASH_CON_SCROLL=0
+  [ "$DASH_CON_SCROLL" -le "$smax" ] || DASH_CON_SCROLL="$smax"
+}
+dash_key_console() { # key
+  dash_con_page
+  case "$1" in
+    enter) DASH_MODE=cmd DASH_BUF="" DASH_CUR=0 DASH_HIDX="${#DASH_HIST[@]}" ;;
+    up | k) DASH_CON_SCROLL=$((DASH_CON_SCROLL + 1)) ;;
+    down | j) DASH_CON_SCROLL=$((DASH_CON_SCROLL - 1)) ;;
+    pgup) DASH_CON_SCROLL=$((DASH_CON_SCROLL + DASH_CON_PAGE)) ;;
+    pgdn) DASH_CON_SCROLL=$((DASH_CON_SCROLL - DASH_CON_PAGE)) ;;
+    home | g) DASH_CON_SCROLL=1000000 ;;
+    end | G) DASH_CON_SCROLL=0 ;;
+    $'\014') DASH_CON=() DASH_CON_N=$((DASH_CON_N + 1)) DASH_CON_SCROLL=0 ;;   # Ctrl+L
+  esac
+  dash_con_clamp
 }
 
 # --- History on disk (next to the config file), the last 200 lines are loaded at start.
@@ -901,7 +996,7 @@ dash_con_help() {
 dash_is_builtin() { # word [args...]
   case "$1" in
     help) [ "$#" -eq 1 ] ;;   # `help topic` is deltactl's own help
-    '?' | clear | cls | theme | history | goto | view | refresh | quit | exit) return 0 ;;
+    '?' | clear | cls | theme | history | goto | view | alias | unalias | refresh | quit | exit) return 0 ;;
     *) return 1 ;;
   esac
 }
@@ -932,10 +1027,11 @@ dash_builtin() { # command args...
       ;;
     goto | view)
       case "${1:-}" in
-        instances | resources | output) DASH_VIEW="$1" ;;
+        instances | resources | output | runs | procs | console) DASH_VIEW="$1" ;;
         *) dash_con_add "$C_RED$(t tui.con.bad_view)$C_OFF" ;;
       esac
       ;;
+    alias | unalias) dash_alias_cmd "$c" "$@" ;;
     refresh) dash_refresh_request; dash_con_add "$(t tui.msg.refreshed)" ;;
     quit | exit) DASH_QUIT=1 ;;
     *) return 1 ;;
@@ -981,11 +1077,12 @@ dash_complete() {
   if [[ "$buf" == *" " ]]; then idx="${#toks[@]}" prefix=""; else idx=$((${#toks[@]} - 1)) prefix="${toks[$idx]:-}"; fi
   [ "$idx" -ge 0 ] || idx=0
   case "$idx" in
-    0) pool=("${HELP_COMMANDS[@]}" "${DASH_BUILTINS[@]}") ;;
+    0) pool=("${HELP_COMMANDS[@]}" "${DASH_BUILTINS[@]}" ${DASH_ALIAS_NAMES[@]+"${DASH_ALIAS_NAMES[@]}"}) ;;
     1)
       case "${toks[0]:-}" in
         theme) pool=("${TH_THEMES[@]}") ;;
-        goto | view) pool=(instances resources output) ;;
+        goto | view) pool=(instances resources output runs procs console) ;;
+        alias | unalias) pool=(${DASH_ALIAS_NAMES[@]+"${DASH_ALIAS_NAMES[@]}"}) ;;
         *) pool=("${DASH_NAMES[@]}") ;;
       esac
       ;;
@@ -1015,11 +1112,14 @@ dash_submit_cmd() {
   buf="${buf#"${buf%%[![:space:]]*}"}"
   buf="${buf%"${buf##*[![:space:]]}"}"
   [ -n "$buf" ] || return 0
+  DASH_CON_SCROLL=0   # what a new command prints is read from its start
   if [ "${#DASH_HIST[@]}" -eq 0 ] || [ "${DASH_HIST[-1]}" != "$buf" ]; then DASH_HIST+=("$buf"); dash_hist_save "$buf"; fi
   DASH_HIDX="${#DASH_HIST[@]}"
   case "$buf" in '!'*) term=1; buf="${buf#!}"; buf="${buf#"${buf%%[![:space:]]*}"}" ;; esac
   # A lone `!` is a real shell.
   if [ "$term" -eq 1 ] && [ -z "$buf" ]; then dash_shell; return 0; fi
+  # An alias as the first word is replaced by its command (the history keeps what was typed).
+  if [ "$term" -eq 0 ]; then dash_alias_expand "$buf"; buf="$DASH_ALIAS_LINE"; fi
   read -ra args <<< "$buf"
   # The panel's own commands answer in the transcript (the other commands echo themselves when they start).
   if [ "$term" -eq 0 ] && dash_is_builtin "${args[@]}"; then
@@ -1033,8 +1133,8 @@ dash_submit_cmd() {
   # Wizards and the menu ask questions: they need the terminal.
   case " ${args[*]} " in *" --wizard "*) term=1 ;; esac
   case "${args[0]}" in menu) term=1 ;; new) [ "${#args[@]}" -gt 1 ] || term=1 ;; esac
-  # On the Overview the answer stays in the console; in the other views it opens the Output view, as before.
-  [ "$DASH_VIEW" != "instances" ] || view=stay
+  # On the Overview and in the Console view the answer stays in the console; in the other views it opens the Output view, as before.
+  case "$DASH_VIEW" in instances | console) view=stay ;; esac
   if [ "$term" -eq 1 ]; then dash_terminal "${args[@]}"; else dash_start_job "$view" "${args[@]}"; fi
 }
 
@@ -1047,9 +1147,14 @@ dash_key_edit() {
         DASH_MODE=normal
         if [ "$DASH_BUF" = "$DASH_NAME_TARGET" ]; then dash_start_job stay init "$DASH_NAME_TARGET" --yes; else dash_msg warn "$(t tui.msg.bad_name)"; fi
       elif [ "$DASH_MODE" = "filter" ]; then
-        DASH_MODE=normal DASH_LOG_FILTER="$DASH_BUF" DASH_LOG_SCROLL=0 DASH_CUR=0   # an empty line removes the filter
+        DASH_MODE=normal DASH_LOG_FILTER="$DASH_BUF" DASH_LOG_SCROLL=0 DASH_CUR=0 DASH_LOG_MIDX=-1   # an empty line removes the filter
+      elif [ "$DASH_MODE" = "find" ]; then
+        DASH_MODE=normal DASH_LOG_FIND="$DASH_BUF" DASH_CUR=0 DASH_LOG_MIDX=-1      # an empty line removes the search
+        [ -z "$DASH_LOG_FIND" ] || dash_logs_jump 0                                   # and a text goes to the newest match
       else
         dash_submit_cmd
+        # The Console view is a workspace: after a command the line is ready for the next one.
+        if [ "$DASH_VIEW" = "console" ] && [ "$DASH_MODE" = "normal" ] && [ "$DASH_QUIT" -eq 0 ]; then DASH_MODE=cmd DASH_BUF="" DASH_CUR=0; fi
       fi
       ;;
     esc) DASH_MODE=normal DASH_CUR=0; dash_msg info "$(t tui.msg.cancelled)" ;;
@@ -1080,8 +1185,8 @@ dash_key_edit() {
         DASH_CUR="${#DASH_BUF}"
       fi
       ;;
-    pgup) [ "$DASH_MODE" != "cmd" ] || DASH_CON_SCROLL=$((DASH_CON_SCROLL + 5)) ;;
-    pgdn) [ "$DASH_MODE" != "cmd" ] || { DASH_CON_SCROLL=$((DASH_CON_SCROLL - 5)); [ "$DASH_CON_SCROLL" -ge 0 ] || DASH_CON_SCROLL=0; } ;;
+    pgup) [ "$DASH_MODE" != "cmd" ] || { dash_con_page; DASH_CON_SCROLL=$((DASH_CON_SCROLL + DASH_CON_PAGE)); dash_con_clamp; } ;;
+    pgdn) [ "$DASH_MODE" != "cmd" ] || { dash_con_page; DASH_CON_SCROLL=$((DASH_CON_SCROLL - DASH_CON_PAGE)); dash_con_clamp; } ;;
     other | timeout) ;;
     *)
       if [ "${#k}" -eq 1 ] && [[ "$k" != [[:cntrl:]] ]]; then DASH_BUF="${DASH_BUF:0:$DASH_CUR}$k${DASH_BUF:$DASH_CUR}"; DASH_CUR=$((DASH_CUR + 1)); fi
@@ -1094,12 +1199,18 @@ dash_handle_key() {
   [ "$k" != "timeout" ] || return 0
   if [ "$k" = "eof" ]; then DASH_QUIT=1; return 0; fi
   DASH_DIRTY=1
+  if [ "$k" = "mouse" ]; then dash_mouse; return 0; fi
+  # With the vim keys off (Options), j k h g G do nothing where they would move: they are only letters where text is typed.
+  if [ "$DASH_VIM" -eq 0 ]; then
+    case "$DASH_MODE" in normal | menu | options) case "$k" in j | k | h | g | G) return 0 ;; esac ;; esac
+  fi
   case "$DASH_MODE" in
     menu) dash_key_menu "$k" ;;
+    options) dash_key_options "$k" ;;
     confirm) dash_key_confirm "$k" ;;
-    name | cmd | filter) dash_key_edit "$k" ;;
+    name | cmd | filter | find) dash_key_edit "$k" ;;
     palette) dash_key_palette "$k" ;;
-    help) DASH_MODE=normal ;;
+    help) dash_key_help "$k" ;;
     *)
       # The test mode has one more key: "wait" waits for the running command to end.
       if [ "$k" = "wait" ] && tui_test_mode; then
@@ -1117,16 +1228,93 @@ dash_handle_key() {
         instances) dash_key_instances "$k" ;;
         resources) dash_key_resources "$k" ;;
         output) dash_key_output "$k" ;;
+        runs) dash_key_runs "$k" ;;
+        procs) dash_key_procs "$k" ;;
+        console) dash_key_console "$k" ;;
       esac
       ;;
   esac
 }
 
+# The keys of the help (?): when it is taller than the screen, the arrows, PgUp/PgDn and Home/End move it; any other key goes back.
+dash_key_help() { # key
+  local page=$((TUI_ROWS - 8)) k="$1"
+  [ "$page" -ge 1 ] || page=1
+  # With the vim keys off, j k g G are letters like any other: they go back.
+  if [ "$DASH_VIM" -eq 0 ]; then case "$k" in j | k | g | G) k=other ;; esac; fi
+  if [ "$DASH_HELP_MAX" -gt 0 ]; then
+    case "$k" in
+      up | k) DASH_HELP_OFF=$((DASH_HELP_OFF - 1)) ;;
+      down | j) DASH_HELP_OFF=$((DASH_HELP_OFF + 1)) ;;
+      pgup) DASH_HELP_OFF=$((DASH_HELP_OFF - page)) ;;
+      pgdn) DASH_HELP_OFF=$((DASH_HELP_OFF + page)) ;;
+      home | g) DASH_HELP_OFF=0 ;;
+      end | G) DASH_HELP_OFF="$DASH_HELP_MAX" ;;
+      *) DASH_MODE=normal; return 0 ;;
+    esac
+    [ "$DASH_HELP_OFF" -ge 0 ] || DASH_HELP_OFF=0
+    [ "$DASH_HELP_OFF" -le "$DASH_HELP_MAX" ] || DASH_HELP_OFF="$DASH_HELP_MAX"
+    return 0
+  fi
+  DASH_MODE=normal
+}
+
+# --- Mouse (Options: off by default) ---------------------------------------------------------------------------
+# A click on a tab opens that view; on an instance it selects it, and a second click on the selected one opens its actions (like
+# Enter); on the New button it selects it, then starts the wizard. In the Console view a click gives the line the keyboard. The
+# wheel moves like the arrows wherever they move something; on a line being typed it scrolls the transcript instead of walking the
+# history. Releases, drags and other buttons do nothing, and clicks only act where no dialog or line has the keyboard.
+dash_mouse() {
+  local b="$TUI_MB" y="$TUI_MY" x="$TUI_MX" j i n="${#DASH_NAMES[@]}"
+  [ "$TUI_MUP" -eq 0 ] || return 0
+  [ $((b & 32)) -eq 0 ] || return 0      # a drag
+  b=$((b & ~28))                          # Shift, Alt and Ctrl held down do not change the button
+  case "$b" in
+    64 | 65)
+      if [ "$DASH_MODE" = "cmd" ]; then
+        if [ "$b" -eq 64 ]; then DASH_CON_SCROLL=$((DASH_CON_SCROLL + 3)); else DASH_CON_SCROLL=$((DASH_CON_SCROLL - 3)); fi
+        dash_con_clamp
+        return 0
+      fi
+      case "$DASH_MODE" in name | filter | find | confirm) return 0 ;; help) [ "$DASH_HELP_MAX" -gt 0 ] || return 0 ;; esac
+      if [ "$b" -eq 64 ]; then TUI_KEY=up; else TUI_KEY=down; fi
+      dash_handle_key
+      return 0
+      ;;
+    0) ;;
+    *) return 0 ;;
+  esac
+  [ "$DASH_MODE" = "normal" ] || return 0
+  if [ "$y" -eq 2 ]; then
+    if dash_tab_at "$x"; then dash_key_global "$DASH_TAB_I"; fi
+    return 0
+  fi
+  if [ "$DASH_VIEW" = "console" ]; then dash_key_console enter; return 0; fi
+  { [ "$DASH_VIEW" = "instances" ] && [ "$DASH_LIST_SHOWN" -eq 1 ] && [ "$x" -le "$DASH_LIST_W" ]; } || return 0
+  if [ "$y" -eq 4 ]; then
+    if [ "$DASH_ON_NEW" -eq 1 ] && [ "$DASH_FOCUS" = "list" ]; then dash_key_instances enter; else DASH_ON_NEW=1 DASH_SVC=0 DASH_DET_OFF=0 DASH_FOCUS=list; fi
+    return 0
+  fi
+  [ "$n" -gt 0 ] || return 0
+  j=$((y - 6))
+  { [ "$j" -ge 0 ] && [ "$j" -lt "$DASH_LIST_AVAIL" ]; } || return 0
+  i=$((DASH_LIST_START + j))
+  [ "$i" -lt "$n" ] || return 0
+  if [ "$DASH_ON_NEW" -eq 0 ] && [ "$i" -eq "$DASH_SEL" ] && [ "$DASH_FOCUS" = "list" ]; then dash_key_instances enter; return 0; fi
+  DASH_ON_NEW=0 DASH_SEL="$i" DASH_SVC=0 DASH_DET_OFF=0 DASH_FOCUS=list
+}
+
 # --- Main loop ---------------------------------------------------------------------------------------------
+
+# A key (or a click) arrived. Back from away, the figures on screen may be several seconds old: the next turn samples at once.
+dash_key_seen() {
+  [ "$DASH_AWAY" -eq 0 ] || MT_LAST_US=0
+  DASH_KEY_AT="$SECONDS" DASH_AWAY=0
+}
 
 dash_loop() {
   local tick
-  DASH_DIRTY=1
+  DASH_DIRTY=1 DASH_KEY_AT="$SECONDS"
   while [ "$DASH_QUIT" -eq 0 ]; do
     if [ "$TUI_RESIZED" -eq 1 ]; then tui_size; dash_host_build; DASH_DIRTY=1; fi
     dash_tick
@@ -1135,11 +1323,12 @@ dash_loop() {
       dash_render
     fi
     # Waiting costs nothing: `read -t` sleeps. A running command makes the loop wake up more often.
-    if job_running; then tick=0.2; else tick=1; fi
+    # A running command, a log that grows faster than one turn can read and a stream waiting to start all ask to be back soon.
+    if job_running || [ "$DASH_LS_MORE" -eq 1 ]; then tick=0.2; elif [ "$DASH_LS_DEFER" -eq 1 ]; then tick=0.3; else tick=1; fi
     tui_key "$tick"
-    if [ "$DASH_SIGINT" -eq 1 ]; then DASH_SIGINT=0; dash_ctrl_c; DASH_DIRTY=1; fi
+    if [ "$DASH_SIGINT" -eq 1 ]; then DASH_SIGINT=0; dash_key_seen; dash_ctrl_c; DASH_DIRTY=1; fi
     DASH_IDLE=0
-    [ "$TUI_KEY" != "timeout" ] || DASH_IDLE=1
+    if [ "$TUI_KEY" = "timeout" ]; then DASH_IDLE=1; else dash_key_seen; fi
     dash_handle_key
   done
 }
@@ -1147,6 +1336,7 @@ dash_loop() {
 dash_init() {
   # The theme first: the symbols and every cached string below are coloured with it.
   theme_apply "$(th_initial)" || theme_apply matrix || true
+  dash_opts_load
   DASH_HOST="$(host_name)"
   [ -n "$DASH_HOST" ] || DASH_HOST="$(t ui.host_fallback)"
   DK_READY_TTL=10   # `docker info` is not repeated at every refresh
@@ -1167,6 +1357,7 @@ cmd_dashboard() {
   set +e
   dash_init
   dash_hist_load
+  dash_alias_load
   trap 'dash_shutdown' EXIT
   trap 'dash_shutdown; exit 130' TERM
   trap 'DASH_SIGINT=1' INT          # Ctrl+C is handled by the loop (see dash_ctrl_c), it does not end the panel by itself

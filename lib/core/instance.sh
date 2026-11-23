@@ -27,10 +27,15 @@ check_docker() {
 
 # Data state code of an instance: "init" or "existing" (the SOURCE of its marker), or "unseeded" when it
 # has no marker yet.
+# data_state_r leaves it in DS without starting any process.
+DS=""
+data_state_r() { # instance
+  local m="$INSTANCES_DIR/$1/.initialized"
+  if [ -f "$m" ]; then get_var_r "$m" SOURCE; DS="$GV"; else DS=unseeded; fi
+}
 data_state() { # instance
-  local m
-  m="$(marker_file "$1")"
-  if [ -f "$m" ]; then get_var "$m" SOURCE; else printf 'unseeded'; fi
+  data_state_r "$1"
+  printf '%s' "$DS"
 }
 
 # Label of a data state code in the active language. An unknown code is shown as it is.

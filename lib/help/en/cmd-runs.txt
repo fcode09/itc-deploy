@@ -1,13 +1,16 @@
 # runs · history of operations
 
 Every operation that changes something (`deploy`, `init`, `adopt`, `rollback`, `load`, `stop`, `down`, `new`) is recorded:
-when it started, how long it took, how it ended and EVERYTHING it printed. It only reads: it never changes a run.
+when it started, how long it took, how it ended and EVERYTHING it printed.
+It only reads, except `resolve` and `prune`, which act when asked.
 
 ## Usage
 $ ./deltactl runs list [--instance <name>] [-n <count>] [--json]
 $ ./deltactl runs show <id|last>
 $ ./deltactl runs logs <id|last> [--tail <n>] [--raw]
 $ ./deltactl runs stats [--instance <name>] [-n <count>]
+$ ./deltactl runs resolve <id|--all> [--note <text>]
+$ ./deltactl runs prune [--dry-run] [--days <n>] [--max-mb <n>]
 
 ## Options
 - `list` the latest runs, newest first (20 by default)
@@ -17,10 +20,16 @@ $ ./deltactl runs stats [--instance <name>] [-n <count>]
 - `last` is the newest; the start of an id is enough
 - `logs` the whole output; `--tail <n>` only the last lines
 - `--raw` keeps the colours (into a file or a pipe it is plain text)
+- `resolve <id>` marks an interrupted run as reviewed (`--all` marks every one); `--note` records what you saw
+- `prune` deletes the oldest runs past `--days` (30 by default) or `--max-mb` (1024); `--dry-run` only counts them
 
 ## States
 - `succeeded`, `failed` (exit code other than 0), `canceled` (Ctrl+C), `running`
 - `interrupted`: the process vanished without finishing (kill, power loss). It is never counted as a success
+- An `interrupted` run is left **unreviewed**, and while there is one no new operation runs: it may have left
+  the instance half done and nothing knows what it did. Look at `./deltactl status <instance>` and `runs show <id>`,
+  then close the notice with `runs resolve <id>`
+- Cancelling (`canceled`, `interrupted`) stops the process, but does NOT undo what it had already changed in Docker
 
 ## What it measures
 - CPU: user + system of everything the operation started (the command, docker, tee)
@@ -32,6 +41,7 @@ $ ./deltactl runs stats [--instance <name>] [-n <count>]
 ## How it works
 - Only one operation runs at a time: if another is going on, the second is refused and says which one
 - The data lives in `instances/.deltactl/` (private, never versioned). `DELTACTL_NO_RUNS=1` turns the record off
+- Nothing is deleted on its own: `runs prune` acts only when asked and never touches runs in progress or unreviewed ones
 - During the operation errors and messages come out together on standard output (one ordered log)
 
 ## Examples

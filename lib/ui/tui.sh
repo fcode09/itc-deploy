@@ -7,8 +7,8 @@
 # previous frame, in a single write, so a clock or a counter ticking does not make the screen flicker.
 #
 # Test mode (no terminal needed): DELTACTL_TUI_KEYS=<file> makes tui_key read one key name per line from that file
-# (up, down, left, right, enter, esc, tab, pgup, pgdn, home, end, timeout, or a character; the end of the file is the key
-# eof) and tui_draw print every frame as plain text between "=== frame N ===" lines, without any escape sequence. The
+# (up, down, left, right, enter, esc, tab, pgup, pgdn, home, end, timeout, mouse:<button>:<column>:<row>[:up], or a character;
+# the end of the file is the key eof) and tui_draw print every frame as plain text between "=== frame N ===" lines, without any escape sequence. The
 # size is then DELTACTL_TUI_ROWS x COLUMNS (30 x 100 by default).
 
 shopt -s extglob
@@ -28,6 +28,8 @@ TUI_CURSOR=""
 TUI_VL=0
 TUI_OUT=""
 TUI_BOX=()
+TUI_MOUSE=0                       # report the mouse (SGR mode: clicks and the wheel)? See tui_mouse.
+TUI_MB=0 TUI_MX=0 TUI_MY=0 TUI_MUP=0   # the last mouse event: button, column, row (1-based), 1 for a release
 
 tui_test_mode() { [ -n "${DELTACTL_TUI_KEYS:-}" ]; }
 
@@ -64,6 +66,7 @@ tui_enter() {
   TUI_STTY="$(stty -g 2> /dev/null || true)"
   stty -echo 2> /dev/null || true
   TUI_ACTIVE=1
+  [ "$TUI_MOUSE" -eq 0 ] || printf '\033[?1000h\033[?1006h'
   trap 'TUI_RESIZED=1' WINCH
   tui_size
 }
@@ -71,14 +74,49 @@ tui_enter() {
 # Leaves the alternate screen and shows the cursor again. Safe to call twice.
 tui_leave() {
   [ "$TUI_ACTIVE" -eq 1 ] || return 0
+  # The mouse goes off whatever TUI_MOUSE says (it costs nothing, and the terminal never keeps reporting to the shell). What it
+  # had already sent (the release of the click that left the screen, a turn of the wheel) is read and dropped, or it would be
+  # typed into the next prompt.
+  printf '\033[?1006l\033[?1000l'
+  if [ "$TUI_MOUSE" -eq 1 ]; then
+    local _d _n=0
+    while [ "$_n" -lt 256 ] && IFS= read -rsn1 -t 0.02 _d; do _n=$((_n + 1)); done
+  fi
   printf '\033[0m\033[?7h\033[?25h\033[?1049l\033[0m'
   if [ -n "$TUI_STTY" ]; then stty "$TUI_STTY" 2> /dev/null || stty echo 2> /dev/null || true; else stty echo 2> /dev/null || true; fi
   TUI_ACTIVE=0
   trap - WINCH
 }
 
+# Turns the report of the mouse on (1) or off (0). While it is on, the terminal sends clicks and the wheel to the panel instead of
+# selecting text (most terminals still select with Shift held down).
+tui_mouse() { # 1|0
+  [ "$1" = "1" ] || [ "$1" = "0" ] || return 0
+  [ "$TUI_MOUSE" != "$1" ] || return 0
+  TUI_MOUSE="$1"
+  { [ "$TUI_ACTIVE" -eq 1 ] && ! tui_test_mode; } || return 0
+  if [ "$1" = "1" ]; then printf '\033[?1000h\033[?1006h'; else printf '\033[?1006l\033[?1000l'; fi
+}
+
+# A mouse report of the SGR mode, without its ESC: [<button;column;row then M (press) or m (release). Into TUI_KEY=mouse and
+# TUI_MB / TUI_MX / TUI_MY / TUI_MUP; anything malformed is the key other. The numbers come from the terminal: they are checked
+# to be short runs of digits before anything does arithmetic with them.
+tui_mouse_parse() { # sequence
+  local s="${1#\[<}" fin b x y
+  fin="${s: -1}"
+  s="${s%?}"
+  b="${s%%;*}"; s="${s#*;}"
+  x="${s%%;*}"; y="${s#*;}"
+  if [[ "$b" =~ ^[0-9]{1,4}$ ]] && [[ "$x" =~ ^[0-9]{1,4}$ ]] && [[ "$y" =~ ^[0-9]{1,4}$ ]]; then
+    TUI_KEY="mouse" TUI_MB=$((10#$b)) TUI_MX=$((10#$x)) TUI_MY=$((10#$y)) TUI_MUP=0
+    [ "$fin" != "m" ] || TUI_MUP=1
+  else
+    TUI_KEY="other"
+  fi
+}
+
 # Reads one key into TUI_KEY, waiting at most $1 seconds (none = forever). The result is a name (up, down, left,
-# right, home, end, pgup, pgdn, delete, enter, esc, tab, backspace, timeout, eof, other) or the typed character.
+# right, home, end, pgup, pgdn, delete, enter, esc, tab, backspace, timeout, eof, mouse, other) or the typed character.
 tui_key() { # [timeout]
   local t="${1:-}" k rest="" c rc=0
   if tui_test_mode; then
@@ -87,6 +125,11 @@ tui_key() { # [timeout]
       TUI_KEYS_OPEN=1
     fi
     if IFS= read -r k <&9; then TUI_KEY="$k"; else TUI_KEY="eof"; fi
+    if [[ "$TUI_KEY" =~ ^mouse:([0-9]+):([0-9]+):([0-9]+)(:up)?$ ]]; then
+      c=M
+      [ -z "${BASH_REMATCH[4]}" ] || c=m
+      tui_mouse_parse "[<${BASH_REMATCH[1]};${BASH_REMATCH[2]};${BASH_REMATCH[3]}$c"
+    fi
     return 0
   fi
   if [ -n "$t" ]; then
@@ -106,7 +149,7 @@ tui_key() { # [timeout]
           while IFS= read -rsn1 -t 0.05 c; do
             rest+="$c"
             case "$c" in [A-Za-z~]) break ;; esac
-            [ "${#rest}" -lt 8 ] || break
+            [ "${#rest}" -lt 16 ] || break   # (a mouse report is up to [<64;1234;1234M)
           done
         else
           rest="$c"
@@ -122,6 +165,19 @@ tui_key() { # [timeout]
           '[5~') TUI_KEY="pgup" ;;
           '[6~') TUI_KEY="pgdn" ;;
           '[3~') TUI_KEY="delete" ;;
+          '[<'*[Mm]) tui_mouse_parse "$rest" ;;
+          '[M')
+            # The old mouse format (a terminal without the SGR mode): three raw bytes follow. They are read and dropped, or a
+            # click would type them as keys (a column can be an x, a q, a digit...).
+            IFS= read -rsn3 -t 0.05 c || true
+            TUI_KEY="other"
+            ;;
+          '[<'*)
+            # A mouse report longer than expected: the rest of it is dropped too, up to its end.
+            local _n=0
+            while [ "$_n" -lt 32 ] && IFS= read -rsn1 -t 0.05 c; do _n=$((_n + 1)); case "$c" in [Mm]) break ;; esac; done
+            TUI_KEY="other"
+            ;;
           *) TUI_KEY="other" ;;
         esac
       else
