@@ -1,6 +1,6 @@
 === frame 1 ===
 
-  1   2  [3 Salida]  4   5   6   7   8                                           ● ./deltactl new colorado terminó bien
+  1   2  [3 Salida]  4   5   6   7   8   9                                       ● ./deltactl new colorado terminó bien
 ╭─ ▸Salida · ./deltactl new colorado · terminó bien 00:42 · resumen · ● 0 ▲ 4 ─────────────────────────────────────────╮
 │ ● instancia 'colorado' creada en /srv/deltactl/instances/colorado (puertos 4130/4131)                                │
 │                                                                                                                      │

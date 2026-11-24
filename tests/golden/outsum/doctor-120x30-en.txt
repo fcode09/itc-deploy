@@ -1,6 +1,6 @@
 === frame 1 ===
 
- 1 Instances 2 Resources [3 Output] 4 Runs 5 Processes 6 Console 7 Server 8 Images      ● ./deltactl doctor finished OK
+  1   2  [3 Output]  4   5   6   7   8   9                                              ● ./deltactl doctor finished OK
 ╭─ ▸Output · ./deltactl doctor · finished OK 00:42 · summary · 1-24/37 · ● 15 ▲ 1 ─────────────────────────────────────╮
 │ Server diagnosis                                                                                                     │
 │                                                                                                                      │

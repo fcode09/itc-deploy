@@ -1,6 +1,6 @@
 === frame 1 ===
 
-  1   2  [3 Salida]  4   5   6   7   8                                                 ⠋ ./deltactl deploy sim-01 00:03
+  1   2  [3 Salida]  4   5   6   7   8   9                                             ⠋ ./deltactl deploy sim-01 00:03
 ╭─ ▸Salida · ./deltactl deploy sim-01 · ejecutando 00:03 · resumen ────────────────────────────────────────────────────╮
 │   ● Validando compose...                                                                                             │
 │   ◐ Imágenes locales (REGISTRY vacío): no se descarga nada.                                                          │

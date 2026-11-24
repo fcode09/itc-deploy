@@ -1,6 +1,6 @@
 === frame 1 ===
 
-  1 Instancias   2 Recursos  [3 Salida]  4 Ejecuciones   5 Procesos   6 Consola   7 Servidor   8 Imágenes                ● ./deltactl new colorado terminó bien
+  1 Instancias   2 Recursos  [3 Salida]  4 Ejecuciones   5 Procesos   6 Consola   7 Servidor   8 Imágenes   9 Variables  ● ./deltactl new colorado terminó bien
 ╭─ ▸Salida · ./deltactl new colorado · terminó bien 00:42 · resumen · ● 0 ▲ 4 ─────────────────────────────────────────────────────────────────────────────────╮
 │ ● instancia 'colorado' creada en /srv/deltactl/instances/colorado (puertos 4130/4131)                                                                        │
 │                                                                                                                                                              │

@@ -1,6 +1,6 @@
 === frame 1 ===
 
-  1   2  [3 Output]  4   5   6   7   8    ● ./deltactl new colorado finished OK
+  1   2  [3 Output]  4   5   6   7   8   9  ● ./deltactl new colorado finished 
 ╭─ ▸Output · ./deltactl new colorado · finished OK 00:42 · summary · 1-18/22 ──╮
 │ ● instance 'colorado' created in /srv/deltactl/instances/colorado (ports     │
 │   4130/4131)                                                                 │

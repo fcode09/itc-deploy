@@ -1,6 +1,6 @@
 === frame 1 ===
 
-  1 Instancias   2 Recursos  [3 Salida]  4 Ejecuciones   5 Procesos   6 Consola   7 Servidor   8 Imágenes        ✖ ./deltactl deploy sim-01 terminó con error 1
+ 1 Instancias 2 Recursos [3 Salida] 4 Ejecuciones 5 Procesos 6 Consola 7 Servidor 8 Imágenes 9 Variables         ✖ ./deltactl deploy sim-01 terminó con error 1
 ╭─ ▸Salida · ./deltactl deploy sim-01 · terminó con error 1 00:42 · resumen · ● 0 ▲ 2 ─────────────────────────────────────────────────────────────────────────╮
 │ ✖ 2 imagen(es) sin cargar. Cárgalas con ./deltactl load <archivo> y revisa las disponibles con ./deltactl images (ayuda: ./deltactl help imagenes)           │
 │                                                                                                                                                              │

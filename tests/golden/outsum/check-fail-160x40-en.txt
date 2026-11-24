@@ -1,6 +1,6 @@
 === frame 1 ===
 
-  1 Instances   2 Resources  [3 Output]  4 Runs   5 Processes   6 Console   7 Server   8 Images                   ✖ ./deltactl check sim-01 failed with error 1
+  1 Instances   2 Resources  [3 Output]  4 Runs   5 Processes   6 Console   7 Server   8 Images   9 Variables     ✖ ./deltactl check sim-01 failed with error 1
 ╭─ ▸Output · ./deltactl check sim-01 · failed with error 1 00:42 · summary · ● 5 ✖ 2 ──────────────────────────────────────────────────────────────────────────╮
 │ Check of 'sim-01'                                                                                                                                            │
 │                                                                                                                                                              │

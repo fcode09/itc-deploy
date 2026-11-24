@@ -1,6 +1,6 @@
 === frame 1 ===
 
-  1   2  [3 Output]  4   5   6   7   8          ● ./deltactl images finished OK
+  1   2  [3 Output]  4   5   6   7   8   9      ● ./deltactl images finished OK
 ╭─ ▸Output · ./deltactl images · finished OK 00:42 · summary · 1-18/20 · ● 2 ──╮
 │ Images on this server                                                        │
 │                                                                              │
