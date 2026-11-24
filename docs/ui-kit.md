@@ -85,9 +85,23 @@ Todos son puros (datos → líneas) y encajan dentro de `kit_box`; ninguno lanza
 | Aviso | `kit_toast_set <tipo> <texto> [seg]`, `kit_toast_line <ancho>` | `KIT_OUT` (en blanco al caducar; reloj `KIT_NOW` o `$SECONDS`) |
 | Modal | `kit_modal_confirm`, `kit_modal_name` (escribir el nombre), `kit_center` | `KIT_BOX`; `kit_modal_name_ok` compara exactamente |
 | Texto | `kit_wrap <texto> <ancho>` | `KW_LINES` |
+| Selector de versión | `kit_vpick <ancho> <alto> <registros> [sel= filter= top= texts= server_arch= note= status= other=0\|1 load=0\|1 typing=1 typed= cursor=]`, `kit_vpick_select`, `kit_vpick_pick`, `kit_vpick_typed` | `KVP_LINES` (exactamente `<alto>` líneas), `KVP_N`, `KVP_SEL`, `KVP_STAR`, `KVP_DEFAULT`, `KVP_COUNT`, `KVP_TOP` y, de la fila elegida, `KVP_KIND`/`KVP_TAG`/`KVP_OK`/`KVP_WHY` |
 
 - Las filas seleccionadas de tabla y lista empiezan por `TUI_SEL`, igual que el cuerpo de `kit_box`: se pintan con los colores de selección del tema.
 - Columnas de tabla: `titulo|ancho|alineación|banderas` (`*` reparte el resto, `num` ordena como número, `spark` dibuja el historial como gráfica de una fila).
+
+## Selector de versión (`version_picker.sh`)
+
+Una tabla de las versiones de **una** imagen (VERSIÓN, CREADA, TAMAÑO, ARQ, USO) con la ★ en la más reciente que se puede elegir, ▲ en las etiquetas que se
+mueven (`latest`, sin versión), ✖ en las imágenes de otra arquitectura, y dos filas al final: «escribir otra versión…» y «cargar desde un archivo…». La última
+línea dice lo importante de la fila elegida (por qué no se puede elegir, que Enter toma la ★, que la etiqueta se mueve), o el progreso de una carga
+(`status=`, que no bloquea el panel), o el campo en el que se escribe otra versión (`typing=1`: ok si está cargada, aviso si aún no, error si no es una
+etiqueta válida o es de otra arquitectura). Los registros (`etiqueta · creada · tamaño · arquitectura · uso · banderas`) los construye
+`ic_picker_rows <grupo> <array>` desde el catálogo (`docs/image-catalog.md`) y los textos `ic_picker_texts <array>`; el componente no sabe de Docker.
+
+Cómo se usa: la vista abre el selector en `KVP_DEFAULT` (la ★), de modo que **Enter solo toma la más reciente**; con Enter llama a `kit_vpick_pick`: una versión
+que puede arrancar se elige; una que no, enseña `KVP_WHY`; «escribir otra» activa `typing=1`; «cargar» pide el archivo y lanza `load` como trabajo en segundo
+plano. Solo se construyen las filas que se ven (una lista puede ser larga). Pruebas: `tests/test-picker.sh`; escena `vpick` en `tests/tools/kit_scenes.sh`.
 
 ## Quién lo usa
 
