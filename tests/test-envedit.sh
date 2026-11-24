@@ -245,4 +245,17 @@ check "SERVERS_CONFIG (el JSON de los webhooks) es un secreto: set no lo repite 
   out="$(D env ee-f set s1:SERVERS_CONFIG "{\"a\":\"tokenZZ9\"}" 2>&1)"; ! grep -qF tokenZZ9 <<< "$out" && ! D env ee-f list s1 2>&1 | grep -qF tokenZZ9'
 check "envedit_show enmascara un secreto desconocido" '[ "$(run "envedit_show .env.s0 DB_PASSWD abc; printf %s \"\$ED_SHOW\"")" = "********" ]'
 
+section "10. un cambio hecho mientras se despliega sigue pendiente"
+newinst ee-g
+sed -i "s/^S0_PORT=.*/S0_PORT=29796/; s/^S1_PORT=.*/S1_PORT=29797/" instances/ee-g/.env.instance
+# While compose runs `up`, another terminal changes a value: the containers got the old one.
+printf 'cd %q && bash ./deltactl env ee-g set s0:JWT_EXPIRES_IN 9h > "$FIX/hook.out" 2>&1\n' "$PWD" > "$FIX/hook_up"
+D deploy ee-g > /dev/null 2>&1
+rm -f "$FIX/hook_up"
+check "el deploy terminó bien y el cambio de en medio llegó al archivo" 'grep -q "^JWT_EXPIRES_IN=9h$" instances/ee-g/.env.s0 && grep -q "^ENV_SUM_S0=" instances/ee-g/.deployed'
+check "…pero ese archivo queda PENDIENTE: la marca es la de antes del cambio" '[ "$(run "envedit_pending ee-g")" = ".env.s0" ] && D env ee-g pending 2>&1 | grep -q ".env.s0"'
+check "…y los que no cambiaron quedan sincronizados" '[ "$(run "for f in .env.instance .env.s1; do envedit_deploy_state_r ee-g \$f; printf \"%s \" \$ED_DEPLOY; done")" = "synced synced " ]'
+check "env set avisa cuando hay una operación en curso (deploy)" 'grep -q "operación en curso" "$FIX/hook.out" && grep -q "deploy ee-g" "$FIX/hook.out"'
+check "sin operación en curso no avisa" '! D env ee-g set s0:JWT_EXPIRES_IN 8h 2>&1 | grep -q "operación en curso"'
+
 finish

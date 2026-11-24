@@ -115,6 +115,8 @@ case "$1" in
         --images) imgs=1; shift ;;
         up | pull | ps | stop | down | logs)
           echo "COMPOSE $1" >> "$FIX/calls.log"
+          # $FIX/hook_<command> is a script that runs while that command is running (to change a file in the middle of a deploy)
+          if [ -f "$FIX/hook_$1" ]; then bash "$FIX/hook_$1" > /dev/null 2>&1 || true; fi
           # $FIX/slow_<command> holds the seconds that command takes (to have a real operation to cancel or kill)
           if [ -f "$FIX/slow_$1" ]; then sleep "$(cat "$FIX/slow_$1")"; fi
           # $FIX/fail_<command> holds the exit code that command must return (for example fail_pull=23)

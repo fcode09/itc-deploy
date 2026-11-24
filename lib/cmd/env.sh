@@ -170,6 +170,12 @@ env_get() { # instance target reveal
 
 # ---------- set ----------
 
+# A value written while an operation (a deploy, a rollback) is running may not be in what that operation starts: say so.
+env_warn_busy() {
+  if runs_busy; then warn "$(t env.busy "${RUNS_OWNER_WHAT:-?}")"; fi
+  return 0
+}
+
 env_set() { # instance target value have_value stdin force
   local inst="$1" value="$3" have="$4" use_stdin="$5" force="$6" rc=0 secret shown
   env_resolve "$inst" "$2"
@@ -191,6 +197,7 @@ env_set() { # instance target value have_value stdin force
     fi
   fi
   [ "$have" -eq 1 ] || die "$(t env.set_value_missing "$inst" "$key")"
+  env_warn_busy
   envedit_save "$inst" "$f" "$key" "$value" "$force" || rc=$?
   case "$rc" in
     1) die "$(t env.refused "$key" "$EV_MSG")" ;;
@@ -227,6 +234,7 @@ env_generate() { # instance target
     warn "$msg"
     confirm "$(t env.gen_confirm "$key")" || { info "$(t env.gen_cancelled)"; return 0; }
   fi
+  env_warn_busy
   envedit_generate "$inst" "$f" "$key" || rc=$?
   case "$rc" in
     1) die "$(t env.openssl_missing)" ;;

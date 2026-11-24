@@ -211,21 +211,42 @@ envedit_sum_r() { # path
 # Name of the key of a file's mark in .deployed: .env.s0 -> ENV_SUM_S0.
 envedit_sum_key() { local w="${1#.env.}"; printf 'ENV_SUM_%s' "${w^^}"; }
 
-# Records the sums of the files that a deploy used: the .env of each service given and, when `all` is 1 (the whole instance was
-# deployed), .env.instance too. A file that is not there is skipped. Returns 1 when .deployed could not be written.
-envedit_mark_deployed() { # instance all(0|1) service...
+# The sums of the files that a deploy is about to use, taken BEFORE compose reads them (a deploy can take minutes, and a value changed
+# meanwhile is not in the containers: it has to stay pending). Leaves them in ENVEDIT_SNAP (file -> sum).
+declare -gA ENVEDIT_SNAP=()
+envedit_snapshot() { # instance all(0|1) service...
   local inst="$1" all="$2" dir f svc
   shift 2
   dir="$INSTANCES_DIR/$inst"
   local -a files=()
+  ENVEDIT_SNAP=()
   [ "$all" != 1 ] || files+=(.env.instance)
   for svc in "$@"; do files+=(".env.$svc"); done
   for f in "${files[@]}"; do
     [ -f "$dir/$f" ] || continue
     envedit_sum_r "$dir/$f"
     [ -n "$ED_SUM" ] || continue
-    set_var "$dir/.deployed" "$(envedit_sum_key "$f")" "$ED_SUM" || return 1
+    ENVEDIT_SNAP[$f]="$ED_SUM"
   done
+  return 0
+}
+
+# Records the snapshot in .deployed (only when the deploy ended well). Returns 1 when .deployed could not be written.
+envedit_mark_snapshot() { # instance
+  local f dir="$INSTANCES_DIR/$1" rc=0
+  for f in "${!ENVEDIT_SNAP[@]}"; do
+    set_var "$dir/.deployed" "$(envedit_sum_key "$f")" "${ENVEDIT_SNAP[$f]}" || rc=1
+  done
+  ENVEDIT_SNAP=()
+  return "$rc"
+}
+
+# Records the sums of the files that a deploy used: the .env of each service given and, when `all` is 1 (the whole instance was
+# deployed), .env.instance too. A file that is not there is skipped. Returns 1 when .deployed could not be written.
+# (A deploy takes the snapshot before it starts and marks it when it ends well; this is both at once.)
+envedit_mark_deployed() { # instance all(0|1) service...
+  envedit_snapshot "$@"
+  envedit_mark_snapshot "$1"
 }
 
 # Is the file as it was when it was deployed? ED_DEPLOY is
