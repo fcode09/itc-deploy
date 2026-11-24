@@ -1,0 +1,25 @@
+=== frame 1 ===
+
+ [1 Instances]  2   3   4   5   6   7   8                                      
+╭─┐new instance┌─────────────────────────────────────────────────┐instancia-1┌─╮
+│ ●━━━━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━━━━◉━━━━━━━━━━━━━━━━━━○        Step 3 of 4│
+│ Name               Services           Versions           Data                │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─┐ ▸3 · Versions ┌────────────────────────────────────────────────────────────╮
+│                                                                              │
+│ Which version of each service? The most recent one is already chosen: Enter  │
+│ accepts it.                                                                  │
+│                                                                              │
+│ ▸ s0 · auth-backend  image auth-backend                                      │
+│   VERSION                CREATED           SIZE ARCH      USE                │
+│   3.0.0-rc1              1 h ago          300MB arm64 ✖   unused             │
+│   2.14.1 ★               2 days ago       300MB amd64 ✔   unused  ↑ most rece│
+│   latest ▲               5 days ago       300MB amd64 ✔   unused             │
+│   2.14.0                 9 days ago       300MB amd64 ✔   unused             │
+│   2.13.2                 1 month ago      300MB amd64 ✔   unused             │
+│   write another version…                                                     │
+│   Enter chooses the most recent one                                          │
+│   ● s1 · gueo-back-end  2.9.0 ★                                              │
+╰─┘Esc back└─┘Enter next└─┘Tab preview└────────────────────────────────────────╯
+
+ ↑↓ choose · Enter chooses and goes on · Esc back · Tab preview

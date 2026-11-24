@@ -600,7 +600,11 @@ dash_mouse() {
     0) ;;
     *) return 0 ;;
   esac
-  [ "$DASH_MODE" = "normal" ] || return 0
+  if [ "$DASH_MODE" != "normal" ]; then
+    # A mode that has a click hook (the bar of steps of the new-instance wizard) takes the click; the others ignore the mouse.
+    if declare -F "scr_${DASH_MODE}_click" > /dev/null; then "scr_${DASH_MODE}_click" "$x" "$y"; fi
+    return 0
+  fi
   if [ "$y" -eq 2 ]; then
     if dash_tab_at "$x"; then dash_key_global "$DASH_TAB_I"; fi
     return 0

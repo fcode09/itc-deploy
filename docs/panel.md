@@ -127,6 +127,11 @@ se aplica al momento y se guarda en `~/.config/deltactl/config`. Las variables `
 - **Aviso de requisitos** (activado por defecto, `TUI_PREREQ`): avisa al abrir el panel y al crear una instancia si falta algo obligatorio
   del servidor (ver «Servidor y requisitos»).
 
+- **Asistente de nueva instancia por pasos** (en prueba; `TUI_WIZARD=2` en el archivo de configuración o `DELTACTL_WIZARD=2`): en lugar del
+  formulario, `n` abre un asistente con una barra de pasos (Nombre, Servicios, Versiones, Datos), una vista previa de lo que se creará y el comando
+  equivalente. Enter sigue con lo propuesto, Esc vuelve, los dígitos y el clic saltan a un paso ya visitado y Tab muestra la vista previa en una pantalla
+  estrecha. Comprueba que el nombre esté libre también en Docker (proyectos y redes), no solo en la carpeta `instances/`.
+
 También: `T` cambia de tema, `L` de idioma, `p` pausa la actualización, `r` refresca, `n` crea una instancia, `d` diagnóstico,
 `i` imágenes.
 

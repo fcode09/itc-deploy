@@ -1,0 +1,25 @@
+=== frame 1 ===
+
+ [1 Instancias]  2   3   4   5   6   7   8                                     
+╭─┐nueva instancia┌──────────────────────────────────────────────┐instancia-1┌─╮
+│ ◉━━━━━━━━━━━━━━━━━━○━━━━━━━━━━━━━━━━━━○━━━━━━━━━━━━━━━━━━○        Paso 1 de 4│
+│ Nombre             Servicios          Versiones          Datos               │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─┐ ▸vista previa ┌────────────────────────────────────────────────────────────╮
+│ instances/instancia-1/                                                       │
+│   .env.instance                                                              │
+│     COMPOSE_PROFILES=s0,s1                                                   │
+│     S0_PORT=4100                                                             │
+│     S0_TAG=(la de la plantilla)                                              │
+│     S1_PORT=4101                                                             │
+│     S1_TAG=(la de la plantilla)                                              │
+│   .env.s0 .env.s1                                                            │
+│   secrets/  data/                                                            │
+│     data/ vacía: init la siembra                                             │
+│                                                                              │
+│ ≈ ./deltactl new instancia-1                                                 │
+│     --services s0,s1 --generate-secrets                                      │
+│                                                                              │
+╰─┘Tab formulario└─┘Esc atrás└─────────────────────────────────────────────────╯
+
+ Enter siguiente · Esc atrás · Tab vista previa

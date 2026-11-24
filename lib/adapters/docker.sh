@@ -126,6 +126,11 @@ dk_run_once() {
 # Ids of every container (running or not) that belongs to a Compose project.
 dk_project_container_ids() { docker ps -aq --filter label=com.docker.compose.project 2>/dev/null; }
 
+# Names of the Compose projects that have containers (running or not), one per line (repeated once per container), and the names of the
+# Docker networks, one per line. The new-instance wizard reads them once to know which names are taken outside the instances folder.
+dk_compose_projects() { docker ps -a --format '{{.Label "com.docker.compose.project"}}' 2>/dev/null; }
+dk_network_names() { docker network ls --format '{{.Name}}' 2>/dev/null; }
+
 # Ids of the containers (running or not) of one instance: its Compose project is named after it.
 dk_instance_container_ids() { # instance
   docker ps -aq --filter "label=com.docker.compose.project=$1" 2>/dev/null

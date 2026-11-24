@@ -82,6 +82,9 @@ dash_opts_load() {
   case "${DASH_CFG_V,,}" in on | yes | 1 | true) tui_mouse 1 ;; *) tui_mouse 0 ;; esac
   dash_cfg_get TUI_PREREQ
   case "${DASH_CFG_V,,}" in off | no | 0 | false) DASH_PREREQ=0 ;; *) DASH_PREREQ=1 ;; esac
+  # The new-instance wizard of steps (TUI_WIZARD=2 or DELTACTL_WIZARD=2) until it replaces the old form.
+  dash_cfg_get TUI_WIZARD
+  case "${DELTACTL_WIZARD:-${DASH_CFG_V,,}}" in 2 | v2 | steps) DASH_WIZARD=2 ;; *) DASH_WIZARD=1 ;; esac
   # The path as the screen shows it, worked out once: under the home it starts with ~, and a long one keeps its end (the part that
   # tells the file), so it never widens the box.
   local f

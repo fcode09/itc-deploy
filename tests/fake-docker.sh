@@ -15,8 +15,13 @@ case "$1" in
       *DockerRootDir*) echo "" ;;
     esac
     exit 0 ;;
-  network) echo 127.0.0.1; exit 0 ;;
+  network)
+    # `network ls`: $FIX/networks.txt (optional), one name per line. Any other network command answers the gateway of the bridge.
+    if [ "${2:-}" = ls ]; then cat "$FIX/networks.txt" 2> /dev/null; exit 0; fi
+    echo 127.0.0.1; exit 0 ;;
   ps)
+    # `ps -a --format ...com.docker.compose.project...`: the project of every row of containers.txt, one per line.
+    case "$*" in *'--format'*'com.docker.compose.project'*) cut -d'|' -f1 "$FIX/containers.txt" 2> /dev/null; exit 0 ;; esac
     # $FIX/containers.txt (optional): project|service|state|health|image|started|name|pid|restarts, one per container.
     # `ps` prints the line numbers of the rows of the project named in the label filter; `inspect <ids>` prints those rows.
     [ -f "$FIX/containers.txt" ] || exit 0

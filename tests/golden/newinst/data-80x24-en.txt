@@ -1,0 +1,25 @@
+=== frame 1 ===
+
+ [1 Instances]  2   3   4   5   6   7   8                                      
+╭─┐new instance┌─────────────────────────────────────────────────┐instancia-1┌─╮
+│ ●━━━━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━━━━◉        Step 4 of 4│
+│ Name               Services           Versions           Data                │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─┐ ▸4 · Data ┌────────────────────────────────────────────────────────────────╮
+│                                                                              │
+│ Does the municipality start from scratch, or does it already have data (it   │
+│ comes from PM2 or another deployment)?                                       │
+│                                                                              │
+│ ▸ (o) New: starts from scratch                                               │
+│        The databases stay empty and ./deltactl init seeds them the first time│
+│        (administrator, municipality). Secrets are generated.                 │
+│                                                                              │
+│   ( ) Has data: it comes from another deployment                             │
+│        It uses the same databases and secrets. The instance is marked as     │
+│        existing: init will not be able to seed it.                           │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+╰─┘Esc back└─┘Enter create└─┘Tab preview└──────────────────────────────────────╯
+
+ ↑↓ choose · Enter creates · Space switches · 1-9 step · Esc back · Tab preview
