@@ -1109,13 +1109,6 @@ dash_view_resources() { # body_height
 
 # --- View: output ---------------------------------------------------------------------------------------
 
-# --- View: console ---------------------------------------------------------------------------------------------------
-# The console of the Overview over the whole body: a workspace to type commands and read what they printed.
-dash_view_console() { # body_height
-  dash_console_box "$TUI_COLS" "$1"
-  TUI_FRAME+=("${TUI_BOX[@]}")
-}
-
 dash_view_output() { # body_height
   dash_out_box "$TUI_COLS" "$1" "$DASH_OUT_SCROLL" "$DASH_OUT_ERRORS" 1
   TUI_FRAME+=("${TUI_BOX[@]}")
@@ -1168,42 +1161,6 @@ dash_dialog_palette() { # body_height
   DASH_DLG+=("")
   dt tui.pal.title
   dash_dialog "$1" "$DTV" 64
-}
-
-# --- Console box ------------------------------------------------------------------------------------------------------
-# The strip at the bottom: the transcript of the console (what was typed, what the commands printed, how they ended) and, on its
-# last line, the prompt. While the console has the keyboard (mode cmd) its box is the focused one and the prompt shows the line
-# with a cursor.
-dash_console_box() { # width height
-  local w="$1" h="$2" inner avail n end start i acc pn pg before at after cur prompt title hint foc=0
-  local -a body=()
-  inner=$((h - 2))
-  avail=$((inner - 1))
-  [ "$avail" -ge 1 ] || avail=1
-  [ "$DASH_MODE" != "cmd" ] || foc=1
-  acc="${TH[accent]:-$C_CYN}"
-  dash_prompt_name; pn="$DASH_PN"
-  pg="$DASH_PG"
-  n="${#DASH_CON[@]}"
-  end=$((n - DASH_CON_SCROLL))
-  [ "$end" -ge 0 ] || end=0
-  start=$((end - avail)); [ "$start" -ge 0 ] || start=0
-  for ((i = start; i < end; i++)); do body+=("${DASH_CON[$i]}"); done
-  # The prompt is always on the last line of the box: short transcripts leave their blank lines between.
-  while [ "${#body[@]}" -lt "$avail" ]; do body+=(""); done
-  if [ "$DASH_MODE" = "cmd" ]; then
-    before="${DASH_BUF:0:$DASH_CUR}"; at="${DASH_BUF:$DASH_CUR:1}"; after="${DASH_BUF:$((DASH_CUR + 1))}"
-    if [ -n "$DASH_REV" ]; then cur="$DASH_REV${at:- }$C_OFF"; prompt="$acc$pn $pg$C_OFF $before$cur$after"
-    else prompt="$pn $pg $before|$at$after"; fi
-  else
-    dt tui.con.hint; hint="$DTV"
-    prompt="$C_GRY$pn $pg $hint$C_OFF"
-  fi
-  body+=("$prompt")
-  dt tui.con.title; title="$DTV"
-  dash_job_label
-  [ -z "$DASH_JL" ] || title+=" $UI_S_DOT $DASH_JL"
-  tui_box "$title" "$w" "$h" body "" "$foc"
 }
 
 # --- Dialogs --------------------------------------------------------------------------------------------

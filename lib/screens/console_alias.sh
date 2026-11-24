@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC2034  # the DASH_* variables are shared with lib/cmd/dashboard.sh
-# Aliases of the console: short names for the commands typed often. Sourced by lib/cmd/dashboard.sh.
+# Aliases of the console: short names for the commands typed often. Loaded by lib/screens/console.sh.
 #
 #   alias                    lists them
 #   alias up                 shows one
