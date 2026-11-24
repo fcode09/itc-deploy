@@ -15,6 +15,7 @@ $ ./deltactl help <topic>          full step-by-step guide
 | new --wizard | Interactive wizard: asks the essentials and lists what is still missing
 | init <instance> [--yes] | Seeds the initial data of a NEW instance (only once)
 | adopt <instance> | Marks as already initialized an instance that ALREADY has data
+| env <instance> list|get|set|generate | See, validate and change the environment variables; generate secrets without showing them
 
 ## Deployment
 | check <instance> [service] [--mongo] | Checks everything deploy would require, without starting anything

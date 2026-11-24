@@ -28,6 +28,7 @@ COMPLETION_FLAGS=(
   "logs:-f"
   "menu:--classic"
   "runs:--instance -n --json --tail --raw"
+  "env:--reveal --json --stdin --force --yes"
 )
 
 cmd_completion() {
@@ -78,6 +79,15 @@ _deltactl_complete() {
       [ "$COMP_CWORD" -eq 2 ] && COMPREPLY=($(compgen -W "$services" -- "$cur")) ;;
     load)
       COMPREPLY=($(compgen -f -- "$cur")) ;;
+    env)
+      if [ "$COMP_CWORD" -eq 2 ]; then COMPREPLY=($(compgen -W "$insts" -- "$cur"))
+      elif [ "$COMP_CWORD" -eq 3 ]; then COMPREPLY=($(compgen -W "list get set generate pending" -- "$cur"))
+      elif [ "$COMP_CWORD" -eq 4 ]; then
+        case "${COMP_WORDS[3]}" in
+          list) COMPREPLY=($(compgen -W "instance $services" -- "$cur")) ;;
+          get | set | generate) COMPREPLY=($(compgen -W "$vars" -- "$cur")) ;;
+        esac
+      fi ;;
     runs)
       if [ "$COMP_CWORD" -eq 2 ]; then COMPREPLY=($(compgen -W "list show logs stats resolve prune" -- "$cur")); fi ;;
     completion)

@@ -15,6 +15,7 @@ $ ./deltactl help <tema>           guía completa paso a paso
 | new --wizard | Asistente interactivo: pregunta lo esencial y lista lo que falta completar
 | init <instancia> [--yes] | Siembra los datos iniciales de una instancia NUEVA (una sola vez)
 | adopt <instancia> | Marca como ya inicializada una instancia que YA tiene datos
+| env <instancia> list|get|set|generate | Ver, validar y cambiar las variables de entorno; generar secretos sin mostrarlos
 
 ## Despliegue
 | check <instancia> [servicio] [--mongo] | Comprueba todo lo que deploy exigiría, sin levantar nada

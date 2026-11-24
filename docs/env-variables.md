@@ -61,3 +61,21 @@ for id in "${ENV_IDS[@]}"; do echo "${ENV_FILE[$id]} ${ENV_KEY[$id]} ${ENV_TYPE[
 The arrays are `ENV_KEY`, `ENV_FILE`, `ENV_TYPE` (`req`, `opt`, `fixed`), `ENV_DEFAULT` with `ENV_HASDEF` (a default that is only a
 description, such as "none" or "disabled", is in `ENV_DEFNOTE` and is never offered as a value), `ENV_DESC`, `ENV_VALIDATOR`,
 `ENV_SECRET`, `ENV_GEN`, `ENV_REQUIRED` and `ENV_EXAMPLE`. Reading it starts no process.
+
+## Changing them: `./deltactl env`
+
+`env <instance> list|get|set|generate|pending` (page: `./deltactl help env`) is the CLI over `lib/core/envedit.sh`; the panel uses the same
+functions, so both write the same way.
+
+| What | How it works |
+| --- | --- |
+| Validation | `envedit_save` checks the value with the schema first; an invalid one writes nothing. A warning (a Mongo URI on `localhost`) saves and shows the message. `--force` writes an invalid value or a key the glossary does not know, never a `fixed` variable or a value with a line break |
+| Writing | The file is rebuilt in a temporary file next to it and renamed over it, so a failure halfway leaves the old file as it was. Comments, blank lines and the order stay; a value is kept byte by byte (`=`, quotes, spaces, `\`, `%`, empty, CRLF). It is done without `awk`: `awk -v` would read `\n` and `\\` of a value as escapes |
+| Copy | `<file>.bak` (same mode) before the first change of the session (the process); the second change does not overwrite it |
+| Mode | A file that gets a secret is left in mode 600; a new file is born 600 |
+| Secrets | `list` and `get` mask them (`********`); `--reveal` shows them. A value comes from the command line, `--stdin` or, for a secret with no value, a hidden prompt. None of these operations is recorded in `runs`: the value would be in its command line. The messages never repeat a value |
+| Generating | `envedit_generate`: `hex32`, `hex24` and `b64-32` with `openssl rand`; a `shared` one (`JWT_SECRET`) gets the same value in every service file that has it. It asks before replacing a value (`--yes` skips it) and warns of the consequence: sessions closed, or what was encrypted with the old key unreadable |
+| Pending changes | When a deploy ends well, `.deployed` gets `ENV_SUM_<FILE>` (the sum of each env file it used; `.env.instance` only when the whole instance was deployed). `env pending` and `list` compare against it. A file with no mark (deployed before this existed) is `unknown`: nothing is said about it. A secret never reaches `.deployed`, only a sum |
+
+State of a variable (`envedit_state_r`): `ok`, `warn` (valid with a warning), `invalid`, `missing` (required and empty), `example` (still has the
+`CAMBIAR…` of the template: `deploy` refuses it too), `default` (empty, but the glossary has a default), `unset` and `fixed`.

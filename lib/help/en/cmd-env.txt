@@ -1,0 +1,51 @@
+# env · environment variables of an instance
+
+See, validate and change the variables of `.env.instance`, `.env.s0` and `.env.s1` without an editor, and generate secrets.
+Every value is checked with its rule (port, Mongo URI, base64 of 32 bytes…) before it is written.
+A secret is never shown unless you ask for it.
+
+## Usage
+$ ./deltactl env <instance> list [file] [--reveal] [--json]
+$ ./deltactl env <instance> get <[file:]VARIABLE> [--reveal]
+$ ./deltactl env <instance> set <[file:]VARIABLE> [value] [--stdin] [--force]
+$ ./deltactl env <instance> generate <[file:]VARIABLE> [--yes]
+$ ./deltactl env <instance> pending
+
+## Subcommands
+- `list` the variables of each file in the order of the glossary, with their state: `ok`, `MISSING` (required and empty),
+  `INVALID`, `CHANGE ME` (it still has the template's example), `warning`, `default` or `not set`.
+  The `fixed` ones are not listed (the compose sets them). At the end it warns about what is not deployed yet
+- `get` the value of a variable; a secret comes out as `********` unless `--reveal` is given
+- `set` changes a value. It validates it first: if it does not pass, nothing is written. It writes aside and renames:
+  if anything fails, the file is as it was
+- `generate` makes a new secret with openssl (`JWT_SECRET`, `FEDERATION_ENCRYPTION_KEY`, …). The value is not shown.
+  If there was one already it asks for confirmation; `JWT_SECRET` is written the same in `s0` and `s1`
+- `pending` which files changed since the last deploy and are not applied yet
+
+## File and variable
+`file` is `instance`, `s0` or `s1`. A variable that is in a single file is given alone (`S0_PORT`);
+`JWT_SECRET` is in `s0` and in `s1`: write `s0:JWT_SECRET`.
+
+## Options
+- `--reveal` shows the value of secrets (in `list` and `get`)
+- `--json` output for scripts: `instance`, the files with `pending` changes and each variable with `state`, `required`,
+  `validator` and `generator`; secrets come out hidden unless `--reveal` is given
+- `--stdin` reads the value from the standard input: that way it stays out of the shell history and of `ps`
+- `--force` writes even if the value does not pass its rule or the variable is not in the glossary (never a `fixed` one)
+- `--yes` does not ask for confirmation when replacing a secret
+
+## What it keeps
+- Each file is rewritten without losing comments, blank lines or the order;
+  values with `=`, quotes or spaces are kept as they are
+- Before the first change it makes a copy `<file>.bak` (mode 600). A secret leaves the file in mode 600
+- A change does not touch the containers: it is applied with `./deltactl deploy <instance>`
+- None of these operations goes into the `runs` history: the value would be in its command line
+
+## Examples
+$ ./deltactl env colorado list
+$ ./deltactl env colorado set S0_PORT 4110
+$ ./deltactl env colorado set s0:MONGO_URI --stdin < uri.txt
+$ ./deltactl env colorado generate s1:FEDERATION_ENCRYPTION_KEY
+
+## Related
+- `./deltactl help variable <KEY>`, `./deltactl help secrets`, `./deltactl check <instance>`
