@@ -268,9 +268,11 @@ new_write_proxy() { # instance services-csv
   local -a act=() flavors=()
   dir="$(instance_dir "$name")"
   if [ -n "$2" ]; then IFS=',' read -ra act <<< "${2// /}"; else act=("${KNOWN_SERVICES[@]}"); fi
-  # shellcheck disable=SC2034  # (read by proxy_domain_names, in lib/core/proxy.sh)
   PROXY_PORTS=()
-  for s in "${act[@]}"; do PROXY_PORTS[$s]="$(get_var "$dir/.env.instance" "${s^^}_PORT")"; done
+  for s in "${act[@]}"; do
+    # shellcheck disable=SC2034  # (read by proxy_domain_names, in lib/core/proxy.sh)
+    PROXY_PORTS[$s]="$(get_var "$dir/.env.instance" "${s^^}_PORT")"
+  done
   proxy_domain_names "$W_DOMAIN" "${act[@]}" || die "$(t new.domain_invalid "$W_DOMAIN")"
   case "${W_PROXY:-both}" in both) flavors=(nginx caddy) ;; *) flavors=("$W_PROXY") ;; esac
   for fl in "${flavors[@]}"; do
@@ -286,6 +288,8 @@ new_write_proxy() { # instance services-csv
 new_apply_answers() { # instance services-csv
   local name="$1" dir i rc word file
   dir="$(instance_dir "$name")"
+  # shellcheck disable=SC2034  # (read by envedit_backup, in lib/core/envedit.sh)
+  ENVEDIT_NOBACKUP=1
   for i in "${!W_ENVF[@]}"; do
     word="${W_ENVF[$i]}"
     file="$(envschema_file_name "$word")"

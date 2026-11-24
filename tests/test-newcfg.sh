@@ -100,6 +100,7 @@ section "4. new --env-file puts variables in the files, and a secret is never in
 printf '%s\n' '# a comment' '' 's0:IP_INTERNAL_CONNECTION=s1' 's0:IP_SERVER=https://muni.example.com' 's1:IP_SERVER=https://muni.example.com' 'instance:S0_PORT=4333' > "$TMPD/env1.txt"
 check "the variables of the file are written, in the file each one belongs to" '
   newi nc-a --env-file "$TMPD/env1.txt" >/dev/null; [ "$(grep -h "^S0_PORT=" instances/nc-a/.env.instance)" = "S0_PORT=4333" ] && grep -q "^IP_SERVER=https://muni.example.com$" instances/nc-a/.env.s0 && grep -q "^IP_SERVER=https://muni.example.com$" instances/nc-a/.env.s1 && grep -q "^IP_INTERNAL_CONNECTION=s1$" instances/nc-a/.env.s0'
+check "a new instance has no .bak: there is nothing to go back to" '[ -z "$(ls instances/nc-a | grep "\.bak$")" ] && [ -z "$(ls -A instances/nc-a | grep "\.bak$")" ]'
 check "the files keep their mode and the order of the template" '[ "$(stat -c %a instances/nc-a/.env.s0)" = 600 ] && [ "$(stat -c %a instances/nc-a/.env.instance)" = 600 ] && [ "$(grep -n "^IP_SERVER=" instances/nc-a/.env.s0 | head -1 | cut -d: -f1)" -lt "$(grep -n "^JWT_SECRET=" instances/nc-a/.env.s0 | head -1 | cut -d: -f1)" ]'
 check "the port it gives to a service is checked like the one that is proposed (a port that another instance uses stops it, nothing is created)" '
   out="$(newi nc-b --env-file "$TMPD/env1.txt")"; [ ! -e instances/nc-b ] && echo "$out" | grep -qi "4333"'
