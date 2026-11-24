@@ -1,0 +1,25 @@
+=== frame 1 ===
+
+  1   2   3   4   5   6   7   8  [9 Variables]                                 
+╭─┐ ▸⁹variables ┌─┐ix-colorado┌─────────────────────────────────┐6 to fill in┌─╮
+│ ▸ .env.instance                                                 12 variables │
+│ ▾ .env.s0                                         9 variables · 2 to fill in │
+│ ▲ IP_SERVER                  http://CAMBIAR-direccion-del-servid  to fill in │
+│ ▲ JWT_SECRET                 (empty)                                required │
+│ ● MONGO_URI                  ⚿ ••••••••••                                    │
+│ ● IP_INTERNAL_CONNECTION     s1                                              │
+│ ▾ .env.s1                                        27 variables · 4 to fill in │
+│ ▲ IP_SERVER                  http://CAMBIAR-direccion-del-servid  to fill in │
+│ ● AUTH_URL                   http://s0:3200                                  │
+│ ▲ JWT_SECRET                 (empty)                                required │
+│ ● MONGO_DELTA_DISPATCH_URI   ⚿ ••••••••••                                    │
+│ ● MONGO_AUTHSOFTWARE_URI     ⚿ ••••••••••                                    │
+│ ● MONGO_ROBIN_URI            ⚿ ••••••••••                                    │
+│ ● FCM_CERT                   /run/secrets/fcm.json                           │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ .env.instance  no deploy mark                                                │
+│ The mark is made when the next deploy ends; until then there is no telling   │
+│ what changed.                                                                │
+╰─┘Enter edit└─┘g generate└─┘r reveal└─┘d default└─┘s save└─┘u deploy└─────────╯
+
+ ↑↓ move · Enter folds · a advanced · s save · [/] instance · Esc leaves

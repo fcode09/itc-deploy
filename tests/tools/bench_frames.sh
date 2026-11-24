@@ -44,8 +44,9 @@ for size in 80x24 120x30 160x40; do
     dash_srv_apply "$(dash_srv_dump)" > /dev/null 2>&1
     dash_img_apply "$(dash_img_dump)" > /dev/null 2>&1
     dash_host_build
+    dash_env_load sim-01 > /dev/null 2>&1   # (the Variables view: an instance of the simulated server, its deploy marks read at once in the test mode)
     echo "== $size"
-    for v in instances resources output runs procs console server images; do
+    for v in instances resources output runs procs console server images env; do
       DASH_VIEW="$v"
       ms "dash_render $v (cached/hot)" "$N" dash_render
     done
@@ -91,6 +92,21 @@ for size in 80x24 120x30 160x40; do
       ms "wizard: step $((_s + 1)), every box built again" "$N" nz_cold
     done
     DASH_MODE=normal
+    # The Variables view: opening an instance (its files are read and every variable evaluated: a few ms, once), a key that moves the cursor (the
+    # editor draws its box again) and a character typed in a field (the validation runs and the box is drawn again).
+    # shellcheck disable=SC2329  # called through ms
+    env_open() { kee_open sim-01; DASH_PC_SIG=(); dash_render; }
+    # shellcheck disable=SC2329  # called through ms
+    env_move() { kee_key down; [ "$KEE_SEL" -lt $((${#KEE_ROWS[@]} - 1)) ] || kee_key home; dash_render; }
+    # shellcheck disable=SC2329  # called through ms
+    env_char() { kee_key a; dash_render; }
+    DASH_VIEW=env DASH_MODE=envedit
+    ms "env: open an instance (files read)" 10 env_open
+    ms "env: cursor moves (box drawn again)" "$N" env_move
+    kee_key home; kee_key down; kee_key down; kee_key enter
+    ms "env: a character typed in a field" "$N" env_char
+    kee_key esc
+    DASH_VIEW=instances DASH_MODE=normal
     ms "mt_sample" "$N" mt_sample
     # shellcheck disable=SC2329,SC2034  # called through ms; MT_HOST_DETAIL is read by mt_sample
     mt_detail() { MT_HOST_DETAIL=1 mt_sample; MT_HOST_DETAIL=0; }

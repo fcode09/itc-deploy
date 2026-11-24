@@ -1,6 +1,6 @@
 === frame 1 ===
   ITC  testhost · Memoria ███░░░ 5.6/11.5 GB 48% ▆▃▁▄▂▁ · Carga 3.18
-  1   2   3   4   5   6  [7 Servidor]  8                                       
+  1   2   3   4   5   6  [7 Servidor]  8   9                                   
 ╭─┐ ▸requisitos ┌─────────────────────────────────────────────────┐9/9 listos┌─╮
 │   OBLIGATORIOS                                                               │
 │ ▸ ● Docker Engine                   Docker 27.0.0 (arquitectura amd64)       │

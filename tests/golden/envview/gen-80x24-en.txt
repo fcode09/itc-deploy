@@ -1,0 +1,25 @@
+=== frame 1 ===
+
+  1   2   3   4   5   6   7   8  [9 Variables]                                 
+╭─┐ ▸⁹variables ┌─┐ix-lima┌───────────────────────────────────┐● all in order┌─╮
+│ ▾ .env.instance                                                 12 variables │
+│ ● INSTANCE                   ix-lima                                         │
+│ ● COMPOSE_PROFILES           s0,s1                                           │
+│ ● S0_TAG                     2.14.1                                          │
+│ ● S1_TAG                     2.9.0                                           │
+│ ● S0_PORT                    4110                                            │
+│ ● S1_PORT                    4111                                            │
+│ ▾ .env.s0                                                        9 variables │
+│ ● IP_SERVER                  http://h                                        │
+│ ● JWT_SECRET                 ⚿ ••••••••••                                    │
+│ ● MONGO_URI                  ⚿ ••••••••••                                    │
+│ ● IP_INTERNAL_CONNECTION     s1                                              │
+│ ▾ .env.s1                                                       27 variables │
+│ ● IP_SERVER                  http://h                                        │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ Replace JWT_SECRET?                                                          │
+│ The SAME value will be written in .env.s0, .env.s1: what one service signed, │
+│ the others must be able to read. Open sessions will be closed.               │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+ y replace · any other key cancels

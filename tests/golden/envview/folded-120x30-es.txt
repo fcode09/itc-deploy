@@ -1,0 +1,31 @@
+=== frame 1 ===
+
+ 1 Instancias 2 Recursos 3 Salida 4 Ejecuciones 5 Procesos 6 Consola 7 Servidor 8 Imágenes [9 Variables]               
+╭─┐ ▸⁹variables ┌─┐ix-colorado┌────────────────────────────────────┐6 sin completar┌─╮╭─┐.env.s0┌──────────────────────╮
+│ ▸ .env.instance                                                       12 variables ││ sin marca de despliegue        │
+│ ▸ .env.s0                                            9 variables · 2 sin completar ││                                │
+│ ▾ .env.s1                                           27 variables · 4 sin completar ││ La marca se crea al terminar   │
+│ ▲ IP_SERVER                  http://CAMBIAR-direccion-del-servidor   por completar ││ el próximo deploy; hasta       │
+│ ● AUTH_URL                   http://s0:3200                                        ││ entonces no se sabe qué        │
+│ ▲ JWT_SECRET                 (vacía)                                   obligatoria ││ cambió.                        │
+│ ● MONGO_DELTA_DISPATCH_URI   ⚿ ••••••••••                                          ││                                │
+│ ● MONGO_AUTHSOFTWARE_URI     ⚿ ••••••••••                                          ││ 27 variables opcionales        │
+│ ● MONGO_ROBIN_URI            ⚿ ••••••••••                                          ││ ocultas: a las muestra.        │
+│ ● FCM_CERT                   /run/secrets/fcm.json                                 ││                                │
+│ ● KEEPER_FCM_CERT            /run/secrets/keeper-fcm.json                          ││                                │
+│ ▲ FEDERATION_ENCRYPTION_KEY  (vacía)                                   obligatoria ││                                │
+│ ● SERVERS_CONFIG             []                                                    ││                                │
+│ ▲ DEEPGRAM_API_KEY           (vacía)                                   obligatoria ││                                │
+│                                                                                    ││                                │
+│                                                                                    ││                                │
+│                                                                                    ││                                │
+│                                                                                    ││                                │
+│                                                                                    ││                                │
+│                                                                                    ││                                │
+│                                                                                    ││                                │
+│                                                                                    ││                                │
+│                                                                                    ││                                │
+│                                                                                    ││                                │
+╰─┘Enter editar└─┘g generar└─┘r revelar└─┘d defecto└─┘s guardar└─┘u desplegar└───────╯╰────────────────────────────────╯
+
+ ↑↓ mover · Enter pliega · a avanzadas · s guardar · u desplegar · [/] instancia · Esc sale

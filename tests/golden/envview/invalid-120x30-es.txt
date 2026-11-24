@@ -1,0 +1,31 @@
+=== frame 1 ===
+
+ 1 Instancias 2 Recursos 3 Salida 4 Ejecuciones 5 Procesos 6 Consola 7 Servidor 8 Imágenes [9 Variables]               
+╭─┐ ▸⁹variables ┌─┐ix-colorado┌────────────────────────────────────┐6 sin completar┌─╮╭─┐IP_SERVER┌────────────────────╮
+│ ▸ .env.instance                                                       12 variables ││ Obligatoria · .env.s0          │
+│ ▾ .env.s0                                            9 variables · 2 sin completar ││                                │
+│   IP_SERVER                ✖ colorado                                              ││ URL pública base del sistema,  │
+│ ▲ JWT_SECRET                 (vacía)                                   obligatoria ││ con esquema (`http://` o       │
+│ ● MONGO_URI                  ⚿ ••••••••••                                          ││ `https://`), sin puerto ni     │
+│ ● IP_INTERNAL_CONNECTION     s1                                                    ││ barra final. Los seeds la      │
+│ ▾ .env.s1                                           27 variables · 4 sin completar ││ usan: `url_systems` la guarda  │
+│ ▲ IP_SERVER                  http://CAMBIAR-direccion-del-servidor   por completar ││ como URL de cada sistema (se   │
+│ ● AUTH_URL                   http://s0:3200                                        ││ ve en Auth, Configuración,     │
+│ ▲ JWT_SECRET                 (vacía)                                   obligatoria ││ Sistemas) y como base de las   │
+│ ● MONGO_DELTA_DISPATCH_URI   ⚿ ••••••••••                                          ││ URLs de backend                │
+│ ● MONGO_AUTHSOFTWARE_URI     ⚿ ••••••••••                                          ││ (`<IP_SERVER>:3000/3100/3200`) │
+│ ● MONGO_ROBIN_URI            ⚿ ••••••••••                                          ││ . Tras `init`, revisa esas     │
+│ ● FCM_CERT                   /run/secrets/fcm.json                                 ││ URLs: todas llevan el mismo    │
+│ ● KEEPER_FCM_CERT            /run/secrets/keeper-fcm.json                          ││ valor.                         │
+│ ▲ FEDERATION_ENCRYPTION_KEY  (vacía)                                   obligatoria ││                                │
+│ ● SERVERS_CONFIG             []                                                    ││ Por defecto: http://localhost  │
+│ ▲ DEEPGRAM_API_KEY           (vacía)                                   obligatoria ││                                │
+│                                                                                    ││ ✖ debe ser una URL con esquema │
+│                                                                                    ││   y host: http://host o        │
+│                                                                                    ││   https://host                 │
+│                                                                                    ││                                │
+│                                                                                    ││                                │
+│                                                                                    ││                                │
+╰─┘Enter aceptar└─┘Esc cancelar└─────────────────────────────────────────────────────╯╰────────────────────────────────╯
+
+ Enter acepta · Esc cancela · ←→ mueven · Ctrl+U borra · q ? : son letras aquí

@@ -1,0 +1,41 @@
+=== frame 1 ===
+
+  1 Instances   2 Resources   3 Output   4 Runs   5 Processes   6 Console   7 Server   8 Images  [9 Variables]                                                 
+╭─┐ ▸⁹variables ┌─┐ix-colorado┌───────────────────────────────────────────────────────────────────────┐6 to fill in┌─╮╭─┐.env.instance┌────────────────────────╮
+│ ▸ .env.instance                                                                                       12 variables ││ no deploy mark                         │
+│ ▾ .env.s0                                                                               9 variables · 2 to fill in ││                                        │
+│ ▲ IP_SERVER                  http://CAMBIAR-direccion-del-servidor                                      to fill in ││ The mark is made when the next deploy  │
+│ ▲ JWT_SECRET                 (empty)                                                                      required ││ ends; until then there is no telling   │
+│ ● MONGO_URI                  ⚿ ••••••••••                                                                          ││ what changed.                          │
+│ ● IP_INTERNAL_CONNECTION     s1                                                                                    ││                                        │
+│ ▾ .env.s1                                                                              27 variables · 4 to fill in ││ 27 optional variables are hidden: a    │
+│ ▲ IP_SERVER                  http://CAMBIAR-direccion-del-servidor                                      to fill in ││ shows them.                            │
+│ ● AUTH_URL                   http://s0:3200                                                                        ││                                        │
+│ ▲ JWT_SECRET                 (empty)                                                                      required ││                                        │
+│ ● MONGO_DELTA_DISPATCH_URI   ⚿ ••••••••••                                                                          ││                                        │
+│ ● MONGO_AUTHSOFTWARE_URI     ⚿ ••••••••••                                                                          ││                                        │
+│ ● MONGO_ROBIN_URI            ⚿ ••••••••••                                                                          ││                                        │
+│ ● FCM_CERT                   /run/secrets/fcm.json                                                                 ││                                        │
+│ ● KEEPER_FCM_CERT            /run/secrets/keeper-fcm.json                                                          ││                                        │
+│ ▲ FEDERATION_ENCRYPTION_KEY  (empty)                                                                      required ││                                        │
+│ ● SERVERS_CONFIG             []                                                                                    ││                                        │
+│ ▲ DEEPGRAM_API_KEY           (empty)                                                                      required ││                                        │
+│                                                                                                                    ││                                        │
+│                                                                                                                    ││                                        │
+│                                                                                                                    ││                                        │
+│                                                                                                                    ││                                        │
+│                                                                                                                    ││                                        │
+│                                                                                                                    ││                                        │
+│                                                                                                                    ││                                        │
+│                                                                                                                    ││                                        │
+│                                                                                                                    ││                                        │
+│                                                                                                                    ││                                        │
+│                                                                                                                    ││                                        │
+│                                                                                                                    ││                                        │
+│                                                                                                                    ││                                        │
+│                                                                                                                    ││                                        │
+│                                                                                                                    ││                                        │
+│                                                                                                                    ││                                        │
+╰─┘Enter edit└─┘g generate└─┘r reveal└─┘d default└─┘a advanced└─┘s save└─┘u deploy└──────────────────────────────────╯╰────────────────────────────────────────╯
+
+ ↑↓ move · Enter folds · a advanced · s save · u deploy · [/] instance · Esc leaves

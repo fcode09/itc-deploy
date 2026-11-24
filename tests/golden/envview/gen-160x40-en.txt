@@ -1,0 +1,41 @@
+=== frame 1 ===
+
+  1 Instances   2 Resources   3 Output   4 Runs   5 Processes   6 Console   7 Server   8 Images  [9 Variables]                                                 
+╭─┐ ▸⁹variables ┌─┐ix-lima┌─────────────────────────────────────────────────────────────────────────┐● all in order┌─╮╭─┐JWT_SECRET┌───────────────────────────╮
+│ ▾ .env.instance                                                                                       12 variables ││ Required · secret · .env.s0            │
+│ ● INSTANCE                   ix-lima                                                                               ││                                        │
+│ ● COMPOSE_PROFILES           s0,s1                                                                                 ││ Key used to sign the JWT tokens of     │
+│ ● S0_TAG                     2.14.1                                                                                ││ Auth. Secret and unique per instance   │
+│ ● S1_TAG                     2.9.0                                                                                 ││ (for example `openssl rand -hex 32`).  │
+│ ● S0_PORT                    4110                                                                                  ││                                        │
+│ ● S1_PORT                    4111                                                                                  ││ g generates a new value.               │
+│ ▾ .env.s0                                                                                              9 variables ││                                        │
+│ ● IP_SERVER                  http://h                                                                              ││                                        │
+│ ● JWT_SECRET                 ⚿ ••••••••••                                                                          ││                                        │
+│ ● MONGO_URI                  ⚿ ••••••••••                                                                          ││                                        │
+│ ● IP_INTERNAL_CONNECTION     s1                                                                                    ││                                        │
+│ ▾ .env.s1                                                                                             27 variables ││                                        │
+│ ● IP_SERVER                  http://h                                                                              ││                                        │
+│ ● AUTH_URL                   http://s0:3200                                                                        ││                                        │
+│ ● JWT_SECRET                 ⚿ ••••••••••                                                                          ││                                        │
+│ ● MONGO_DELTA_DISPATCH_URI   ⚿ ••••••••••                                                                          ││                                        │
+│ ● MONGO_AUTHSOFTWARE_URI     ⚿ ••••••••••                                                                          ││                                        │
+│ ● MONGO_ROBIN_URI            ⚿ ••••••••••                                                                          ││                                        │
+│ ● FCM_CERT                   /run/secrets/fcm.json                                                                 ││                                        │
+│ ● KEEPER_FCM_CERT            /run/secrets/keeper-fcm.json                                                          ││                                        │
+│ ● FEDERATION_ENCRYPTION_KEY  ⚿ ••••••••••                                                                          ││                                        │
+│ ● SERVERS_CONFIG             []                                                                                    ││                                        │
+│ ● DEEPGRAM_API_KEY           ⚿ ••••••••••                                                                          ││                                        │
+│                                                                                                                    ││                                        │
+│                                                                                                                    ││                                        │
+│                                                                                                                    ││                                        │
+│                                                                                                                    ││                                        │
+│                                                                                                                    ││                                        │
+│                                                                                                                    ││                                        │
+│ ────────────────────────────────────────────────────────────────────────────────────────────────────────────────── ││                                        │
+│ Replace JWT_SECRET?                                                                                                ││                                        │
+│ The SAME value will be written in .env.s0, .env.s1: what one service signed, the others must be able to read. Open ││                                        │
+│ sessions will be closed.                                                                                           ││                                        │
+╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯╰────────────────────────────────────────╯
+
+ y replace · any other key cancels

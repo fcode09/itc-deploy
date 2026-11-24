@@ -7,10 +7,10 @@
 # service), the commands that run inside the panel (lib/core/jobs.sh), the global keys, the mouse and the main loop.
 # Drawing the shared parts (header, tabs, dialog frame, key bar, the frame itself) is lib/cmd/dashboard_view.sh. Everything
 # else is a SCREEN in lib/screens/, registered in lib/screens/registry.sh (read its header for the contract, and to add one):
-#   views (tabs 1 to 8)  instances, resources, output, runs, procs, console, server, images
+#   views (tabs 1 to 9)  instances, resources, output, runs, procs, console, server, images, env (the variables of an instance)
 #   modes (they take the keyboard over a view)  menu, confirm, name, cmd, filter, find, wizard (the new-instance form),
 #                        palette, help, options, srvask (a question about the server's requirements), imguse (use a version in an instance),
-#                        imgload (load an image archive)
+#                        imgload (load an image archive), envedit (the variables editor has the keyboard)
 # The other interactive commands (the menu, a leading `!`) run in the terminal and come back.
 #
 # What keeps it light: it sleeps in `read -t` between keys; the figures come from the kernel through Bash builtins
