@@ -75,7 +75,7 @@ check "los que se instalan con paquete traen comando para apt, dnf, pacman y apk
   'run "for i in docker daemon compose ss openssl gunzip proxy certbot timesync firewall curl; do for m in apt dnf pacman apk; do [ -n \"\${PR_CMD[\"\$i|\$m\"]:-}\" ] || { echo falta \$i \$m; exit 1; }; done; done"'
 check "cada requisito tiene nombre y para-qué en español y en inglés" \
   'for l in es en; do DELTACTL_LANG=$l run "for i in \${PR_IDS[@]}; do n=\$(prereq_name \$i); w=\$(prereq_why \$i); case \"\$n\$w\" in *\\?\\?*|\"\") exit 1;; esac; done" || exit 1; done'
-check "cada requisito dice para qué sirve (frase de al menos 20 caracteres)" 'run "for i in \${PR_IDS[@]}; do [ \${#PR_CMD_X} -ge 0 ] && [ \$(prereq_why \$i | wc -c) -ge 20 ] || exit 1; done"'
+check "cada requisito dice para qué sirve (frase de al menos 20 caracteres)" 'run "for i in \${PR_IDS[@]}; do [ \$(prereq_why \$i | wc -c) -ge 20 ] || exit 1; done"'
 check "el archivo de datos tiene 8 campos por requisito y 3 por excepción de distribución (@)" \
   '! grep -vE "^(#|@|$)" lib/core/prereqs.data | awk -F"|" "NF != 8" | grep -q . && ! grep -E "^@" lib/core/prereqs.data | awk -F"|" "NF != 3" | grep -q .'
 check "leer el catálogo no lanza procesos" '! sed -n "/^prereq_load()/,/^}/p" lib/core/prereqs.sh | grep -qE "\\$\\(|\\| *(grep|awk|sed|cut|tr)"'

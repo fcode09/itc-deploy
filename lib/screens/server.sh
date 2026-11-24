@@ -814,7 +814,11 @@ scr_server_enter() {
 # Every turn of the loop, whatever the view: the answer of the background check, and the figures of the server read only while this view
 # is the current one (the first sample after choosing it comes at once).
 scr_server_tick() {
-  if dash_async_take prereq; then dash_srv_apply "$DASH_AS_TEXT"; fi
+  if dash_async_take prereq; then
+    dash_srv_apply "$DASH_AS_TEXT"
+  elif [ "$DASH_SRV_BUSY" -eq 1 ] && [ -z "${DASH_AS_PID[prereq]:-}" ]; then
+    DASH_SRV_BUSY=0 DASH_DIRTY=1   # the check died or was cut after a minute: free the view, R and the periodic check ask again
+  fi
   if [ "$DASH_VIEW" = "server" ]; then
     if [ "$MT_HOST_DETAIL" -ne 1 ]; then MT_HOST_DETAIL=1 MT_LAST_US=0; fi
     if [ "$DASH_SRV_STATE" = "none" ]; then dash_srv_request; fi

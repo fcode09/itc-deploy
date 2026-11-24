@@ -394,6 +394,7 @@ PR_N_ERR=0 PR_N_WARN=0
 prereq_run_all() { # [section]
   local id st
   prereq_reset
+  DK_TIMEOUT="${PR_DOCKER_TIMEOUT:-10}"   # a docker that does not answer is a failed check, not a check that never ends
   PR_N_ERR=0 PR_N_WARN=0
   for id in "${PR_IDS[@]}"; do
     [ -z "${1:-}" ] || [ "${PR_SECTION[$id]}" = "$1" ] || continue

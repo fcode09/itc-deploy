@@ -294,5 +294,15 @@ check "nothing is offered to run before the first answer arrives" \
   '[ "$(run_lib "DASH_VIEW=server; DASH_SRV_STATE=loading; PR_STATUS=(); scr_server_bang; echo \$DASH_MODE")" = "normal" ]'
 check "the hint and the detail of a requirement without results do not fail under set -u" \
   'run_lib "set -u; PR_RECORDS=(); dash_srv_hint docker; dash_srv_detail 60 8; echo done" | grep -q "^done$"'
+# A check that is cut after a minute (the daemon is stuck) must not leave the view on "checking" for good: the periodic one and R go on.
+check "a check that was cut or died frees the view: it can be asked for again (it used to stay busy for ever)" \
+  '[ "$(run_lib "dash_srv_slow() { sleep 30; }; dash_async prereq \"\" dash_srv_slow; DASH_SRV_BUSY=1; DASH_SRV_STATE=loading; DASH_AS_AT[prereq]=\$((SECONDS - 61)); DASH_VIEW=instances; scr_server_tick; echo \$DASH_SRV_BUSY [\${DASH_AS_PID[prereq]}]; dash_async_stop")" = "0 []" ]'
+check "and the periodic check asks again once the time has passed" \
+  '[ "$(run_lib "unset DELTACTL_TUI_KEYS; dash_init; DASH_SRV_BUSY=0; DASH_SRV_STATE=loading; DASH_SRV_AT=\$((SECONDS - 121)); dash_srv_request() { echo asked; }; scr_server_poll")" = "asked" ]'
+# docker that never answers: the checks cut each call (PR_DOCKER_TIMEOUT) instead of waiting for it.
+mkdir -p "$FIX/hang"
+printf '#!/bin/sh\nsleep 20\n' > "$FIX/hang/docker"; chmod +x "$FIX/hang/docker"
+check "a docker that does not answer does not hang the checks: every call is cut by PR_DOCKER_TIMEOUT" \
+  's=$SECONDS; PATH="$FIX/hang:$PATH" run_lib "PR_DOCKER_TIMEOUT=1; prereq_distro; prereq_run_all; echo \${PR_STATUS[daemon]}" | grep -q "^err$"; [ $((SECONDS - s)) -le 8 ]'
 
 finish
