@@ -61,3 +61,8 @@ MSG_en["data.existing"]="existing"
 MSG_en["data.unseeded"]="unseeded"
 MSG_en["prompt.hint_yes"]="Y/n"
 MSG_en["prompt.hint_no"]="y/N"
+
+# --- Service catalog (lib/core/catalog.data): what each service is, for the help guide -----------------------------
+MSG_en["catalog.internal_port"]="Internal port"
+MSG_en["catalog.desc.s0"]="(NestJS): authentication, users, municipality and system URLs"
+MSG_en["catalog.desc.s1"]="(NestJS + Chromium for the PDF reports)"

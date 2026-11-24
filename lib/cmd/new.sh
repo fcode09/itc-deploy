@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
 # ./deltactl new <instance> [--services s0,s1] [--existing] [--wizard]: creates instances/<instance>/ from the templates.
 # Without a name and in a terminal (or with --wizard) it opens a wizard that asks the essentials.
-# The wizard's answers also exist as flags (--s0-image, --s1-image, --s0-tag, --s1-tag, --ip, --generate-secrets): the panel's
+# The wizard's answers also exist as flags (--<sN>-image, --<sN>-tag for every service of the catalog, --ip, --generate-secrets): the panel's
 # form (lib/screens/wizard.sh) collects the answers itself and starts `new <name> ...` with them.
 
 # REQUIRED_* and check_required come from deploy.sh
 source "$ROOT/lib/cmd/deploy.sh"
 
-W_S0IMG="" W_S1IMG="" W_S0TAG="" W_S1TAG="" W_IP="" W_GEN=0
+declare -gA W_IMG=() W_TAG=()   # image name and tag the wizard (or the flags) chose, by service
+W_IP="" W_GEN=0
 
 # Asks with a default value. The result is in REPLY_VAL.
 new_ask() { # question [default]
@@ -58,10 +59,8 @@ new_wizard() {
     tags="$(loaded_tags "$img" | tr '\n' ' ')"
     [ -z "$tags" ] || printf '  %s%s%s\n' "$C_GRY" "$(t new.loaded_tags "$img" "$tags")" "$C_OFF" >&2
     new_ask "$(t new.ask_tag "$svc")"
-    case "$svc" in
-      s0) W_S0IMG="$img"; W_S0TAG="$REPLY_VAL" ;;
-      s1) W_S1IMG="$img"; W_S1TAG="$REPLY_VAL" ;;
-    esac
+    W_IMG[$svc]="$img"
+    W_TAG[$svc]="$REPLY_VAL"
   done
 
   new_ask "$(t new.ask_url)"
@@ -79,33 +78,43 @@ new_wizard() {
   if [ "$existing" -eq 1 ]; then data="$(t new.data_existing)"; else data="$(t new.data_new)"; fi
   if [ "$W_GEN" -eq 1 ]; then secrets="$(t new.secrets_generated)"; else secrets="$(t new.secrets_manual)"; fi
   printf '\n  %s%s%s\n' "$C_BLD" "$(t new.summary_title)" "$C_OFF" >&2
-  printf '%s\n\n' "$(t new.summary "$name" "$services" "$data" "${W_S0TAG:-$pending}" "${W_S1TAG:-$pending}" "${W_IP:-$pending}" "$secrets")" >&2
+  printf '%s\n\n' "$(t new.summary "$name" "$services" "$data" "${W_TAG[s0]:-$pending}" "${W_TAG[s1]:-$pending}" "${W_IP:-$pending}" "$secrets")" >&2
   new_ask_yn "$(t new.ask_create)" y || die "$(t err.cancelled)"
 }
 
 # Applies to the newly created .env files what the wizard answered.
 new_apply_wizard() { # instance existing
-  local name="$1" existing="$2" dir f secret
+  local name="$1" existing="$2" dir f svc secret item var kind
+  local -a files=()
   dir="$(instance_dir "$name")"
-  [ -z "$W_S0IMG" ] || [ "$W_S0IMG" = "$(default_repo s0)" ] || set_var "$dir/.env.instance" S0_IMAGE "$W_S0IMG"
-  [ -z "$W_S1IMG" ] || [ "$W_S1IMG" = "$(default_repo s1)" ] || set_var "$dir/.env.instance" S1_IMAGE "$W_S1IMG"
-  [ -z "$W_S0TAG" ] || set_var "$dir/.env.instance" S0_TAG "$W_S0TAG"
-  [ -z "$W_S1TAG" ] || set_var "$dir/.env.instance" S1_TAG "$W_S1TAG"
+  for svc in "${KNOWN_SERVICES[@]}"; do
+    files+=("$dir/.env.$svc")
+    [ -z "${W_IMG[$svc]:-}" ] || [ "${W_IMG[$svc]}" = "$(default_repo "$svc")" ] || set_var "$dir/.env.instance" "${svc^^}_IMAGE" "${W_IMG[$svc]}"
+    [ -z "${W_TAG[$svc]:-}" ] || set_var "$dir/.env.instance" "$(tag_var "$svc")" "${W_TAG[$svc]}"
+  done
   if [ -n "$W_IP" ]; then
-    for f in "$dir/.env.s0" "$dir/.env.s1"; do set_var "$f" IP_SERVER "$W_IP"; done
+    for f in "${files[@]}"; do set_var "$f" IP_SERVER "$W_IP"; done
   fi
   # New municipality: databases named after the instance (for an existing one the user sets the URIs).
-  # CAMBIAR_..._INSTANCIA is the placeholder written in the Spanish .env templates.
+  # CAMBIAR_<db>_INSTANCIA is the placeholder written in the Spanish .env templates.
   if [ "$existing" -eq 0 ]; then
-    sed -i "s/CAMBIAR_\\(authsoftware\\|deltadispatch\\|robin\\)_INSTANCIA/\\1_$name/g" "$dir/.env.s0" "$dir/.env.s1"
+    sed -i "s/CAMBIAR_\\([a-z]\\+\\)_INSTANCIA/\\1_$name/g" "${files[@]}"
   fi
   if [ "$W_GEN" -eq 1 ]; then
-    # The same JWT_SECRET in s0 and s1: it is safe inside one instance and avoids rejections between services.
+    # A "shared" secret (JWT_SECRET) has the same value in every service: it is safe inside one instance and avoids rejections
+    # between services.
     secret="$(openssl rand -hex 32)"
-    for f in "$dir/.env.s0" "$dir/.env.s1"; do set_var "$f" JWT_SECRET "$secret"; done
-    set_var "$dir/.env.s1" FEDERATION_ENCRYPTION_KEY "$(openssl rand -base64 32)"
-    set_var "$dir/.env.s1" DELTA_UNIVERSITY_HANDOFF_SECRET "$(openssl rand -hex 32)"
-    set_var "$dir/.env.s1" SHIFT_UPDATE_BASELINE_SECRET "$(openssl rand -hex 24)"
+    for svc in "${KNOWN_SERVICES[@]}"; do
+      for item in ${CAT_SECRETS[$svc]:-}; do
+        var="${item%%:*}" kind="${item#*:}"
+        case "$kind" in
+          shared) set_var "$dir/.env.$svc" "$var" "$secret" ;;
+          hex32) set_var "$dir/.env.$svc" "$var" "$(openssl rand -hex 32)" ;;
+          hex24) set_var "$dir/.env.$svc" "$var" "$(openssl rand -hex 24)" ;;
+          b64-32) set_var "$dir/.env.$svc" "$var" "$(openssl rand -base64 32)" ;;
+        esac
+      done
+    done
   fi
 }
 
@@ -138,9 +147,8 @@ new_pending() { # instance
 
   miss=""
   for svc in "${svcs[@]}"; do
-    [ "$svc" = "s1" ] || continue
-    for key in FCM_CERT KEEPER_FCM_CERT; do
-      path="$(get_var "$dir/.env.s1" "$key")"
+    for key in ${CAT_SECRET_FILES[$svc]:-}; do
+      path="$(get_var "$dir/.env.$svc" "$key")"
       if [[ "$path" == /run/secrets/* ]] && [ ! -f "$dir/secrets/${path#/run/secrets/}" ]; then
         miss+="${path#/run/secrets/}, "
       fi
@@ -156,7 +164,7 @@ new_pending_line() { # file "A, B, "
 }
 
 cmd_new() {
-  local name="" services="" existing=0 wizard=0 a
+  local name="" services="" existing=0 wizard=0 a svc
   while [ "$#" -gt 0 ]; do
     a="$1"
     case "$a" in
@@ -174,15 +182,18 @@ cmd_new() {
         shift
         ;;
       # What the wizard asks, as flags: the panel's form starts `new` with them, and scripts can too.
-      --s0-image | --s1-image | --s0-tag | --s1-tag | --ip)
+      --s[0-9]*-image | --s[0-9]*-tag | --ip)
         [ "$#" -ge 2 ] || die "$(t new.opt_value "$a")"
-        case "$a" in
-          --s0-image) W_S0IMG="$2" ;;
-          --s1-image) W_S1IMG="$2" ;;
-          --s0-tag) W_S0TAG="$2" ;;
-          --s1-tag) W_S1TAG="$2" ;;
-          --ip) W_IP="$2" ;;
-        esac
+        if [ "$a" = "--ip" ]; then
+          W_IP="$2"
+        else
+          svc="${a#--}"; svc="${svc%-*}"
+          valid_service "$svc" || die "$(t new.unknown_option "$a")"
+          case "$a" in
+            *-image) W_IMG[$svc]="$2" ;;
+            *-tag) W_TAG[$svc]="$2" ;;
+          esac
+        fi
         shift 2
         ;;
       --generate-secrets)
@@ -208,7 +219,8 @@ cmd_new() {
   valid_instance_name "$name" \
     || die "$(t err.instance_name_invalid "$name")$(see new)"
   local img
-  for img in "$W_S0IMG" "$W_S1IMG"; do
+  for svc in "${KNOWN_SERVICES[@]}"; do
+    img="${W_IMG[$svc]:-}"
     [ -z "$img" ] || valid_image_name "$img" || die "$(t new.err_image_invalid "$img")$(see local-images)"
   done
   if [ "$W_GEN" -eq 1 ] && ! command -v openssl > /dev/null 2>&1; then die "$(t new.err_generate_no_openssl)"; fi
@@ -227,10 +239,12 @@ cmd_new() {
   dir="$(instance_dir "$name")"
   [ ! -e "$dir" ] || die "$(t new.err_exists "$name" "$dir")"
 
-  local s0_port s1_port owner
-  s0_port="$(next_s0_port)"
-  s1_port=$((s0_port + 1))
-  for p in "$s0_port" "$s1_port"; do
+  local base_port p d owner
+  local -A port_of=()
+  base_port="$(next_s0_port)"
+  for svc in "${KNOWN_SERVICES[@]}"; do
+    p=$((base_port + ${CAT_OFFSET[$svc]}))
+    port_of[$svc]="$p"
     owner="$(port_owner "$p" "$name")"
     [ -z "$owner" ] || die "$(t new.port_used "$p" "$owner")$(see ports)"
     if host_port_in_use "$p"; then
@@ -238,24 +252,22 @@ cmd_new() {
     fi
   done
 
-  mkdir -p \
-    "$dir/secrets" \
-    "$dir/data/s0/media/user" "$dir/data/s0/media/loginSettings" \
-    "$dir/data/s0/media/file" "$dir/data/s0/media/certificate-settings" \
-    "$dir/data/s0/backups" \
-    "$dir/data/s1/media" "$dir/data/s1/uploads" \
-    "$dir/data/s1/fileIncidentsResolved" "$dir/data/s1/imageIncidentsResolved"
+  mkdir -p "$dir/secrets"
+  for svc in "${KNOWN_SERVICES[@]}"; do
+    for d in ${CAT_DATA[$svc]}; do mkdir -p "$dir/data/$svc/$d"; done
+  done
 
   cp "$ROOT/templates/.env.instance.example" "$dir/.env.instance"
-  cp "$ROOT/templates/.env.s0.example" "$dir/.env.s0"
-  cp "$ROOT/templates/.env.s1.example" "$dir/.env.s1"
   set_var "$dir/.env.instance" INSTANCE "$name"
-  set_var "$dir/.env.instance" S0_PORT "$s0_port"
-  set_var "$dir/.env.instance" S1_PORT "$s1_port"
+  for svc in "${KNOWN_SERVICES[@]}"; do
+    cp "$ROOT/templates/${CAT_TEMPLATE[$svc]}" "$dir/.env.$svc"
+    set_var "$dir/.env.instance" "${svc^^}_PORT" "${port_of[$svc]}"
+    chmod 600 "$dir/.env.$svc"
+  done
   if [ -n "$services" ]; then
     set_var "$dir/.env.instance" COMPOSE_PROFILES "${services// /}"
   fi
-  chmod 600 "$dir/.env.instance" "$dir/.env.s0" "$dir/.env.s1"
+  chmod 600 "$dir/.env.instance"
   chmod 700 "$dir/secrets"
   new_apply_wizard "$name" "$existing"
 
@@ -273,7 +285,7 @@ cmd_new() {
     write_marker "$name" existing
     info "$(t new.marked_existing)"
   fi
-  ok "$(t new.created "$name" "$dir" "$s0_port" "$s1_port")"
+  ok "$(t new.created "$name" "$dir" "${port_of[s0]:-}" "${port_of[s1]:-}")"
   info ""
   info "$(t new.pending_title)"
   new_pending "$name"

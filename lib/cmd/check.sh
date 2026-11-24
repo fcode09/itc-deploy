@@ -54,10 +54,7 @@ ck_mongo() { # instance service variable
 
 # Variables holding the Mongo URI of each service.
 ck_mongo_vars() { # service
-  case "$1" in
-    s0) echo MONGO_URI ;;
-    s1) echo MONGO_DELTA_DISPATCH_URI MONGO_AUTHSOFTWARE_URI MONGO_ROBIN_URI ;;
-  esac
+  echo "${CAT_MONGO[$1]:-}"
 }
 
 cmd_check() {

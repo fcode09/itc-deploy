@@ -21,32 +21,32 @@ check_required() { # file key...
   done
 }
 
-# Validations of each service. A new service defines its preflight_<sN>.
-# Required variables (single source of truth: the preflights use them and tests/test-help.sh compares them
-# with the glossary of ./deltactl help variable). The tag and port variables of each service are added in preflight().
+# Validations of each service. The required variables (REQUIRED_<SN>, from the service catalog) and the files of secrets/ that
+# the service references are checked for every service; a service with a special rule defines preflight_extra_<sN>.
+# REQUIRED_INSTANCE is the only one defined here (tests/test-help.sh compares all of them with the glossary of
+# ./deltactl help variable). The tag and port variables of each service are added in preflight().
 REQUIRED_INSTANCE=(INSTANCE COMPOSE_PROFILES)
-REQUIRED_S0=(IP_SERVER JWT_SECRET MONGO_URI IP_INTERNAL_CONNECTION)
-REQUIRED_S1=(IP_SERVER AUTH_URL JWT_SECRET FEDERATION_ENCRYPTION_KEY SERVERS_CONFIG
-  MONGO_DELTA_DISPATCH_URI MONGO_AUTHSOFTWARE_URI MONGO_ROBIN_URI FCM_CERT KEEPER_FCM_CERT DEEPGRAM_API_KEY)
 
-preflight_s0() { # instance_dir
-  check_required "$1/.env.s0" "${REQUIRED_S0[@]}"
-}
-
-preflight_s1() { # instance_dir
-  local dir="$1" f path listen s
-  # If s0 runs in this instance, it needs to reach the TCP 5020 of s1 (in another container):
-  # with TCP_LISTEN_HOST empty or on loopback, s1 only listens inside its own container.
-  listen="$(get_var "$dir/.env.s1" TCP_LISTEN_HOST)"
+# s1 only: if s0 runs in this instance, it needs to reach the TCP 5020 of s1 (in another container):
+# with TCP_LISTEN_HOST empty or on loopback, s1 only listens inside its own container.
+preflight_extra_s1() { # instance_dir
+  local listen s
+  listen="$(get_var "$1/.env.s1" TCP_LISTEN_HOST)"
   for s in "${ENABLED[@]}"; do
     if [ "$s" = "s0" ] && { [ -z "$listen" ] || [ "$listen" = "127.0.0.1" ] || [ "$listen" = "localhost" ]; }; then
       warn "$(t deploy.tcp_listen "${listen:-$(t deploy.empty_word)}")$(see network)"
     fi
   done
-  check_required "$dir/.env.s1" "${REQUIRED_S1[@]}"
-  # The Firebase JSON files referenced with /run/secrets/... must exist in secrets/.
-  for f in FCM_CERT KEEPER_FCM_CERT; do
-    path="$(get_var "$dir/.env.s1" "$f")"
+}
+
+preflight_service() { # instance_dir service
+  local dir="$1" svc="$2" f path
+  local -n req="REQUIRED_${svc^^}"
+  if declare -F "preflight_extra_$svc" > /dev/null; then "preflight_extra_$svc" "$dir"; fi
+  check_required "$dir/.env.$svc" "${req[@]}"
+  # The files referenced with /run/secrets/... must exist in secrets/.
+  for f in ${CAT_SECRET_FILES[$svc]:-}; do
+    path="$(get_var "$dir/.env.$svc" "$f")"
     if [[ "$path" == /run/secrets/* ]] && [ ! -f "$dir/secrets/${path#/run/secrets/}" ]; then
       warn "$(t deploy.secret_missing "$f" "$path" "${path#/run/secrets/}")$(see secrets)"
       PREFLIGHT_ERRORS=$((PREFLIGHT_ERRORS + 1))
@@ -86,7 +86,7 @@ preflight() { # instance service...
       warn "$(t deploy.tag_latest "$tag_name")"
     fi
     [ -f "$dir/.env.$svc" ] || die "$(t deploy.env_missing "$dir/.env.$svc")"
-    "preflight_$svc" "$dir"
+    preflight_service "$dir" "$svc"
   done
 
   # Permissions of data/: only a warning (the deploy may be done by another user).

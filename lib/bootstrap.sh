@@ -25,6 +25,8 @@ source "$ROOT/lib/ui/prompt.sh"
 
 # shellcheck source=lib/core/config.sh
 source "$ROOT/lib/core/config.sh"
+# shellcheck source=lib/core/catalog.sh
+source "$ROOT/lib/core/catalog.sh"
 # shellcheck source=lib/adapters/state.sh
 source "$ROOT/lib/adapters/state.sh"
 # shellcheck source=lib/adapters/docker.sh
