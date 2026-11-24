@@ -20,6 +20,9 @@ DASH_SRV_BUSY=0          # 1 while a check runs (the previous answer stays on sc
 DASH_SRV_N=0             # answers applied, for the frame signature
 DASH_SRV_AT=0            # SECONDS of the last request
 DASH_SRV_EVERY=30        # seconds between two checks while the view is on screen
+DASH_SRV_STARTUP=0       # 1: the panel just started and the first answer decides whether to open this view
+DASH_SRV_SKIP=0          # 1: the person chose to create instances although something required is missing
+DASH_PREREQ=1            # TUI_PREREQ: warn about the missing requirements (Options)
 DASH_SRV_ORDER=()        # ids of the requirements: the required ones first, then the recommended ones
 DASH_SRV_NREQ=0          # how many of them are required
 DASH_SRV_BAD=0 DASH_SRV_BAD_NAMES="" DASH_SRV_READY=0 DASH_SRV_REC_PEND=0
@@ -131,6 +134,7 @@ dash_srv_apply() { # text
   DASH_SRV_STATE=ready DASH_SRV_BUSY=0 DASH_SRV_N=$((DASH_SRV_N + 1)) DASH_DIRTY=1
   dash_srv_counts
   [ "$DASH_SRV_SEL" -lt "${#DASH_SRV_ORDER[@]}" ] || DASH_SRV_SEL=$((${#DASH_SRV_ORDER[@]} - 1))
+  dash_srv_after_apply
 }
 
 # Asks for a check without waiting for it (the synchronous one in the test mode).
@@ -141,6 +145,30 @@ dash_srv_request() {
   [ "$DASH_SRV_STATE" = "ready" ] || DASH_SRV_STATE=loading
   DASH_SRV_BUSY=1 DASH_DIRTY=1
   dash_async prereq "" dash_srv_dump || true
+}
+
+# What the first answer after the panel started does: with something required missing it says so and, when nobody went anywhere else,
+# opens this view. A panel with everything in place says nothing.
+dash_srv_after_apply() {
+  [ "$DASH_SRV_STARTUP" -eq 1 ] || return 0
+  DASH_SRV_STARTUP=0
+  [ "$DASH_SRV_BAD" -gt 0 ] || return 0
+  dash_msg warn "$(t tui.srv.startup "$DASH_SRV_BAD" "$DASH_SRV_BAD_NAMES")"
+  if [ "$DASH_VIEW" = "instances" ] && [ "$DASH_MODE" = "normal" ]; then dash_screen_goto server; fi
+}
+
+# Called once when the panel starts (see cmd_dashboard).
+dash_srv_startup() {
+  [ "$DASH_PREREQ" -eq 1 ] || return 0
+  # The tests of the other screens must not open on this one because the machine they run on lacks a program.
+  if tui_test_mode && [ -z "${DELTACTL_TUI_GATE:-}" ]; then return 0; fi
+  DASH_SRV_STARTUP=1
+  dash_srv_request
+}
+
+# Is something required missing, and the person has not chosen to go on? Used before creating an instance.
+dash_srv_blocking() {
+  [ "$DASH_PREREQ" -eq 1 ] && [ "$DASH_SRV_SKIP" -eq 0 ] && [ "$DASH_SRV_STATE" = "ready" ] && [ "$DASH_SRV_BAD" -gt 0 ]
 }
 
 # The install command of a requirement, for this server's package manager, into DASH_SRV_CMD (empty when there is none).
