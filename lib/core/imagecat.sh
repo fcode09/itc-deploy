@@ -127,9 +127,38 @@ ic_version() { # tag
   IC_VN="${BASH_REMATCH[1]}" IC_VP="${BASH_REMATCH[4]}"
 }
 
+# Compares two pre-releases the way semver does, into IC_CMP: field by field (they are separated by dots); two numbers compare as numbers
+# (rc.10 > rc.9), two words by their bytes (never by the collation of the language of the user: RC2 < rc1), a number is lower than a word, and
+# when the first fields are the same the one with more fields is higher (rc.1 < rc.1.1).
+ic_precmp() { # pre_a pre_b
+  local LC_ALL=C
+  local -a a b
+  local n i x y
+  IC_CMP=0
+  IFS=. read -ra a <<< "$1"
+  IFS=. read -ra b <<< "$2"
+  n="${#a[@]}"
+  [ "${#b[@]}" -ge "$n" ] || n="${#b[@]}"   # the fields both have
+  for ((i = 0; i < n; i++)); do
+    x="${a[$i]}" y="${b[$i]}"
+    [ "$x" != "$y" ] || continue
+    if [[ "$x" =~ ^[0-9]+$ ]] && [[ "$y" =~ ^[0-9]+$ ]]; then
+      while [[ "$x" == 0?* ]]; do x="${x#0}"; done
+      while [[ "$y" == 0?* ]]; do y="${y#0}"; done
+      if [ "${#x}" -ne "${#y}" ]; then [ "${#x}" -gt "${#y}" ] && IC_CMP=1 || IC_CMP=-1; return 0; fi
+      [ "$x" != "$y" ] || continue
+    elif [[ "$x" =~ ^[0-9]+$ ]]; then IC_CMP=-1; return 0
+    elif [[ "$y" =~ ^[0-9]+$ ]]; then IC_CMP=1; return 0; fi
+    if [[ "$x" > "$y" ]]; then IC_CMP=1; else IC_CMP=-1; fi
+    return 0
+  done
+  if [ "${#a[@]}" -gt "${#b[@]}" ]; then IC_CMP=1; elif [ "${#a[@]}" -lt "${#b[@]}" ]; then IC_CMP=-1; fi
+  return 0
+}
+
 # Compares two versions (dotted numbers, then pre-release) into IC_CMP: 1 when the first is higher, -1 when lower, 0 when they are the same.
 # Numbers are compared as numbers (1.2.10 > 1.2.9), a missing number is 0 (1.2 = 1.2.0) and a pre-release is lower than the release (1.2.3-rc1 <
-# 1.2.3); two pre-releases compare as text.
+# 1.2.3); two pre-releases compare as ic_precmp says.
 IC_CMP=0
 ic_vcmp() { # numbers_a pre_a numbers_b pre_b
   local -a a b
@@ -146,8 +175,8 @@ ic_vcmp() { # numbers_a pre_a numbers_b pre_b
   done
   if [ -z "$2" ] && [ -n "$4" ]; then IC_CMP=1
   elif [ -n "$2" ] && [ -z "$4" ]; then IC_CMP=-1
-  elif [[ "$2" > "$4" ]]; then IC_CMP=1
-  elif [[ "$2" < "$4" ]]; then IC_CMP=-1; fi
+  elif [ -n "$2" ]; then ic_precmp "$2" "$4"; fi
+  return 0
 }
 
 # --- Use by instances ------------------------------------------------------------------------------------------------

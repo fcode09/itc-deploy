@@ -122,6 +122,26 @@ check "1.2.10 is higher than 1.2.9 (numbers, not text)" '[ "$(lib2 t_vcmp 1.2.10
 check "1.2 equals 1.2.0, and 2026.11.3 is higher than 2026.9.30" '[ "$(lib2 t_vcmp 1.2 "" 1.2.0 "")" = 0 ] && [ "$(lib2 t_vcmp 2026.11.3 "" 2026.9.30 "")" = 1 ]'
 check "a pre-release is lower than its release; two pre-releases compare as text" '[ "$(lib2 t_vcmp 1.2.3 rc1 1.2.3 "")" = -1 ] && [ "$(lib2 t_vcmp 1.2.3 rc2 1.2.3 rc1)" = 1 ]'
 
+t_vorder() { # versions from the lowest to the highest, as the spec of semver lists them: each one must be lower than the next
+  local -a v=("$@"); local i a b
+  for ((i = 0; i + 1 < ${#v[@]}; i++)); do
+    a="${v[i]}" b="${v[i + 1]}"
+    ic_vcmp "${a%%-*}" "$([[ "$a" == *-* ]] && echo "${a#*-}")" "${b%%-*}" "$([[ "$b" == *-* ]] && echo "${b#*-}")"
+    [ "$IC_CMP" = -1 ] || { echo "not lower: $a < $b gave $IC_CMP"; return; }
+  done
+  echo ordered
+}
+check "the pre-releases of the semver spec are in its order (alpha < alpha.1 < alpha.beta < beta < beta.2 < beta.11 < rc.1 < the release)" \
+  '[ "$(lib2 t_vorder 1.0.0-alpha 1.0.0-alpha.1 1.0.0-alpha.beta 1.0.0-beta 1.0.0-beta.2 1.0.0-beta.11 1.0.0-rc.1 1.0.0)" = ordered ]'
+check "rc.10 is higher than rc.9 (the numbers of a pre-release are numbers, not text)" '[ "$(lib2 t_vcmp 1.2.3 rc.10 1.2.3 rc.9)" = 1 ] && [ "$(lib2 t_vcmp 1.2.3 rc.9 1.2.3 rc.10)" = -1 ]'
+check "a number is lower than a word, and a longer list of fields is higher when the first ones are equal" '[ "$(lib2 t_vcmp 1.2.3 rc.1 1.2.3 rc.x)" = -1 ] && [ "$(lib2 t_vcmp 1.2.3 rc.1.1 1.2.3 rc.1)" = 1 ]'
+check "equal pre-releases are equal, and a very long number does not overflow" '[ "$(lib2 t_vcmp 1.2.3 rc.1 1.2.3 rc.1)" = 0 ] && [ "$(lib2 t_vcmp 1.2.3 rc.99999999999999999999999 1.2.3 rc.9)" = 1 ]'
+check "the text of a pre-release compares by bytes whatever the locale of the user is (RC2 < rc1 in the C order)" \
+  '[ "$(LC_ALL=en_US.utf8 lib2 t_vcmp 1.2.3 RC2 1.2.3 rc1)" = -1 ] && [ "$(LC_ALL=C.UTF-8 lib2 t_vcmp 1.2.3 RC2 1.2.3 rc1)" = -1 ] && [ "$(LC_ALL=en_US.utf8 lib2 t_vcmp 1.2.3 rc1 1.2.3 RC2)" = 1 ]'
+
+check "tags made of a date (2026-11-24) are versions with a suffix: they compare as dates and are never the star" \
+  '[ "$(lib2 t_vcmp 2026 11-24 2026 11-09)" = 1 ] && [ "$(lib2 t_vcmp 2026 11-24 2026 12-01)" = -1 ]'
+
 section "6. the catalog: order, the star and what never is one"
 images_are \
   "auth-backend:v1.2.10|sha256:a10aaaaaaaaaaaaaaaa|amd64" "auth-backend:v1.2.9|sha256:a09aaaaaaaaaaaaaaaa|amd64" \
