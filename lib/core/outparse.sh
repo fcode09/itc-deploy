@@ -8,7 +8,7 @@
 #
 # Results (all plain text, no colour; nothing is added that the command did not print):
 #   OUT_KIND        new | check | deploy | init | doctor | images | env | rollback | adopt  ("" for any other command)
-#   OUT_TITLE       the heading the command underlines ("Comprobación de 'x'"), if any
+#   OUT_TITLE       the heading the command underlines ("Check of 'x'"), if any
 #   OUT_HEAD_STATE  ok | err | "" and OUT_HEAD_TEXT   the line that starts with the OK / ERROR label (the result of the command)
 #   OUT_VER_STATE   ok | warn | err | info | "" and OUT_VER_TEXT   the closing verdict of check / doctor ("2 error(es), 0 aviso(s): ...")
 #   OUT_CNT_OK / _WARN / _ERR / _INFO   how many items there are of each state
@@ -255,7 +255,7 @@ out_parse() { # lines-array command-line [running] [rc]
           out_row item "$st" "${OUT_COL[1]:-}" "${OUT_COL[2]:-}" "${OUT_COL[3]:-}" 0
           ;;
         images)
-          # ETIQUETA ID ARQ CREADA TAMAÑO USADA_POR
+          # TAG ID ARCH CREATED SIZE USED_BY (the table of `images`, in either language)
           tag="${OUT_COL[0]:-}"; st=""
           case "$tag" in
             '★'" "* | '*'" "*) st=ok; tag="${tag#* }" ;;
