@@ -3,3 +3,9 @@
 # never executed. See DISENO notes in each file: components are pure (data in, lines out) and use no process.
 # shellcheck source=lib/ui/kit/box.sh
 source "$ROOT/lib/ui/kit/box.sh"
+# shellcheck source=lib/ui/kit/graph_braille.sh
+source "$ROOT/lib/ui/kit/graph_braille.sh"
+# shellcheck source=lib/ui/kit/meter.sh
+source "$ROOT/lib/ui/kit/meter.sh"
+# shellcheck source=lib/ui/kit/metric_row.sh
+source "$ROOT/lib/ui/kit/metric_row.sh"
