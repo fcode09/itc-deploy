@@ -167,6 +167,11 @@ host_now_us() {
   fi
 }
 
+# The hooks that run a program in place of the real one (DELTACTL_DF, DELTACTL_CLIP, DELTACTL_PR_SHELL) only work inside the tests
+# (tests/run.sh exports DELTACTL_TEST_ISOLATED=1). A variable inherited by chance from an environment must never change which program
+# runs: the command the person confirmed has to be the one that runs.
+host_test_hook() { [ -n "${DELTACTL_TEST_ISOLATED:-}" ]; }
+
 # --- Live figures of the whole server (the Server screen) -----------------------------------------------
 # Same rules as above: only Bash builtins, no process per reading, every function returns 1 and leaves its results empty when its
 # source does not exist (WSL, a container, a kernel without sensors), so the screen can say "not available" instead of failing.
@@ -450,12 +455,13 @@ host_disks_read() {
 
 # Use of those filesystems, in KB: HOST_DISK_TOTAL[i], HOST_DISK_USED[i], HOST_DISK_PCT[i]. The kernel gives no file for this, so it runs
 # ONE `df` for all the mount points and keeps the answer for HOST_DISK_TTL seconds (30 by default), whatever the panel's rate of
-# frames. Call host_disks_read first. DELTACTL_DF replaces the program (tests).
+# frames. Call host_disks_read first. DELTACTL_DF replaces the program (only inside the tests).
 HOST_DISK_TTL=30 HOST_DISK_USAGE_AT=0 HOST_DISK_USAGE_N=-1 HOST_DF_TIMEOUT=3
 declare -ga HOST_DISK_TOTAL=() HOST_DISK_USED=() HOST_DISK_PCT=()
 host_disk_usage_read() {
-  local now dev total used avail pct mnt i out="" line
+  local now dev total used avail pct mnt i out="" line dfp=df
   [ "$HOST_DISK_N" -gt 0 ] || return 1
+  if host_test_hook && [ -n "${DELTACTL_DF:-}" ]; then dfp="$DELTACTL_DF"; fi
   if [ -n "${HOST_FAKE_NOW_US:-}" ]; then now=$((HOST_FAKE_NOW_US / 1000000))
   elif [ -n "${EPOCHSECONDS:-}" ]; then now="$EPOCHSECONDS"            # (Bash 5.0 and later)
   else printf -v now '%(%s)T' -1; fi                                    # (Bash 4.x: a builtin too, no process)
@@ -469,9 +475,9 @@ host_disk_usage_read() {
   HOST_DISK_TOTAL=() HOST_DISK_USED=() HOST_DISK_PCT=()
   # (a network mount that hangs would hang df, and the panel with it: a limit when `timeout` exists, and a kill if it ignores the first signal)
   if host_has timeout; then
-    out="$(timeout -k 1 "$HOST_DF_TIMEOUT" "${DELTACTL_DF:-df}" -Pk "${HOST_DISK_MNT[@]}" 2>/dev/null)" || [ -n "$out" ] || return 1
+    out="$(timeout -k 1 "$HOST_DF_TIMEOUT" "$dfp" -Pk "${HOST_DISK_MNT[@]}" 2>/dev/null)" || [ -n "$out" ] || return 1
   else
-    out="$("${DELTACTL_DF:-df}" -Pk "${HOST_DISK_MNT[@]}" 2>/dev/null)" || [ -n "$out" ] || return 1
+    out="$("$dfp" -Pk "${HOST_DISK_MNT[@]}" 2>/dev/null)" || [ -n "$out" ] || return 1
   fi
   while read -r dev total used avail pct mnt; do
     [[ "$total" =~ ^[0-9]+$ ]] || continue

@@ -163,7 +163,11 @@ DELTACTL_CLIP="cat > $FIX/clip.txt" panel_bad 7 c q > "$FIX/out.txt"
 check "c copies the install command of the selected requirement, and says what" '[ "$(cat "$FIX/clip.txt")" = "sudo apt-get update && sudo apt-get install -y docker.io docker-compose-v2" ] && grep -q "Copiado: sudo apt-get update" "$FIX/out.txt"'
 rm -f "$FIX/clip.txt"
 DELTACTL_CLIP="cat > $FIX/clip.txt" panel_bad 7 down c q > "$FIX/out.txt"
-check "a requirement that is not fine and has no command (the daemon of an absent Docker is pending) is told so, nothing is copied" '[ ! -s "$FIX/clip.txt" ] || grep -q "systemctl" "$FIX/clip.txt"'
+check "a requirement that waits for another (the daemon of an absent Docker is pending) copies nothing and says what it waits for" \
+  '[ ! -e "$FIX/clip.txt" ] && grep -q "espera a otro" "$FIX/out.txt" && ! grep -q "Copiado" "$FIX/out.txt"'
+rm -f "$FIX/clip.txt"
+DELTACTL_CLIP="cat > $FIX/clip.txt" panel_bad 7 down down down c q > "$FIX/out.txt"
+check "a requirement with no command at all (the disk) copies nothing and says there is no command" '[ ! -e "$FIX/clip.txt" ] && grep -q "No hay un comando" "$FIX/out.txt"'
 printf 'ID=plan9\nNAME="Plan 9"\n' > "$FIX/os/none"
 rm -f "$FIX/clip.txt"
 DELTACTL_OS_RELEASE="$FIX/os/none" DELTACTL_CLIP="cat > $FIX/clip.txt" panel_bad 7 c q > "$FIX/out.txt"
@@ -187,8 +191,25 @@ printf '\n' | DELTACTL_PR_SHELL="$FIX/fakesh" panel_bad 7 '!' y > "$FIX/out.txt"
 check "y runs it in the terminal: the shell gets exactly that command" '[ "$(cat "$FIX/ran.txt")" = "RAN: sudo apt-get update && sudo apt-get install -y docker.io docker-compose-v2" ]'
 check "and the requirements are checked again afterwards" '[ "$(grep -c "^=== frame" "$FIX/out.txt")" -ge 3 ]'
 rm -f "$FIX/ran.txt"
+DELTACTL_PR_SHELL="$FIX/fakesh" panel_bad 7 down '!' q > "$FIX/out.txt"
+check "a requirement that is waiting for another (the daemon of an absent Docker) offers nothing to run: no window, says what it waits for" \
+  '[ ! -e "$FIX/ran.txt" ] && ! grep -q "Ejecutar en la terminal" "$FIX/out.txt" && grep -q "espera a otro" "$FIX/out.txt"'
 DELTACTL_PR_SHELL="$FIX/fakesh" panel_bad 7 down down down '!' q > "$FIX/out.txt"
-check "a requirement that is waiting for another has no command: it says so and opens no window" '[ ! -e "$FIX/ran.txt" ] && ! grep -q "Ejecutar en la terminal" "$FIX/out.txt"'
+check "a requirement with no command at all (the disk) opens no window and says there is no command" \
+  '[ ! -e "$FIX/ran.txt" ] && ! grep -q "Ejecutar en la terminal" "$FIX/out.txt" && grep -q "No hay un comando" "$FIX/out.txt"'
+DELTACTL_PR_SHELL="$FIX/fakesh" panel_bad 7 m '!' q > "$FIX/out.txt"
+check "with only the metrics on screen ! does nothing: it must not run the command of a requirement that is not shown" \
+  '[ ! -e "$FIX/ran.txt" ] && ! grep -q "Ejecutar en la terminal" "$FIX/out.txt"'
+# The command is shown whole or not at all: on a terminal where it does not fit y is not offered, it never runs what could not be read.
+printf '\n' | DELTACTL_PR_SHELL="$FIX/fakesh" PANEL_COLS=60 PANEL_ROWS=14 panel_bad 7 '!' y > "$FIX/out.txt"
+check "on a small terminal (60x14) where the command does not fit, y runs nothing" '[ ! -e "$FIX/ran.txt" ]'
+check "and the window says to enlarge the terminal and does not show half a command" \
+  'o="$(DELTACTL_PR_SHELL="$FIX/fakesh" PANEL_COLS=60 PANEL_ROWS=14 panel_bad 7 "!" | last_frame)"; echo "$o" | grep -q "Agranda la terminal" && ! echo "$o" | grep -q "apt-get install"'
+printf '\n' | DELTACTL_OS_RELEASE="$FIX/os/fedora" DELTACTL_PR_SHELL="$FIX/fakesh" PANEL_COLS=60 PANEL_ROWS=14 panel_bad 7 '!' y > "$FIX/out.txt"
+check "a long command with a URL that does not fit in the width is not offered either (Fedora at 60 columns)" '[ ! -e "$FIX/ran.txt" ]'
+printf '\n' | DELTACTL_OS_RELEASE="$FIX/os/fedora" DELTACTL_PR_SHELL="$FIX/fakesh" PANEL_ROWS=40 panel_bad 7 '!' y > "$FIX/out.txt"
+check "the same command on a terminal where it fits is offered and runs" 'grep -q "^RAN: sudo dnf config-manager addrepo" "$FIX/ran.txt"'
+rm -f "$FIX/ran.txt"
 DELTACTL_PR_SHELL="$FIX/fakesh" panel_ok 7 '!' q > "$FIX/out.txt"
 check "a requirement that is fine has nothing to run" '[ ! -e "$FIX/ran.txt" ] && grep -q "ya está listo: no hay nada que ejecutar" "$FIX/out.txt"'
 check "outside this view ! is still the command line that runs in the terminal" '[ "$(panel_ok "!" x | last_frame | grep -c "!x")" -ge 1 ]'
@@ -252,5 +273,26 @@ check "the body is built again with every sample, and reused when only the clock
 section "12. first-run gate: when it blocks"
 check "nothing blocks before the first check, with the option off, after going on, or with everything in place" '[ "$(PATH="$FIX/nopath" DELTACTL_PR_SBIN="" run_lib "dash_srv_blocking && echo b0; dash_srv_request; dash_srv_blocking && echo b1; DASH_SRV_SKIP=1; dash_srv_blocking && echo b2; DASH_SRV_SKIP=0; DASH_PREREQ=0; dash_srv_blocking && echo b3; DASH_PREREQ=1; DASH_SRV_BAD=0; dash_srv_blocking && echo b4; true" | tr "\n" " ")" = "b1 " ]'
 
+
+section "13. fixes of the independent review"
+printf '#!/bin/sh\nexit 3\n' > "$FIX/failsh"; chmod +x "$FIX/failsh"
+printf '\n' | DELTACTL_PR_SHELL="$FIX/failsh" panel_bad 7 '!' y > "$FIX/out.txt"
+check "when the command fails the message gives its real exit code (3), not 0" 'grep -q "terminó con errores (código 3)" "$FIX/out.txt"'
+check "a text with & in its argument keeps it (Bash 5.2 replaces & by the matched text unless the replacement is quoted)" \
+  '[ "$(run_lib "dash_srv_t tui.srv.status.req \"a && b\" 2; echo \$DASH_T")" = "a && b/2 listos" ]'
+# The hooks that run a program only work inside the tests: an environment inherited by chance must not change what a confirmed command is.
+check "DELTACTL_CLIP is only honoured inside the tests" \
+  'rm -f "$FIX/clip13.txt"; env -u DELTACTL_TEST_ISOLATED DELTACTL_CLIP="cat > $FIX/clip13.txt" bash -c "ROOT=\$PWD DELTACTL_TUI_KEYS=/dev/null DELTACTL_CONFIG=$CFG; source lib/bootstrap.sh; source lib/cmd/dashboard.sh; dash_srv_copy x" >/dev/null 2>&1; [ ! -e "$FIX/clip13.txt" ] && run_lib "DELTACTL_CLIP=\"cat > $FIX/clip13.txt\"; dash_srv_copy x" && [ -e "$FIX/clip13.txt" ]'
+check "DELTACTL_PR_SHELL is only honoured inside the tests (the shell that runs a confirmed command is bash)" \
+  '[ "$(env -u DELTACTL_TEST_ISOLATED DELTACTL_PR_SHELL=/bin/false bash -c "ROOT=\$PWD DELTACTL_TUI_KEYS=/dev/null DELTACTL_CONFIG=$CFG; source lib/bootstrap.sh; source lib/cmd/dashboard.sh; dash_srv_shell" 2>&1)" = bash ] && [ "$(run_lib "DELTACTL_PR_SHELL=/bin/false; dash_srv_shell")" = /bin/false ]'
+mkdir -p "$FIX/proc"; printf '/dev/sda2 / ext4 rw 0 0\n' > "$FIX/proc/mounts"
+printf '#!/bin/sh\necho x >> "$FIX/df.calls"\necho "Filesystem 1024-blocks Used Available Capacity Mounted on"\necho "/dev/sda2 100 40 60 40%% /"\n' > "$FIX/fake-df"; chmod +x "$FIX/fake-df"
+check "DELTACTL_DF is only honoured inside the tests (and it does run in them)" \
+  'rm -f "$FIX/df.calls"; DELTACTL_DF="$FIX/fake-df" HOST_FAKE_NOW_US=1000000 run_lib "host_disks_read; host_disk_usage_read" >/dev/null; [ -e "$FIX/df.calls" ]; rm -f "$FIX/df.calls"; env -u DELTACTL_TEST_ISOLATED DELTACTL_DF="$FIX/fake-df" HOST_FAKE_NOW_US=1000000 bash -c "ROOT=\$PWD; source lib/bootstrap.sh; host_disks_read; host_disk_usage_read" >/dev/null 2>&1; [ ! -e "$FIX/df.calls" ]'
+# A panel with no result of a check yet (still checking) has nothing to run or copy, and none of its functions fail under set -u.
+check "nothing is offered to run before the first answer arrives" \
+  '[ "$(run_lib "DASH_VIEW=server; DASH_SRV_STATE=loading; PR_STATUS=(); scr_server_bang; echo \$DASH_MODE")" = "normal" ]'
+check "the hint and the detail of a requirement without results do not fail under set -u" \
+  'run_lib "set -u; PR_RECORDS=(); dash_srv_hint docker; dash_srv_detail 60 8; echo done" | grep -q "^done$"'
 
 finish

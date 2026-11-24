@@ -429,7 +429,7 @@ prereq_json() {
     rec="${PR_RECORDS[$id]}"
     r=0
     IFS="$PR_RS" read -ra recs <<< "$rec"
-    for res in "${recs[@]}"; do
+    for res in ${recs[@]+"${recs[@]}"}; do
       [ -n "$res" ] || continue
       IFS="$PR_FS" read -r st msg f <<< "$res"
       [ "$r" -eq 0 ] || printf ','
