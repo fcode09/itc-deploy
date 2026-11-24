@@ -49,30 +49,45 @@ envedit_emit() { # file key value
   [ "$found" = 1 ] || printf '%s=%s\n' "$key" "$val"
 }
 
-# Copy of the file before the first change of this session, once per file. Same mode as the original.
+# Copy of the file before the first change of this session (the process: a new `deltactl env` run copies again, over the old one),
+# once per file. It is ALWAYS readable only by its owner: what it holds is what the file held, secrets included, whatever its mode.
 envedit_backup() { # file
   [ -f "$1" ] || return 0
   [ -z "${ENVEDIT_BAKED[$1]:-}" ] || return 0
   ( umask 077; cp -f "$1" "$1.bak" ) 2> /dev/null || return 1
-  chmod --reference="$1" "$1.bak" 2> /dev/null || chmod 600 "$1.bak" 2> /dev/null || true
+  chmod 600 "$1.bak" 2> /dev/null || return 1   # cp keeps the mode of an old .bak that was already there
   ENVEDIT_BAKED[$1]=1
 }
 
-# Sets KEY=VALUE in a file, atomically. $4 = 1 when the variable is a secret: the file is then left readable only by its owner.
-# No validation: that is envedit_save. Returns 1 when it could not write (the file is then exactly as it was).
-envedit_set() { # file key value [secret]
+# Rebuilds a file aside (a temporary next to it) with KEY=VALUE set, without touching the file: the path is left in ED_TMP.
+# $4 = 1 when the variable is a secret: the file is then left readable only by its owner. Returns 1 when it could not (nothing is left).
+ED_TMP=""
+envedit_stage() { # file key value [secret]
   local file="$1" key="$2" val="$3" secret="${4:-0}" tmp
+  ED_TMP=""
   tmp="$(umask 077; mktemp "$file.XXXXXX")" || return 1
   if ! envedit_emit "$file" "$key" "$val" > "$tmp"; then
     rm -f "$tmp"
     return 1
   fi
-  envedit_backup "$file" || { rm -f "$tmp"; return 1; }
   if [ -f "$file" ]; then
     chmod --reference="$file" "$tmp" 2> /dev/null || chmod 600 "$tmp" 2> /dev/null || true
   fi
   [ "$secret" != 1 ] || chmod 600 "$tmp" 2> /dev/null || true
-  mv -f "$tmp" "$file" || { rm -f "$tmp"; return 1; }
+  ED_TMP="$tmp"
+}
+
+# Puts what envedit_stage prepared in place of the file (the copy first): one rename. Returns 1 when it could not (the temporary is removed).
+envedit_commit() { # file tmp
+  envedit_backup "$1" || { rm -f "$2"; return 1; }
+  mv -f "$2" "$1" || { rm -f "$2"; return 1; }
+}
+
+# Sets KEY=VALUE in a file, atomically. $4 = 1 when the variable is a secret: the file is then left readable only by its owner.
+# No validation: that is envedit_save. Returns 1 when it could not write (the file is then exactly as it was).
+envedit_set() { # file key value [secret]
+  envedit_stage "$1" "$2" "$3" "${4:-0}" || return 1
+  envedit_commit "$1" "$ED_TMP"
 }
 
 # Validated save of a variable of an instance. Leaves EV_RC / EV_MSG as the schema left them.
@@ -170,23 +185,51 @@ envedit_shared_files_r() { # instance key
 # write. The value is never printed.
 ENVEDIT_WRITTEN=()
 envedit_generate() { # instance file key
-  local inst="$1" file="$2" key="$3" kind val f
+  local inst="$1" file="$2" key="$3" kind val
   envschema_load
   kind="${ENV_GEN[$file|$key]:-}"
   [ -n "$kind" ] || return 1
   val="$(envedit_random "$kind")" || return 1
   [ -n "$val" ] || return 1
   ENVEDIT_WRITTEN=()
+  local -a targets=() tmps=() origs=()
+  local i path
   if [ "$kind" = shared ]; then
     envedit_shared_files_r "$inst" "$key"
-    for f in "${ENVEDIT_SHARED[@]}"; do
-      envedit_set "$INSTANCES_DIR/$inst/$f" "$key" "$val" 1 || return 2
-      ENVEDIT_WRITTEN+=("$f")
-    done
+    targets=("${ENVEDIT_SHARED[@]}")
   else
-    envedit_set "$INSTANCES_DIR/$inst/$file" "$key" "$val" 1 || return 2
-    ENVEDIT_WRITTEN+=("$file")
+    targets=("$file")
   fi
+  # All or nothing: every file is rebuilt aside, with a private copy of what it is now, and only then are they put in place. A
+  # failure on the way leaves the files as they were (a shared secret with two different values would sign in one service what the
+  # others cannot read).
+  for i in "${!targets[@]}"; do
+    path="$INSTANCES_DIR/$inst/${targets[$i]}"
+    if envedit_stage "$path" "$key" "$val" 1; then
+      tmps+=("$ED_TMP")
+      if ( umask 077; cp -f "$path" "$ED_TMP.orig" ) 2> /dev/null; then origs+=("$ED_TMP.orig"); continue; fi
+    fi
+    rm -f ${tmps[@]+"${tmps[@]}"} ${origs[@]+"${origs[@]}"}
+    return 2
+  done
+  for i in "${!targets[@]}"; do
+    if ! envedit_backup "$INSTANCES_DIR/$inst/${targets[$i]}"; then
+      rm -f "${tmps[@]}" "${origs[@]}"
+      return 2
+    fi
+  done
+  for i in "${!targets[@]}"; do
+    if ! mv -f "${tmps[$i]}" "$INSTANCES_DIR/$inst/${targets[$i]}"; then
+      # A rename that fails after another went through (almost never: the same folder): the earlier files go back to what they were.
+      local j
+      for ((j = 0; j < i; j++)); do mv -f "${origs[$j]}" "$INSTANCES_DIR/$inst/${targets[$j]}" 2> /dev/null || true; done
+      rm -f "${tmps[@]}" "${origs[@]}"
+      ENVEDIT_WRITTEN=()
+      return 2
+    fi
+    ENVEDIT_WRITTEN+=("${targets[$i]}")
+  done
+  rm -f "${origs[@]}"
   return 0
 }
 

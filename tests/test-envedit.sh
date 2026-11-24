@@ -82,11 +82,17 @@ check "una clave que no es secreta deja el modo del archivo como estaba (644)" '
 check "un secreto deja el archivo en 600" 'run "envedit_set $FIX/m.env A 5 1" && [ "$(mode "$FIX/m.env")" = 600 ]'
 check "un archivo nuevo nace en 600" 'rm -f "$FIX/n.env"; ( umask 022; run "envedit_set $FIX/n.env A 1" ); [ "$(mode "$FIX/n.env")" = 600 ]'
 chmod 640 "$FIX/rt.env"
-check "la copia .bak tiene el modo del original y el contenido de antes del primer cambio" '
+check "la copia .bak es siempre 600 (aunque el original sea 640) y tiene el contenido de antes del primer cambio" '
   cp "$FIX/rt.orig" "$F"; chmod 640 "$F"; rm -f "$F.bak"
   ROOT="$PWD" bash -c "source lib/bootstrap.sh; envedit_set $F A primero; envedit_set $F A segundo" \
-    && [ "$(mode "$F.bak")" = 640 ] && cmp -s "$FIX/rt.orig" "$F.bak" && grep -q "^A=segundo$" "$F"'
-check "la copia se hace una vez por sesión: el segundo cambio no la pisa (arriba .bak sigue siendo el original)" 'cmp -s "$FIX/rt.orig" "$F.bak"'
+    && [ "$(mode "$F.bak")" = 600 ] && cmp -s "$FIX/rt.orig" "$F.bak" && grep -q "^A=segundo$" "$F"'
+check "la copia se hace una vez por sesión (proceso): el segundo cambio no la pisa (arriba .bak sigue siendo el original)" 'cmp -s "$FIX/rt.orig" "$F.bak"'
+check "un archivo en 644 con secretos deja su .bak en 600, y un .bak viejo en 644 se aprieta a 600" '
+  cp "$FIX/rt.orig" "$F"; chmod 644 "$F"; rm -f "$F.bak"; ( umask 022; : > "$F.bak" ); chmod 644 "$F.bak"
+  run "envedit_set $F A nuevo 1" && [ "$(mode "$F.bak")" = 600 ] && cmp -s "$FIX/rt.orig" "$F.bak"'
+check "cada ejecución del comando env hace su propia copia: el segundo set por CLI pisa el .bak con el estado previo al último cambio" '
+  D env ee-a set s0:GOOGLE_KEY primeroZ1 >/dev/null 2>&1; D env ee-a set s0:GOOGLE_KEY segundoZ2 >/dev/null 2>&1
+  grep -q "^GOOGLE_KEY=primeroZ1$" instances/ee-a/.env.s0.bak && grep -q "^GOOGLE_KEY=segundoZ2$" instances/ee-a/.env.s0 && [ "$(mode instances/ee-a/.env.s0.bak)" = 600 ]'
 check "un fallo al escribir no crea la copia" '
   cp "$FIX/rt.orig" "$F"; rm -f "$F.bak"
   ROOT="$PWD" bash -c "source lib/bootstrap.sh; envedit_emit() { return 1; }; ! envedit_set $F A 1" && [ ! -e "$F.bak" ]'
@@ -245,7 +251,31 @@ check "SERVERS_CONFIG (el JSON de los webhooks) es un secreto: set no lo repite 
   out="$(D env ee-f set s1:SERVERS_CONFIG "{\"a\":\"tokenZZ9\"}" 2>&1)"; ! grep -qF tokenZZ9 <<< "$out" && ! D env ee-f list s1 2>&1 | grep -qF tokenZZ9'
 check "envedit_show enmascara un secreto desconocido" '[ "$(run "envedit_show .env.s0 DB_PASSWD abc; printf %s \"\$ED_SHOW\"")" = "********" ]'
 
-section "10. un cambio hecho mientras se despliega sigue pendiente"
+section "10. generate de un secreto compartido: confirma si cualquiera de los archivos tiene valor, y no deja uno distinto del otro"
+newinst ee-i
+sed -i 's/^JWT_SECRET=.*/JWT_SECRET=/' instances/ee-i/.env.s0
+cp instances/ee-i/.env.s0 "$FIX/i0.before"; cp instances/ee-i/.env.s1 "$FIX/i1.before"
+check "el valor está solo en s1: generate sobre s0, sin terminal ni --yes, pide confirmación (falla) y no cambia nada" '
+  ! D env ee-i generate s0:JWT_SECRET </dev/null >/dev/null 2>&1 && cmp -s "$FIX/i0.before" instances/ee-i/.env.s0 && cmp -s "$FIX/i1.before" instances/ee-i/.env.s1'
+check "…y el aviso dice en qué archivo está el valor que se reemplaza (s1)" 'D env ee-i generate s0:JWT_SECRET </dev/null 2>&1 | grep -q "JWT_SECRET ya tiene un valor.*\.env\.s1"'
+check "con --yes se escribe el MISMO valor en s0 y s1" '
+  D env ee-i generate s0:JWT_SECRET --yes >/dev/null 2>&1; a="$(grep "^JWT_SECRET=" instances/ee-i/.env.s0)"; b="$(grep "^JWT_SECRET=" instances/ee-i/.env.s1)"; [ "$a" = "$b" ] && [ ${#a} -gt 60 ]'
+cp instances/ee-i/.env.s0 "$FIX/i0.before"; cp instances/ee-i/.env.s1 "$FIX/i1.before"
+no_leftovers() { # nothing next to the env files but their .bak copies (no temporary, no private original)
+  local f
+  for f in instances/ee-i/.env.s[01].*; do
+    [ -e "$f" ] || continue
+    case "$f" in *.bak) ;; *) return 1 ;; esac
+  done
+}
+check "si no se puede preparar el segundo archivo, el primero no cambia (todo o nada) y no queda ningún temporal" '
+  r="$(ROOT="$PWD" bash -c "source lib/bootstrap.sh; envedit_emit() { case \"\$1\" in *.env.s1) return 1 ;; esac; command true; }; envedit_generate ee-i .env.s0 JWT_SECRET; echo \$?")"
+  [ "$r" = 2 ] && cmp -s "$FIX/i0.before" instances/ee-i/.env.s0 && cmp -s "$FIX/i1.before" instances/ee-i/.env.s1 && no_leftovers'
+check "si el segundo renombrado falla, el primero vuelve a lo que era y s0 y s1 siguen con el mismo valor" '
+  r="$(ROOT="$PWD" bash -c "source lib/bootstrap.sh; n=0; mv() { n=\$((n + 1)); if [ \$n -eq 2 ]; then return 1; fi; command mv \"\$@\"; }; envedit_generate ee-i .env.s0 JWT_SECRET; echo \$?")"
+  [ "$r" = 2 ] && cmp -s "$FIX/i0.before" instances/ee-i/.env.s0 && cmp -s "$FIX/i1.before" instances/ee-i/.env.s1 && no_leftovers'
+
+section "11. un cambio hecho mientras se despliega sigue pendiente"
 newinst ee-g
 sed -i "s/^S0_PORT=.*/S0_PORT=29796/; s/^S1_PORT=.*/S1_PORT=29797/" instances/ee-g/.env.instance
 # While compose runs `up`, another terminal changes a value: the containers got the old one.

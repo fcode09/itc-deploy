@@ -213,7 +213,7 @@ env_set() { # instance target value have_value stdin force
 # ---------- generate ----------
 
 env_generate() { # instance target
-  local inst="$1" kind f key cur rc=0 files msg
+  local inst="$1" kind f key cur rc=0 files msg where sf
   env_resolve "$inst" "$2"
   f="$TARGET_FILE" key="$TARGET_KEY"
   envschema_load
@@ -222,13 +222,19 @@ env_generate() { # instance target
   command -v openssl > /dev/null 2>&1 || die "$(t env.openssl_missing)"
   get_var_r "$INSTANCES_DIR/$inst/$f" "$key"
   cur="$GV"
+  where="$f"
   files="$f"
   if [ "$kind" = shared ]; then
     envedit_shared_files_r "$inst" "$key"
     files="${ENVEDIT_SHARED[*]}"
+    # A shared secret is written in every file that has it: a value in ANY of them is replaced, not only the one that was named.
+    for sf in "${ENVEDIT_SHARED[@]}"; do
+      get_var_r "$INSTANCES_DIR/$inst/$sf" "$key"
+      if [ -n "$GV" ]; then cur="$GV"; where="$sf"; break; fi
+    done
   fi
   if [ -n "$cur" ]; then
-    msg="$(t env.gen_replace "$key" "$f")"
+    msg="$(t env.gen_replace "$key" "$where")"
     [ "$kind" != shared ] || msg+=" $(t env.gen_replace_shared "$files")"
     [ "$kind" != b64-32 ] || msg+=" $(t env.gen_replace_data)"
     warn "$msg"
