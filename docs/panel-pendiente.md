@@ -128,11 +128,37 @@ con color) y en el muestreo (~10 ms). Los gráficos ya son incrementales (`gfx_a
 | `lib/screens/cmd.sh`, `filter.sh`, `find.sh` | Modos de línea: orden que se escribe (`:`), filtro (`/`) y búsqueda (`s`) de los logs; el editor de línea es `dash_key_edit` (en `cmd.sh`) |
 | `lib/ui/layout.sh` | Motor de layout: `lay_split` reparte columnas o filas entre paneles por reglas (deseado, mínimo, máximo, crecimiento, opcional) |
 | `lib/ui/tui.sh` | Terminal: pantalla alterna, teclas, cajas, recorte con colores, dibujo incremental |
-| `lib/core/metrics.sh` | Muestreo de memoria/CPU por servicio, historial, formato (bytes, %, sparkline) |
+| `lib/core/metrics.sh` | Muestreo de memoria/CPU por servicio, historial, formato (bytes, %, sparkline) y, con `MT_HOST_DETAIL=1`, del servidor entero (`mt_host_sample`, ver «El servidor entero») |
 | `lib/core/jobs.sh` | Un comando en segundo plano: salida sin `fork`, cancelación (TERM y luego KILL a los 2 s) |
-| `lib/adapters/host.sh` | Lectores de `/proc` y cgroups (solo builtins de Bash) |
+| `lib/adapters/host.sh` | Lectores de `/proc`, `/sys` y cgroups (solo builtins de Bash): CPU por núcleo, memoria por tipo, carga, arranque, temperaturas, red, discos |
 | `lib/adapters/docker.sh` | `dk_container_rows` (con pid y reinicios), `dk_events_stream`, `dk_images_ids` |
 | `lib/i18n/{es,en}/dashboard.sh` | Textos del panel |
+
+## El servidor entero: fuentes de métricas
+
+`lib/adapters/host.sh` lee, sin lanzar procesos, lo que dibujará la vista Servidor (`DELTACTL_PROC_ROOT` y `DELTACTL_SYS_ROOT` apuntan a árboles
+falsos en los tests; `tests/test-metrics.sh`, secciones 4 a 9). Cada lector devuelve 1 y deja sus resultados vacíos si su fuente no existe (WSL,
+un contenedor, un kernel sin sensores): `MT_SRC[<fuente>]` vale 0 y la pantalla dice «no disponible» en vez de fallar.
+
+| Lector | Fuente | Resultado |
+|---|---|---|
+| `host_cpu_read` | `/proc/stat` | `HOST_CPU_PCT[0]` = CPU total y `[1..N]` cada núcleo, en %, entre dos lecturas (la primera solo guarda contadores; `iowait` cuenta como libre) |
+| `host_load_full_read` | `/proc/loadavg` | `HOST_LOAD1/5/15`, tareas en ejecución y totales |
+| `host_uptime_read` | `/proc/uptime`, `btime` de `/proc/stat` | `HOST_UPTIME_S`, `HOST_BOOT_TS` (el arranque se lee una sola vez) |
+| `host_mem_detail_read` | `/proc/meminfo` | usada, en caché (con `SReclaimable`), buffers, libre, disponible y swap, en KB |
+| `host_temp_read` | `/sys/class/hwmon/*/temp*_input` (y `thermal_zone*` sin hwmon) | `HOST_TEMP_LABEL/C/CRIT[]`, `HOST_TEMP_CPU_C` (Package, Tctl o Tdie ganan a los núcleos), `HOST_TEMP_MAX_C`; nombres y límites se leen una vez |
+| `host_net_read` | `/proc/net/dev` | bytes por interfaz; la principal (la de más tráfico, o `DELTACTL_NET_IFACE`), su velocidad en B/s y sus totales. Sin `lo`, `veth*`, `br-*`, `docker*`, `virbr*`… |
+| `host_diskio_read` | `/proc/diskstats` | B/s leídos y escritos por los discos enteros (sin particiones, `dm-*` ni `loop*`, para no contar dos veces) |
+| `host_disks_read` | `/proc/mounts` | puntos de montaje que importan: sistemas de archivos reales, uno por dispositivo, sin rutas de Docker, snap ni `/boot/efi` |
+| `host_disk_usage_read` | `df -Pk` | total, usado y % de cada uno. **La única excepción a «sin procesos»**: el kernel no da un archivo para esto, así que corre **un** `df` como mucho cada `HOST_DISK_TTL` s (30) |
+
+`mt_host_sample` los llama y guarda los historiales (`MT_HH_CPU`, `MT_HH_NETD/NETU`, `MT_HH_DIOR/DIOW`, `MT_HH_TEMP`), el máximo reciente de la red
+(`MT_NET_DOWN_MAX/UP_MAX`, el mayor de la ventana) y el total de la sesión. Corre dentro de `mt_sample` **solo** con `MT_HOST_DETAIL=1` (la
+vista Servidor a la vista): las demás vistas no lo pagan. Las temperaturas se leen en la primera muestra y cada `MT_TEMP_EVERY` (3); la lista de
+montajes cada 30 muestras.
+
+Coste medido (`tests/test-metrics.sh` sección 9 pone una red de seguridad de 5 ms; las cifras reales están en el informe de la tarea): cada
+lector es de orden de cientos de microsegundos y ninguno lanza un proceso.
 
 ## Pantallas: cómo está organizado el panel y cómo añadir una
 
