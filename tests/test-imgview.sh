@@ -66,6 +66,7 @@ check "when Docker does not answer the state says so and nothing is left to choo
 
 # The read of the catalog runs in the background (dash_async): a producer that dies or hangs is forgotten after a minute, and then the view has to
 # ask again instead of staying on "reading…" for ever; and a command that ends while a read is already in flight makes that answer old.
+# shellcheck disable=SC2329,SC2154,SC2153  # run in a bash that has loaded the panel (run_lib): the DASH_* tables are there, &c
 t_stuck() {
   dash_img_slow() { sleep 30; }
   dash_async images "" dash_img_slow; DASH_IMG_BUSY=1; DASH_IMG_STATE=loading; DASH_AS_AT[images]=$((SECONDS - 61)); DASH_VIEW=instances
@@ -75,6 +76,7 @@ t_stuck() {
   dash_async_stop
 }
 check "a read that never answers is forgotten after a minute: the view is not left on \"reading…\" (it says Docker does not answer; a later one that had an answer keeps it)" '[ "$(run_lib "$(declare -f t_stuck); t_stuck")" = "0 nodocker [] 0 ready []" ]'
+# shellcheck disable=SC2329,SC2153  # (idem)
 t_stale() {
   dash_img_apply "$(dash_img_dump)"
   DASH_IMG_REQ_GEN="$DASH_IMG_GEN"   # a read was launched ...
@@ -171,15 +173,27 @@ check "c copies the reference (image:tag) of the version, and says so" 'o="$(DEL
 check "c with no clipboard says what to copy by hand" 'o="$(DELTACTL_CLIP=false panel 8 c)"; echo "$o" | last_frame | grep -q "No se pudo copiar.*auth-backend:2.14.1"'
 check "R reads the catalog again and says so" 'panel 8 R | last_frame | grep -q "Leyendo las imágenes"'
 
+# The fixture's 3.0.0-rc1 is an arm64 image: it never competes for the star. Made amd64 and the newest, it must still not be the star.
+sed -i 's/^auth-backend:3.0.0-rc1|sha256:a4aaaaaaaaaaaa|arm64$/auth-backend:3.0.0-rc1|sha256:a4aaaaaaaaaaaa|amd64/' "$FIX/images.txt"
+check "a pre-release that this server can run and that is the newest of its image is not the star: the star stays on the newest stable version" '
+  f="$(panel 8 | last_frame)"; echo "$f" | grep -q "2.14.1 ★" && ! echo "$f" | grep -q "3.0.0-rc1 ★"'
+images_fixture "$FIX"
+
 section "7. keys: using a version in an instance"
 tag_of() { grep "^S0_TAG=" "instances/$1/.env.instance" | cut -d= -f2; }
 : > "$FIX/calls.log"
+cp instances/ix-colorado/.env.instance "$FIX/env.instance.before"; cksum < instances/ix-colorado/.env.s0 > "$FIX/env.s0.sum"
+stat -c %a instances/ix-colorado/.env.instance > "$FIX/env.mode"; stat -c %a instances/ix-colorado/.env.s0 > "$FIX/env.s0.mode"
 check "Enter opens the dialog with the instances that have the service (and what they would change)" 'o="$(panel 8 enter)"; f="$(echo "$o" | last_frame)"; echo "$f" | grep -q "Elige la instancia donde usar auth-backend:2.14.1 (servicio s0)" && echo "$f" | grep -q "ix-colorado  ahora 2.14.0 → 2.14.1" && echo "$f" | grep -q "ix-lima .*ya usa esta versión"'
 check "the cursor of the dialog starts on the first instance that can take it, and moves" 'o="$(panel 8 enter)"; echo "$o" | last_frame | grep -q "▸ ix-colorado"'
-check "Esc cancels and nothing is written" 'panel 8 enter esc | last_frame | grep -q "Cancelado\|cancelado"; [ "$(tag_of ix-colorado)" = 2.14.0 ] && [ ! -s "$FIX/calls.log" ]'
+check "Esc cancels, says so, and nothing is written" 'panel 8 enter esc | last_frame | grep -q "Cancelado" && [ "$(tag_of ix-colorado)" = 2.14.0 ] && [ ! -s "$FIX/calls.log" ] && [ "$(grep -c "" "instances/ix-colorado/.env.instance")" -gt 0 ]'
 check "an instance that already uses the version cannot be chosen: Enter says why and stays" 'o="$(panel 8 enter down enter)"; f="$(echo "$o" | last_frame)"; echo "$f" | grep -q "ya usa esta versión" && ! echo "$f" | grep -q "Cambiar la versión de"'
 check "Enter on the instance shows what will change, before anything is written" 'o="$(panel 8 enter enter)"; f="$(echo "$o" | last_frame)"; echo "$f" | grep -q "Cambiar la versión de s0 en .ix-colorado.: 2.14.0 → 2.14.1" && [ "$(tag_of ix-colorado)" = 2.14.0 ]'
-check "any other key than y or g cancels the confirmation, and the left arrow goes back to the list" 'panel 8 enter enter z | last_frame | grep -q "[Cc]ancelado" ; [ "$(tag_of ix-colorado)" = 2.14.0 ] && panel 8 enter enter left | last_frame | grep -q "Elige la instancia"'
+check "in the confirmation a key that is not an answer does nothing (it stays, nothing is written), and the left arrow goes back to the list" '
+  o="$(panel 8 enter enter z)"; echo "$o" | last_frame | grep -q "Cambiar la versión de s0 en" && [ "$(tag_of ix-colorado)" = 2.14.0 ] && [ ! -s "$FIX/calls.log" ] \
+  && panel 8 enter enter left | last_frame | grep -q "Elige la instancia"'
+check "n, q and Esc cancel the confirmation and say so; nothing is written" '
+  for k in n q esc; do panel 8 enter enter $k | last_frame | grep -q "Cancelado" && [ "$(tag_of ix-colorado)" = 2.14.0 ] && [ ! -s "$FIX/calls.log" ] || exit 1; done'
 check "g writes the tag and does not deploy" '
   : > "$FIX/calls.log"
   o="$(panel 8 enter enter g)"
@@ -222,7 +236,10 @@ check "an interrupted run nobody has reviewed: y writes nothing and says which r
 check "...but g, that only saves the tag and starts nothing, still works" '
   o="$(panel 8 enter enter g)"; tag_is ix-colorado 2.14.1 && ! grep -q "COMPOSE" "$FIX/calls.log"'
 rm -rf instances/.deltactl; reset_tag
-check "the other tags of the instance and its other files are not touched" 'grep -q "^S1_TAG=2.9.0$" instances/ix-colorado/.env.instance && [ -f instances/ix-colorado/.env.s0 ]'
+check "the rest of .env.instance, the other files of the instance and their modes are exactly as they were (only S0_TAG changed)" '
+  [ "$(grep -v "^S0_TAG=" instances/ix-colorado/.env.instance)" = "$(grep -v "^S0_TAG=" "$FIX/env.instance.before")" ] \
+  && [ "$(cksum < instances/ix-colorado/.env.s0)" = "$(cat "$FIX/env.s0.sum")" ] && [ "$(stat -c %a instances/ix-colorado/.env.instance)" = "$(cat "$FIX/env.mode")" ] \
+  && [ "$(stat -c %a instances/ix-colorado/.env.s0)" = "$(cat "$FIX/env.s0.mode")" ] && [ "$(grep -c "" instances/ix-colorado/.env.instance)" = "$(grep -c "" "$FIX/env.instance.before")" ]'
 check "an image of another architecture is not offered: Enter says why instead of opening the dialog" 'o="$(panel 8 up enter)"; f="$(echo "$o" | last_frame)"; echo "$f" | grep -q "imagen de arquitectura arm64" && ! echo "$f" | grep -q "Elige la instancia"'
 check "an instance that uses another image name for the service is listed with the reason" '
   echo "S0_IMAGE=otro/auth" >> instances/ix-lima/.env.instance
@@ -266,7 +283,7 @@ printf '2026-11-24 10:00:00 +0000 UTC' > "$FIX/load_date"
 check "l opens the dialog for the path, and says when the file is not there" 'o="$(panel 8 l n o p e)"; f="$(echo "$o" | last_frame)"; echo "$f" | grep -q "cargar imágenes" && echo "$f" | grep -q "ese archivo no existe"'
 check "Enter on a path that does not exist keeps the dialog and says so" 'panel 8 l n o p e enter | last_frame | grep -q "ese archivo no existe" && panel 8 l n o p e enter | last_frame | grep -q "cargar imágenes"'
 check "Enter on an empty path asks for it" 'panel 8 l enter | last_frame | grep -q "escribe la ruta del archivo"'
-check "Esc closes the dialog without doing anything" '[ ! -s "$FIX/calls.log" ] || : > "$FIX/calls.log"; panel 8 l esc | last_frame | grep -q "\[8 Imágenes\]"; ! grep -q "^load" "$FIX/calls.log"'
+check "Esc closes the dialog without doing anything" ': > "$FIX/calls.log"; o="$(panel 8 l esc | last_frame)"; echo "$o" | grep -q "\[8 Imágenes\]" && ! echo "$o" | grep -q "cargar imágenes" && ! grep -q "^load" "$FIX/calls.log"'
 check "a path that exists is accepted (the field says so)" 'keys=(8 l); for ((i = 0; i < ${#FIX}; i++)); do keys+=("${FIX:$i:1}"); done; for c in / a p p . t a r; do keys+=("$c"); done; panel "${keys[@]}" | last_frame | grep -q "archivo .*●\|archivo .*\*"'
 keys_for() { local p="$1" i c; keys=(8 l); for ((i = 0; i < ${#p}; i++)); do c="${p:$i:1}"; case "$c" in " ") c=space ;; esac; keys+=("$c"); done; }
 check "Enter on an existing file runs docker load in the background, and when it ends the new version is in the view" '
@@ -276,9 +293,9 @@ check "Enter on an existing file runs docker load in the background, and when it
 check "the loaded version, the newest of its image, is the star now" '
   keys_for "$FIX/app.tar"; o="$(panel "${keys[@]}" enter wait)"
   echo "$o" | last_frame | grep -q "2.15.0 ★"'
-check "while it loads the view says which file (and the panel is not blocked: the keys of the view still work)" '
-  keys_for "$FIX/app.tar"; o="$(panel "${keys[@]}" enter down)"
-  echo "$o" | grep -q "cargando app.tar" || echo "$o" | grep -q "Lanzado\|load $FIX/app.tar"'
+check "while it loads, the last frame says which file, that the panel keeps working and that x cancels" '
+  keys_for "$FIX/app.tar"; o="$(panel "${keys[@]}" enter down | last_frame)"
+  echo "$o" | grep -q "cargando app.tar… (el panel sigue funcionando; x cancela)" && echo "$o" | grep -q "x cancelar"'
 
 section "9. the scene with a long list: window and cost"
 for ((i = 1; i <= 30; i++)); do printf 'auth-backend:1.%d.0|sha256:z%02d00000000000|amd64\n' "$i" "$i" >> "$FIX/images.txt"; printf 'auth-backend:1.%d.0|2026-10-%02d 12:00:00 +0000 UTC\n' "$i" "$i" >> "$FIX/image_dates.txt"; done
@@ -288,6 +305,11 @@ check "with 30 more versions the list scrolls: the cursor stays in view and the 
 images_fixture "$FIX"
 
 section "10. no real Docker"
-check "the simulated docker is the one found first, and it never was asked for anything but what the view needs" '[ "$(PATH="$FIX/bin:$PATH" command -v docker)" = "$FIX/bin/docker" ]'
+check "the simulated docker is the one found first" '[ "$(PATH="$FIX/bin:$PATH" command -v docker)" = "$FIX/bin/docker" ]'
+touch "$FIX/log_all"; rm -f "$FIX/all_calls.log"
+panel 8 R R > /dev/null
+check "reading the catalog asks Docker only what it needs (the images and who answers), and changes nothing: no run, load, pull, remove, stop or compose command" '
+  grep -q "^image ls" "$FIX/all_calls.log" && ! grep -Eq "^(run|load|pull|push|rm|rmi|stop|kill|restart|tag) |^image (rm|pull|prune|tag)|^compose (up|down|stop|rm|restart|pull|run)" "$FIX/all_calls.log"'
+rm -f "$FIX/log_all"
 
 finish

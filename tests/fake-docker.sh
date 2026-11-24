@@ -4,7 +4,8 @@
 #   info, network inspect, ps, image ls/inspect, load, run (prueba de Mongo) y compose (version, config, up/pull/...).
 # Estado simulado en $FIX: images.txt (ref|id|arquitectura), calls.log (lo que se intentó ejecutar),
 # y los archivos compose_invalid y mongo_fail que fuerzan errores. Opcionales: image_dates.txt (referencia|fecha de creación), server_arch (la
-# arquitectura del servidor), daemon_down (el demonio no responde) y load_result/load_date/load_arch (lo que `docker load` imprime y carga).
+# arquitectura del servidor), daemon_down (el demonio no responde), log_all (anota cada llamada en all_calls.log) y load_result/load_date/load_arch (lo que `docker load` imprime y carga).
+[ ! -f "$FIX/log_all" ] || echo "$*" >> "$FIX/all_calls.log"   # $FIX/log_all (optional): every call is noted in all_calls.log (what was asked of Docker)
 case "$1" in
   info)
     [ ! -f "$FIX/daemon_down" ] || exit 1   # $FIX/daemon_down (optional): the daemon does not answer
