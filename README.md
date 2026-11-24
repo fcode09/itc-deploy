@@ -75,7 +75,7 @@ de comandos; el menú y el asistente solo preguntan por ti y te muestran el coma
 ./deltactl runs resolve <id>      # marca como revisada una ejecución interrumpida (hasta entonces no se ejecuta nada nuevo)
 ./deltactl runs prune --dry-run   # qué borraría de las ejecuciones viejas (30 días / 1 GB); sin --dry-run las borra
 ./deltactl check colorado         # comprueba todo lo que deploy exigiría, sin levantar nada (--mongo prueba las bases)
-./deltactl doctor                 # diagnóstico del servidor: Docker, disco, memoria, Mongo, permisos
+./deltactl doctor                 # diagnóstico del servidor: Docker, disco, memoria, Mongo, permisos y lo recomendado (nginx/Caddy, certbot...); --json para scripts y el panel
 ./deltactl new --wizard           # asistente: pregunta lo esencial y lista lo que falta completar
 ./deltactl completion bash        # autocompletado con Tab (source <(./deltactl completion bash))
 ```

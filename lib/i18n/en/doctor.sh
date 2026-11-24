@@ -2,13 +2,14 @@
 # shellcheck disable=SC2034  # MSG_en is read by t through a nameref
 # doctor messages: English. Sourced by lib/i18n/i18n.sh; not executed.
 
-MSG_en["doctor.no_args"]="doctor takes no arguments (see ./deltactl help doctor)"
+MSG_en["doctor.no_args"]="doctor takes no arguments, except --json (see ./deltactl help doctor)"
 MSG_en["doctor.title"]="Server diagnosis"
 MSG_en["doctor.sec.docker"]="Docker"
 MSG_en["doctor.sec.resources"]="Resources"
 MSG_en["doctor.sec.mongo"]="MongoDB"
 MSG_en["doctor.sec.instances"]="Instances"
 MSG_en["doctor.sec.tools"]="Tools"
+MSG_en["doctor.sec.recommended"]="Recommended"
 MSG_en["doctor.docker_missing"]="Docker is not installed or not in the PATH"
 MSG_en["doctor.docker_missing_hint"]="Install it: https://docs.docker.com/engine/install/"
 MSG_en["doctor.daemon_down"]="Cannot talk to the Docker daemon"

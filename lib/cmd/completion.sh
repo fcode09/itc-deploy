@@ -18,6 +18,7 @@ for _s in "${KNOWN_SERVICES[@]}"; do _new_flags+=" --$_s-tag"; done
 COMPLETION_FLAGS=(
   "new:$_new_flags --ip --generate-secrets"
   "init:--yes"
+  "doctor:--json"
   "rollback:--yes"
   "down:--yes"
   "status:--json --stats --strict --watch"

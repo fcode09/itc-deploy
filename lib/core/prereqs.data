@@ -1,0 +1,21 @@
+# Server prerequisites: what the server needs so deltactl can run, ONE line each. Read by lib/core/prereqs.sh.
+# Fields separated by "|": id | level | section | help link | command for apt | for dnf | for pacman | for apk   ("-" = none)
+#   level:   required (without it deltactl cannot work) or recommended (nothing breaks, but production is better with it)
+#   section: where ./deltactl doctor lists it: docker, resources, mongo, tools or recommended
+# These are commands to READ and run by hand (deltactl never installs anything). What each one is for is the message
+# prereq.why.<id> and its name prereq.name.<id> (lib/i18n); how it is checked is prereq_check_<id> (lib/core/prereqs.sh).
+docker|required|docker|https://docs.docker.com/engine/install/|sudo apt-get update && sudo apt-get install -y docker.io docker-compose-v2|sudo dnf config-manager addrepo --from-repofile=https://download.docker.com/linux/fedora/docker-ce.repo && sudo dnf install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin|sudo pacman -S --needed docker docker-compose|sudo apk add docker docker-cli-compose
+daemon|required|docker|https://docs.docker.com/engine/install/linux-postinstall/|sudo systemctl enable --now docker && sudo usermod -aG docker "$USER"|sudo systemctl enable --now docker && sudo usermod -aG docker "$USER"|sudo systemctl enable --now docker && sudo usermod -aG docker "$USER"|sudo rc-update add docker default && sudo service docker start && sudo addgroup "$USER" docker
+compose|required|docker|https://docs.docker.com/compose/install/linux/|sudo apt-get install -y docker-compose-v2|sudo dnf install -y docker-compose-plugin|sudo pacman -S --needed docker-compose|sudo apk add docker-cli-compose
+disk|required|resources|-|-|-|-|-
+ram|required|resources|-|-|-|-|-
+mongo|required|mongo|https://www.mongodb.com/docs/manual/administration/install-on-linux/|-|-|-|-
+nofile|recommended|mongo|https://www.mongodb.com/docs/manual/reference/ulimit/|-|-|-|-
+ss|required|tools|-|sudo apt-get install -y iproute2|sudo dnf install -y iproute|sudo pacman -S --needed iproute2|sudo apk add iproute2
+openssl|required|tools|-|sudo apt-get install -y openssl|sudo dnf install -y openssl|sudo pacman -S --needed openssl|sudo apk add openssl
+gunzip|required|tools|-|sudo apt-get install -y gzip|sudo dnf install -y gzip|sudo pacman -S --needed gzip|sudo apk add gzip
+proxy|recommended|recommended|https://nginx.org/en/docs/beginners_guide.html|sudo apt-get install -y nginx|sudo dnf install -y nginx|sudo pacman -S --needed nginx|sudo apk add nginx
+certbot|recommended|recommended|https://certbot.eff.org/instructions|sudo apt-get install -y certbot python3-certbot-nginx|sudo dnf install -y certbot python3-certbot-nginx|sudo pacman -S --needed certbot certbot-nginx|sudo apk add certbot certbot-nginx
+timesync|recommended|recommended|-|sudo timedatectl set-ntp true|sudo timedatectl set-ntp true|sudo timedatectl set-ntp true|sudo apk add chrony && sudo rc-update add chronyd default && sudo service chronyd start
+firewall|recommended|recommended|-|sudo apt-get install -y ufw|sudo dnf install -y firewalld|sudo pacman -S --needed ufw|sudo apk add awall
+curl|recommended|recommended|-|sudo apt-get install -y curl|sudo dnf install -y curl|sudo pacman -S --needed curl|sudo apk add curl
