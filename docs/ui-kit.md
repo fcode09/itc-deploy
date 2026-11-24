@@ -136,7 +136,8 @@ Pruebas: `tests/test-envview.sh`; escenas de `tests/tools/env_scenes.sh`, instan
 La vista **Servidor** del panel (`lib/screens/server.sh`) es la primera pantalla hecha con el kit: `kit_box` (chips, estado y pie), `kit_graph` y
 `kit_graph_mirror`, `kit_meter`, `kit_leader`, `kit_table`, `kit_state_icon` y `kit_overlay` (la caja de los núcleos flotando sobre la gráfica de CPU).
 Sus escenas con datos fijos están en `tests/tools/server_scenes.sh`. La vista **Imágenes** usa el selector de versión y la vista **Variables** el editor de
-variables.
+variables. El **espacio de trabajo** de la vista Instancias (`lib/screens/ws/resumen.sh`) usa `kit_box` con chips, estado y pie de acciones, una tarjeta por servicio
+hecha con `kit_box` y `kit_metric_row`, y `kit_tabs` para su tira de pestañas (ver «El espacio de trabajo de la instancia» en `docs/panel-pendiente.md`).
 
 ## Galería y pruebas
 
