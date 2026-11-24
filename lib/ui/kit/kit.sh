@@ -27,3 +27,5 @@ source "$ROOT/lib/ui/kit/checklist.sh"
 source "$ROOT/lib/ui/kit/toast.sh"
 # shellcheck source=lib/ui/kit/modal.sh
 source "$ROOT/lib/ui/kit/modal.sh"
+# shellcheck source=lib/ui/kit/version_picker.sh
+source "$ROOT/lib/ui/kit/version_picker.sh"
