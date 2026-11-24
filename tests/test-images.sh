@@ -282,6 +282,24 @@ check "a tag that is a version is kept as it is" 'img2 new im-fix --s0-tag v1.2.
 images_are "auth-backend:1.0|sha256:f0|amd64" "otro/auth:5.0|sha256:f1|amd64"
 dates "otro/auth:5.0|2026-11-24 00:00:00 +0000 UTC" "auth-backend:1.0|2026-11-01 00:00:00 +0000 UTC"
 check "with another image name it looks among the versions of that one" 'img2 new im-otro --s0-image otro/auth --s0-tag latest > /dev/null; grep -q "^S0_TAG=5.0$" instances/im-otro/.env.instance'
+dates \
+  "auth-backend:v1.2.10|2026-11-20 10:00:00 +0000 UTC" "auth-backend:v1.2.9|2026-11-22 08:30:00 +0000 UTC" \
+  "auth-backend:latest|2026-11-23 09:00:00 +0000 UTC" "auth-backend:2.0.0|2026-11-23 10:00:00 -0500 EST" \
+  "gueo-back-end:3.1|2026-10-01 00:00:00 +0000 UTC"
+images_are "auth-backend:v1.2.10|sha256:a10aaaaaaaaaaaaaaaa|amd64" "auth-backend:v1.2.9|sha256:a09aaaaaaaaaaaaaaaa|amd64" "auth-backend:latest|sha256:a99aaaaaaaaaaaaaaaa|amd64"
+o="$(img2 new im-svc --services s0 --s0-tag latest --s1-tag latest)"; rc=$?
+check "only the services of the instance are resolved: a service that is not active (and has no version loaded) does not stop it" '[ "$rc" -eq 0 ] && grep -q "^S0_TAG=v1.2.9$" instances/im-svc/.env.instance && ! echo "$o" | grep -q "s1: using"'
+check "and what it does not resolve keeps what was asked, so nothing is made up" 'grep -q "^S1_TAG=latest$" instances/im-svc/.env.instance'
+rm -rf instances/im-svc
+check "an invalid service in --services is reported as before, without asking Docker for anything" 'o="$(img2 new im-bad --services s9 --s0-tag latest)"; rc=$?; [ "$rc" -ne 0 ] && [ ! -e instances/im-bad ] && echo "$o" | grep -q "s9"'
+touch "$F2/daemon_down"
+o="$(img2 new im-down --s0-tag latest)"; rc=$?
+check "when Docker does not answer, new still creates the instance (it never needed Docker) and says the version could not be looked up" '[ "$rc" -eq 0 ] && [ -d instances/im-down ] && echo "$o" | grep -q "s0: Docker does not answer"'
+check "...and the tag stays latest, to be set before deploying" 'grep -q "^S0_TAG=latest$" instances/im-down/.env.instance && echo "$o" | grep -q "S0_TAG"'
+check "a tag that is a version needs no Docker at all" 'o="$(img2 new im-down2 --s0-tag 1.4.0)"; rc=$?; [ "$rc" -eq 0 ] && ! echo "$o" | grep -q "Docker does not answer" && grep -q "^S0_TAG=1.4.0$" instances/im-down2/.env.instance'
+check "the same in Spanish" 'LIB2_LANG=es img2 new im-down3 --s0-tag latest | grep -q "s0: Docker no responde"'
+rm -f "$F2/daemon_down"
+rm -rf instances/im-down instances/im-down2 instances/im-down3
 images_are "auth-backend:latest|sha256:g1|amd64"
 check "no version to choose: it fails, says why and creates nothing" 'o="$(img2 new im-nada --s0-tag latest)"; rc=$?; [ "$rc" -ne 0 ] && [ ! -e instances/im-nada ] && echo "$o" | grep -q "no version to choose for s0 (auth-backend)"'
 images_are "auth-backend:2.0.0|sha256:g2|arm64"
