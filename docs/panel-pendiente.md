@@ -164,13 +164,14 @@ lector es de orden de cientos de microsegundos y ninguno lanza un proceso.
 
 El panel se compone de **pantallas** con un contrato común (`lib/screens/registry.sh` lo documenta función por función). Hay dos clases:
 
-- **Vistas** (las pestañas, `1` a `6` o Tab): `instances`, `resources`, `output`, `runs`, `procs`, `console`. Una es la actual (`DASH_VIEW`).
-- **Modos** (toman el teclado sobre una vista): `menu`, `confirm`, `name`, `cmd`, `filter`, `find`, `wizard`, `palette`, `help`, `options`.
+- **Vistas** (las pestañas, `1` a `7` o Tab): `instances`, `resources`, `output`, `runs`, `procs`, `console`, `server`. Una es la actual (`DASH_VIEW`).
+- **Modos** (toman el teclado sobre una vista): `menu`, `confirm`, `name`, `cmd`, `filter`, `find`, `wizard`, `palette`, `help`, `options`, `srvask`.
   Uno es el actual (`DASH_MODE`); `normal` es ninguno.
 
 El resto del panel ya no nombra ninguna: la línea de pestañas, los dígitos, Tab, Esc, la barra de teclas, el cuerpo, la firma del fotograma,
 el trabajo periódico y el ratón recorren el registro y llaman a las funciones `scr_<id>_*` (`render`, `key`, `keys`, `texts`, `sig`,
-`enter`, `tab`, `back`, `tick`, `poll`, `click`).
+`enter`, `tab`, `back`, `tick`, `poll`, `click`, `bang`: la tecla `!` mientras la vista es la actual; si devuelve 0 se queda con la tecla, si no se
+abre la línea de órdenes de siempre).
 
 **Para añadir una pantalla**: crear `lib/screens/<id>.sh` con al menos `scr_<id>_render <ancho> <alto>`, `scr_<id>_key <tecla>` y
 `scr_<id>_keys <ancho>`, y añadir **una línea** al final de `lib/screens/registry.sh`
@@ -181,6 +182,30 @@ un valor que falte es una pantalla desactualizada. Los textos que cambian con el
 Comprobación de refactores: `tests/tools/panel_scenarios.sh <carpeta>` ejecuta 30 secuencias de teclas (vistas, diálogos, asistente, opciones, ayuda,
 paleta, consola, ratón) a cinco tamaños y guarda **todos** los fotogramas; dos árboles de dos versiones del código se comparan con `diff -r`.
 `tests/tools/panel_frames.sh` hace lo mismo con la última imagen de cada vista.
+
+## La vista Servidor
+
+`lib/screens/server.sh` (vista `server`, 7) y `lib/screens/srvask.sh` (modo `srvask`, la pregunta). Se construyen con el kit (`kit_box` con chips y
+pie, `kit_graph` y `kit_graph_mirror`, `kit_meter`, `kit_leader`, `kit_table`, `kit_state_icon`, `kit_overlay` para la caja de los núcleos sobre la
+gráfica de CPU) y con el motor de reparto (`lay_split`: las filas y las columnas se recomponen a 80, 120 y 160 columnas; lo que no cabe se quita, la
+segunda fila primero).
+
+- **Requisitos**: `prereq_run_all` corre en un trabajo en segundo plano (`dash_async prereq`, como el estado de Docker y los logs: una comprobación
+  puede preguntar a Docker o abrir un TCP) y el resultado vuelve como líneas `declare -p` de las variables `PR_*` (solo esas se cargan). En el modo
+  de prueba (`DELTACTL_TUI_KEYS`) es síncrono. Se repite cada 30 s mientras la vista está a la vista y con `R`.
+- **Cifras**: `MT_HOST_DETAIL=1` solo mientras la vista es la actual (`scr_server_tick`); elegir la vista pide la primera muestra al instante.
+- **Copiar y ejecutar**: `dash_srv_copy` (`wl-copy`, `xclip`, `xsel`, `pbcopy`, OSC 52) y `dash_srv_terminal`, que solo llama el modo `srvask` tras un
+  `y`. Nada instala por su cuenta. Variables de prueba: `DELTACTL_CLIP` (un comando que lee el texto por su entrada, en vez de tocar el portapapeles) y
+  `DELTACTL_PR_SHELL` (el intérprete del comando, en vez de `bash`: los tests ponen un script que solo anota qué se le pidió).
+- **Pruebas**: `tests/test-server.sh`; las escenas con datos fijos (`tests/tools/server_scenes.sh`: ok, missing, open, zoom, na, loading) son las
+  instantáneas de `tests/golden/server/` (`DELTACTL_GOLDEN=record` las regraba). `tests/tools/sim_env.sh` tiene `sim_host`, un servidor simulado
+  (CPU, red, discos y sensor en un `/proc` y un `/sys` falsos) con `sim_host_tick` para moverlo.
+- **Capturas**: `tests/tools/pty_shot.py` (un PTY real; `DELTACTL_SHOT_ALL=1` copia todas las instancias de un servidor simulado) y
+  `tests/tools/shot_png.py` (Pillow) dibujan el resultado como PNG; también acepta un fotograma con colores de una escena
+  (`DELTACTL_COLOR=always COLORTERM=truecolor`) para ver el diseño sin esperar a que las gráficas se llenen.
+
+Límites: con siete vistas, a 80 columnas la línea de pestañas deja solo el número de las que no están activas; hasta 120 columnas la vista no
+dibuja la caja de contenedores (la vista Recursos sigue siendo la tabla completa).
 
 ## Cómo probar
 

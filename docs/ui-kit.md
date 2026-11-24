@@ -89,6 +89,12 @@ Todos son puros (datos → líneas) y encajan dentro de `kit_box`; ninguno lanza
 - Las filas seleccionadas de tabla y lista empiezan por `TUI_SEL`, igual que el cuerpo de `kit_box`: se pintan con los colores de selección del tema.
 - Columnas de tabla: `titulo|ancho|alineación|banderas` (`*` reparte el resto, `num` ordena como número, `spark` dibuja el historial como gráfica de una fila).
 
+## Quién lo usa
+
+La vista **Servidor** del panel (`lib/screens/server.sh`) es la primera pantalla hecha con el kit: `kit_box` (chips, estado y pie), `kit_graph` y
+`kit_graph_mirror`, `kit_meter`, `kit_leader`, `kit_table`, `kit_state_icon` y `kit_overlay` (la caja de los núcleos flotando sobre la gráfica de CPU).
+Sus escenas con datos fijos están en `tests/tools/server_scenes.sh`.
+
 ## Galería y pruebas
 
 - `tests/tools/kit_scenes.sh` define las escenas (datos fijos); `tests/test-kit.sh` y `tests/test-graphs.sh` comparan cada una a 80, 120 y 160 columnas con
