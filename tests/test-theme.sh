@@ -77,4 +77,155 @@ check "garbage in the history counts as zero, never as an error" '[ "$(th "$GA" 
 check "the cached chart equals a full redraw at every step (narrower than, as wide as and wider than the history)" '[ "$(th "$GA" "bad=0; for w in 4 6 9; do a=(); for i in \$(seq 1 40); do a+=(\$(((i * 37) % 50))); [ \${#a[@]} -le 6 ] || a=(\"\${a[@]:1}\"); h=\"\${a[*]}\"; gfx_area_cached c\$w \"\$h\" 50 \$w 2; x=\"\${GFX_LINES[*]}\"; gfx_area \"\$h\" 50 \$w 2; [ \"\$x\" = \"\${GFX_LINES[*]}\" ] || bad=\$((bad + 1)); done; done; echo \$bad")" = "0" ]'
 check "the cached chart redraws fully when the maximum changes" '[ "$(th "$GA" "gfx_area_cached z \"5 5 5\" 10 3 1; gfx_area_cached z \"5 5 5 5\" 20 3 1; a=\"\${GFX_LINES[*]}\"; gfx_area \"5 5 5 5\" 20 3 1; [ \"\$a\" = \"\${GFX_LINES[*]}\" ] && echo same")" = "same" ]'
 
+section "8. design tokens: gradients per magnitude, extra colours, symbols (lib/ui/tokens.sh)"
+# ths <env> : runs the script read from stdin with the theme layer loaded (heredocs avoid the nested quoting of th)
+ths() {
+  local f
+  f="$(mktemp -p "$FIX")"
+  { echo 'source lib/bootstrap.sh; source lib/ui/tui.sh'; cat; } > "$f"
+  ROOT="$PWD" DELTACTL_UI=rich DELTACTL_CONFIG="$FIX/none" HOME="$FIX" XDG_CONFIG_HOME="$FIX/xdg" env $1 bash "$f"
+}
+printf 'cpu_start=#000000\ncpu_end=#ff0000\nmem_start=#0000ff\nmem_mid=#00ff00\nmem_end=#ffffff\ndisk_start=#123456\nnet_up_start=#ffffff\nhealth_start=#zzzzzz\nhealth_end=#112233\ntrack=#0a0b0c\nhotkey=#fedcba\nramp=#101010,#f0f0f0\n' > "$FIX/xdg/deltactl/themes/grad.theme"
+
+out="$(ths "$TC" <<'EOS'
+theme_apply matrix
+th_grad_use cpu; th_grad_use ramp
+echo "${#TH_GR_cpu[@]} ${#TH_GR_ramp[@]}"
+EOS
+)"
+check "every gradient has 101 steps (0..100 percent)" '[ "$out" = "101 101" ]'
+
+out="$(ths "$TC" <<'EOS'
+theme_apply matrix
+th_grad cpu 0; a="$TH_C"; th_color "#0f9d58" fg; [ "$a" = "$TH_C" ] && echo first
+th_grad cpu 100; a="$TH_C"; th_color "#ff5a36" fg; [ "$a" = "$TH_C" ] && echo last
+EOS
+)"
+check "without its own colours a magnitude follows the theme ramp: both ends are the first and last stop (existing themes look the same)" '[ "$out" = "$(printf "first\nlast")" ]'
+
+out="$(ths "$TC" <<'EOS'
+theme_apply matrix
+th_grad ramp 25; a="$TH_C"; th_color "#39ff7a" fg; b="$TH_C"; th_grad ramp 50; c="$TH_C"; th_color "#b5f23d" fg; [ "$a" = "$b" ] && [ "$c" = "$TH_C" ] && echo stops
+EOS
+)"
+check "the ramp gradient passes through each stop of a five-stop ramp (25% and 50%)" '[ "$out" = "stops" ]'
+
+out="$(ths "$TC" <<'EOS'
+theme_apply grad
+th_grad cpu 0; printf '%q\n' "$TH_C"
+th_grad cpu 50; printf '%q\n' "$TH_C"
+th_grad cpu 100; printf '%q\n' "$TH_C"
+th_grad cpu 25; printf '%q\n' "$TH_C"
+EOS
+)"
+check "start and end without mid: the middle is the mix of both (0, 50, 100 and 25 percent)" '[ "$out" = "$(printf "%s\n%s\n%s\n%s" "$'"'"'\E[38;2;0;0;0m'"'"'" "$'"'"'\E[38;2;127;0;0m'"'"'" "$'"'"'\E[38;2;255;0;0m'"'"'" "$'"'"'\E[38;2;63;0;0m'"'"'")" ]'
+
+out="$(ths "$TC" <<'EOS'
+theme_apply grad
+th_grad mem 0; printf '%q\n' "$TH_C"
+th_grad mem 50; printf '%q\n' "$TH_C"
+th_grad mem 100; printf '%q\n' "$TH_C"
+EOS
+)"
+check "start, mid and end: the three are exact" '[ "$out" = "$(printf "%s\n%s\n%s" "$'"'"'\E[38;2;0;0;255m'"'"'" "$'"'"'\E[38;2;0;255;0m'"'"'" "$'"'"'\E[38;2;255;255;255m'"'"'")" ]'
+
+out="$(ths "$TC" <<'EOS'
+theme_apply grad
+th_grad disk 100; a="$TH_C"; th_grad ramp 100; [ "$a" = "$TH_C" ] && echo ramp
+th_grad health 0; a="$TH_C"; th_grad ramp 0; [ "$a" = "$TH_C" ] && echo ramp2
+EOS
+)"
+check "a start without an end (or with an invalid colour) is ignored: the magnitude uses the ramp" '[ "$out" = "$(printf "ramp\nramp2")" ]'
+
+out="$(ths "$TC" <<'EOS'
+theme_apply grad
+th_grad cpu 100; a="$TH_C"; th_grad mem 100; b="$TH_C"; [ "$a" != "$b" ] && echo different
+EOS
+)"
+check "each magnitude has its own gradient" '[ "$out" = "different" ]'
+
+out="$(ths "$TC" <<'EOS'
+theme_apply grad
+th_grad cpu -5; a="$TH_C"; th_grad cpu 0; [ "$a" = "$TH_C" ] && echo low
+th_grad cpu 250; a="$TH_C"; th_grad cpu 100; [ "$a" = "$TH_C" ] && echo high
+th_grad cpu abc; a="$TH_C"; th_grad cpu 0; [ "$a" = "$TH_C" ] && echo nan
+EOS
+)"
+check "a percentage out of range or not a number is clamped, never an error" '[ "$out" = "$(printf "low\nhigh\nnan")" ]'
+
+out="$(ths "$TC" <<'EOS'
+theme_apply matrix; th_grad cpu 100; a="$TH_C"
+theme_apply nord; th_grad cpu 100; [ "$a" != "$TH_C" ] && echo rebuilt
+EOS
+)"
+check "changing the theme rebuilds the gradients" '[ "$out" = "rebuilt" ]'
+
+out="$(ths "$C256" <<'EOS'
+theme_apply grad
+th_grad cpu 100; a="$TH_C"; th_color "#ff0000" fg; [ "$a" = "$TH_C" ] && echo same256
+EOS
+)"
+check "256 colours: a step is the reduced colour (same as th_color)" '[ "$out" = "same256" ]'
+
+out="$(ths "$C16" <<'EOS'
+theme_apply grad
+th_grad cpu 100; a="$TH_C"; th_color "#ff0000" fg; [ "$a" = "$TH_C" ] && echo same16
+EOS
+)"
+check "16 colours: a step is the reduced colour (same as th_color)" '[ "$out" = "same16" ]'
+
+out="$(ths "$NC" <<'EOS'
+theme_apply matrix
+th_grad cpu 50; echo "[$TH_C] ${#TH_GR_cpu[@]} [${TH[track]}] [${TH[hotkey]}]"
+EOS
+)"
+check "without colour the gradients and the extra tokens are empty" '[ "$out" = "[] 0 [] []" ]'
+
+out="$(ths "$TC" <<'EOS'
+theme_apply mono
+th_grad cpu 50; echo "[$TH_C] ${#TH_GR_cpu[@]}"
+EOS
+)"
+check "the mono theme has no gradient (graphs read by height)" '[ "$out" = "[] 0" ]'
+
+out="$(ths "$TC" <<'EOS'
+theme_apply matrix
+[ "${TH[track]}" = "${TH[faint]}" ] && echo track-default
+[ "${TH[hotkey]}" = "${TH[accent]}" ] && echo hotkey-default
+theme_apply grad
+th_color "#0a0b0c" fg; [ "${TH[track]}" = "$TH_C" ] && echo track-own
+th_color "#fedcba" fg; [ "${TH[hotkey]}" = "$TH_C" ] && echo hotkey-own
+EOS
+)"
+check "track defaults to faint and hotkey to accent; a theme can set both" '[ "$out" = "$(printf "track-default\nhotkey-default\ntrack-own\nhotkey-own")" ]'
+
+out="$(ths "$TC" <<'EOS'
+echo "$UI_S_STAR $UI_S_PEND $UI_S_UP $UI_S_SECRET ${UI_SUP[1]}${UI_SUP[9]} $UI_S_CHIP_L$UI_S_CHIP_R $UI_S_FCHIP_L$UI_S_FCHIP_R"
+EOS
+)"
+check "symbols in a UTF-8 terminal: star, pending, update, secret, superscripts, chip delimiters" '[ "$out" = "★ ○ ↑ ⚿ ¹⁹ ┐┌ ┘└" ]'
+
+out="$(ths "$TC DELTACTL_ASCII=1" <<'EOS'
+echo "$UI_S_STAR $UI_S_PEND $UI_S_UP $UI_S_SECRET ${UI_SUP[1]}${UI_SUP[9]} $UI_S_CHIP_L$UI_S_CHIP_R $UI_S_FCHIP_L$UI_S_FCHIP_R"
+EOS
+)"
+check "symbols with ASCII output have an ASCII fallback each" '[ "$out" = "* . ^ # 19 [] []" ]'
+
+out="$(ths "$TC" <<'EOS'
+DELTACTL_ASCII=1; ui_init; echo "$UI_S_STAR$UI_S_CHIP_L"
+unset DELTACTL_ASCII; ui_init; echo "$UI_S_STAR$UI_S_CHIP_L"
+EOS
+)"
+check "ui_init refreshes the redesign symbols too (a language or terminal change takes effect)" '[ "$out" = "$(printf "*[\n★┐")" ]'
+
+out="$(ths "$TC" <<'EOS'
+t0="${EPOCHREALTIME/./}"
+theme_apply cyber
+for m in cpu mem disk net_down net_up health ramp; do th_grad_use "$m"; done
+t1="${EPOCHREALTIME/./}"
+echo $(((t1 - t0) / 1000))
+EOS
+)"
+check "building the seven gradients of a theme takes under 60 ms (it happens once per theme)" '[ "$out" -lt 60 ]'
+
 finish

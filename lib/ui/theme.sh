@@ -6,6 +6,8 @@
 # A theme is a list of `key=value` lines (data, never sourced or evaluated):
 #   bg fg dim faint border border_focus title accent ok warn err info key sel_bg sel_fg badge_bg badge_fg = #rrggbb  (bg may be `none`)
 #   ramp = #rrggbb,#rrggbb,...   gradient from low to high (bars and graphs)
+#   track hotkey = #rrggbb       the empty part of a meter; the letter of a shortcut (see lib/ui/tokens.sh)
+#   <magnitude>_start|_mid|_end = #rrggbb   gradient of cpu, mem, disk, net_down, net_up or health (see lib/ui/tokens.sh)
 #   border = rounded | square | double | heavy
 # The colours are written once as true colour (24-bit), then reduced to 256 or 16 colours when the terminal cannot show them.
 # Built-ins: matrix (default), cyber, amber, nord, dracula, mono. Own themes: ~/.config/deltactl/themes/<name>.theme
@@ -185,7 +187,9 @@ th_parse() { # text
     k="${k// /}"; v="${v// /}"
     [[ "$k" =~ ^[a-z_0-9]+$ ]] || continue
     case "$k" in
-      bg | fg | dim | faint | border_focus | title | accent | ok | warn | err | info | key | sel_bg | sel_fg | badge_bg | badge_fg)
+      bg | fg | dim | faint | border_focus | title | accent | ok | warn | err | info | key | sel_bg | sel_fg | badge_bg | badge_fg \
+        | track | hotkey | cpu_start | cpu_mid | cpu_end | mem_start | mem_mid | mem_end | disk_start | disk_mid | disk_end \
+        | net_down_start | net_down_mid | net_down_end | net_up_start | net_up_mid | net_up_end | health_start | health_mid | health_end)
         if [[ "$v" =~ ^#[0-9a-fA-F]{6}$ ]]; then TH_HEX[$k]="$v"; elif [ "$k" = "bg" ] && [ "$v" = "none" ]; then TH_HEX[bg]=""; fi ;;
       border)
         case "$v" in
@@ -250,6 +254,7 @@ theme_apply() { # name
   if [ "$TH_MODE" = "none" ]; then
     # No colour at all (NO_COLOR, pipes, dumb terminals): the panel falls back to the plain palette it always had.
     TH_RESET="$C_OFF"; TH_RAMP=(); TH_RAMP_N=0
+    th_tokens_build
     return 0
   fi
   if [ -n "${TH_HEX[bg]:-}" ]; then th_color "${TH_HEX[bg]}" bg; bgseq="$TH_C"; fi
@@ -283,6 +288,7 @@ theme_apply() { # name
   # The existing panel code colours with C_*: remap them so every part of it follows the theme at once.
   C_RED="${TH[err]}" C_GRN="${TH[ok]}" C_YEL="${TH[warn]}" C_BLU="${TH[info]}" C_MAG="${TH[key]}"
   C_CYN="${TH[accent]}" C_GRY="${TH[dim]}" C_DIM="${TH[faint]}" C_OFF="$TH_RESET"
+  th_tokens_build
   return 0
 }
 

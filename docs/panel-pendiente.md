@@ -44,7 +44,9 @@ imágenes) → `perf(panel)` (segundo plano, dibujo rápido, caché del cuerpo).
 
 - **Temas** (`lib/ui/theme.sh`): `matrix` (por defecto), `cyber`, `amber`, `nord`, `dracula`, `mono`. Tecla `T` para cambiar (se guarda
   como `UI_THEME` en `~/.config/deltactl/config`), o `DELTACTL_THEME=<nombre>`. Temas propios: `~/.config/deltactl/themes/<nombre>.theme`
-  (líneas `clave=#rrggbb`; son datos, nunca se ejecutan). Color real (24 bits) si el terminal lo soporta (`COLORTERM`, `WT_SESSION`,
+  (líneas `clave=#rrggbb`; son datos, nunca se ejecutan). Claves opcionales del rediseño: `track` (la parte vacía de un medidor), `hotkey` (la letra de un atajo) y un degradado por magnitud
+  (`cpu`, `mem`, `disk`, `net_down`, `net_up`, `health`) con `<magnitud>_start`, `_mid` y `_end`; sin ellas una magnitud usa `ramp`, así que los temas
+  existentes se ven igual. Los degradados tienen 101 pasos y se construyen la primera vez que se usan (`lib/ui/tokens.sh`). Color real (24 bits) si el terminal lo soporta (`COLORTERM`, `WT_SESSION`,
   `DELTACTL_TRUECOLOR=1`), si no 256 o 16 colores; sin color con `NO_COLOR`. Solo afecta al panel: la CLI y las golden no cambian.
 - **Diseño ancho** (≥120 columnas y ≥28 filas): instancias + servidor | tabla de servicios, gráficos de área (autoescala, color según el valor
   real), siguientes pasos (solo si hay) y logs en vivo | eventos (≥150 columnas), con la salida del último comando debajo. Por debajo

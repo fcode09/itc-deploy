@@ -14,6 +14,8 @@ source "$ROOT/lib/i18n/i18n.sh"
 source "$ROOT/lib/ui/ui.sh"
 # shellcheck source=lib/ui/theme.sh
 source "$ROOT/lib/ui/theme.sh"
+# shellcheck source=lib/ui/tokens.sh
+source "$ROOT/lib/ui/tokens.sh"
 # shellcheck source=lib/ui/gfx.sh
 source "$ROOT/lib/ui/gfx.sh"
 # shellcheck source=lib/ui/say.sh
