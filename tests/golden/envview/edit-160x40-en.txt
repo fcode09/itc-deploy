@@ -1,0 +1,41 @@
+=== frame 1 ===
+
+  1 Instances   2 Resources   3 Output   4 Runs   5 Processes   6 Console   7 Server   8 Images  [9 Variables]                                                 
+╭─┐ ▸⁹variables ┌─┐ix-colorado┌───────────────────────────────────────────────────────────────────────┐6 to fill in┌─╮╭─┐IP_SERVER┌────────────────────────────╮
+│ ▸ .env.instance                                                                                       12 variables ││ Required · .env.s0                     │
+│ ▾ .env.s0                                                                               9 variables · 2 to fill in ││                                        │
+│   IP_SERVER                ● https://colorado.itc.pe                                                               ││ Base public URL of the system, with a  │
+│ ▲ JWT_SECRET                 (empty)                                                                      required ││ scheme (`http://` or `https://`),      │
+│ ● MONGO_URI                  ⚿ ••••••••••                                                                          ││ without a port or trailing slash. The  │
+│ ● IP_INTERNAL_CONNECTION     s1                                                                                    ││ seeds use it: `url_systems` stores it  │
+│ ▾ .env.s1                                                                              27 variables · 4 to fill in ││ as the URL of each system (seen in     │
+│ ▲ IP_SERVER                  http://CAMBIAR-direccion-del-servidor                                      to fill in ││ Auth, Settings, Systems) and as the    │
+│ ● AUTH_URL                   http://s0:3200                                                                        ││ base of the backend URLs               │
+│ ▲ JWT_SECRET                 (empty)                                                                      required ││ (`<IP_SERVER>:3000/3100/3200`). After  │
+│ ● MONGO_DELTA_DISPATCH_URI   ⚿ ••••••••••                                                                          ││ `init`, check those URLs: they all     │
+│ ● MONGO_AUTHSOFTWARE_URI     ⚿ ••••••••••                                                                          ││ carry the same value.                  │
+│ ● MONGO_ROBIN_URI            ⚿ ••••••••••                                                                          ││                                        │
+│ ● FCM_CERT                   /run/secrets/fcm.json                                                                 ││ Default: http://localhost              │
+│ ● KEEPER_FCM_CERT            /run/secrets/keeper-fcm.json                                                          ││                                        │
+│ ▲ FEDERATION_ENCRYPTION_KEY  (empty)                                                                      required ││                                        │
+│ ● SERVERS_CONFIG             ⚿ ••••••••••                                                                          ││                                        │
+│ ▲ DEEPGRAM_API_KEY           (empty)                                                                      required ││                                        │
+│                                                                                                                    ││                                        │
+│                                                                                                                    ││                                        │
+│                                                                                                                    ││                                        │
+│                                                                                                                    ││                                        │
+│                                                                                                                    ││                                        │
+│                                                                                                                    ││                                        │
+│                                                                                                                    ││                                        │
+│                                                                                                                    ││                                        │
+│                                                                                                                    ││                                        │
+│                                                                                                                    ││                                        │
+│                                                                                                                    ││                                        │
+│                                                                                                                    ││                                        │
+│                                                                                                                    ││                                        │
+│                                                                                                                    ││                                        │
+│                                                                                                                    ││                                        │
+│                                                                                                                    ││                                        │
+╰─┘Enter accept└─┘Esc cancel└────────────────────────────────────────────────────────────────────────────────────────╯╰────────────────────────────────────────╯
+
+ Enter accepts · Esc cancels · ←→ move · Ctrl+U deletes · q ? : are letters here

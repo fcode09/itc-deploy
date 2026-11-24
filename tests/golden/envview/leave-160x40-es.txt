@@ -1,0 +1,41 @@
+=== frame 1 ===
+
+  1 Instancias   2 Recursos   3 Salida   4 Ejecuciones   5 Procesos   6 Consola   7 Servidor   8 Imágenes  [9 Variables]                                       
+╭─┐ ▸⁹variables ┌─┐ix-lima┌──────────────────────────────────────────────────────────────────────────┐1 sin guardar┌─╮╭─┐IP_SERVER┌────────────────────────────╮
+│ ▾ .env.instance                                                                                       12 variables ││ Obligatoria · .env.s0                  │
+│ ● INSTANCE                   ix-lima                                                                               ││                                        │
+│ ● COMPOSE_PROFILES           s0,s1                                                                                 ││ URL pública base del sistema, con      │
+│ ● S0_TAG                     2.14.1                                                                                ││ esquema (`http://` o `https://`), sin  │
+│ ● S1_TAG                     2.9.0                                                                                 ││ puerto ni barra final. Los seeds la    │
+│ ● S0_PORT                    4110                                                                                  ││ usan: `url_systems` la guarda como URL │
+│ ● S1_PORT                    4111                                                                                  ││ de cada sistema (se ve en Auth,        │
+│ ▾ .env.s0                                                                                              9 variables ││ Configuración, Sistemas) y como base   │
+│ ● IP_SERVER                  https://x.itc.pe                                                           modificada ││ de las URLs de backend                 │
+│ ● JWT_SECRET                 ⚿ ••••••••••                                                                          ││ (`<IP_SERVER>:3000/3100/3200`). Tras   │
+│ ● MONGO_URI                  ⚿ ••••••••••                                                                          ││ `init`, revisa esas URLs: todas llevan │
+│ ● IP_INTERNAL_CONNECTION     s1                                                                                    ││ el mismo valor.                        │
+│ ▾ .env.s1                                                                                             27 variables ││                                        │
+│ ● IP_SERVER                  http://h                                                                              ││ Por defecto: http://localhost          │
+│ ● AUTH_URL                   http://s0:3200                                                                        ││                                        │
+│ ● JWT_SECRET                 ⚿ ••••••••••                                                                          ││                                        │
+│ ● MONGO_DELTA_DISPATCH_URI   ⚿ ••••••••••                                                                          ││                                        │
+│ ● MONGO_AUTHSOFTWARE_URI     ⚿ ••••••••••                                                                          ││                                        │
+│ ● MONGO_ROBIN_URI            ⚿ ••••••••••                                                                          ││                                        │
+│ ● FCM_CERT                   /run/secrets/fcm.json                                                                 ││                                        │
+│ ● KEEPER_FCM_CERT            /run/secrets/keeper-fcm.json                                                          ││                                        │
+│ ● FEDERATION_ENCRYPTION_KEY  ⚿ ••••••••••                                                                          ││                                        │
+│ ● SERVERS_CONFIG             ⚿ ••••••••••                                                                          ││                                        │
+│ ● DEEPGRAM_API_KEY           ⚿ ••••••••••                                                                          ││                                        │
+│                                                                                                                    ││                                        │
+│                                                                                                                    ││                                        │
+│                                                                                                                    ││                                        │
+│                                                                                                                    ││                                        │
+│                                                                                                                    ││                                        │
+│                                                                                                                    ││                                        │
+│                                                                                                                    ││                                        │
+│                                                                                                                    ││                                        │
+│ ────────────────────────────────────────────────────────────────────────────────────────────────────────────────── ││                                        │
+│ Hay cambios sin guardar (1). ¿Qué hago con ellos?                                                                  ││                                        │
+╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯╰────────────────────────────────────────╯
+
+ s guardar y salir · d descartar y salir · otra tecla sigue editando

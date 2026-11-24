@@ -74,6 +74,9 @@ check "si la carpeta no se puede escribir, falla y el archivo queda como estaba 
   [ "$(id -u)" = 0 ] && exit 0
   mkdir "$FIX/ro"; cp "$FIX/rt.orig" "$FIX/ro/x.env"; chmod 500 "$FIX/ro"
   r=0; run "envedit_set $FIX/ro/x.env A 99" 2>/dev/null || r=1; chmod 700 "$FIX/ro"; [ "$r" = 1 ] && cmp -s "$FIX/rt.orig" "$FIX/ro/x.env"'
+check "…y tampoco escribe nada en la salida de error: el panel dibuja en esa terminal (no root)" '
+  [ "$(id -u)" = 0 ] && exit 0
+  chmod 500 "$FIX/ro"; e="$(run "envedit_set $FIX/ro/x.env A 99" 2>&1 > /dev/null)"; chmod 700 "$FIX/ro"; [ -z "$e" ]'
 check "no usa awk para escribir (awk -v lee \\n y \\\\ del valor como escapes)" '! sed -n "/^envedit_emit()/,/^}/p;/^envedit_set()/,/^}/p" lib/core/envedit.sh | grep -qE "(^|[^a-z_])awk( |\$)"'
 
 section "3. permisos y copia de seguridad"
@@ -116,6 +119,12 @@ check "el estado de una variable: falta / ejemplo / bien / por defecto / sin def
   && sed -i "s/^S0_TAG=.*/S0_TAG=CAMBIAR-x/" instances/ee-a/.env.instance \
   && [ "$(run "envedit_state_r ee-a .env.instance S0_TAG; echo \$ED_STATE")" = "example" ] \
   && sed -i "s/^S0_TAG=.*/S0_TAG=1.0/" instances/ee-a/.env.instance'
+check "envedit_state_value_r da el estado de un valor que ya se tiene (el que el editor del panel está cambiando), sin leer el archivo" '
+  [ "$(run "for v in \"\" CAMBIAR-x 4100 abc; do envedit_state_value_r ee-a .env.instance S0_PORT \"\$v\"; printf \"%s \" \$ED_STATE; done")" = "missing example ok invalid " ] \
+  && [ "$(run "envedit_state_value_r ee-a .env.s0 MONGO_URI mongodb://u:p@localhost:27017/a; echo \$ED_STATE")" = "warn" ] \
+  && [ "$(run "envedit_state_value_r ee-a .env.s0 NODE_ENV x; echo \$ED_STATE")" = "fixed" ]'
+check "el estado de un valor no repite el valor en el mensaje" '
+  [ -z "$(run "envedit_state_value_r ee-a .env.instance S0_PORT SECRETO-abc; case \"\$EV_MSG\" in *SECRETO*) echo leak;; esac")" ]'
 check "un secreto se muestra enmascarado, y vacío se muestra vacío" '[ "$(ROOT="$PWD" bash -c "source lib/bootstrap.sh; envedit_show .env.s0 JWT_SECRET abc; printf \"[%s]\" \"\$ED_SHOW\"; envedit_show .env.s0 JWT_SECRET \"\"; printf \"[%s]\" \"\$ED_SHOW\"")" = "[********][]" ]'
 
 section "5. el comando env: ver"

@@ -65,7 +65,7 @@ ED_TMP=""
 envedit_stage() { # file key value [secret]
   local file="$1" key="$2" val="$3" secret="${4:-0}" tmp
   ED_TMP=""
-  tmp="$(umask 077; mktemp "$file.XXXXXX")" || return 1
+  tmp="$(umask 077; mktemp "$file.XXXXXX" 2> /dev/null)" || return 1   # (no message: the panel draws on this terminal)
   if ! envedit_emit "$file" "$key" "$val" > "$tmp"; then
     rm -f "$tmp"
     return 1
@@ -138,22 +138,29 @@ envedit_show() { # file key value   (the result is in ED_SHOW)
 #   fixed     set by the compose or the image
 ED_STATE=""
 ED_VALUE=""
-envedit_state_r() { # instance file key
-  local id="$2|$3" path="$INSTANCES_DIR/$1/$2"
+# The same for a value the caller already has (the editor of the panel keeps the values it is changing before they are written): nothing is
+# read from the file. EV_MSG is the message of the validator for `invalid` and `warn`.
+envedit_state_value_r() { # instance file key value
+  local id="$2|$3" val="$4"
   envschema_load
-  get_var_r "$path" "$3"
-  ED_VALUE="$GV"
+  ED_VALUE="$val"
+  EV_RC=0 EV_MSG=""
   if [ "${ENV_TYPE[$id]:-}" = fixed ]; then ED_STATE=fixed; return 0; fi
-  if [ -z "$ED_VALUE" ]; then
+  if [ -z "$val" ]; then
     if [ "${ENV_REQUIRED[$id]:-0}" = 1 ]; then ED_STATE=missing
     elif [ "${ENV_HASDEF[$id]:-0}" = 1 ] && [ -n "${ENV_DEFAULT[$id]:-}" ]; then ED_STATE=default
     else ED_STATE="unset"; fi
     return 0
   fi
   # The templates write CAMBIAR… where a value has to be put: deploy refuses it, so here it is not a value either.
-  if [[ "$ED_VALUE" == *CAMBIAR* ]]; then ED_STATE=example; return 0; fi
-  envschema_check_r "$2" "$3" "$ED_VALUE" "$1"
+  if [[ "$val" == *CAMBIAR* ]]; then ED_STATE=example; return 0; fi
+  envschema_check_r "$2" "$3" "$val" "$1"
   case "$EV_RC" in 1) ED_STATE=invalid ;; 2) ED_STATE=warn ;; *) ED_STATE=ok ;; esac
+}
+
+envedit_state_r() { # instance file key
+  get_var_r "$INSTANCES_DIR/$1/$2" "$3"
+  envedit_state_value_r "$1" "$2" "$3" "$GV"
 }
 
 # ---------- generated values ----------

@@ -1,0 +1,25 @@
+=== frame 1 ===
+
+  1   2   3   4   5   6   7   8  [9 Variables]                                 
+╭─┐ ▸⁹variables ┌─┐ix-colorado┌──────────────────────────────┐6 sin completar┌─╮
+│ ▸ .env.instance                                                 12 variables │
+│ ▾ .env.s0                                      9 variables · 2 sin completar │
+│   IP_SERVER                ● https://colorado.itc.pe                         │
+│ ▲ JWT_SECRET                 (vacía)                             obligatoria │
+│ ● MONGO_URI                  ⚿ ••••••••••                                    │
+│ ● IP_INTERNAL_CONNECTION     s1                                              │
+│ ▾ .env.s1                                     27 variables · 4 sin completar │
+│ ▲ IP_SERVER                  http://CAMBIAR-direccion-del-ser  por completar │
+│ ● AUTH_URL                   http://s0:3200                                  │
+│ ▲ JWT_SECRET                 (vacía)                             obligatoria │
+│ ● MONGO_DELTA_DISPATCH_URI   ⚿ ••••••••••                                    │
+│ ● MONGO_AUTHSOFTWARE_URI     ⚿ ••••••••••                                    │
+│ ● MONGO_ROBIN_URI            ⚿ ••••••••••                                    │
+│ ● FCM_CERT                   /run/secrets/fcm.json                           │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ IP_SERVER  Obligatoria · .env.s0                                             │
+│ URL pública base del sistema, con esquema (`http://` o `https://`), sin      │
+│ puerto ni barra final. Los seeds la usan: `url_systems` la guarda como URL   │
+╰─┘Enter aceptar└─┘Esc cancelar└───────────────────────────────────────────────╯
+
+ Enter acepta · Esc cancela · ←→ mueven · Ctrl+U borra · q ? : son letras aquí
