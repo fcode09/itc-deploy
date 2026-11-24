@@ -86,12 +86,10 @@ envedit_save() { # instance file key value [force]
   envschema_load
   EV_RC=0 EV_MSG=""
   if [[ "$val" == *$'\n'* || "$val" == *$'\r'* ]]; then ev_fail envschema.err.newline; return 1; fi
+  if envedit_is_secret "$file" "$key"; then secret=1; fi
   if [ -z "${ENV_KEY[$id]+x}" ]; then
     if [ "$force" != 1 ]; then ev_fail envschema.err.unknown; return 1; fi
-    envschema_classify "$file" "$key"
-    secret="$ES_SECRET"
   else
-    secret="${ENV_SECRET[$id]}"
     envschema_check_r "$file" "$key" "$val" "$inst"
     if [ "$EV_RC" = 1 ] && { [ "$force" != 1 ] || [ "${ENV_TYPE[$id]}" = fixed ]; }; then return 1; fi
   fi
@@ -99,11 +97,20 @@ envedit_save() { # instance file key value [force]
   return 0
 }
 
+# Is a variable of a file a secret? The one answer for everything that prints a value (list, get, set, the editor): the glossary's when
+# it knows the variable, the rules by name (envschema_classify) when it does not, so DB_PASSWD or JWT_SECRET_OLD typed by hand are not
+# printed either. Returns 0 for a secret. Nothing here starts a process.
+envedit_is_secret() { # file key
+  envschema_load
+  if [ -n "${ENV_KEY[$1|$2]+x}" ]; then [ "${ENV_SECRET[$1|$2]:-0}" = 1 ]; return; fi
+  envschema_classify "$1" "$2"
+  [ "$ES_SECRET" = 1 ]
+}
+
 # What to show of a value: a secret is masked (an empty one is shown as empty: there is nothing to protect).
 ED_SHOW=""
 envedit_show() { # file key value   (the result is in ED_SHOW)
-  envschema_load
-  if [ "${ENV_SECRET[$1|$2]:-0}" = 1 ] && [ -n "$3" ]; then ED_SHOW="$ENVEDIT_MASK"; else ED_SHOW="$3"; fi
+  if [ -n "$3" ] && envedit_is_secret "$1" "$2"; then ED_SHOW="$ENVEDIT_MASK"; else ED_SHOW="$3"; fi
 }
 
 # Status of one variable of an instance: ED_STATE is

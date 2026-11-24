@@ -216,4 +216,33 @@ check "un deploy que falla no deja marca" '
 check "las marcas de .deployed no rompen la lectura de las etiquetas desplegadas (status)" '
   [ "$(run "get_var_r instances/ee-c/.deployed S0_TAG; printf %s \$GV")" = "1.0" ]'
 
+section "9. un secreto que el glosario no conoce tampoco se imprime"
+newinst ee-f
+# A variable typed by hand whose name says it is a secret: set does not repeat it, get and list mask it, the file stays private.
+hidden_unknown() { # KEY
+  local k="$1" v="valor-$1-Q7" out
+  chmod 644 instances/ee-f/.env.s0
+  out="$(D env ee-f set "s0:$k" "$v" --force 2>&1)"
+  ! grep -qF "$v" <<< "$out" || { echo "set repite el valor"; return 1; }
+  grep -qx "$k=$v" instances/ee-f/.env.s0 || { echo "no se guardó"; return 1; }
+  [ "$(mode instances/ee-f/.env.s0)" = 600 ] || { echo "el archivo no quedó en 600"; return 1; }
+  [ "$(D env ee-f get "s0:$k" 2>/dev/null)" = "********" ] || { echo "get no lo enmascara"; return 1; }
+  [ "$(D env ee-f get "s0:$k" --reveal 2>/dev/null)" = "$v" ] || { echo "get --reveal no lo muestra"; return 1; }
+  ! D env ee-f list s0 2>&1 | grep -qF "$v" || { echo "list lo muestra"; return 1; }
+  D env ee-f list s0 --reveal 2>&1 | grep -qF "$v" || { echo "list --reveal no lo muestra"; return 1; }
+}
+for k in DB_PASSWD SMTP_PASS JWT_SECRET_OLD EXTRA_PASSWORD API_PWD MY_PRIVATE_THING AWS_CREDENTIALS; do
+  check "$k escrito a mano se trata como un secreto en set, get y list" "hidden_unknown $k"
+done
+check "get con la clave sola (sin archivo) también lo enmascara" '[ "$(D env ee-f get DB_PASSWD 2>/dev/null)" = "********" ]'
+check "list --json no trae el valor de un secreto desconocido y dice secret: true" '
+  out="$(D env ee-f list s0 --json 2>&1)"; ! grep -qF "valor-DB_PASSWD-Q7" <<< "$out" && grep -F "\"key\": \"DB_PASSWD\"" <<< "$out" | grep -q "\"secret\": true"'
+check "una variable que no parece secreta sí se ve (EXTRA_NOTE)" '
+  D env ee-f set s0:EXTRA_NOTE visibleX --force >/dev/null 2>&1; [ "$(D env ee-f get s0:EXTRA_NOTE 2>/dev/null)" = "visibleX" ]'
+check "envedit_is_secret: conocida por el glosario (JWT_SECRET) y desconocida por su nombre (DB_PASSWD); S0_PORT y EXTRA_NOTE no" '
+  [ "$(run "for k in JWT_SECRET DB_PASSWD S0_PORT EXTRA_NOTE; do if envedit_is_secret .env.s0 \$k; then printf 1; else printf 0; fi; done")" = "1100" ]'
+check "SERVERS_CONFIG (el JSON de los webhooks) es un secreto: set no lo repite y list lo enmascara" '
+  out="$(D env ee-f set s1:SERVERS_CONFIG "{\"a\":\"tokenZZ9\"}" 2>&1)"; ! grep -qF tokenZZ9 <<< "$out" && ! D env ee-f list s1 2>&1 | grep -qF tokenZZ9'
+check "envedit_show enmascara un secreto desconocido" '[ "$(run "envedit_show .env.s0 DB_PASSWD abc; printf %s \"\$ED_SHOW\"")" = "********" ]'
+
 finish

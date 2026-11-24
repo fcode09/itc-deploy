@@ -102,14 +102,13 @@ env_list() { # instance file-filter reveal json
     for key in ${keys[@]+"${keys[@]}"} ${extra[@]+"${extra[@]}"}; do
       id="$f|$key"
       if [ -z "${ENV_KEY[$id]+x}" ]; then
-        envschema_classify "$f" "$key"
         get_var_r "$INSTANCES_DIR/$inst/$f" "$key"
         ED_VALUE="$GV" ED_STATE=extra
-        local secret="$ES_SECRET"
       else
         envedit_state_r "$inst" "$f" "$key"
-        local secret="${ENV_SECRET[$id]}"
       fi
+      local secret=0
+      ! envedit_is_secret "$f" "$key" || secret=1
       if [ "$reveal" -eq 1 ] || [ "$secret" != 1 ] || [ -z "$ED_VALUE" ]; then shown="$ED_VALUE"; else shown="$ENVEDIT_MASK"; fi
       if [ "$json" -eq 1 ]; then
         [ "$first" -eq 1 ] || printf ',\n'
@@ -161,7 +160,7 @@ env_get() { # instance target reveal
     printf '\n'
     return 0
   fi
-  if [ "${ENV_SECRET[$f|$key]:-0}" = 1 ] && [ "$reveal" -ne 1 ]; then
+  if [ "$reveal" -ne 1 ] && envedit_is_secret "$f" "$key"; then
     printf '%s\n' "$ENVEDIT_MASK"
     info "$(t env.secret_hidden "$key" "$inst" "$(envedit_word "$f"):$key")" >&2
     return 0
@@ -181,7 +180,8 @@ env_set() { # instance target value have_value stdin force
     value="${value%$'\r'}"
     have=1
   fi
-  secret="${ENV_SECRET[$f|$key]:-0}"
+  secret=0
+  ! envedit_is_secret "$f" "$key" || secret=1
   if [ "$have" -eq 0 ]; then
     # Without a value: a secret is asked for hidden (nothing is left on the screen or in the history); anything else is a usage error.
     if [ -t 0 ] && [ "$secret" = 1 ]; then
