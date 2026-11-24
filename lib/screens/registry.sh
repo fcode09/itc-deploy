@@ -15,7 +15,8 @@
 #   scr_<id>_keys <width>              (required) appends ONE line to TUI_FRAME: the key hints of the last line (it may set TUI_CURSOR).
 #   scr_<id>_texts                     rebuilds the texts that depend on the language (DASH_KEYS[...]); runs after DT=() is cleared.
 #   scr_<id>_sig                       appends "|value" pieces to DASH_SIG: every variable the screen's drawing depends on. The body of a
-#                                      frame is reused while the signature is the same, so a missing value is a stale screen.
+#                                      frame is reused while the signature is the same, so a missing value is a stale screen. A view's is
+#                                      always added (views can embed each other); a mode's only while it is the current mode.
 #   scr_<id>_enter                     (views) runs when the view is chosen with its number or a click (not with Tab).
 #   scr_<id>_tab <+1|-1>               (views) Tab and Shift+Tab inside the view; without it they move to the next or previous view.
 #   scr_<id>_back                      (views) Esc: return 0 when it took a step back inside the view; without it Esc leaves the view.
@@ -30,10 +31,13 @@ DASH_SIG=""                                    # the signature being built (see 
 # The screens that define a hook that runs at every frame or turn, found once when they are registered: asking `declare -F` for every
 # screen at every frame would cost more than the hooks themselves.
 DASH_HOOK_SIG=() DASH_HOOK_TEXTS=() DASH_HOOK_TICK=()
+declare -gA DASH_MODE_SIG=()                   # the modes that define scr_<id>_sig
 
 # Notes which of the frame-by-frame hooks the screen $1 defines (its file is already loaded).
-dash_screen_hooks() { # id
-  if declare -F "scr_$1_sig" > /dev/null; then DASH_HOOK_SIG+=("$1"); fi
+dash_screen_hooks() { # id kind(view|mode)
+  if declare -F "scr_$1_sig" > /dev/null; then
+    if [ "$2" = "mode" ]; then DASH_MODE_SIG[$1]=1; else DASH_HOOK_SIG+=("$1"); fi
+  fi
   if declare -F "scr_$1_texts" > /dev/null; then DASH_HOOK_TEXTS+=("$1"); fi
   if declare -F "scr_$1_tick" > /dev/null; then DASH_HOOK_TICK+=("$1"); fi
 }
@@ -46,7 +50,7 @@ dash_screen_register() { # id title_key live
   DASH_SCREEN_LIVE[$1]="$3"
   # shellcheck source=/dev/null
   source "$ROOT/lib/screens/$1.sh"
-  dash_screen_hooks "$1"
+  dash_screen_hooks "$1" view
 }
 
 # Registers a mode (a dialog or a line being typed). Loads its file.
@@ -54,7 +58,7 @@ dash_mode_register() { # id
   DASH_MODES+=("$1")
   # shellcheck source=/dev/null
   source "$ROOT/lib/screens/$1.sh"
-  dash_screen_hooks "$1"
+  dash_screen_hooks "$1" mode
 }
 
 # Is $1 the id of a view?
@@ -121,10 +125,12 @@ dash_screen_texts() {
   for id in "${DASH_HOOK_TEXTS[@]}"; do "scr_${id}_texts"; done
 }
 
-# Adds to DASH_SIG what every screen's drawing depends on.
+# Adds to DASH_SIG what the drawing depends on: the state of every view (a view can show a strip of another: the console under the
+# instances, the output under the overview) and that of the current mode only (a dialog is not drawn while it is not the mode).
 dash_screen_sig() {
   local id
   for id in "${DASH_HOOK_SIG[@]}"; do "scr_${id}_sig"; done
+  if [ "$DASH_MODE" != "normal" ] && [ -n "${DASH_MODE_SIG[$DASH_MODE]:-}" ]; then "scr_${DASH_MODE}_sig"; fi
 }
 
 # Background work of every view, then of the current one only while the panel runs (not paused).
