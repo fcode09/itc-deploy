@@ -1,0 +1,51 @@
+# env · variables de entorno de una instancia
+
+Ver, validar y cambiar las variables de `.env.instance`, `.env.s0` y `.env.s1` sin abrir el editor, y generar los secretos.
+Cada valor se comprueba con su regla (puerto, URI de Mongo, base64 de 32 bytes…) antes de escribirlo.
+Un secreto no se muestra nunca a menos que lo pidas.
+
+## Uso
+$ ./deltactl env <instancia> list [archivo] [--reveal] [--json]
+$ ./deltactl env <instancia> get <[archivo:]VARIABLE> [--reveal]
+$ ./deltactl env <instancia> set <[archivo:]VARIABLE> [valor] [--stdin] [--force]
+$ ./deltactl env <instancia> generate <[archivo:]VARIABLE> [--yes]
+$ ./deltactl env <instancia> pending
+
+## Subcomandos
+- `list` las variables de cada archivo en el orden del glosario, con su estado: `bien`, `FALTA` (obligatoria y vacía),
+  `NO VÁLIDA`, `CAMBIAR` (aún tiene el ejemplo de la plantilla), `aviso`, `por defecto` o `sin definir`.
+  Las `fija` no se listan (las pone el compose). Al final avisa de lo que falta desplegar
+- `get` el valor de una variable; un secreto sale como `********` salvo con `--reveal`
+- `set` cambia un valor. Antes lo valida: si no pasa, no escribe nada. Escribe aparte y renombra:
+  si algo falla, el archivo queda como estaba
+- `generate` crea un secreto nuevo con openssl (`JWT_SECRET`, `FEDERATION_ENCRYPTION_KEY`, …). El valor no se muestra.
+  Si ya había uno pide confirmación; `JWT_SECRET` se escribe igual en `s0` y `s1`
+- `pending` qué archivos cambiaron desde el último despliegue y aún no se aplican
+
+## Archivo y variable
+`archivo` es `instance`, `s0` o `s1`. Una variable que está en un solo archivo se da sola (`S0_PORT`);
+`JWT_SECRET` está en `s0` y en `s1`: se escribe `s0:JWT_SECRET`.
+
+## Opciones
+- `--reveal` muestra el valor de los secretos (en `list` y `get`)
+- `--json` salida para scripts: `instance`, los archivos con cambios `pending` y cada variable con `state`, `required`,
+  `validator` y `generator`; los secretos salen ocultos salvo con `--reveal`
+- `--stdin` lee el valor de la entrada estándar: así no queda en el historial de la terminal ni en `ps`
+- `--force` escribe aunque el valor no pase su regla o la variable no esté en el glosario (nunca una `fija`)
+- `--yes` no pide confirmación al reemplazar un secreto
+
+## Qué guarda
+- Cada archivo se reescribe sin perder comentarios, líneas en blanco ni el orden;
+  los valores con `=`, comillas o espacios se conservan tal cual
+- Antes del primer cambio hace una copia `<archivo>.bak` (modo 600). Un secreto deja el archivo en modo 600
+- Un cambio no toca los contenedores: se aplica con `./deltactl deploy <instancia>`
+- Ninguna de estas operaciones entra en el historial `runs`: el valor no queda en su línea de comandos
+
+## Ejemplos
+$ ./deltactl env colorado list
+$ ./deltactl env colorado set S0_PORT 4110
+$ ./deltactl env colorado set s0:MONGO_URI --stdin < uri.txt
+$ ./deltactl env colorado generate s1:FEDERATION_ENCRYPTION_KEY
+
+## Relacionado
+- `./deltactl help variable <CLAVE>`, `./deltactl help secretos`, `./deltactl check <instancia>`

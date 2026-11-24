@@ -30,6 +30,8 @@ Servicios: [36ms0[0m = auth-backend (Auth) y [36ms1[0m = gueo-back-end (Gue)
                                                     NUEVA (una sola vez)
   [32madopt <instancia>[0m                                 Marca como ya inicializada una instancia que YA
                                                     tiene datos
+  [32menv <instancia> list|get|set|generate[0m             Ver, validar y cambiar las variables de entorno;
+                                                    generar secretos sin mostrarlos
 
 [1mDespliegue[0m
   [32mcheck <instancia> [servicio] [--mongo][0m            Comprueba todo lo que deploy exigiría, sin

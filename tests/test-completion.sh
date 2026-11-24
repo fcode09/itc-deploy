@@ -35,7 +35,7 @@ check "la ayuda de completion funciona" 'bash ./deltactl completion --help 2>&1 
 section "2. comandos"
 r="$(comp deltactl "")"
 check "sin escribir nada sugiere todos los comandos" \
-  'for c in new init adopt deploy rollback stop down load images versions list status ps logs check doctor menu completion help; do has "$r" "$c" || exit 1; done'
+  'for c in new init adopt deploy rollback stop down load images versions list status ps logs check doctor env menu completion help; do has "$r" "$c" || exit 1; done'
 check "un prefijo se completa" '[ "$(comp deltactl dep)" = "deploy " ]'
 check "un prefijo ambiguo da todas las opciones" 'r="$(comp deltactl d)"; has "$r" deploy && has "$r" down && has "$r" doctor'
 check "un prefijo inexistente no sugiere nada" '[ -z "$(comp deltactl zzz | tr -d " ")" ]'
@@ -80,7 +80,7 @@ comp_flags() { # comando
   ROOT="$PWD" bash -c 'source lib/bootstrap.sh; source lib/cmd/completion.sh; for e in "${COMPLETION_FLAGS[@]}"; do [ "${e%%:*}" = "$1" ] && echo "${e#*:}"; done' _ "$1" | tr ' ' '\n' | sort -u | tr '\n' ' '
 }
 bad=""
-for c in new init adopt deploy rollback stop down load images list status ps logs check doctor menu completion help; do
+for c in new init adopt deploy rollback stop down load images list status ps logs check doctor env menu completion help; do
   d="$(doc_flags "$c")"; k="$(comp_flags "$c")"
   [ "$d" = "$k" ] || bad+="$c (doc: ${d:-ninguna} | autocompletado: ${k:-ninguna}) "
 done

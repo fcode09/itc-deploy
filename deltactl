@@ -51,7 +51,7 @@ if [ "${DELTACTL_NO_RUNS:-0}" != "1" ]; then
 fi
 
 case "$CMD" in
-  new | deploy | rollback | list | images | load | status | check | doctor | menu | completion | runs)
+  new | deploy | rollback | list | images | load | status | check | doctor | menu | completion | runs | env)
     # shellcheck source=/dev/null
     source "$ROOT/lib/cmd/$CMD.sh"
     "cmd_$CMD" "$@"

@@ -41,6 +41,8 @@ source "$ROOT/lib/core/services.sh"
 source "$ROOT/lib/core/imagecat.sh"
 # shellcheck source=lib/core/envschema.sh
 source "$ROOT/lib/core/envschema.sh"
+# shellcheck source=lib/core/envedit.sh
+source "$ROOT/lib/core/envedit.sh"
 # shellcheck source=lib/core/ports.sh
 source "$ROOT/lib/core/ports.sh"
 # shellcheck source=lib/core/status.sh

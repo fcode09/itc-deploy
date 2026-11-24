@@ -197,6 +197,9 @@ deploy_up() { # explicit instance service...
     set_var "$dir/.deployed" "$(tag_var "$svc")" "$(get_var "$dir/.env.instance" "$(tag_var "$svc")")"
     set_var "$dir/.deployed" "${svc^^}_IMAGE_ID" "$(dk_image_id "$(service_image_ref "$name" "$svc")")"
   done
+  # What the environment files were when this deploy ended well: `env pending` compares against it. The .env.instance belongs to the
+  # whole instance, so only a deploy of all of it marks it.
+  envedit_mark_deployed "$name" "$((1 - explicit))" "$@" || true
   dk_compose "$name" --profile '*' ps
 }
 
