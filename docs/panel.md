@@ -62,7 +62,7 @@ Lo que el sistema no da (WSL, un contenedor) se ve como «no disponible en este 
 - **!** lo ejecuta en la terminal, **después de preguntar**: la ventana muestra el comando entero y solo `y` lo lanza (ahí `sudo` pide la
   contraseña). El panel **nunca instala nada por su cuenta**. Al volver se comprueban de nuevo los requisitos.
 - **m** deja solo las cifras del servidor (los requisitos ceden su sitio; a 80x24 es la forma de ver los discos y la red); **R** vuelve a
-  comprobar. Los requisitos se comprueban solos cada 30 s mientras la vista está a la vista.
+  comprobar. Los requisitos se comprueban solos cada 2 minutos mientras la vista está a la vista (una comprobación lanza unas decenas de procesos).
 - Las cifras del servidor (CPU por núcleo, temperatura, red, discos) solo se leen mientras esta vista es la actual.
 
 **Aviso al abrir el panel**: si falta algo obligatorio (error de Docker, del daemon, de Compose, de disco o de MongoDB), el panel abre en
