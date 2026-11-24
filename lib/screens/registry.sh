@@ -22,7 +22,8 @@
 #   scr_<id>_back                      (views) Esc: return 0 when it took a step back inside the view; without it Esc leaves the view.
 #   scr_<id>_tick                      (views) runs at every turn of the loop, whatever view is current (background work).
 #   scr_<id>_poll                      (views) runs at every turn only while the view is current and the panel is not paused.
-#   scr_<id>_click <column> <row>      (views) a left click in the body (rows and columns of the screen, starting at 1).
+#   scr_<id>_click <column> <row>      (views, and modes that define it) a left click (rows and columns of the screen, starting at 1). A mode
+#                                      with no click hook ignores the mouse, as it always did.
 #   scr_<id>_bang                      (views) the key `!` while the view is current; return 0 when it took the key (otherwise the global
 #                                      `!`, a command line that runs in the terminal, opens).
 
@@ -168,6 +169,7 @@ dash_mode_register cmd
 dash_mode_register filter
 dash_mode_register find
 dash_mode_register wizard
+dash_mode_register newinst
 dash_mode_register palette
 dash_mode_register help
 dash_mode_register options

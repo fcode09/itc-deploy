@@ -1,0 +1,41 @@
+=== frame 1 ===
+
+ [1 Instancias]  2 Recursos   3 Salida   4 Ejecuciones   5 Procesos   6 Consola   7 Servidor   8 Imágenes                                                      
+╭─┐nueva instancia┌──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐instancia-1┌─╮
+│ ●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━◉━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━○                            Paso 3 de 4│
+│ Nombre                                 Servicios                              Versiones                              Datos                                   │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭─┐ ▸3 · Versiones ┌───────────────────────────────────────────────────────────────────────────╮╭─┐vista previa┌───────────────────────────────────────────────╮
+│                                                                                              ││ instances/instancia-1/                                       │
+│ ¿Qué versión de cada servicio? La más reciente ya viene elegida: Enter la acepta.            ││   .env.instance                                              │
+│                                                                                              ││     COMPOSE_PROFILES=s0,s1                                   │
+│ ▸ s0 · auth-backend  imagen auth-backend                                                     ││     S0_PORT=4100                                             │
+│   VERSIÓN                CREADA         TAMAÑO ARQ       USO                                 ││     S0_TAG=2.14.1                                            │
+│   3.0.0-rc1              hace 1 h         300MB arm64 ✖   sin usar                           ││     S1_PORT=4101                                             │
+│   2.14.1 ★               hace 2 días      300MB amd64 ✔   sin usar  ↑ más reciente           ││     S1_TAG=2.9.0                                             │
+│   latest ▲               hace 5 días      300MB amd64 ✔   sin usar                           ││   .env.s0 .env.s1                                            │
+│   2.14.0                 hace 9 días      300MB amd64 ✔   sin usar                           ││   secrets/  data/                                            │
+│   2.13.2                 hace 1 mes       300MB amd64 ✔   sin usar                           ││     data/ vacía: init la siembra                             │
+│   escribir otra versión…                                                                     ││                                                              │
+│   Enter elige la más reciente                                                                ││ ≈ ./deltactl new instancia-1                                 │
+│   ● s1 · gueo-back-end  2.9.0 ★                                                              ││     --services s0,s1 --s0-tag 2.14.1 --s1-tag 2.9.0          │
+│                                                                                              ││     --generate-secrets                                       │
+│                                                                                              ││                                                              │
+│                                                                                              ││                                                              │
+│                                                                                              ││                                                              │
+│                                                                                              ││                                                              │
+│                                                                                              ││                                                              │
+│                                                                                              ││                                                              │
+│                                                                                              ││                                                              │
+│                                                                                              ││                                                              │
+│                                                                                              ││                                                              │
+│                                                                                              ││                                                              │
+│                                                                                              │╰──────────────────────────────────────────────────────────────╯
+│                                                                                              │╭─┐pasos┌──────────────────────────────────────────────────────╮
+│                                                                                              ││ ● Nombre      instancia-1                                    │
+│                                                                                              ││ ● Servicios   s0 s1                                          │
+│                                                                                              ││ ◐ Versiones   2.14.1 2.9.0                                   │
+│                                                                                              ││ ○ Datos                                                      │
+╰─┘Esc atrás└─┘Enter siguiente└────────────────────────────────────────────────────────────────╯╰──────────────────────────────────────────────────────────────╯
+
+ ↑↓ elegir · Enter elige y sigue · R releer Docker · 1-9 paso · Esc atrás · Tab vista previa

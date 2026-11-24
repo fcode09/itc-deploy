@@ -37,6 +37,8 @@ source "$ROOT/lib/adapters/host.sh"
 source "$ROOT/lib/core/instance.sh"
 # shellcheck source=lib/core/services.sh
 source "$ROOT/lib/core/services.sh"
+# shellcheck source=lib/core/instname.sh
+source "$ROOT/lib/core/instname.sh"
 # shellcheck source=lib/core/imagecat.sh
 source "$ROOT/lib/core/imagecat.sh"
 # shellcheck source=lib/core/envschema.sh

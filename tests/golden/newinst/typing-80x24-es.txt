@@ -1,0 +1,25 @@
+=== frame 1 ===
+
+ [1 Instancias]  2   3   4   5   6   7   8                                     
+╭─┐nueva instancia┌──────────────────────────────────────────────┐instancia-1┌─╮
+│ ●━━━━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━━━━◉━━━━━━━━━━━━━━━━━━○        Paso 3 de 4│
+│ Nombre             Servicios          Versiones          Datos               │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─┐ ▸3 · Versiones ┌───────────────────────────────────────────────────────────╮
+│                                                                              │
+│ ¿Qué versión de cada servicio? La más reciente ya viene elegida: Enter la    │
+│ acepta.                                                                      │
+│                                                                              │
+│ ▸ s0 · auth-backend  imagen auth-backend                                     │
+│   VERSIÓN                CREADA         TAMAÑO ARQ       USO                 │
+│   3.0.0-rc1              hace 1 h         300MB arm64 ✖   sin usar           │
+│   2.14.1 ★               hace 2 días      300MB amd64 ✔   sin usar  ↑ más rec│
+│   latest ▲               hace 5 días      300MB amd64 ✔   sin usar           │
+│   2.14.0                 hace 9 días      300MB amd64 ✔   sin usar           │
+│   2.13.2                 hace 1 mes       300MB amd64 ✔   sin usar           │
+│   escribir otra versión…                                                     │
+│   versión   ▲ 2.15                       aún no está cargada en este Docker  │
+│   ● s1 · gueo-back-end  2.9.0 ★                                              │
+╰─┘Esc atrás└─┘Enter siguiente└─┘Tab vista previa└─────────────────────────────╯
+
+ ↑↓ elegir · Enter elige y sigue · Esc atrás · Tab vista previa

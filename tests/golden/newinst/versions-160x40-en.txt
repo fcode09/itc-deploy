@@ -1,0 +1,41 @@
+=== frame 1 ===
+
+ [1 Instances]  2 Resources   3 Output   4 Runs   5 Processes   6 Console   7 Server   8 Images                                                                
+╭─┐new instance┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐instancia-1┌─╮
+│ ●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━◉━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━○                            Step 3 of 4│
+│ Name                                   Services                               Versions                               Data                                    │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭─┐ ▸3 · Versions ┌────────────────────────────────────────────────────────────────────────────╮╭─┐preview┌────────────────────────────────────────────────────╮
+│                                                                                              ││ instances/instancia-1/                                       │
+│ Which version of each service? The most recent one is already chosen: Enter accepts it.      ││   .env.instance                                              │
+│                                                                                              ││     COMPOSE_PROFILES=s0,s1                                   │
+│ ▸ s0 · auth-backend  image auth-backend                                                      ││     S0_PORT=4100                                             │
+│   VERSION                CREATED           SIZE ARCH      USE                                ││     S0_TAG=2.14.1                                            │
+│   3.0.0-rc1              1 h ago          300MB arm64 ✖   unused                             ││     S1_PORT=4101                                             │
+│   2.14.1 ★               2 days ago       300MB amd64 ✔   unused  ↑ most recent              ││     S1_TAG=2.9.0                                             │
+│   latest ▲               5 days ago       300MB amd64 ✔   unused                             ││   .env.s0 .env.s1                                            │
+│   2.14.0                 9 days ago       300MB amd64 ✔   unused                             ││   secrets/  data/                                            │
+│   2.13.2                 1 month ago      300MB amd64 ✔   unused                             ││     data/ empty: init seeds it                               │
+│   write another version…                                                                     ││                                                              │
+│   Enter chooses the most recent one                                                          ││ ≈ ./deltactl new instancia-1                                 │
+│   ● s1 · gueo-back-end  2.9.0 ★                                                              ││     --services s0,s1 --s0-tag 2.14.1 --s1-tag 2.9.0          │
+│                                                                                              ││     --generate-secrets                                       │
+│                                                                                              ││                                                              │
+│                                                                                              ││                                                              │
+│                                                                                              ││                                                              │
+│                                                                                              ││                                                              │
+│                                                                                              ││                                                              │
+│                                                                                              ││                                                              │
+│                                                                                              ││                                                              │
+│                                                                                              ││                                                              │
+│                                                                                              ││                                                              │
+│                                                                                              ││                                                              │
+│                                                                                              │╰──────────────────────────────────────────────────────────────╯
+│                                                                                              │╭─┐steps┌──────────────────────────────────────────────────────╮
+│                                                                                              ││ ● Name        instancia-1                                    │
+│                                                                                              ││ ● Services    s0 s1                                          │
+│                                                                                              ││ ◐ Versions    2.14.1 2.9.0                                   │
+│                                                                                              ││ ○ Data                                                       │
+╰─┘Esc back└─┘Enter next└──────────────────────────────────────────────────────────────────────╯╰──────────────────────────────────────────────────────────────╯
+
+ ↑↓ choose · Enter chooses and goes on · R reread Docker · 1-9 step · Esc back · Tab preview

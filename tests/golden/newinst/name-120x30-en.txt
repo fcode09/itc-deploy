@@ -1,0 +1,31 @@
+=== frame 1 ===
+
+ [1 Instances]  2 Resources   3 Output   4 Runs   5 Processes   6 Console   7 Server   8 Images                        
+╭─┐new instance┌─────────────────────────────────────────────────────────────────────────────────────────┐instancia-1┌─╮
+│ ◉━━━━━━━━━━━━━━━━━━━━━━━━━━━━○━━━━━━━━━━━━━━━━━━━━━━━━━━━━○━━━━━━━━━━━━━━━━━━━━━━━━━━━━○                  Step 1 of 4│
+│ Name                         Services                     Versions                     Data                          │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭─┐ ▸1 · Name ┌────────────────────────────────────────────────────────╮╭─┐preview┌────────────────────────────────────╮
+│                                                                      ││ instances/instancia-1/                       │
+│ What is the instance called? It is the name of its folder and its    ││   .env.instance                              │
+│ containers: lowercase letters, digits and hyphen; it starts with a   ││     COMPOSE_PROFILES=s0,s1                   │
+│ letter.                                                              ││     S0_PORT=4100                             │
+│                                                                      ││     S0_TAG=(the template's)                  │
+│ Name     ● instancia-1                                               ││     S1_PORT=4101                             │
+│                                                                      ││     S1_TAG=(the template's)                  │
+│ ● Available: no folder, project or Docker network has that name.     ││   .env.s0 .env.s1                            │
+│                                                                      ││   secrets/  data/                            │
+│ It will be created in instances/instancia-1                          ││     data/ empty: init seeds it               │
+│                                                                      ││                                              │
+│ Proposed: the first free one. Type to change it.                     ││ ≈ ./deltactl new instancia-1                 │
+│                                                                      ││     --services s0,s1 --generate-secrets      │
+│                                                                      ││                                              │
+│                                                                      │╰──────────────────────────────────────────────╯
+│                                                                      │╭─┐steps┌──────────────────────────────────────╮
+│                                                                      ││ ◐ Name        instancia-1                    │
+│                                                                      ││ ○ Services                                   │
+│                                                                      ││ ○ Versions                                   │
+│                                                                      ││ ○ Data                                       │
+╰─┘Esc back└─┘Enter next└──────────────────────────────────────────────╯╰──────────────────────────────────────────────╯
+
+ Enter next · Esc back · Tab preview
