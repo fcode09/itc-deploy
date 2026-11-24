@@ -19,9 +19,26 @@ run() { ROOT="$PWD" PATH="$FIX/bin:$PATH" bash -c "source lib/bootstrap.sh; $1";
 os() { printf '%s\n' "$2" > "$FIX/os/$1"; }
 os debian 'PRETTY_NAME="Debian GNU/Linux 12 (bookworm)"
 NAME="Debian GNU/Linux"
+VERSION_ID="12"
 ID=debian'
+os debian13 'PRETTY_NAME="Debian GNU/Linux 13 (trixie)"
+NAME="Debian GNU/Linux"
+VERSION_ID="13"
+ID=debian'
+os debiansid 'PRETTY_NAME="Debian GNU/Linux forky/sid"
+NAME="Debian GNU/Linux"
+ID=debian'
+os rhel 'NAME="Red Hat Enterprise Linux"
+VERSION_ID="9.4"
+ID="rhel"
+ID_LIKE="fedora"'
+os amzn 'NAME="Amazon Linux"
+VERSION_ID="2023"
+ID="amzn"
+ID_LIKE="fedora"'
 os ubuntu 'NAME="Ubuntu"
 PRETTY_NAME="Ubuntu 24.04 LTS"
+VERSION_ID="24.04"
 ID=ubuntu
 ID_LIKE=debian'
 os mint 'NAME="Linux Mint"
@@ -30,6 +47,7 @@ ID_LIKE="ubuntu debian"'
 os fedora 'NAME="Fedora Linux"
 ID=fedora'
 os rocky 'NAME="Rocky Linux"
+VERSION_ID="9.4"
 ID="rocky"
 ID_LIKE="rhel centos fedora"'
 os arch 'NAME="Arch Linux"
@@ -58,7 +76,8 @@ check "los que se instalan con paquete traen comando para apt, dnf, pacman y apk
 check "cada requisito tiene nombre y para-qué en español y en inglés" \
   'for l in es en; do DELTACTL_LANG=$l run "for i in \${PR_IDS[@]}; do n=\$(prereq_name \$i); w=\$(prereq_why \$i); case \"\$n\$w\" in *\\?\\?*|\"\") exit 1;; esac; done" || exit 1; done'
 check "cada requisito dice para qué sirve (frase de al menos 20 caracteres)" 'run "for i in \${PR_IDS[@]}; do [ \${#PR_CMD_X} -ge 0 ] && [ \$(prereq_why \$i | wc -c) -ge 20 ] || exit 1; done"'
-check "el archivo de datos tiene 8 campos por fila" '! grep -vE "^(#|$)" lib/core/prereqs.data | awk -F"|" "NF != 8" | grep -q .'
+check "el archivo de datos tiene 8 campos por requisito y 3 por excepción de distribución (@)" \
+  '! grep -vE "^(#|@|$)" lib/core/prereqs.data | awk -F"|" "NF != 8" | grep -q . && ! grep -E "^@" lib/core/prereqs.data | awk -F"|" "NF != 3" | grep -q .'
 check "leer el catálogo no lanza procesos" '! sed -n "/^prereq_load()/,/^}/p" lib/core/prereqs.sh | grep -qE "\\$\\(|\\| *(grep|awk|sed|cut|tr)"'
 
 section "2. detección de la distribución"
@@ -75,6 +94,22 @@ check "sin os-release no falla (usa el gestor instalado, si hay)" 'run "DELTACTL
 check "el nombre sale entre comillas ya limpio" '[ "$(mgr ubuntu | cut -d"|" -f3)" = "Ubuntu 24.04 LTS" ]'
 check "el comando de instalación depende del gestor" \
   '[ "$(run "prereq_install_r openssl apt; echo \$PR_INSTALL")" = "sudo apt-get install -y openssl" ] && [ "$(run "prereq_install_r openssl dnf; echo \$PR_INSTALL")" = "sudo dnf install -y openssl" ] && [ "$(run "prereq_install_r ss pacman; echo \$PR_INSTALL")" = "sudo pacman -S --needed iproute2" ] && [ "$(run "prereq_install_r gunzip apk; echo \$PR_INSTALL")" = "sudo apk add gzip" ]'
+# El mismo gestor no implica el mismo repositorio: dnf es Fedora, RHEL, Rocky, Amazon Linux... y apt es Debian y Ubuntu, con versiones distintas.
+inst() { run "DELTACTL_OS_RELEASE=$FIX/os/$1 prereq_distro; prereq_install_r $2 && echo \"\$PR_INSTALL\" || echo NONE"; }
+check "Fedora: Docker sale del repositorio de Fedora con la sintaxis de dnf5" \
+  '[[ "$(inst fedora docker)" == *"config-manager addrepo"*"/linux/fedora/docker-ce.repo"* ]]'
+check "Rocky: Docker sale del repositorio de CentOS, no del de Fedora" \
+  '[[ "$(inst rocky docker)" == *"/linux/centos/docker-ce.repo"* ]] && [[ "$(inst rocky docker)" != *fedora* ]]'
+check "RHEL: Docker sale del repositorio de RHEL" '[[ "$(inst rhel docker)" == *"/linux/rhel/docker-ce.repo"* ]]'
+check "Amazon Linux: no hay comando de Docker (se remite a la documentación)" '[ "$(inst amzn docker)" = NONE ] && [ "$(inst amzn compose)" = NONE ]'
+check "Debian 12: docker.io solo, sin docker-compose-v2 (no está en sus repositorios)" \
+  '[[ "$(inst debian docker)" == *"docker.io"* ]] && [[ "$(inst debian docker)" != *docker-compose-v2* ]]'
+check "Debian 12: no hay comando de Compose" '[ "$(inst debian compose)" = NONE ]'
+check "Debian 13 y Ubuntu 24.04: Compose v2 por apt" \
+  '[ "$(inst debian13 compose)" = "sudo apt-get install -y docker-compose-v2" ] && [ "$(inst ubuntu compose)" = "sudo apt-get install -y docker-compose-v2" ]'
+check "Debian de versión desconocida (sid): el comando general" '[[ "$(inst debiansid docker)" == *docker-compose-v2* ]]'
+check "lo que no depende de la distribución no cambia (openssl en Rocky y en Debian 12)" \
+  '[ "$(inst rocky openssl)" = "sudo dnf install -y openssl" ] && [ "$(inst debian openssl)" = "sudo apt-get install -y openssl" ]'
 check "un requisito sin paquete (Mongo) no tiene comando" '! run "prereq_install_r mongo apt"'
 check "sin gestor conocido no hay comando" '! run "prereq_install_r openssl \"\""'
 

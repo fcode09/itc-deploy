@@ -7,16 +7,20 @@
 
 PR_IDS=()
 declare -gA PR_LEVEL=() PR_SECTION=() PR_URL=() PR_CMD=()   # PR_CMD["<id>|<manager>"]
+PR_OVR=()                                                    # exceptions by distribution: "<id>|<distros>|<command, or - for none>"
 PR_MANAGERS=(apt dnf pacman apk)
 
 # Reads the catalog. It starts no process: every field is split by `read`.
+# A line @<id>|<distro>[,<distro>...]|<command> overrides the command of the package manager for those distributions (distro<N: only
+# those older than major version N; "-" as the command = no command is known to work there). Same manager, different repository.
 prereq_load() { # [file]
   local file="${1:-$ROOT/lib/core/prereqs.data}" id level section url c_apt c_dnf c_pacman c_apk
-  PR_IDS=() PR_LEVEL=() PR_SECTION=() PR_URL=() PR_CMD=()
+  PR_IDS=() PR_LEVEL=() PR_SECTION=() PR_URL=() PR_CMD=() PR_OVR=()
   [ -r "$file" ] || return 1
   while IFS='|' read -r id level section url c_apt c_dnf c_pacman c_apk || [ -n "$id" ]; do
     id="${id%$'\r'}"
     case "$id" in '' | '#'*) continue ;; esac
+    case "$id" in @*) PR_OVR+=("${id#@}|$level|${section%$'\r'}"); continue ;; esac
     PR_IDS+=("$id")
     PR_LEVEL[$id]="$level" PR_SECTION[$id]="$section"
     [ "$url" = "-" ] || PR_URL[$id]="$url"
@@ -32,17 +36,18 @@ prereq_load
 # --- Distribution -------------------------------------------------------------------------------------------
 # PR_DISTRO_ID / PR_DISTRO_NAME from os-release (DELTACTL_OS_RELEASE replaces the path, for tests) and PR_MANAGER (apt, dnf, pacman,
 # apk, or empty when it is not known). Read with `read`: no process.
-PR_DISTRO_ID="" PR_DISTRO_NAME="" PR_MANAGER=""
+PR_DISTRO_ID="" PR_DISTRO_NAME="" PR_MANAGER="" PR_DISTRO_MAJOR=""
 prereq_distro() {
-  local f="${DELTACTL_OS_RELEASE:-/etc/os-release}" k v id="" like="" name="" pretty="" tok
-  PR_DISTRO_ID="" PR_DISTRO_NAME="" PR_MANAGER=""
+  local f="${DELTACTL_OS_RELEASE:-/etc/os-release}" k v id="" like="" name="" pretty="" ver="" tok
+  PR_DISTRO_ID="" PR_DISTRO_NAME="" PR_MANAGER="" PR_DISTRO_MAJOR=""
   if [ -r "$f" ]; then
     while IFS='=' read -r k v || [ -n "$k" ]; do
       v="${v%$'\r'}"; v="${v#\"}"; v="${v%\"}"; v="${v#\'}"; v="${v%\'}"
-      case "$k" in ID) id="$v" ;; ID_LIKE) like="$v" ;; NAME) name="$v" ;; PRETTY_NAME) pretty="$v" ;; esac
+      case "$k" in ID) id="$v" ;; ID_LIKE) like="$v" ;; NAME) name="$v" ;; PRETTY_NAME) pretty="$v" ;; VERSION_ID) ver="$v" ;; esac
     done < "$f"
   fi
   PR_DISTRO_ID="${id,,}"
+  PR_DISTRO_MAJOR="${ver%%.*}"
   PR_DISTRO_NAME="${pretty:-$name}"
   for tok in $PR_DISTRO_ID ${like,,}; do
     case "$tok" in
@@ -64,9 +69,27 @@ prereq_distro() {
 # Install command of a requirement for this server's package manager, in PR_INSTALL (empty when there is none).
 PR_INSTALL=""
 prereq_install_r() { # id [manager]
-  local m="${2:-$PR_MANAGER}"
+  local m="${2:-$PR_MANAGER}" o oid od oc d lt
   PR_INSTALL=""
-  [ -z "$m" ] || PR_INSTALL="${PR_CMD["$1|$m"]:-}"
+  [ -n "$m" ] || return 1
+  if [ "$m" = "$PR_MANAGER" ] && [ -n "$PR_DISTRO_ID" ]; then   # an exception of this distribution wins over the manager's command
+    for o in ${PR_OVR[@]+"${PR_OVR[@]}"}; do
+      IFS='|' read -r oid od oc <<< "$o"
+      [ "$oid" = "$1" ] || continue
+      for d in ${od//,/ }; do
+        lt=""
+        case "$d" in *"<"*) lt="${d#*<}" d="${d%%<*}" ;; esac
+        [ "$d" = "$PR_DISTRO_ID" ] || continue
+        if [ -n "$lt" ]; then   # only the versions older than lt; an unknown version is not covered by the exception
+          [[ "$PR_DISTRO_MAJOR" =~ ^[0-9]+$ ]] && [ "$PR_DISTRO_MAJOR" -lt "$lt" ] || continue
+        fi
+        [ "$oc" = "-" ] || PR_INSTALL="$oc"
+        [ -n "$PR_INSTALL" ]
+        return
+      done
+    done
+  fi
+  PR_INSTALL="${PR_CMD["$1|$m"]:-}"
   [ -n "$PR_INSTALL" ]
 }
 
