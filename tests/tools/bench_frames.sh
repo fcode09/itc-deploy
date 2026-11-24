@@ -80,12 +80,15 @@ for size in 80x24 120x30 160x40; do
     # shellcheck disable=SC2329,SC2034  # called through ms
     nz_open() { dash_nz_open; DASH_MODE=normal; }
     # shellcheck disable=SC2329,SC2034  # called through ms
-    nz_key() { scr_newinst_key down; scr_newinst_key up; DASH_PC_SIG=(); dash_render; }
+    nz_key() { scr_newinst_key down; scr_newinst_key up; dash_render; }
+    # shellcheck disable=SC2329  # called through ms
+    nz_cold() { DASH_PC_SIG=(); scr_newinst_key down; scr_newinst_key up; dash_render; }
     ms "wizard: open (reads Docker once)" 10 nz_open
     dash_nz_open
     for _s in 0 1 2 3; do
       dash_nz_goto "$_s"
       ms "wizard: step $((_s + 1)), a key and a frame" "$N" nz_key
+      ms "wizard: step $((_s + 1)), every box built again" "$N" nz_cold
     done
     DASH_MODE=normal
     ms "mt_sample" "$N" mt_sample
