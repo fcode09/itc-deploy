@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# shellcheck disable=SC2034  # the DASH_* variables are shared with lib/cmd/dashboard.sh and lib/cmd/dashboard_view.sh
+# shellcheck disable=SC2034,SC2154  # the DASH_* variables are shared with lib/cmd/dashboard.sh, dashboard_view.sh and the other screens
 # Options screen of the panel (key o): theme, language, sampling interval, refresh interval and the vim keys, in one place.
-# Sourced by lib/cmd/dashboard.sh.
+# Loaded by lib/screens/registry.sh.
 #
 # Every change applies at once and is remembered in the user config file, the one that already keeps UI_LANG and UI_THEME
 # (i18n_config_file: $DELTACTL_CONFIG, else ~/.config/deltactl/config). It is written with set_var, a temporary file swapped in
@@ -13,6 +13,7 @@
 #   TUI_REFRESH=<s>      without Docker events, seconds between two readings of the state (1-3600)
 #   TUI_VIM=on|off       whether j k h g G move like the arrows, Home and End
 #   TUI_MOUSE=on|off     whether the panel takes clicks and the wheel (off by default: it takes the terminal's text selection)
+#   TUI_PREREQ=on|off    whether the panel warns when something required is missing on the server (on by default)
 #
 # The variables DELTACTL_THEME, DELTACTL_LANG, DELTACTL_METRICS_INTERVAL and DELTACTL_REFRESH still win when the panel starts;
 # the screen says so next to the option they fix.
@@ -20,7 +21,7 @@
 # Every value read from the file is checked before it is used: only short runs of digits reach an arithmetic expansion. A variable
 # keeps the wider range its own layer always accepted (any whole number of seconds above zero, up to a day).
 
-DASH_OPT_IDS=(theme lang sample refresh vim mouse)
+DASH_OPT_IDS=(theme lang sample refresh vim mouse prereq)
 DASH_OPT_SAMPLES=(1 2 3 5 10)
 DASH_OPT_REFRESHES=(2 5 10 15 30 60)
 DASH_OPT_SEL=0 DASH_OPT_N=0 DASH_VIM=1 DASH_CFG_V="" DASH_OPT_FILE=""
@@ -79,6 +80,8 @@ dash_opts_load() {
   case "${DASH_CFG_V,,}" in off | no | 0 | false) DASH_VIM=0 ;; *) DASH_VIM=1 ;; esac
   dash_cfg_get TUI_MOUSE
   case "${DASH_CFG_V,,}" in on | yes | 1 | true) tui_mouse 1 ;; *) tui_mouse 0 ;; esac
+  dash_cfg_get TUI_PREREQ
+  case "${DASH_CFG_V,,}" in off | no | 0 | false) DASH_PREREQ=0 ;; *) DASH_PREREQ=1 ;; esac
   # The path as the screen shows it, worked out once: under the home it starts with ~, and a long one keeps its end (the part that
   # tells the file), so it never widens the box.
   local f
@@ -146,6 +149,11 @@ dash_opt_change() { # dir
       if [ "$TUI_MOUSE" -eq 1 ]; then dash_cfg_set TUI_MOUSE on; else dash_cfg_set TUI_MOUSE off; fi
       dash_msg info "$(t tui.opt.set "$(t tui.opt.mouse)" "$(dash_opt_onoff "$TUI_MOUSE")")"
       ;;
+    prereq)
+      DASH_PREREQ=$((1 - DASH_PREREQ))
+      if [ "$DASH_PREREQ" -eq 1 ]; then dash_cfg_set TUI_PREREQ on; else dash_cfg_set TUI_PREREQ off; fi
+      dash_msg info "$(t tui.opt.set "$(t tui.opt.prereq)" "$(dash_opt_onoff "$DASH_PREREQ")")"
+      ;;
   esac
   DASH_OPT_N=$((DASH_OPT_N + 1))
 }
@@ -173,6 +181,7 @@ dash_opt_value() { # id -> DASH_OPT_TXT
     refresh) DASH_OPT_TXT="$DASH_REFRESH_SECONDS s" ;;
     vim) if [ "$DASH_VIM" -eq 1 ]; then dt tui.opt.on; else dt tui.opt.off; fi; DASH_OPT_TXT="$DTV" ;;
     mouse) if [ "$TUI_MOUSE" -eq 1 ]; then dt tui.opt.on; else dt tui.opt.off; fi; DASH_OPT_TXT="$DTV" ;;
+    prereq) if [ "$DASH_PREREQ" -eq 1 ]; then dt tui.opt.on; else dt tui.opt.off; fi; DASH_OPT_TXT="$DTV" ;;
   esac
 }
 DASH_OPT_TXT=""
@@ -210,3 +219,13 @@ dash_dialog_options() { # body_height
   dt tui.opt.title
   dash_dialog "$1" "$DTV" 60
 }
+
+# --- The contract of lib/screens/registry.sh --------------------------------------------------------------------
+scr_options_render() { dash_dialog_options "$2"; } # width height
+scr_options_key() { dash_key_options "$1"; }
+scr_options_keys() { # width
+  local line
+  dt tui.opt.keys; line="${DTV//\{1\}/$DASH_UD}"
+  dash_keybar "${line//\{2\}/$DASH_LR}" "$1"; TUI_FRAME+=(" $DASH_KBV")
+}
+scr_options_sig() { DASH_SIG+="|$DASH_OPT_SEL|$DASH_OPT_N"; }

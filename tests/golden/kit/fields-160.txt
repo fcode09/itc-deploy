@@ -1,0 +1,9 @@
+╭─┐¹variables┌─┐editar┌────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ Nombre      ● colorado                                                                                                                          disponible   │
+│ Nombre      ✖ Colorado!                                                                                                                          a-z 0-9 -   │
+│ Puerto      ○ 4100                                                                                                                                           │
+│ S0_PORT     ● 4100 (libre)                                                                                                                                   │
+│ JWT_SECRET  ● ••••••••••••                                                                                                                        generado   │
+│ JWT_SECRET  ● supersecreto                                                                                                                                   │
+│ MONGO_URI   ▲ mongodb://host.docker.internal:27017/authsoftware2021?replicaSet=rs0&readPreference=primary                         usa host.docker.internal   │
+╰─┘Enter editar└─┘g generar└─┘r revelar└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯

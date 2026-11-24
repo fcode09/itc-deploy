@@ -1,0 +1,31 @@
+=== frame 1 ===
+
+  1 Instancias   2 Recursos   3 Salida   4 Ejecuciones   5 Procesos   6 Consola   7 Servidor  [8 Imágenes]             
+
+
+
+
+
+
+
+
+                          ╭─ ▸usar 2.14.1 ───────────────────────────────────────────────────╮
+                          │                                                                  │
+                          │   Cambiar la versión de s0 en 'ix-colorado': 2.14.0 → 2.14.1. Se │
+                          │   escribe S0_TAG en su .env.instance; la versión anterior queda  │
+                          │   guardada para el rollback al desplegar.                        │
+                          │                                                                  │
+                          │   Desplegar vuelve a crear el contenedor de s0 de 'ix-colorado': │
+                          │   hay unos segundos sin servicio. Los datos no se tocan.         │
+                          │                                                                  │
+                          ╰──────────────────────────────────────────────────────────────────╯
+
+
+
+
+
+
+
+
+
+ y cambiar y desplegar · g solo guardar la etiqueta · ← volver · Esc cancelar

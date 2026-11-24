@@ -12,9 +12,13 @@
 source "$ROOT/lib/cmd/help.sh"
 
 # Options of each command (tests/test-completion.sh checks that they appear on its help page).
+_new_flags="--services --existing --wizard"
+for _s in "${KNOWN_SERVICES[@]}"; do _new_flags+=" --$_s-image"; done
+for _s in "${KNOWN_SERVICES[@]}"; do _new_flags+=" --$_s-tag"; done
 COMPLETION_FLAGS=(
-  "new:--services --existing --wizard"
+  "new:$_new_flags --ip --generate-secrets"
   "init:--yes"
+  "doctor:--json"
   "rollback:--yes"
   "down:--yes"
   "status:--json --stats --strict --watch"

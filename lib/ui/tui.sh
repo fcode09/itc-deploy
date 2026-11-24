@@ -373,6 +373,8 @@ tui_draw() {
     TUI_FRAMES=$((TUI_FRAMES + 1))
     printf '=== frame %d ===\n' "$TUI_FRAMES"
     printf '%s\n' "${TUI_FRAME[@]}"
+    # Where the real cursor would be (row;column), for the tests that check it: only when asked, so no frame changes otherwise.
+    [ -z "${DELTACTL_TUI_SHOW_CURSOR:-}" ] || printf '=== cursor %s ===\n' "${TUI_CURSOR:-none}"
     return 0
   fi
   [ "$TUI_FORCE" -eq 0 ] || { out="$TH_RESET"$'\033[2J'; TUI_PREV=(); }

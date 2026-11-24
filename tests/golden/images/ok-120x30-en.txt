@@ -1,0 +1,31 @@
+=== frame 1 ===
+
+  1 Instances   2 Resources   3 Output   4 Runs   5 Processes   6 Console   7 Server  [8 Images]                       
+╭─┐ ▸⁸images ┌─────────────────────────────────────────────────────────────────────────────┐server amd64 · 6 versions┌─╮
+│ ▾ s0 · auth-backend                                                                            5 versions · ★ 2.14.1 │
+│   VERSION       CREATED           SIZE ARCH      USE                                                                 │
+│   3.0.0-rc1     1 h ago          300MB arm64 ✖   unused                                                              │
+│   2.14.1 ★      2 days ago       300MB amd64 ✔   ix-lima(current)  ↑ most recent                                     │
+│   latest ▲      5 days ago       300MB amd64 ✔   unused                                                              │
+│   2.14.0        9 days ago       300MB amd64 ✔   ix-colorado(current)                                                │
+│   2.13.2        1 month ago      300MB amd64 ✔   ix-lima(previous)                                                   │
+│                                                                                                                      │
+│ ▾ s1 · gueo-back-end                                                                             1 version · ★ 2.9.0 │
+│   VERSION       CREATED           SIZE ARCH      USE                                                                 │
+│   2.9.0 ★       5 days ago       300MB amd64 ✔   ix-colorado(current) ix-lima(current)  ↑ most recent                │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│ The most recent this server can use · Enter uses it in an instance                                                   │
+╰─┘Enter use in an instance…└─┘l load .tar└─┘Space detail└─┘c copy└─┘R read again└─────────────────────────────────────╯
+
+ ↑↓ choose · Enter use in an instance · Space detail · l load · c copy · R read again · : command · ? help · q quit

@@ -53,7 +53,7 @@ set_var() { # file key value
 marker_file() { printf '%s/.initialized' "$(instance_dir "$1")"; }
 
 write_marker() { # instance source(init|existing|init-incomplete)
-  local dir f tmp
+  local dir f tmp s
   dir="$(instance_dir "$1")"
   f="$(marker_file "$1")"
   # Written aside and renamed: the marker is the protection against repeating the seeds, so it must never be half-written.
@@ -61,8 +61,7 @@ write_marker() { # instance source(init|existing|init-incomplete)
   {
     printf 'SOURCE=%s\n' "$2"
     printf 'INITIALIZED_AT=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-    printf 'S0_TAG=%s\n' "$(get_var "$dir/.env.instance" S0_TAG)"
-    printf 'S1_TAG=%s\n' "$(get_var "$dir/.env.instance" S1_TAG)"
+    for s in "${KNOWN_SERVICES[@]}"; do printf '%s=%s\n' "$(tag_var "$s")" "$(get_var "$dir/.env.instance" "$(tag_var "$s")")"; done
   } > "$tmp" || { rm -f "$tmp"; return 1; }
   chmod 600 "$tmp"
   mv -f "$tmp" "$f" || { rm -f "$tmp"; return 1; }

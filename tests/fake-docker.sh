@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
 # `docker` simulado y determinista para los tests: no necesita Docker real y nunca levanta nada.
 # Se copia a "$FIX/bin/docker" (ver tests/test-guided.sh y tests/test-menu.sh). Entiende solo lo que usa deltactl:
-#   info, network inspect, ps, image ls/inspect, run (prueba de Mongo) y compose (version, config, up/pull/...).
+#   info, network inspect, ps, image ls/inspect, load, run (prueba de Mongo) y compose (version, config, up/pull/...).
 # Estado simulado en $FIX: images.txt (ref|id|arquitectura), calls.log (lo que se intentó ejecutar),
-# y los archivos compose_invalid y mongo_fail que fuerzan errores.
+# y los archivos compose_invalid y mongo_fail que fuerzan errores. Opcionales: image_dates.txt (referencia|fecha de creación), server_arch (la
+# arquitectura del servidor) y load_result/load_date/load_arch (lo que `docker load` imprime y carga).
 case "$1" in
   info)
     case "$*" in
-      *Architecture*) echo x86_64 ;;
+      *Architecture*) cat "$FIX/server_arch" 2> /dev/null || echo x86_64 ;;   # $FIX/server_arch (optional): the architecture of the server
       *ServerVersion*) echo 27.0.0 ;;
       *DockerRootDir*) echo "" ;;
     esac
@@ -29,16 +30,41 @@ case "$1" in
     exit 0 ;;
   image)
     case "$2" in
-      ls) awk -F'|' '{ split($1, r, ":"); printf "%s|%s|%s|1 hour ago|300MB\n", r[1], r[2], $2 }' "$FIX/images.txt" ;;
+      ls)
+        # repo|tag|id|created|size|created_at. The date comes from $FIX/image_dates.txt (ref|date, optional); without it the field is empty.
+        awk -F'|' -v dates="$FIX/image_dates.txt" '
+          BEGIN { while ((getline l < dates) > 0) { split(l, d, "|"); at[d[1]] = d[2] } }
+          { split($1, r, ":"); printf "%s|%s|%s|1 hour ago|300MB|%s\n", r[1], r[2], $2, at[$1] }' "$FIX/images.txt" ;;
       inspect)
-        ref="${*: -1}"
-        line="$(grep -F "$ref|" "$FIX/images.txt" | head -n1)"
-        [ -n "$line" ] || exit 1
-        case "$*" in
-          *Architecture*) echo "$(echo "$line" | cut -d'|' -f3)" ;;
-          *"{{.Id}}"*) echo "$(echo "$line" | cut -d'|' -f2)" ;;
-        esac ;;
+        # Any number of references (or ids) after the options; --format decides what each one prints: id|architecture, the architecture or the id.
+        shift 2
+        fmt="" refs=() rc=0
+        while [ "$#" -gt 0 ]; do
+          case "$1" in --format) fmt="$2"; shift 2 ;; *) refs+=("$1"); shift ;; esac
+        done
+        for ref in "${refs[@]}"; do
+          line="$(grep -F "$ref|" "$FIX/images.txt" | head -n1)"
+          if [ -z "$line" ]; then rc=1; continue; fi
+          id="$(echo "$line" | cut -d'|' -f2)" arch="$(echo "$line" | cut -d'|' -f3)"
+          case "$fmt" in
+            *Architecture*"{{.Id}}"* | *"{{.Id}}"*Architecture*) echo "$id|$arch" ;;
+            *Architecture*) echo "$arch" ;;
+            *"{{.Id}}"*) echo "$id" ;;
+          esac
+        done
+        [ "$rc" -eq 0 ] || exit 1 ;;
     esac
+    exit 0 ;;
+  load)
+    # `docker load -i <file>` (or reading stdin): prints what $FIX/load_result says ("Loaded image: ref" lines, one per image) and adds those
+    # images to images.txt, dated $FIX/load_date (or now). Without $FIX/load_result it loads nothing, as an archive with no images does.
+    echo "$*" >> "$FIX/calls.log"   # (so the line is "load -i <file>")
+    [ -f "$FIX/load_result" ] || exit 0
+    cat "$FIX/load_result"
+    sed -n 's/^Loaded image: //p' "$FIX/load_result" | while IFS= read -r ref; do
+      printf '%s|sha256:%s|%s\n' "$ref" "$(printf '%s' "$ref" | cksum | cut -d' ' -f1)abcdef000000" "$(cat "$FIX/load_arch" 2> /dev/null || echo amd64)" >> "$FIX/images.txt"
+      printf '%s|%s\n' "$ref" "$(cat "$FIX/load_date" 2> /dev/null || date -u '+%Y-%m-%d %H:%M:%S +0000 UTC')" >> "$FIX/image_dates.txt"
+    done
     exit 0 ;;
   run)
     echo "run $*" >> "$FIX/calls.log"

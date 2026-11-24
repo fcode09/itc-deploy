@@ -48,7 +48,7 @@ lib/
 ├─ bootstrap.sh    # carga todas las capas en orden
 ├─ i18n/           # idioma (es por defecto, en) y catálogos de mensajes: lo que lee el usuario
 ├─ ui/             # colores, tablas, banner, mensajes y confirmaciones: cómo se muestra
-├─ core/           # reglas: instancias, servicios, imágenes, puertos (sin entrada/salida propia)
+├─ core/           # reglas: instancias, servicios (catalog.data: un servicio = una línea), imágenes, puertos (sin entrada/salida propia)
 ├─ adapters/       # docker.sh, state.sh (archivos de la instancia), host.sh (puertos, permisos, disco)
 ├─ cmd/            # un archivo por comando; se cargan al usarlos
 └─ help/           # las páginas de ayuda: español en help/, inglés en help/en/
@@ -64,7 +64,7 @@ El código y los comentarios están en inglés; el español es el idioma de la i
 de comandos; el menú y el asistente solo preguntan por ti y te muestran el comando equivalente.
 
 ```bash
-./deltactl                        # en una terminal: el panel en vivo (vistas 1-6, ↑↓ ←→, Enter = acciones, : = cualquier comando, ? = teclas, o = opciones, q = salir; guía: docs/panel.md)
+./deltactl                        # en una terminal: el panel en vivo (vistas 1-7, ↑↓ ←→, Enter = acciones, : = cualquier comando, ? = teclas, o = opciones, q = salir; guía: docs/panel.md)
 ./deltactl menu --classic         # el menú numerado con todas las acciones (con ?4 ves la ayuda de la opción 4); es el que se usa sin terminal
 ./deltactl status                 # versión configurada vs la que corre, salud, puertos, uptime y siguientes pasos
 ./deltactl status colorado        # detalle de una instancia: imagen, previa, memoria/CPU y errores recientes
@@ -75,7 +75,7 @@ de comandos; el menú y el asistente solo preguntan por ti y te muestran el coma
 ./deltactl runs resolve <id>      # marca como revisada una ejecución interrumpida (hasta entonces no se ejecuta nada nuevo)
 ./deltactl runs prune --dry-run   # qué borraría de las ejecuciones viejas (30 días / 1 GB); sin --dry-run las borra
 ./deltactl check colorado         # comprueba todo lo que deploy exigiría, sin levantar nada (--mongo prueba las bases)
-./deltactl doctor                 # diagnóstico del servidor: Docker, disco, memoria, Mongo, permisos
+./deltactl doctor                 # diagnóstico del servidor: Docker, disco, memoria, Mongo, permisos y lo recomendado (nginx/Caddy, certbot...); --json para scripts y el panel
 ./deltactl new --wizard           # asistente: pregunta lo esencial y lista lo que falta completar
 ./deltactl completion bash        # autocompletado con Tab (source <(./deltactl completion bash))
 ```

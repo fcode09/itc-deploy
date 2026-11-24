@@ -1,10 +1,13 @@
 # doctor · diagnóstico del servidor
 
-Revisa el servidor, no una instancia concreta: Docker, recursos, MongoDB, permisos y herramientas.
-Es solo lectura y cada fallo indica cómo arreglarlo.
+Revisa el servidor, no una instancia concreta: Docker, recursos, MongoDB, permisos, herramientas y lo recomendado.
+Es solo lectura y cada fallo indica cómo arreglarlo, con el comando de instalación de la distribución (apt, dnf, pacman o apk).
+Nunca instala nada: tú copias y ejecutas el comando.
 
 ## Uso
 $ ./deltactl doctor
+$ ./deltactl doctor --json
+`--json` imprime el informe completo (distribución, totales y cada requisito con para qué sirve y cómo instalarlo) en JSON.
 
 ## Qué comprueba
 - Docker: daemon accesible y Compose v2.20 o superior
@@ -15,6 +18,7 @@ $ ./deltactl doctor
 - límite de archivos abiertos de `mongod` (recomendado 64000 o más con muchas instancias)
 - permisos de los `.env.*` (deben ser 600) y propietario de `data/` (uid 1000)
 - herramientas auxiliares: `ss`, `openssl` y `gunzip`
+- recomendado (solo informa, no cuenta como aviso): proxy `nginx` o `Caddy`, `certbot`, hora sincronizada, cortafuegos y `curl`
 
 ## Resultado
 Termina con código 1 si hay errores; los avisos no cambian el código de salida.

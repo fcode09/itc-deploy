@@ -1,0 +1,25 @@
+=== frame 1 ===
+
+  1   2   3   4   5   6   7  [8 Imágenes]                                      
+
+
+
+
+
+
+     ╭─ ▸usar 2.14.1 ─────────────────────────────────────────────────────╮
+     │                                                                    │
+     │   Elige la instancia donde usar auth-backend:2.14.1 (servicio s0): │
+     │                                                                    │
+     │  ▸ ix-colorado  ahora 2.14.0 → 2.14.1                             │
+     │    ix-lima      · ya usa esta versión                              │
+     │                                                                    │
+     ╰────────────────────────────────────────────────────────────────────╯
+
+
+
+
+
+
+
+ ↑↓ elegir · Enter continuar · Esc cancelar

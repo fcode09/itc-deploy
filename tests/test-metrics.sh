@@ -97,4 +97,145 @@ check "the default sampling interval is 2 seconds" '[ "$(lib "mt_interval_us")" 
 check "the sampler is due only after the interval" '[ "$(lib "DELTACTL_METRICS_INTERVAL=1; $SAMPLER HOST_FAKE_NOW_US=1500000; mt_due && echo due || echo wait; HOST_FAKE_NOW_US=2000000; mt_due && echo due || echo wait")" = "$(printf "wait\ndue")" ]'
 check "DELTACTL_METRICS_INTERVAL sets the interval" '[ "$(DELTACTL_METRICS_INTERVAL=5 lib "mt_interval_us")" = "5000000" ]'
 
+section "4. the server as a whole: CPU, load, uptime and memory by kind"
+# /proc/stat read twice: the whole CPU +300 user +200 system +500 idle (50 %), cpu0 80 % and cpu1 20 %.
+printf 'cpu  1000 0 1000 7000 0 0 0 0 0 0\ncpu0 500 0 500 3500 0 0 0 0 0 0\ncpu1 500 0 500 3500 0 0 0 0 0 0\nintr 1\nbtime 1700000000\n' > "$FIX/stat.A"
+printf 'cpu  1300 0 1200 7500 0 0 0 0 0 0\ncpu0 750 0 650 3600 0 0 0 0 0 0\ncpu1 550 0 550 3900 0 0 0 0 0 0\nintr 2\nbtime 1700000000\n' > "$FIX/stat.B"
+cpu2() { echo "cp $FIX/stat.A $FIX/proc/stat; host_cpu_read; r1=\$?; ready1=\$HOST_CPU_READY; cp $FIX/stat.B $FIX/proc/stat; host_cpu_read; $1"; }
+check "the first CPU reading only stores the counters" '[ "$(lib "$(cpu2 "echo \$r1 \$ready1 \$HOST_CPU_READY")")" = "0 0 1" ]'
+check "CPU: the whole processor and every core, in percent" '[ "$(lib "$(cpu2 "echo \$HOST_CPU_N \${HOST_CPU_PCT[*]}")")" = "2 50 80 20" ]'
+check "CPU: iowait counts as idle" '[ "$(lib "printf \"cpu  0 0 0 100 0 0 0 0\n\" > $FIX/proc/stat; host_cpu_read; printf \"cpu  0 0 0 100 100 0 0 0\n\" > $FIX/proc/stat; host_cpu_read; echo \${HOST_CPU_PCT[0]}")" = "0" ]'
+check "CPU: counters that did not move are 0 %, not a division by zero" '[ "$(lib "cp $FIX/stat.A $FIX/proc/stat; host_cpu_read; host_cpu_read; echo \${HOST_CPU_PCT[*]}")" = "0 0 0" ]'
+check "CPU: with 12 cores cpu10 is the eleventh core" '[ "$(lib "(echo \"cpu  12 0 12 96 0 0 0 0\"; for i in 0 1 2 3 4 5 6 7 8 9 10 11; do printf \"cpu\$i 1 0 1 8 0 0 0 0\n\"; done) > $FIX/proc/stat; host_cpu_read; echo \$HOST_CPU_N")" = "12" ]'
+check "CPU: a missing /proc/stat is a clean failure with no cores" '[ "$(DELTACTL_PROC_ROOT=$FIX/none lib "host_cpu_read || echo none \$HOST_CPU_N")" = "none 0" ]'
+cp "$FIX/stat.A" "$FIX/proc/stat"
+printf '0.82 0.50 0.40 3/200 1234\n' > "$FIX/loadavg"
+check "load average: 1, 5 and 15 minutes and the tasks" '[ "$(lib "host_load_full_read; echo \$HOST_LOAD1 \$HOST_LOAD5 \$HOST_LOAD15 \$HOST_TASKS_RUN \$HOST_TASKS_ALL")" = "0.82 0.50 0.40 3 200" ]'
+check "load average: a garbage file is a failure" '[ "$(printf "x y z\n" > $FIX/loadavg2; DELTACTL_LOADAVG=$FIX/loadavg2 lib "host_load_full_read || echo bad")" = "bad" ]'
+check "load average: a missing file is a failure" '[ "$(DELTACTL_LOADAVG=$FIX/none lib "host_load_full_read || echo none")" = "none" ]'
+printf '12345.67 9999.10\n' > "$FIX/proc/uptime"
+check "uptime and boot time" '[ "$(lib "host_uptime_read; echo \$HOST_UPTIME_S \$HOST_BOOT_TS")" = "12345 1700000000" ]'
+check "uptime: without /proc/stat there is still the uptime" '[ "$(lib "rm -f $FIX/proc/stat; host_uptime_read; echo \$HOST_UPTIME_S [\$HOST_BOOT_TS]"; cp $FIX/stat.A $FIX/proc/stat)" = "12345 []" ]'
+printf 'MemTotal: 8388608 kB\nMemFree: 1000000 kB\nMemAvailable: 3145728 kB\nBuffers: 100 kB\nCached: 2000000 kB\nSReclaimable: 500 kB\nSwapTotal: 2097152 kB\nSwapFree: 2000000 kB\n' > "$FIX/meminfo2"
+check "memory by kind: used, cached (with the reclaimable slab), buffers, free and swap" \
+  '[ "$(DELTACTL_MEMINFO=$FIX/meminfo2 lib "host_mem_detail_read; echo \$HOST_MEMD_TOTAL \$HOST_MEMD_USED \$HOST_MEMD_CACHED \$HOST_MEMD_BUFFERS \$HOST_MEMD_FREE \$HOST_MEMD_AVAIL \$HOST_MEMD_SWAP_USED")" = "8388608 5242880 2000500 100 1000000 3145728 97152" ]'
+check "memory by kind: a server without swap leaves it empty" '[ "$(DELTACTL_MEMINFO=$FIX/meminfo lib "host_mem_detail_read; echo [\$HOST_MEMD_SWAP_USED] \$HOST_MEMD_USED")" = "[] 5242880" ]'
+check "memory by kind: a missing file is a failure" '[ "$(DELTACTL_MEMINFO=$FIX/none lib "host_mem_detail_read || echo none")" = "none" ]'
+
+section "5. temperature (hwmon and thermal zones)"
+export DELTACTL_SYS_ROOT="$FIX/sys"
+mkdir -p "$FIX/sys/class/hwmon/hwmon0" "$FIX/sys/class/hwmon/hwmon1" "$FIX/sys/class/hwmon/hwmon2"
+h="$FIX/sys/class/hwmon"
+echo coretemp > "$h/hwmon0/name"
+echo 42000 > "$h/hwmon0/temp2_input"; echo "Core 0" > "$h/hwmon0/temp2_label"
+echo 45500 > "$h/hwmon0/temp1_input"; echo "Package id 0" > "$h/hwmon0/temp1_label"; echo 100000 > "$h/hwmon0/temp1_crit"
+echo nvme > "$h/hwmon1/name"; echo 38000 > "$h/hwmon1/temp1_input"; echo Composite > "$h/hwmon1/temp1_label"
+echo acpitz > "$h/hwmon2/name"; echo "N/A" > "$h/hwmon2/temp1_input"
+check "hwmon: every readable sensor with its label" '[ "$(lib "host_temp_read; echo \$HOST_TEMP_N")" = "3" ]'
+check "hwmon: the package temperature is the processor's, in whole degrees" '[ "$(lib "host_temp_read; echo \$HOST_TEMP_CPU_C \$HOST_TEMP_MAX_C")" = "45 45" ]'
+check "hwmon: labels join the chip name and the sensor label" '[[ "$(lib "host_temp_read; printf \"%s|\" \"\${HOST_TEMP_LABEL[@]}\"")" == *"coretemp Package id 0|"* && "$(lib "host_temp_read; printf \"%s|\" \"\${HOST_TEMP_LABEL[@]}\"")" == *"nvme Composite|"* ]]'
+check "hwmon: the critical temperature is read when there is one" '[ "$(lib "host_temp_read; for i in \${!HOST_TEMP_LABEL[@]}; do [ \"\${HOST_TEMP_LABEL[\$i]}\" = \"coretemp Package id 0\" ] && echo \${HOST_TEMP_CRIT[\$i]}; done")" = "100" ]'
+check "hwmon: a sensor that does not hold a number is skipped" '! lib "host_temp_read; printf \"%s\n\" \"\${HOST_TEMP_LABEL[@]}\"" | grep -q acpitz'
+rm -rf "$h"/hwmon0 "$h"/hwmon1 "$h"/hwmon2
+mkdir -p "$h/hwmon0"; echo k10temp > "$h/hwmon0/name"; echo 61000 > "$h/hwmon0/temp1_input"; echo Tctl > "$h/hwmon0/temp1_label"; echo 50000 > "$h/hwmon0/temp3_input"
+check "hwmon: an AMD Tctl is the processor" '[ "$(lib "host_temp_read; echo \$HOST_TEMP_CPU_C")" = "61" ]'
+rm -rf "$h"
+mkdir -p "$FIX/sys/class/thermal/thermal_zone0" "$FIX/sys/class/thermal/thermal_zone1"
+echo x86_pkg_temp > "$FIX/sys/class/thermal/thermal_zone0/type"; echo 51000 > "$FIX/sys/class/thermal/thermal_zone0/temp"
+echo acpitz > "$FIX/sys/class/thermal/thermal_zone1/type"; echo 30000 > "$FIX/sys/class/thermal/thermal_zone1/temp"
+check "without hwmon the thermal zones are used" '[ "$(lib "host_temp_read; echo \$HOST_TEMP_N \$HOST_TEMP_CPU_C")" = "2 51" ]'
+rm -rf "$FIX/sys/class"
+check "no sensor at all (WSL, a container) is a clean failure" '[ "$(lib "host_temp_read || echo none \$HOST_TEMP_N [\$HOST_TEMP_CPU_C]")" = "none 0 []" ]'
+
+section "6. network"
+mkdir -p "$FIX/proc/net"
+netdev() { # eth0_rx eth0_tx wlan_rx wlan_tx
+  printf 'Inter-|   Receive                                                |  Transmit\n face |bytes    packets errs drop fifo frame compressed multicast|bytes    packets errs drop fifo colls carrier compressed\n    lo: 9999999 10 0 0 0 0 0 0 9999999 10 0 0 0 0 0 0\n  eth0: %s 10 0 0 0 0 0 0 %s 10 0 0 0 0 0 0\nwlan0:%s 10 0 0 0 0 0 0 %s 10 0 0 0 0 0 0\ndocker0: 88888888 1 0 0 0 0 0 0 88888888 1 0 0 0 0 0 0\nvethab12: 77777777 1 0 0 0 0 0 0 77777777 1 0 0 0 0 0 0\n' "$1" "$2" "$3" "$4" > "$FIX/proc/net/dev"
+}
+netdev 1000000 500000 1000 1000
+check "net: the first reading has totals but no speed yet" '[ "$(lib "HOST_FAKE_NOW_US=1000000; host_net_read; echo \$? \$HOST_NET_MAIN \$HOST_NET_RX_TOTAL \$HOST_NET_TX_TOTAL [\$HOST_NET_DOWN_BPS]")" = "0 eth0 1000000 500000 []" ]'
+check "net: lo and the virtual interfaces of Docker are left out" '[ "$(lib "host_net_read; echo \$HOST_NET_IFACES")" = "eth0 wlan0" ]'
+check "net: the speed is bytes per second over the time between readings" \
+  '[ "$(lib "HOST_FAKE_NOW_US=1000000; host_net_read; sed -i s/^.*eth0.*\$/\"  eth0: 3000000 10 0 0 0 0 0 0 1500000 10 0 0 0 0 0 0\"/ $FIX/proc/net/dev; HOST_FAKE_NOW_US=3000000; host_net_read; echo \$HOST_NET_DOWN_BPS \$HOST_NET_UP_BPS")" = "1000000 500000" ]'
+netdev 1000000 500000 1000 1000
+check "net: a counter that goes back (a reset) is a speed of 0, not negative" \
+  '[ "$(lib "HOST_FAKE_NOW_US=1000000; host_net_read; sed -i s/^.*eth0.*\$/\"  eth0: 10 10 0 0 0 0 0 0 10 10 0 0 0 0 0 0\"/ $FIX/proc/net/dev; HOST_FAKE_NOW_US=2000000; host_net_read; echo \$HOST_NET_DOWN_BPS \$HOST_NET_UP_BPS")" = "0 0" ]'
+netdev 1000000 500000 1000 1000
+check "net: the line \"wlan0:1000\" (no space after the colon) is read" '[ "$(lib "host_net_read; echo \${HOST_NET_RX[wlan0]}")" = "1000" ]'
+check "net: DELTACTL_NET_IFACE chooses the interface" '[ "$(DELTACTL_NET_IFACE=wlan0 lib "host_net_read; echo \$HOST_NET_MAIN \$HOST_NET_RX_TOTAL")" = "wlan0 1000" ]'
+check "net: a missing /proc/net/dev is a clean failure" '[ "$(DELTACTL_PROC_ROOT=$FIX/none lib "host_net_read || echo none [\$HOST_NET_MAIN]")" = "none []" ]'
+
+section "7. disks: I/O, mounts and use"
+printf '   8       0 sda 100 0 2000 50 200 0 4000 80 0 10 130\n   8       1 sda1 90 0 1800 40 150 0 3000 70 0 10 110\n 259       0 nvme0n1 10 0 800 5 20 0 1600 8 0 3 13\n 259       1 nvme0n1p1 9 0 700 5 10 0 1000 8 0 3 13\n 253       0 dm-0 5 0 100 1 5 0 100 1 0 1 2\n   7       0 loop0 1 0 8 0 0 0 0 0 0 0 0\n' > "$FIX/proc/diskstats"
+check "disk I/O: only the whole disks count (no partitions, dm or loop)" '[ "$(lib "host_diskio_read; echo \$HOST_DISKIO_DEVICES")" = "sda nvme0n1" ]'
+check "disk I/O: bytes per second between two readings (a sector is 512 bytes)" \
+  '[ "$(lib "HOST_FAKE_NOW_US=1000000; host_diskio_read; printf \"8 0 sda 100 0 4000 50 200 0 8000 80 0 10 130\n259 0 nvme0n1 10 0 800 5 20 0 1600 8 0 3 13\n\" > $FIX/proc/diskstats; HOST_FAKE_NOW_US=3000000; host_diskio_read; echo \$HOST_DISKIO_READ_BPS \$HOST_DISKIO_WRITE_BPS")" = "512000 1024000" ]'
+printf '/dev/sda2 / ext4 rw 0 0\n/dev/sda1 /boot/efi vfat rw 0 0\ntmpfs /run tmpfs rw 0 0\n/dev/sdb1 /mnt/my\\040data xfs rw 0 0\noverlay /var/lib/docker/overlay2/x/merged overlay rw 0 0\n/dev/sda2 /var/lib/docker btrfs rw 0 0\n/dev/sda2 /home ext4 rw 0 0\n' > "$FIX/proc/mounts"
+check "mounts: real filesystems only, once per device, without Docker's paths" '[ "$(lib "host_disks_read; echo \$HOST_DISK_N \${HOST_DISK_DEV[*]}")" = "2 /dev/sda2 /dev/sdb1" ]'
+check "mounts: the escape of a space (\\040) in a path is undone" '[ "$(lib "host_disks_read; echo \"\${HOST_DISK_MNT[1]}\"")" = "/mnt/my data" ]'
+check "mounts: a missing /proc/mounts is a clean failure" '[ "$(DELTACTL_PROC_ROOT=$FIX/none lib "host_disks_read || echo none \$HOST_DISK_N")" = "none 0" ]'
+cat > "$FIX/fake-df" <<'EOF'
+#!/bin/sh
+echo x >> "$FIX/df.calls"
+echo "Filesystem 1024-blocks Used Available Capacity Mounted on"
+echo "/dev/sda2 100000000 40000000 60000000 40% /"
+echo "/dev/sdb1 2000000 1900000 100000 95% /mnt/my data"
+EOF
+chmod +x "$FIX/fake-df"
+check "use of the disks: total, used and percent from one df" \
+  'rm -f $FIX/df.calls; [ "$(DELTACTL_DF=$FIX/fake-df lib "host_disks_read; host_disk_usage_read; echo \${HOST_DISK_TOTAL[0]} \${HOST_DISK_USED[0]} \${HOST_DISK_PCT[0]} \${HOST_DISK_PCT[1]}")" = "100000000 40000000 40 95" ] && [ "$(wc -l < $FIX/df.calls)" = "1" ]'
+check "use of the disks: df runs once per TTL, whatever the number of readings" \
+  'rm -f $FIX/df.calls; DELTACTL_DF=$FIX/fake-df lib "HOST_FAKE_NOW_US=1000000000000; host_disks_read; for i in 1 2 3 4 5; do host_disk_usage_read; done; HOST_FAKE_NOW_US=1000031000000; host_disk_usage_read" >/dev/null; [ "$(wc -l < $FIX/df.calls)" = "2" ]'
+check "use of the disks: without df it fails cleanly" '[ "$(DELTACTL_DF=$FIX/none lib "host_disks_read; host_disk_usage_read || echo none")" = "none" ]'
+
+section "8. the server sampler"
+# every source present, two samples one second apart
+cat > "$FIX/sample2.sh" <<EOF
+cp $FIX/stat.A $FIX/proc/stat
+printf '  eth0: 1000000 10 0 0 0 0 0 0 500000 10 0 0 0 0 0 0\n' > $FIX/proc/net/dev
+printf '8 0 sda 100 0 2000 50 200 0 4000 80 0 10 130\n' > $FIX/proc/diskstats
+HOST_FAKE_NOW_US=1000000; MT_HOST_DETAIL=1; DELTACTL_DF=$FIX/fake-df
+mt_host_sample
+cp $FIX/stat.B $FIX/proc/stat
+printf '  eth0: 3000000 10 0 0 0 0 0 0 1500000 10 0 0 0 0 0 0\n' > $FIX/proc/net/dev
+printf '8 0 sda 100 0 4000 50 200 0 8000 80 0 10 130\n' > $FIX/proc/diskstats
+HOST_FAKE_NOW_US=2000000
+mt_host_sample
+EOF
+check "the sampler fills the CPU, per core and its history" '[ "$(lib "source $FIX/sample2.sh; echo \$MT_CPU_ALL \${MT_CORE_PCT[*]} \$MT_HH_CPU")" = "50 50 80 20 50" ]'
+check "the sampler fills network speeds, their recent maximum and the session totals" \
+  '[ "$(lib "source $FIX/sample2.sh; echo \$HOST_NET_DOWN_BPS \$MT_NET_DOWN_MAX \$MT_NET_UP_MAX \$MT_NET_DOWN_TOTAL \$MT_NET_UP_TOTAL")" = "2000000 2000000 1000000 2000000 1000000" ]'
+check "the sampler fills disk I/O and the use of the disks" '[ "$(lib "source $FIX/sample2.sh; echo \$MT_HH_DIOR \$HOST_DISK_N \${HOST_DISK_PCT[0]}")" = "1024000 2 40" ]'
+check "every source that answered is marked 1" '[ "$(lib "source $FIX/sample2.sh; echo \${MT_SRC[cpu]} \${MT_SRC[net]} \${MT_SRC[diskio]} \${MT_SRC[disk]} \${MT_SRC[load]} \${MT_SRC[uptime]}")" = "1 1 1 1 1 1" ]'
+check "the histories hold MT_HIST_LEN values at most" '[ "$(lib "MT_HIST_LEN=3; source $FIX/sample2.sh; for i in 1 2 3 4 5; do HOST_FAKE_NOW_US=\$((3000000 + i * 1000000)); mt_host_sample; done; read -ra h <<< \"\$MT_HH_CPU\"; echo \${#h[@]}")" = "3" ]'
+check "the recent maximum is the largest value of the window" '[ "$(lib "mt_max_of \"3 9 4 1\"; echo \$MT_MAXV; mt_max_of \"\"; echo \$MT_MAXV")" = "$(printf "9\n0")" ]'
+check "with no sources at all (WSL, a container) the sampler does not fail and marks them 0" \
+  '[ "$(DELTACTL_PROC_ROOT=$FIX/none DELTACTL_SYS_ROOT=$FIX/none DELTACTL_MEMINFO=$FIX/none DELTACTL_LOADAVG=$FIX/none lib "MT_HOST_DETAIL=1; HOST_FAKE_NOW_US=1000000; mt_host_sample; echo \$? \${MT_SRC[cpu]} \${MT_SRC[temp]} \${MT_SRC[net]} \${MT_SRC[diskio]} \${MT_SRC[disk]} \${MT_SRC[load]} \${MT_SRC[mem]} \${MT_SRC[uptime]}")" = "0 0 0 0 0 0 0 0 0" ]'
+check "mt_sample reads the server only when MT_HOST_DETAIL=1" \
+  '[ "$(lib "$SAMPLER echo [\${MT_SRC[cpu]:-}]")" = "[]" ] && [ "$(lib "MT_HOST_DETAIL=1; $SAMPLER echo \${MT_SRC[cpu]}")" = "1" ]'
+check "mt_reset forgets the server histories" '[ "$(lib "source $FIX/sample2.sh; mt_reset; echo [\$MT_HH_CPU][\$MT_HH_NETD] \$MT_NET_DOWN_MAX")" = "[][] 0" ]'
+check "temperature is sampled on the first sample and then every MT_TEMP_EVERY" \
+  'mkdir -p $FIX/sys/class/hwmon/hwmon0; echo coretemp > $FIX/sys/class/hwmon/hwmon0/name; echo 45000 > $FIX/sys/class/hwmon/hwmon0/temp1_input; [ "$(lib "source $FIX/sample2.sh; read -ra h <<< \"\$MT_HH_TEMP\"; echo \${#h[@]} \${MT_SRC[temp]}")" = "1 1" ]; rm -rf $FIX/sys/class'
+
+section "9. cost: no process per reading and a bounded time per source"
+# The time is a coarse net (a regression that spawned a process per line would blow through it); the real figures at rest are in
+# docs/panel-pendiente.md. Best of three batches, so one busy moment of the machine does not fail it.
+fnbody() { sed -n "/^$1() {/,/^}/p" lib/adapters/host.sh; }
+check "the readers of the server start no process (no \$( ), no pipes, no external program)" \
+  'for f in host_cpu_read host_load_full_read host_uptime_read host_mem_detail_read host_temp_read host_net_read host_diskio_read host_disks_read; do ! fnbody $f | grep -vE "^\s*#" | grep -qE "\\$\\([^(]|\b(awk|sed|grep|cut|tr|cat|df|date)\b"; done'
+check "the only process of the use of the disks is one df (with a 3 s limit), behind its cache" '[ "$(fnbody host_disk_usage_read | grep -cE "\\$\\([^(]")" = "2" ] && fnbody host_disk_usage_read | grep -q "timeout 3 df"'
+bench() { # snippet -> best average microseconds per call over three batches of 200
+  lib "$1
+best=999999999
+for b in 1 2 3; do s=\$EPOCHREALTIME; for i in \$(seq 200); do $2; done; e=\$EPOCHREALTIME; us=\$(( (\${e/./} - \${s/./}) / 200 )); [ \$us -ge \$best ] || best=\$us; done; echo \$best"
+}
+printf 'cpu  1000 0 1000 7000 0 0 0 0 0 0\ncpu0 500 0 500 3500 0 0 0 0 0 0\ncpu1 500 0 500 3500 0 0 0 0 0 0\n' > "$FIX/proc/stat"
+netdev 1000000 500000 1000 1000
+printf '8 0 sda 100 0 2000 50 200 0 4000 80 0 10 130\n259 0 nvme0n1 10 0 800 5 20 0 1600 8 0 3 13\n' > "$FIX/proc/diskstats"
+mkdir -p "$FIX/sys/class/hwmon/hwmon0"; echo coretemp > "$FIX/sys/class/hwmon/hwmon0/name"; echo 45000 > "$FIX/sys/class/hwmon/hwmon0/temp1_input"
+for src in "host_cpu_read" "host_net_read" "host_diskio_read" "host_temp_read" "host_load_full_read" "host_mem_detail_read" "host_uptime_read" "host_disks_read"; do
+  check "$src: under 5 ms per reading even on a loaded machine" '[ "$(bench "" "'"$src"'")" -lt 5000 ]'
+done
+rm -rf "$FIX/sys/class"
+
 finish

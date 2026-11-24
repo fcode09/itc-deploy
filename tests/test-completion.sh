@@ -55,7 +55,7 @@ check "una instancia nueva aparece sin regenerar el script" \
   'bash ./deltactl new cp-tres >/dev/null 2>&1; has "$(comp deltactl deploy "")" cp-tres'
 
 section "4. opciones"
-check "new sugiere sus opciones" '[ "$(comp deltactl new --)" = "--existing --services --wizard " ]'
+check "new sugiere sus opciones" '[ "$(comp deltactl new --)" = "--existing --generate-secrets --ip --s0-image --s0-tag --s1-image --s1-tag --services --wizard " ]'
 check "status sugiere sus opciones" '[ "$(comp deltactl status --)" = "--json --stats --strict --watch " ]'
 check "una opción parcial se completa" '[ "$(comp deltactl status --j)" = "--json " ]'
 check "check sugiere --mongo" '[ "$(comp deltactl check cp-uno --)" = "--mongo " ]'
@@ -73,7 +73,7 @@ check "completion completa bash" '[ "$(comp deltactl completion "")" = "bash " ]
 section "6. coherencia con la ayuda: opciones del autocompletado == opciones documentadas"
 # Opciones que aparecen en las líneas de uso ("$ ./deltactl <comando> ...") de cada página de ayuda.
 doc_flags() { # comando
-  grep -E "^\\\$ \./deltactl $1( |\$)" "lib/help/cmd-$1.txt" 2>/dev/null | grep -oE '(^| |\[)-{1,2}[a-z]+' | tr -d ' [' | grep -vxE -- '--help|-h' | sort -u | tr '\n' ' '
+  grep -E "^\\\$ \./deltactl $1( |\$)" "lib/help/cmd-$1.txt" 2>/dev/null | grep -oE '(^| |\[)-{1,2}[a-z][a-z0-9-]*' | tr -d ' [' | grep -vxE -- '--help|-h' | sort -u | tr '\n' ' '
 }
 # Opciones definidas en el autocompletado para un comando.
 comp_flags() { # comando

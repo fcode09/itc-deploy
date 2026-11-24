@@ -1,8 +1,7 @@
 # Services: s0, s1 and COMPOSE_PROFILES
 
 ## The services
-- `s0` auth-backend (NestJS): authentication, users, municipality and system URLs. Internal port 3200.
-- `s1` gueo-back-end (NestJS + Chromium for the PDF reports). Internal port 3000.
+@@services@@
 - ports on the host: blocks of 10 from 4100; `s0` uses the base port and `s1` the next one (4100/4101, 4110/4111...)
 
 ## COMPOSE_PROFILES

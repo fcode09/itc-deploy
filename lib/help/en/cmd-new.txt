@@ -5,6 +5,7 @@ It does not touch Docker and does not start anything.
 
 ## Usage
 $ ./deltactl new <instance> [--services s0,s1] [--existing]
+$ ./deltactl new <instance> [--s0-image X] [--s0-tag X] [--s1-image X] [--s1-tag X] [--ip URL] [--generate-secrets]
 $ ./deltactl new --wizard
 
 ## Wizard
@@ -12,10 +13,18 @@ Without a name, in a terminal (or with `--wizard`), `new` asks the essential que
 services, whether the municipality already has data, name and tag of each image (it shows you the
 loaded ones), public URL and, on new instances, whether to generate the unique secrets for you.
 At the end it shows a summary, asks for confirmation and lists what is still missing.
+In the panel (`./deltactl` with no arguments), `n` opens the same questions inside the panel, without leaving to the
+terminal, and on confirmation it starts `new` with the answers as options.
 
 ## Options
 - `--services s0,s1` services active in the instance (s0,s1 by default). E.g.: `--services s1` creates an instance with only Gue.
 - `--existing` the municipality ALREADY has data: it is marked as initialized and `./deltactl init` can never run on it.
+- `--s0-image <name>` and `--s1-image <name>` image name of each service (without a tag).
+- `--s0-tag <tag>` and `--s1-tag <tag>` version to deploy of each service. With `latest` the **most recent** version
+  this server can use is chosen (the ★ of `./deltactl images`: the newest by creation date among the version tags of its
+  architecture), not a tag called `latest`; the instance stores the tag it resolved to.
+- `--ip <url>` public URL of the system, with its scheme (stored as IP_SERVER in s0 and s1).
+- `--generate-secrets` generates the unique secrets (JWT and encryption keys); needs openssl.
 
 ## What it creates
 - `.env.instance`  variables of the instance: versions, ports, active services, memory

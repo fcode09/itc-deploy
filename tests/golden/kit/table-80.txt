@@ -1,0 +1,19 @@
+╭─┐²servicios┌─┐filtro┌──────────────────────────────────────────────────┐4/4┌─╮
+│ SVC   IMAGEN                           ESTADO     MEM MB▼   CPU TENDENCIA    │
+│ s1    gueo-back-end:2.9.0              healthy       1230   21%       ⣤⣶⣦⣤⣶⣶ │
+│ s0    auth-backend:2.14.1              healthy        196    3%        ⢀⣴⣄⣠⣤ │
+│ s0    auth-backend:2.13.2              unhealthy      180    1%        ⡀⢠⡀⢀  │
+│ s1    gueo-back-end:2.8.0              stopped          -     -              │
+│                                                                              │
+╰─┘↑ elegir└─┘Enter abrir└─┘s ordenar└─────────────────────────────────────────╯
+╭─┐²servicios┌─┐filtro: auth┌────────────────────────────────────────────┐2/4┌─╮
+│ SVC   IMAGEN                           ESTADO      MEM MB   CPU TENDENCIA    │
+│ s0    auth-backend:2.14.1              healthy        196    3%        ⢀⣴⣄⣠⣤ │
+│ s0    auth-backend:2.13.2              unhealthy      180    1%        ⡀⢠⡀⢀  │
+│                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─┐²servicios┌─┐filtro: zzz┌─────────────────────────────────────────────┐0/4┌─╮
+│ SVC   IMAGEN                           ESTADO      MEM MB   CPU TENDENCIA    │
+│ sin coincidencias                                                            │
+│                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯

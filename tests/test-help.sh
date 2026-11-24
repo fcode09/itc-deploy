@@ -150,7 +150,7 @@ while IFS= read -r t; do
   # The code uses English topic ids; the page files are still named after the Spanish ids.
   page="$(ROOT="$PWD" bash -c 'source lib/i18n/i18n.sh; topic_file_id "$1"' _ "$t")"
   { echo "$cmds"; echo "$topics"; } | grep -qx "$page" || bad_see+="$t "
-done < <(grep -ohE '\$\(see [^)]*\)' lib/core/*.sh lib/ui/*.sh lib/cmd/*.sh | sed -E 's/^\$\(see "?//; s/"?\)$//' | sort -u)
+done < <(grep -ohE '\$\(see [^)]*\)' lib/core/*.sh lib/ui/*.sh lib/cmd/*.sh lib/screens/*.sh | sed -E 's/^\$\(see "?//; s/"?\)$//' | sort -u)
 check "cada pista \$(see ...) del código señala una página existente (${bad_see:-ok})" '[ -z "$bad_see" ]'
 
 # docker mínimo para llegar a las validaciones sin Docker real

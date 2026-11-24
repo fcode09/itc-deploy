@@ -1,0 +1,31 @@
+=== frame 1 ===
+
+  1 Instancias   2 Recursos   3 Salida   4 Ejecuciones   5 Procesos   6 Consola   7 Servidor  [8 Imágenes]             
+
+
+
+
+
+
+
+
+
+                         ╭─ ▸usar 2.14.1 ─────────────────────────────────────────────────────╮
+                         │                                                                    │
+                         │   Elige la instancia donde usar auth-backend:2.14.1 (servicio s0): │
+                         │                                                                    │
+                         │  ▸ ix-colorado  ahora 2.14.0 → 2.14.1                             │
+                         │    ix-lima      · ya usa esta versión                              │
+                         │                                                                    │
+                         ╰────────────────────────────────────────────────────────────────────╯
+
+
+
+
+
+
+
+
+
+
+ ↑↓ elegir · Enter continuar · Esc cancelar

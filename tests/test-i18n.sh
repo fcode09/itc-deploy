@@ -104,7 +104,7 @@ check "preflight validations: English warnings" 'printf "A=\nB=CAMBIAR_X\n" > "$
 check "check strips the English labels from captured messages" 'out="$(printf "WARN one\nERROR two\n" | DELTACTL_LANG=en bash -c '"'"'ROOT="$PWD"; source lib/bootstrap.sh; source lib/cmd/check.sh; ck_lines'"'"')"; [ "$out" = "$(printf "one\ntwo")" ]'
 
 check "the dynamic doctor tool keys exist in both languages" 'for k in ss openssl gunzip; do for l in es en; do bash -c "ROOT=\"\$PWD\"; source lib/i18n/i18n.sh; i18n_load_lang $l; [ -n \"\${MSG_$l[doctor.tool_missing.$k]+x}\" ] && [ -n \"\${MSG_$l[doctor.tool_missing_hint.$k]+x}\" ]" || exit 1; done; done'
-check "doctor with an argument: English message" 'DELTACTL_LANG=en bash ./deltactl doctor extra 2>&1 | grep -q "^ERROR doctor takes no arguments (see ./deltactl help doctor)"'
+check "doctor with an argument: English message" 'DELTACTL_LANG=en bash ./deltactl doctor extra 2>&1 | grep -q "^ERROR doctor takes no arguments, except --json (see ./deltactl help doctor)"'
 check "new with a bad option: English message" 'DELTACTL_LANG=en bash ./deltactl new --bogus 2>&1 | grep -q "^ERROR unknown option: --bogus"'
 check "new without a name: English usage" 'DELTACTL_LANG=en bash ./deltactl new < /dev/null 2>&1 | grep -q "^ERROR usage: ./deltactl new <instance>"'
 check "new creates an instance and prints the English next steps" 'out="$(DELTACTL_LANG=en bash ./deltactl new i18n-nw 2>&1)"; rm -rf instances/i18n-nw; echo "$out" | grep -q "^OK instance .i18n-nw. created in .* (ports [0-9]*/[0-9]*)" && echo "$out" | grep -q "^Next steps:" && echo "$out" | grep -q "full guide: ./deltactl help new-instance"'
@@ -125,7 +125,7 @@ check "status detail: English labels" 'bash ./deltactl new i18n-st >/dev/null 2>
 
 
 section "7. the code is English: Spanish lives only in the catalogs, the help pages and the templates"
-check "no accented letters or inverted punctuation in the code" '! LC_ALL=C.UTF-8 grep -rnE "[áéíóúñÁÉÍÓÚÑ¿¡]" deltactl lib/bootstrap.sh lib/cmd lib/core lib/ui lib/adapters lib/i18n/i18n.sh'
+check "no accented letters or inverted punctuation in the code" '! LC_ALL=C.UTF-8 grep -rnE "[áéíóúñÁÉÍÓÚÑ¿¡]" deltactl lib/bootstrap.sh lib/cmd lib/screens lib/core lib/ui lib/adapters lib/i18n/i18n.sh'
 check "every lib/cmd command has a catalog file in both languages (or needs none)" 'for c in ops load list rollback images completion help check deploy init doctor new menu status; do for l in es en; do [ -f "lib/i18n/$l/$c.sh" ] || { echo "missing lib/i18n/$l/$c.sh"; exit 1; }; done; done'
 
 

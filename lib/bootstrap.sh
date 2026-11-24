@@ -14,6 +14,8 @@ source "$ROOT/lib/i18n/i18n.sh"
 source "$ROOT/lib/ui/ui.sh"
 # shellcheck source=lib/ui/theme.sh
 source "$ROOT/lib/ui/theme.sh"
+# shellcheck source=lib/ui/tokens.sh
+source "$ROOT/lib/ui/tokens.sh"
 # shellcheck source=lib/ui/gfx.sh
 source "$ROOT/lib/ui/gfx.sh"
 # shellcheck source=lib/ui/say.sh
@@ -23,6 +25,8 @@ source "$ROOT/lib/ui/prompt.sh"
 
 # shellcheck source=lib/core/config.sh
 source "$ROOT/lib/core/config.sh"
+# shellcheck source=lib/core/catalog.sh
+source "$ROOT/lib/core/catalog.sh"
 # shellcheck source=lib/adapters/state.sh
 source "$ROOT/lib/adapters/state.sh"
 # shellcheck source=lib/adapters/docker.sh
@@ -33,10 +37,14 @@ source "$ROOT/lib/adapters/host.sh"
 source "$ROOT/lib/core/instance.sh"
 # shellcheck source=lib/core/services.sh
 source "$ROOT/lib/core/services.sh"
+# shellcheck source=lib/core/imagecat.sh
+source "$ROOT/lib/core/imagecat.sh"
 # shellcheck source=lib/core/ports.sh
 source "$ROOT/lib/core/ports.sh"
 # shellcheck source=lib/core/status.sh
 source "$ROOT/lib/core/status.sh"
+# shellcheck source=lib/core/prereqs.sh
+source "$ROOT/lib/core/prereqs.sh"
 # shellcheck source=lib/core/metrics.sh
 source "$ROOT/lib/core/metrics.sh"
 # shellcheck source=lib/core/jobs.sh

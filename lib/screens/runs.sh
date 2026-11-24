@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# shellcheck disable=SC2034  # the DASH_RUNS_* variables are shared with lib/cmd/dashboard.sh and dashboard_view.sh
+# shellcheck disable=SC2034,SC2154  # the DASH_RUNS_* variables are shared with lib/cmd/dashboard.sh, dashboard_view.sh and the other screens
 # The Runs view of the panel (key 4): the history of the operations that changed something (lib/core/runs.sh). A list of runs
 # on one side, the detail of the selected one on the other (state, consumption, containers before/after, how it compares with the
 # earlier runs of the same operation, the end of its output) and, with `t`, what each kind of operation costs on average.
-# Sourced by lib/cmd/dashboard.sh. It only reads what the runs left on disk (as data, never sourced).
+# Loaded by lib/screens/registry.sh. It only reads what the runs left on disk (as data, never sourced).
 #
 # Cost: the index is read again when the view is shown, every 5 s while it stays on screen, when a command of the panel ends and
 # on `r`; the detail of a run is built once per selection (it reads a few small files), not once per frame.
@@ -621,3 +621,24 @@ dash_key_runs_log() { # key
   if [ "$top" -ge "$max" ]; then top="$max" DASH_RV_END=1; else DASH_RV_END=0; fi
   DASH_RV_TOP="$top"
 }
+
+# --- The contract of lib/screens/registry.sh --------------------------------------------------------------------
+scr_runs_render() { dash_view_runs "$2"; } # width height
+scr_runs_key() { dash_key_runs "$1"; }
+# The statistics and the log viewer have their own hints.
+scr_runs_keys() { # width
+  local kv=runs
+  { [ "$DASH_RUNS_MODE" != "stats" ] && [ "$DASH_RUNS_MODE" != "log" ]; } || kv="runs_$DASH_RUNS_MODE"
+  dash_keys_view "$kv" "$1"
+}
+scr_runs_texts() {
+  DASH_KEYS[runs]="$(t tui.keys.runs "$DASH_UD")"
+  DASH_KEYS[runs_stats]="$(t tui.keys.runs_stats)"
+  DASH_KEYS[runs_log]="$(t tui.keys.runs_log "$DASH_UD")"
+}
+scr_runs_sig() {
+  DASH_SIG+="|$DASH_RUNS_SEL|$DASH_RUNS_OFF|$DASH_RUNS_MODE|$DASH_RUNS_N|$DASH_RUNS_STATS_INST|$DASH_RV_TOP|$DASH_RV_END|$DASH_RV_TOTAL"
+}
+# Esc closes the statistics (or the log) before it leaves the view.
+scr_runs_back() { [ "$DASH_RUNS_MODE" != "list" ] || return 1; DASH_RUNS_MODE=list; }
+scr_runs_tick() { dash_runs_tick; }

@@ -1,10 +1,13 @@
 # doctor · server diagnosis
 
-It checks the server, not a particular instance: Docker, resources, MongoDB, permissions and tools.
-It is read-only and every failure says how to fix it.
+It checks the server, not a particular instance: Docker, resources, MongoDB, permissions, tools and the recommended extras.
+It is read-only and every failure says how to fix it, with the install command of the distribution (apt, dnf, pacman or apk).
+It never installs anything: you copy and run the command.
 
 ## Usage
 $ ./deltactl doctor
+$ ./deltactl doctor --json
+`--json` prints the whole report (distribution, totals and each requirement with what it is for and how to install it) as JSON.
 
 ## What it checks
 - Docker: reachable daemon and Compose v2.20 or newer
@@ -14,6 +17,7 @@ $ ./deltactl doctor
 - the open-files limit of `mongod` (64000 or more recommended with many instances)
 - permissions of the `.env.*` files (they must be 600) and owner of `data/` (uid 1000)
 - helper tools: `ss`, `openssl` and `gunzip`
+- recommended (information only, never a warning): `nginx` or `Caddy` proxy, `certbot`, synchronized clock, firewall and `curl`
 
 ## Result
 It exits with code 1 if there are errors; warnings do not change the exit code.
