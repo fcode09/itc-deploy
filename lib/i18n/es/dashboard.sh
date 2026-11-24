@@ -173,7 +173,7 @@ MSG_es["tui.con.hint"]=": escribe un comando · ! en el terminal · Tab completa
 MSG_es["tui.con.keys"]="Enter ejecuta · Tab completa · {1} historial · Ctrl+U/K/W borran · Ctrl+L limpia · Ctrl+C cancela · Esc vuelve"
 MSG_es["tui.con.theme_now"]="Tema actual: {1}  (theme <nombre> lo cambia)"
 MSG_es["tui.con.bad_theme"]="No existe el tema '{1}'. Disponibles: {2}"
-MSG_es["tui.con.bad_view"]="Vistas: instances · resources · output · runs · procs · console"
+MSG_es["tui.con.bad_view"]="Vistas: instances · resources · output · runs · procs · console · server"
 MSG_es["tui.con.history_empty"]="El historial está vacío."
 MSG_es["tui.con.shell_hint"]="Estás en una shell normal dentro de la instalación. Escribe exit para volver al panel."
 MSG_es["tui.con.help"]="CONSOLA: escribe cualquier comando de deltactl, sin el prefijo\n  status colorado · deploy colorado s1 · logs colorado s0 -f · check colorado\n\nPROPIOS DEL PANEL\n  help               esta ayuda\n  clear  (Ctrl+L)    limpia la consola\n  theme [nombre]     muestra o cambia el tema (matrix cyber amber nord dracula mono)\n  history            las últimas órdenes\n  goto <vista>       instances · resources · output · runs · procs · console\n  alias n=orden      un nombre corto para una orden (alias lista · unalias n borra)\n  refresh · quit     refrescar · salir\n\nTECLAS\n  Enter ejecuta · Tab completa · ↑↓ historial · ←→ Inicio Fin mueven el cursor\n  Ctrl+U/K/W borran hasta el inicio / el final / la palabra · PgUp PgDn desplazan\n  Ctrl+C cancela el comando · ! al inicio lo ejecuta en el terminal · ! solo abre una shell"
@@ -217,7 +217,7 @@ MSG_es["tui.confirm_stop"]="Detiene {1} de '{2}' sin eliminarlo (./deltactl depl
 
 # Help overlay
 MSG_es["tui.help_title"]="Teclas"
-MSG_es["tui.help"]="VISTAS   1-6  Instancias · Recursos · Salida · Ejecuciones · Procesos · Consola\n\nINSTANCIAS\n  ↑ ↓  (k j)          instancia (la primera fila es + Nueva) · → servicios · ← o Esc vuelve\n  Tab  Mayús+Tab      panel siguiente / anterior (instancias · servicios · logs)\n  z                   zoom del panel con el foco (Esc lo cierra)\n  Logs con foco       ↑ ↓ PgUp PgDn Inicio Fin desplazan · / filtra por texto · Espacio pausa · f sigue · e errores · s busca ([ ] saltan)\n  Enter · l u c s     acciones · logs · desplegar · comprobar · estado\n  Ctrl+P              paleta de acciones (busca: despl, logs, tema...)\n\nEJECUTAR\n  :  !                comando (status colorado, logs x -f ...) · igual, en el terminal\n  x · n d i           cancelar · nueva instancia · diagnóstico · imágenes\n\nRECURSOS ↑ ↓ elegir · s ordena (nombre, memoria, CPU) · Enter abre la instancia del servicio\nSALIDA   ↑ ↓ PgUp PgDn desplazan · f sigue al final · e solo errores\nEJECUC.  ↑ ↓ elegir · PgUp PgDn detalle · t estadísticas (s: instancia) · Enter salida\nPROCES.  ↑ ↓ PgUp PgDn desplazan el árbol de procesos\nCONSOLA  6 a pantalla completa · Esc suelta el teclado · Enter o : vuelven a escribir\nRATÓN    (en Opciones) clic en una pestaña o instancia (otro clic: acciones) · rueda\nGENERAL  r refrescar · p pausar · L idioma · T tema · o opciones · ? ayuda · q o Esc salir"
+MSG_es["tui.help"]="VISTAS   1-7  Instancias · Recursos · Salida · Ejecuciones · Procesos · Consola · Servidor\n\nINSTANCIAS\n  ↑ ↓  (k j)          instancia (la primera fila es + Nueva) · → servicios · ← o Esc vuelve\n  Tab  Mayús+Tab      panel siguiente / anterior (instancias · servicios · logs)\n  z                   zoom del panel con el foco (Esc lo cierra)\n  Logs con foco       ↑ ↓ PgUp PgDn Inicio Fin desplazan · / filtra por texto · Espacio pausa · f sigue · e errores · s busca ([ ] saltan)\n  Enter · l u c s     acciones · logs · desplegar · comprobar · estado\n  Ctrl+P              paleta de acciones (busca: despl, logs, tema...)\n\nEJECUTAR\n  :  !                comando (status colorado, logs x -f ...) · igual, en el terminal\n  x · n d i           cancelar · nueva instancia · diagnóstico · imágenes\n\nRECURSOS ↑ ↓ elegir · s ordena (nombre, memoria, CPU) · Enter abre la instancia del servicio\nSALIDA   ↑ ↓ PgUp PgDn desplazan · f sigue al final · e solo errores\nEJECUC.  ↑ ↓ elegir · PgUp PgDn detalle · t estadísticas (s: instancia) · Enter salida\nPROCES.  ↑ ↓ PgUp PgDn desplazan el árbol de procesos\nCONSOLA  6 a pantalla completa · Esc suelta el teclado · Enter o : vuelven a escribir\nSERVIDOR ↑ ↓ elegir requisito · Enter detalle · c copia el comando · ! lo ejecuta (pregunta antes) · m métricas · R vuelve a comprobar\nRATÓN    (en Opciones) clic en una pestaña o instancia (otro clic: acciones) · rueda\nGENERAL  r refrescar · p pausar · L idioma · T tema · o opciones · ? ayuda · q o Esc salir"
 MSG_es["tui.help_close"]="Pulsa cualquier tecla para volver"
 MSG_es["tui.help_scroll"]="{1} PgUp PgDn desplazan · otra tecla vuelve"
 MSG_es["tui.help.head.instances"]="INSTANCIAS"
@@ -226,6 +226,7 @@ MSG_es["tui.help.head.output"]="SALIDA"
 MSG_es["tui.help.head.runs"]="EJECUC."
 MSG_es["tui.help.head.procs"]="PROCES."
 MSG_es["tui.help.head.console"]="CONSOLA"
+MSG_es["tui.help.head.server"]="SERVIDOR"
 
 # Runs view (lib/screens/runs.sh)
 MSG_es["tui.tab.runs"]="Ejecuciones"

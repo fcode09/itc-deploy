@@ -1,0 +1,41 @@
+=== frame 1 ===
+  ITC  testhost · Memoria ███░░░ 5.6/11.5 GB 48% · Carga 3.18 · Docker 27.0.0 · contenedores 3.3G
+  1 Instancias   2 Recursos   3 Salida   4 Ejecuciones   5 Procesos   6 Consola  [7 Servidor]                                                                  
+╭─┐ ▸requisitos ┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐9/9 listos┌─╮
+│   OBLIGATORIOS                                                               │   RECOMENDADOS                                                                │
+│ ▸ ● Docker Engine                   Docker 27.0.0 (arquitectura amd64)       │   ● Límite de archivos de mongod   mongod permite 524288 archivos abiertos    │
+│   ● Acceso al daemon de Docker      El daemon de Docker responde             │   ● Proxy inverso (nginx o Caddy)  Proxy inverso disponible: nginx            │
+│   ● Docker Compose 2.20 o superior  Docker Compose 2.30.0                    │   ● certbot                        certbot disponible                         │
+│   ● Disco libre                     Disco libre en /var/lib/docker: 171.1 GB │   ● Hora sincronizada              La hora del servidor está sincronizada (NT │
+│   ● Memoria                         Memoria: 11776 MB en total, 6022 MB disp │   ● Cortafuegos                    Cortafuegos activo: ufw                    │
+│   ● MongoDB alcanzable              127.0.0.1:27017 alcanzable               │   ● curl                           curl disponible                            │
+│   ● ss (iproute2)                   ss disponible                            │                                                                               │
+│   ● openssl                         openssl disponible                       │                                                                               │
+│   └ Para qué: Ejecuta los servicios de cada instancia en contenedores.                                                                                       │
+│   └ Resultado: Docker 27.0.0 (arquitectura amd64)                                                                                                            │
+│   └ Más información: https://docs.docker.com/engine/install/                                                                                                 │
+╰─┘Enter detalle└─┘c copiar└─┘! ejecutar└─┘m métricas└─────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭─┐cpu┌───────────────────────────────────────────────────────╮╭─┐memoria┌────────────────────────────────────╮╭─┐discos┌──────────────────────────────────────╮
+│ no disponible en este sistema                               ││ no disponible en este sistema                ││ no disponible en este sistema                 │
+│                                                             ││                                              ││                                               │
+│                                                             ││                                              ││                                               │
+│                                                             ││                                              ││                                               │
+│                                                             ││                                              ││                                               │
+│                                                             ││                                              ││                                               │
+│                                                             ││                                              ││                                               │
+│                                                             ││                                              ││                                               │
+│                                                             ││                                              ││                                               │
+│                                                             ││                                              ││                                               │
+╰─────────────────────────────────────────────────────────────╯╰──────────────────────────────────────────────╯╰───────────────────────────────────────────────╯
+╭─┐red┌──────────────────────────────────────────────────────────╮╭─┐contenedores┌───────────────────────────────────────────────────────────────────────┐0/0┌─╮
+│ no disponible en este sistema                                  ││ SVC  INSTANCIA                                  CPU                   MEMORIA ESTADO       │
+│                                                                ││ No hay contenedores en marcha.                                                             │
+│                                                                ││                                                                                            │
+│                                                                ││                                                                                            │
+│                                                                ││                                                                                            │
+│                                                                ││                                                                                            │
+│                                                                ││                                                                                            │
+│                                                                ││                                                                                            │
+╰────────────────────────────────────────────────────────────────╯╰────────────────────────────────────────────────────────────────────────────────────────────╯
+
+ ↑↓ elegir · Enter detalle · m métricas · c copiar · ! ejecutar · R comprobar · : comando · ? ayuda · q salir

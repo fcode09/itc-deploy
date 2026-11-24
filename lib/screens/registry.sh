@@ -23,6 +23,8 @@
 #   scr_<id>_tick                      (views) runs at every turn of the loop, whatever view is current (background work).
 #   scr_<id>_poll                      (views) runs at every turn only while the view is current and the panel is not paused.
 #   scr_<id>_click <column> <row>      (views) a left click in the body (rows and columns of the screen, starting at 1).
+#   scr_<id>_bang                      (views) the key `!` while the view is current; return 0 when it took the key (otherwise the global
+#                                      `!`, a command line that runs in the terminal, opens).
 
 DASH_SCREENS=()                                # ids of the views, in tab order
 declare -gA DASH_SCREEN_TITLE=() DASH_SCREEN_LIVE=()
@@ -156,6 +158,7 @@ dash_screen_register output tui.tab.output 0
 dash_screen_register runs tui.tab.runs 0
 dash_screen_register procs tui.tab.procs 0
 dash_screen_register console tui.tab.console 0
+dash_screen_register server tui.tab.server 1
 # Modes.
 dash_mode_register menu
 dash_mode_register confirm
@@ -167,3 +170,4 @@ dash_mode_register wizard
 dash_mode_register palette
 dash_mode_register help
 dash_mode_register options
+dash_mode_register srvask

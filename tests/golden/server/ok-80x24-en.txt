@@ -1,0 +1,25 @@
+=== frame 1 ===
+  ITC  testhost · Memory ███░░░ 5.6/11.5 GB 48% ▂▁▄▂▁▄ · Load 3.18
+  1   2   3   4   5   6  [7 Server]                                            
+╭─┐ ▸requirements ┌────────────────────────────────────────────────┐9/9 ready┌─╮
+│   REQUIRED                                                                   │
+│ ▸ ● Docker Engine                 Docker 27.0.0 (architecture amd64)         │
+│   ● Access to the Docker daemon   The Docker daemon answers                  │
+│   ● Docker Compose 2.20 or newer  Docker Compose 2.30.0                      │
+│   ● Free disk                     Free disk in /var/lib/docker: 171.1 GB     │
+│   ● Memory                        Memory: 11776 MB in total, 6022 MB availab │
+│   └ What for: Runs the services of each instance in containers.              │
+│   └ More information: https://docs.docker.com/engine/install/                │
+╰─┘Enter details└─┘c copy└─┘! run└─┘m metrics└─────────────────────────────────╯
+╭─┐cpu┌─────────────────────────────┐61°C┌─╮╭─┐memory┌───────────────────┐48%┌─╮
+│ CPU ▕█████████▌░░░░░░░░░░░░░░░░▏ 37%     ││ Used ·················· 5.61 GiB │
+│ Load 3.18 2.64 1.97 · 8 cores            ││ ████████████▉░░░░░░░░░░░░░░  48% │
+│                                          ││ Available ············· 5.88 GiB │
+│           ⡆⢸         ⡄⢸          ⢠       ││ Total ··················· 11 GiB │
+│ ⢰ ⡆⢰    ⢀ ⣇⢸ ⡄⢸ ⡇⢸   ⣧⢸⡄⡀⢰ ⡆    ⢀⢸⡀⡀⢠ ⡄⢰ ││ Cached ················ 4.00 GiB │
+│ ⣸⡄⣧⢸⡆⢰ ⡆⢸ ⣿⣸ ⣇⢸⡆⣧⢸⡇⢸ ⣿⢸⡇⡇⢸⡀⣧ ⡆⢰ ⣿⢸⡇⣇⢸ ⡇⢸ ││ Free ·················· 1.00 GiB │
+│ ⣿⡇⣿⢸⣇⢸⡄⣷⢸⣶⣿⣿⡇⣿⢸⣇⣿⢸⣧⢸⡄⣿⣿⡇⣷⢸⡇⣿ ⣇⢸⡀⣿⣾⣷⣿⢸⡇⣿⢸ ││ Swap ·················· 4.00 GiB │
+│ ⣿⣿⣿⣿⣿⣸⣇⣿⣼⣿⣿⣿⣷⣿⣾⣿⣿⣿⣿⣸⣇⣿⣿⣧⣿⣿⣿⣿⣇⣿⣸⣇⣿⣿⣿⣿⣾⣷⣿⣿ ││ ███▏░░░░░░░░░░░░░░░░░░░░░░░  12% │
+╰──────────────────────────────────────────╯╰──────────────────────────────────╯
+
+ ↑↓ choose · Enter details · m metrics · c copy · ! run · ? help · q quit
