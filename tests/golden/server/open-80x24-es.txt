@@ -1,6 +1,6 @@
 === frame 1 ===
   ITC  testhost · Memoria ███░░░ 5.6/11.5 GB 48% ▆▃▁▄▂▁ · Carga 3.18
-  1   2   3   4   5   6  [7 Servidor]                                          
+  1   2   3   4   5   6  [7 Servidor]  8                                       
 ╭─┐ ▸requisitos ┌─────────────────────┐6/9 listos · 3 recomendados pendientes┌─╮
 │   ✖ Disco libre                     Poco disco libre en /var/lib/docker: 1.9 │
 │   ● Memoria                         Memoria: 11776 MB en total, 6022 MB disp │

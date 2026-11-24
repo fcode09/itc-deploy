@@ -1,0 +1,25 @@
+=== frame 1 ===
+
+  1   2   3   4   5   6   7  [8 Imágenes]                                      
+╭─┐ ▸⁸imágenes ┌──────────────────────────────────────────────────┐sin Docker┌─╮
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│ ✖ Docker no responde: no se pueden leer las imágenes (¿servicio detenido o s │
+╰─┘Enter usar en una instancia…└─┘l cargar .tar└─┘c copiar└─┘R releer└─────────╯
+
+ ↑↓ elegir · Enter usar en una instancia · Espacio detalle · ? ayuda · q salir

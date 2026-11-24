@@ -16,6 +16,7 @@ se está ejecutando, actualizado solo. Fuera de una terminal (una tubería, `TER
 | `5` | Procesos | De qué está hecho el comando que se está ejecutando y cuánto cuesta el propio panel |
 | `6` | Consola | La consola a pantalla completa, lista para escribir |
 | `7` | Servidor | Qué necesita el servidor para funcionar (con el comando para instalarlo) y cómo va: CPU, memoria, discos, red y contenedores |
+| `8` | Imágenes | Qué versiones de cada servicio hay cargadas en este Docker, cuál es la más reciente, quién usa cuál; usar una versión en una instancia y cargar un archivo |
 
 Tab y Mayús+Tab recorren las vistas (en Instancias, los paneles: lista, servicios y logs). Esc vuelve un paso atrás.
 
@@ -69,6 +70,33 @@ Lo que el sistema no da (WSL, un contenedor) se ve como «no disponible en este 
 esta vista y lo dice en la línea de mensajes; las demás vistas siguen disponibles. Con todo en su sitio no dice nada. **Crear una instancia**
 (`n`, el botón o `new`) pregunta antes mientras falte algo obligatorio: `y` crea igualmente, `v` muestra los requisitos, `n` no vuelve a
 avisar (se guarda `TUI_PREREQ=off`; en Opciones, «Aviso de requisitos» lo vuelve a activar) y Esc cancela.
+
+## Imágenes (`8`)
+
+Una caja por **imagen** (`s0 · auth-backend`, `s1 · gueo-back-end`, y las que alguna instancia use con otro nombre) con una tabla de sus versiones, de la
+más nueva a la más vieja **por fecha de creación de la imagen** (una etiqueta es solo un nombre): VERSIÓN, CREADA («hace 2 días»), TAMAÑO, ARQ y USO
+(quién la usa, `colorado(actual)`, `colorado(previa)`; o «sin usar»). Las marcas son las de `./deltactl images` ([image-catalog.md](image-catalog.md)):
+**★** la más reciente que este servidor puede usar (la más nueva por fecha entre las etiquetas que son versión y de la arquitectura del servidor; se
+marca «↑ más reciente»), **▲** una etiqueta que se mueve (`latest`, o sin versión: no sirve para volver atrás y nunca es ★), **✖** una imagen de otra
+arquitectura (no arrancaría aquí). Si el orden por versión discrepa del orden por fecha (¿se reconstruyó una vieja?), un aviso lo dice debajo de la imagen.
+El cursor empieza en la ★ de la primera imagen. La última línea de la caja dice lo importante de la versión elegida (por qué no se puede usar, que la
+etiqueta se mueve, que es la más reciente).
+
+- **↑ ↓** (y PgUp, PgDn, Inicio, Fin) eligen una versión, pasando de una imagen a la siguiente.
+- **Enter** la usa en una instancia: una ventana pregunta en cuál (solo las que tienen ese servicio activo; las que ya usan esa versión, o usan
+  otro nombre de imagen, salen con el motivo y no se pueden elegir) y enseña lo que cambia (`S0_TAG` de `2.14.0` a `2.14.1`). **`y`** escribe la etiqueta en
+  el `.env.instance` y despliega ese servicio (un comando en segundo plano como cualquiera: se ve en Salida y `x` lo cancela; `deploy` guarda la versión
+  anterior para el rollback); **`g`** solo escribe la etiqueta (se despliega después); cualquier otra tecla cancela. Una imagen de otra arquitectura no
+  se ofrece: Enter dice por qué.
+- **l** carga un archivo de imágenes (`docker save`, `.tar` o `.tar.gz`): se escribe la ruta (puede empezar por `~/`; el campo dice si el archivo existe) y
+  Enter lanza `./deltactl load` **en segundo plano**: el panel sigue funcionando, la última línea de la caja dice qué archivo se carga y, al terminar, la
+  vista se actualiza con las versiones nuevas.
+- **Espacio** abre el detalle de la versión (la referencia completa, el id, la fecha exacta en UTC y en palabras, el tamaño, la arquitectura y quién la
+  usa); Espacio o Esc lo cierran.
+- **c** copia la referencia (`auth-backend:2.14.1`) como en la vista Servidor. **R** lee Docker de nuevo.
+
+La vista lee el catálogo en segundo plano al elegirla, cuando termina un comando (una carga o un despliegue cambian lo cargado y quién lo usa), cada
+minuto mientras está a la vista y con `R`. Nada de aquí borra una imagen.
 
 ## Alias de la consola
 

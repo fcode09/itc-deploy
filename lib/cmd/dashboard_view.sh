@@ -173,16 +173,17 @@ DASH_JL=""
 
 # The tab line: the views and, at the right, the state of the current command.
 dash_tabs_line() {
-  local v i=0 left="" short="" right="" pad lw rw piece
+  local v i=0 left="" mid="" short="" right="" pad lw rw piece
   for v in "${DASH_SCREENS[@]}"; do
     i=$((i + 1))
     dt "${DASH_SCREEN_TITLE[$v]}"
     if [ "$DASH_VIEW" = "$v" ]; then
       # The active view is a filled pill; without colours it keeps the bracketed form.
       if [ -n "${TH[sel]:-}" ]; then piece=" ${TH[sel]}$C_BLD $i $DTV $C_OFF"; else piece=" $DASH_REV$C_BLD$C_CYN[$i $DTV]$C_OFF"; fi
-      left+="$piece" short+="$piece"
+      left+="$piece" mid+="$piece" short+="$piece"
     else
       left+="  ${TH[key]:-}$i$C_OFF $C_GRY$DTV$C_OFF "
+      mid+=" ${TH[key]:-}$i$C_OFF $C_GRY$DTV$C_OFF"
       short+="  ${TH[key]:-}$i$C_OFF "
     fi
   done
@@ -193,8 +194,10 @@ dash_tabs_line() {
   if [ "$DASH_PAUSED" -eq 1 ]; then dt tui.paused; right="$C_YEL$DTV$C_OFF${right:+  $right}"; fi
   tui_vlen "$left"; lw="$TUI_VL"
   tui_vlen "$right"; rw="$TUI_VL"
-  # What the running command says matters more than the names of the other views: they shrink to their numbers first.
+  # What the running command says matters more than the names of the other views: they lose their spacing first (the names stay), then
+  # shrink to their numbers.
   DASH_TAB_SHORT=0
+  if [ $((lw + rw + 2)) -gt "$TUI_COLS" ]; then left="$mid" DASH_TAB_SHORT=2; tui_vlen "$left"; lw="$TUI_VL"; fi
   if [ $((lw + rw + 2)) -gt "$TUI_COLS" ]; then left="$short" DASH_TAB_SHORT=1; tui_vlen "$left"; lw="$TUI_VL"; fi
   if [ $((lw + rw + 2)) -gt "$TUI_COLS" ]; then
     tui_clip "$right" $((TUI_COLS - lw - 2)); right="$TUI_OUT"; tui_vlen "$right"; rw="$TUI_VL"
@@ -206,8 +209,9 @@ dash_tabs_line() {
 }
 TUI_TABS="" TAB_PAD="" DASH_TAB_SHORT=0
 
-# The view whose tab is at column $1 of the tab line, into DASH_TAB_I (1-6). Every tab is its name plus five cells (" [1 Name]",
-# "  1 Name "), or four ("  1 ") when the line had to shrink the ones that are not active.
+# The view whose tab is at column $1 of the tab line, into DASH_TAB_I. Every tab is its name plus five cells (" [1 Name]", "  1 Name "),
+# or its name plus three (" 1 Name") for the ones that are not active when the line is tight (DASH_TAB_SHORT=2), or four ("  1 ") when
+# it had to shrink them to their numbers (DASH_TAB_SHORT=1).
 DASH_TAB_I=0
 dash_tab_at() { # column
   local v i=0 start=0 w
@@ -215,7 +219,9 @@ dash_tab_at() { # column
     i=$((i + 1))
     dt "${DASH_SCREEN_TITLE[$v]}"
     w=$((${#DTV} + 5))
-    [ "$DASH_TAB_SHORT" -eq 0 ] || [ "$DASH_VIEW" = "$v" ] || w=4
+    if [ "$DASH_VIEW" != "$v" ]; then
+      case "$DASH_TAB_SHORT" in 1) w=4 ;; 2) w=$((${#DTV} + 3)) ;; esac
+    fi
     if [ "$1" -gt "$start" ] && [ "$1" -le $((start + w)) ]; then DASH_TAB_I="$i"; return 0; fi
     start=$((start + w))
   done

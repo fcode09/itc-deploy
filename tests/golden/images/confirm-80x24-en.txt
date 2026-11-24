@@ -1,0 +1,25 @@
+=== frame 1 ===
+
+  1   2   3   4   5   6   7  [8 Images]                                        
+
+
+
+
+
+     ╭─ ▸use 2.14.1 ─────────────────────────────────────────────────────╮
+     │                                                                   │
+     │   Change the version of s0 in 'ix-colorado': 2.14.0 → 2.14.1.     │
+     │   S0_TAG is written in its .env.instance; the previous version is │
+     │   kept for rollback when you deploy.                              │
+     │                                                                   │
+     │   Deploying recreates the container of s0 of 'ix-colorado': there │
+     │   are a few seconds without service. The data is not touched.     │
+     │                                                                   │
+     ╰───────────────────────────────────────────────────────────────────╯
+
+
+
+
+
+
+ y change and deploy · g only save the tag · ← back · Esc cancel
