@@ -64,6 +64,27 @@ check "the versions come in the order they are shown: each image newest first" '
 t_nodock() { dash_img_apply "DASH_IMG_NODOCKER=1"; echo "$DASH_IMG_STATE ${#DASH_IMG_ITEMS[@]} $DASH_IMG_SEL"; }
 check "when Docker does not answer the state says so and nothing is left to choose" '[ "$(run_lib "$(declare -f t_nodock); t_nodock")" = "nodocker 0 0" ]'
 
+# The read of the catalog runs in the background (dash_async): a producer that dies or hangs is forgotten after a minute, and then the view has to
+# ask again instead of staying on "reading…" for ever; and a command that ends while a read is already in flight makes that answer old.
+t_stuck() {
+  dash_img_slow() { sleep 30; }
+  dash_async images "" dash_img_slow; DASH_IMG_BUSY=1; DASH_IMG_STATE=loading; DASH_AS_AT[images]=$((SECONDS - 61)); DASH_VIEW=instances
+  scr_images_tick; printf '%s %s [%s] ' "$DASH_IMG_BUSY" "$DASH_IMG_STATE" "${DASH_AS_PID[images]}"
+  dash_img_apply "$(dash_img_dump)"; dash_async images "" dash_img_slow; DASH_IMG_BUSY=1; DASH_AS_AT[images]=$((SECONDS - 61))
+  scr_images_tick; printf '%s %s [%s]' "$DASH_IMG_BUSY" "$DASH_IMG_STATE" "${DASH_AS_PID[images]}"
+  dash_async_stop
+}
+check "a read that never answers is forgotten after a minute: the view is not left on \"reading…\" (it says Docker does not answer; a later one that had an answer keeps it)" '[ "$(run_lib "$(declare -f t_stuck); t_stuck")" = "0 nodocker [] 0 ready []" ]'
+t_stale() {
+  dash_img_apply "$(dash_img_dump)"
+  DASH_IMG_REQ_GEN="$DASH_IMG_GEN"   # a read was launched ...
+  dash_img_stale                     # ... and then a load or a deploy ended
+  dash_img_apply "$(dash_img_dump)"  # the answer of that read is old
+  printf '%s ' "$DASH_IMG_STALE"
+  dash_img_request; printf '%s' "$DASH_IMG_STALE"   # a read launched after it is not
+}
+check "the answer of a read launched before a command ended does not clear the mark that the catalog is old" '[ "$(run_lib "$(declare -f t_stale); t_stale")" = "1 0" ]'
+
 section "3. snapshots of the scenes (80x24, 120x30 and 160x40)"
 GOLD_DIR="${DELTACTL_GOLDEN_DIR:-tests/golden}/images"
 MODE="${DELTACTL_GOLDEN:-check}"

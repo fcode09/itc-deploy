@@ -74,7 +74,7 @@ dash_img_use() {
 dash_iu_write() { # instance service tag
   local f="$INSTANCES_DIR/$1/.env.instance"
   if [ ! -w "$f" ] || ! set_var "$f" "$(tag_var "$2")" "$3"; then dash_msg err "$(t tui.img.use.write_failed "$f")"; return 1; fi
-  DASH_IMG_STALE=1
+  dash_img_stale
   return 0
 }
 
