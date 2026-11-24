@@ -132,6 +132,47 @@ check "host.docker.internal se prueba contra la puerta de enlace" \
 rm -rf instances/pr-uno
 check "sin instancias solo informa" '[ "$(st ":" mongo)" = info ]'
 
+section "4b. dr_tcp y dr_mongo_hostport con datos del operador (sin ejecutar nada)"
+# El host sale de MONGO_URI (un .env que puede editar cualquiera con acceso a la carpeta): no debe llegar a un shell como código.
+# ra llama a una función de lib pasando los argumentos por argv, sin pasar por ninguna cita ni expansión de este script.
+ra() { ROOT="$PWD" PATH="$FIX/bin:$PATH" bash -c 'source lib/bootstrap.sh; "$@"' _ "$@"; }
+check "dr_tcp: un host con \$(...) no ejecuta nada y falla" \
+  'rm -f "$FIX/pwned"; ! ra dr_tcp "127.0.0.1\$(touch\${IFS}$FIX/pwned)" 27017; [ ! -e "$FIX/pwned" ]'
+check "dr_tcp: un host con ; o comillas invertidas no ejecuta nada" \
+  'rm -f "$FIX/pwned2"; ! ra dr_tcp "x;touch $FIX/pwned2" 27017; ! ra dr_tcp "x\`touch $FIX/pwned2\`" 27017; [ ! -e "$FIX/pwned2" ]'
+check "dr_tcp: un puerto que no es número no ejecuta nada y falla" \
+  'rm -f "$FIX/pwned3"; ! ra dr_tcp 127.0.0.1 "1;touch $FIX/pwned3"; [ ! -e "$FIX/pwned3" ]'
+check "dr_tcp: un host o un puerto vacío falla" '! ra dr_tcp "" 27017 && ! ra dr_tcp 127.0.0.1 ""'
+if command -v python3 >/dev/null 2>&1; then
+  python3 - "$FIX/port" <<'PY' &
+import socket, sys, time
+s = socket.socket(); s.bind(("127.0.0.1", 0)); s.listen(5)
+open(sys.argv[1], "w").write(str(s.getsockname()[1]))
+time.sleep(30)
+PY
+  LISTENER=$!
+  for _ in 1 2 3 4 5 6 7 8 9 10; do [ -s "$FIX/port" ] && break; sleep 0.2; done
+  check "dr_tcp: un host y un puerto válidos conectan de verdad" 'ra dr_tcp 127.0.0.1 "$(cat "$FIX/port")"'
+  kill "$LISTENER" 2>/dev/null; wait "$LISTENER" 2>/dev/null
+  check "dr_tcp: un puerto cerrado falla" '! ra dr_tcp 127.0.0.1 "$(cat "$FIX/port")"'
+fi
+hp() { ra dr_mongo_hostport "$1"; }
+check "hostport: URI simple" '[ "$(hp mongodb://u:p@db1:27018/x)" = "db1 27018" ]'
+check "hostport: sin puerto usa 27017" '[ "$(hp mongodb://db1/x)" = "db1 27017" ]'
+check "hostport: una contraseña con @ no se mezcla con el host" '[ "$(hp mongodb://adm:p@ssw0rd@db1:27017/x)" = "db1 27017" ]'
+check "hostport: un @ en la query no es un usuario" '[ "$(hp "mongodb://db1:27017/x?authSource=a@b")" = "db1 27017" ]'
+check "hostport: sin base de datos y con query" '[ "$(hp "mongodb://db1?replicaSet=r")" = "db1 27017" ]'
+check "hostport: IPv6 entre corchetes con y sin puerto" \
+  '[ "$(hp "mongodb://[::1]:27018/x")" = "::1 27018" ] && [ "$(hp "mongodb://[::1]/x")" = "::1 27017" ]'
+check "hostport: una lista de hosts usa el primero" '[ "$(hp mongodb://a:1,b:2/x)" = "a 1" ]'
+check "hostport: mongodb+srv no tiene puerto que probar" '[ "$(hp mongodb+srv://u:p@c0.ab.mongodb.net/db)" = "c0.ab.mongodb.net srv" ]'
+check "hostport: los caracteres raros del host salen sustituidos (no llegan a la terminal)" \
+  '[ "$(hp "$(printf "mongodb://a\033[31mb:1/x")")" = "a??31mb 1" ]'
+mkdir -p instances/pr-srv
+printf 'MONGO_URI=mongodb+srv://u:p@c0.ab.mongodb.net/db\n' > instances/pr-srv/.env.s0
+check "mongo+srv: no da un falso error de TCP al 27017, informa" '[ "$(st "dr_tcp() { return 1; }" mongo)" = info ]'
+rm -rf instances/pr-srv
+
 section "5. solo lectura"
 check "ninguna comprobación escribe, instala ni borra (el código no usa esas órdenes)" \
   '! grep -vE "^\s*#" lib/core/prereqs.sh | grep -nE "\b(rm|mv|cp|tee|mkdir|chmod|chown|sudo|pacman -S|apk add|systemctl (start|enable|stop)|docker (run|compose up|pull))\b|[[:space:]]>>? *[\"/\$]" | grep -vE "/dev/(null|tcp)|>&2"'

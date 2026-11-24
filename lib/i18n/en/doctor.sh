@@ -38,6 +38,7 @@ MSG_en["doctor.mongo_gw_fail_hint"]="Mongo must listen on {1} or on 0.0.0.0 (bin
 MSG_en["doctor.mongo_reach"]="{1} reachable"
 MSG_en["doctor.mongo_noresp"]="{1} does not respond over TCP"
 MSG_en["doctor.mongo_noresp_hint"]="Check the URI in {1} and the network"
+MSG_en["doctor.mongo_srv"]="{1} uses mongodb+srv: the name is resolved through DNS and its port is not tested"
 MSG_en["doctor.mongo_none"]="No instance defines a Mongo URI yet"
 MSG_en["doctor.nofile_warn"]="mongod allows {1} open files (recommended: 64000 or more)"
 MSG_en["doctor.nofile_warn_hint"]="With many instances Mongo can fail with EMFILE. Raise LimitNOFILE in its systemd service."
