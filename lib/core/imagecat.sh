@@ -8,9 +8,10 @@
 #
 # The rules (the same ones `images`, `new --sN-tag latest` and the panel's version picker use):
 #   1. The versions of an image are ordered by CREATION DATE of the image, the newest first. That is a fact Docker knows; a tag is only a name.
-#   2. The star (★) is the newest one that (a) is a version (its tag looks like 1.2.3, v1.2.3, 2026.11.3 or 1.2.3-rc1) and (b) can run on this
-#      server (its architecture is the server's, or one of the two is not known). `latest` and tags that are not versions are NEVER the star:
-#      they move, and going back to them is not possible (kind "latest" and "other": ▲ in the screens).
+#   2. The star (★) is the newest one that (a) is a STABLE version (its tag looks like 1.2.3, v1.2.3, 2026.11.3 or 1.2; one with a suffix such as
+#      1.2.3-rc1, 1.2.3-debug or 1.2.3-alpine is a version too, and is listed, but never the star) and (b) can run on this server (its
+#      architecture is the server's, or one of the two is not known). `latest` and tags that are not versions are NEVER the star: they move,
+#      and going back to them is not possible (kind "latest" and "other": ▲ in the screens). With only suffixed tags there is no star.
 #   3. If the tags are versions and the order by version disagrees with the order by date (2.13.2 was built after 2.14.0), the star is still
 #      the newest by date and the group says so (IC_DISC): usually the old one was rebuilt, and the person should look.
 #   4. An image built for another architecture is not an option (IC_OK=0).
@@ -266,7 +267,9 @@ ic_load() {
     star=-1
     cand=()
     for i in ${order[@]+"${order[@]}"}; do
-      [ "${IC_KIND[$i]}" = ver ] && [ "${IC_OK[$i]}" -eq 1 ] && [ "${IC_EPOCH[$i]}" -gt 0 ] || continue
+      # A stable version only: 2.0.0-rc1, 2.14.0-debug or 2.0.0-alpine are listed and can be chosen by hand, but "the most recent version" is
+      # never one of them (an instance of a municipality must not be moved to a release candidate or a variant by a date).
+      [ "${IC_KIND[$i]}" = ver ] && [ -z "${IC_VPRE[$i]}" ] && [ "${IC_OK[$i]}" -eq 1 ] && [ "${IC_EPOCH[$i]}" -gt 0 ] || continue
       cand+=("$i")
     done
     if [ "${#cand[@]}" -gt 0 ]; then

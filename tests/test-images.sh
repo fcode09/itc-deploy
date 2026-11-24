@@ -173,6 +173,26 @@ images_are "auth-backend:1.0|sha256:b1|amd64"
 t_nodocker() { dk_ready() { return 1; }; ic_load; echo "$? $IC_N"; }
 check "without Docker the load fails and leaves the catalog empty" '[ "$(lib2 t_nodocker)" = "1 0" ]'
 
+section "6b. the star is a stable version: never a pre-release, a debug build or a variant"
+# The newest image by date is a release candidate, then a debug build, then an alpine variant: none of them may be what "the most recent version" is.
+images_are \
+  "auth-backend:1.9.0|sha256:p1|amd64" "auth-backend:2.0.0-rc1|sha256:p2|amd64" "auth-backend:2.14.0-debug|sha256:p3|amd64" \
+  "auth-backend:2.0.0-alpine|sha256:p4|amd64" "auth-backend:1.8.0|sha256:p5|amd64"
+dates \
+  "auth-backend:1.9.0|2026-11-10 00:00:00 +0000 UTC" "auth-backend:2.0.0-rc1|2026-11-20 00:00:00 +0000 UTC" \
+  "auth-backend:2.14.0-debug|2026-11-21 00:00:00 +0000 UTC" "auth-backend:2.0.0-alpine|2026-11-22 00:00:00 +0000 UTC" \
+  "auth-backend:1.8.0|2026-11-01 00:00:00 +0000 UTC"
+t_stable_star() { ic_load; ic_latest s0; echo "$IC_LATEST ${IC_DISC["s0|auth-backend"]:-none}"; }
+check "the star is the newest STABLE version; the pre-release, the debug build and the variant are newer and are not" '[ "$(lib2 t_stable_star)" = "1.9.0 none" ]'
+check "they are still listed, newest first, as versions that can be chosen by hand" '[ "$(lib2 t_order)" = "2.0.0-alpine 2.14.0-debug 2.0.0-rc1 1.9.0 1.8.0 " ]'
+o="$(img2 new im-stable --s0-tag latest)"
+check "new --s0-tag latest keeps the stable version, not the newest tag" 'grep -q "^S0_TAG=1.9.0$" instances/im-stable/.env.instance'
+rm -rf instances/im-stable
+images_are "auth-backend:2.0.0-rc1|sha256:p2|amd64" "auth-backend:2.0.0-debug|sha256:p3|amd64"
+dates "auth-backend:2.0.0-rc1|2026-11-20 00:00:00 +0000 UTC" "auth-backend:2.0.0-debug|2026-11-21 00:00:00 +0000 UTC"
+check "only pre-releases and variants: there is no star and nothing to resolve (nothing is guessed for a municipality)" '[ "$(lib2 t_onlylatest)" = "1 []" ]'
+check "and new --s0-tag latest says there is no version to choose and creates nothing" 'o="$(img2 new im-prerel --s0-tag latest)"; rc=$?; [ "$rc" -ne 0 ] && [ ! -e instances/im-prerel ] && echo "$o" | grep -q "no version to choose for s0"'
+
 section "7. use by instances and image names that are not the default one"
 rm -rf instances/im-one   # (the instance of the sections above)
 bash ./deltactl new im-uso >/dev/null 2>&1

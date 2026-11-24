@@ -48,5 +48,5 @@ MSG_es["new.step3"]="  3. Copia los JSON de Firebase a {1}/secrets/ (fcm.json y 
 MSG_es["new.step4"]="  4. ./deltactl check {1}   (comprueba todo sin levantar nada)"
 MSG_es["new.step5"]="  5. ./deltactl deploy {1}"
 MSG_es["new.more"]="Detalle de cada variable: ./deltactl help variable <NOMBRE>   ·   guía completa: ./deltactl help {1}"
-MSG_es["new.latest_none"]="no hay una versión que elegir para {1} ({2}) en este Docker: hace falta una imagen cuya etiqueta sea una versión y sea de la arquitectura {3} (carga una con ./deltactl load <archivo>; 'latest' no cuenta)"
+MSG_es["new.latest_none"]="no hay una versión que elegir para {1} ({2}) en este Docker: hace falta una imagen cuya etiqueta sea una versión estable (como 1.2.3, sin sufijo como -rc1 o -debug) y sea de la arquitectura {3} (carga una con ./deltactl load <archivo>; 'latest' no cuenta; para usar otra etiqueta, indícala: --{1}-tag <etiqueta>)"
 MSG_es["new.latest_resolved"]="{1}: se usa la versión más reciente de {2}: {3}"
