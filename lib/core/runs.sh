@@ -140,6 +140,20 @@ runs_lock() { # run_id what
   return 1
 }
 
+# Is another operation holding the lock right now? Only looks, takes nothing (runs_lock is the one that takes it): 0 with RUNS_OWNER_* telling who,
+# 1 when there is no lock or its owner is gone. A lock with no PID yet (its owner is between creating it and writing it) counts as held.
+runs_busy() {
+  local d pid
+  d="$(runs_dir)/locks/mutation.lock"
+  [ -d "$d" ] || return 1
+  pid="$(cat "$d/pid" 2> /dev/null || true)"
+  if [ -n "$pid" ] && ! runs_pid_alive "$pid"; then return 1; fi
+  RUNS_OWNER_PID="${pid:-?}"
+  RUNS_OWNER_RUN="$(cat "$d/run" 2> /dev/null || true)"
+  RUNS_OWNER_WHAT="$(cat "$d/what" 2> /dev/null || true)"
+  return 0
+}
+
 runs_unlock() {
   local d
   d="$(runs_dir)/locks/mutation.lock"

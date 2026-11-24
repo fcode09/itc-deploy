@@ -170,6 +170,37 @@ check "y writes the tag and starts the deploy of that service (a command in the 
   o="$(panel 8 enter enter y wait)"
   [ "$(tag_of ix-colorado)" = 2.14.1 ] && grep -q "COMPOSE up" "$FIX/calls.log" && echo "$o" | grep -q "deploy ix-colorado s0"'
 sed -i 's/^S0_TAG=.*/S0_TAG=2.14.0/' instances/ix-colorado/.env.instance
+# Another terminal may be running a command on the same instances: the lock of the mutation (instances/.deltactl/locks/mutation.lock) is held by a
+# live process of deltactl. The panel only knew about its own jobs, so it wrote the tag and then its deploy failed: the file said one version and
+# the container ran another.
+LOCK="instances/.deltactl/locks/mutation.lock"
+hold_lock() { mkdir -p "$LOCK"; (exec -a deltactl-holder sleep 300) & HOLDER=$!; printf '%s\n' "$HOLDER" > "$LOCK/pid"; echo 20261124T000000Z-1 > "$LOCK/run"; echo "deploy ix-lima" > "$LOCK/what"; }
+release_lock() { kill "$HOLDER" 2> /dev/null; wait "$HOLDER" 2> /dev/null; rm -rf instances/.deltactl; }
+tag_is() { [ "$(tag_of "$1")" = "$2" ]; }
+reset_tag() { sed -i "s/^S0_TAG=.*/S0_TAG=2.14.0/" instances/ix-colorado/.env.instance; : > "$FIX/calls.log"; }
+reset_tag; hold_lock
+o="$(panel 8 enter enter y wait)"
+check "while another operation holds the lock, y writes nothing and starts nothing, and says who is running what" '
+  tag_is ix-colorado 2.14.0 && ! grep -q "COMPOSE" "$FIX/calls.log" && echo "$o" | last_frame | grep -q "otra operación en curso (./deltactl deploy ix-lima, pid $HOLDER)"'
+o="$(panel 8 enter enter g)"
+check "...and g (only the tag) is refused too: the deploy that runs could record the new tag over the old container" '
+  tag_is ix-colorado 2.14.0 && echo "$o" | last_frame | grep -q "otra operación en curso"'
+o="$(LANGX=en panel 8 enter enter y)"
+check "the refusal is in English too" 'echo "$o" | last_frame | grep -q "another operation is running (./deltactl deploy ix-lima"'
+release_lock
+reset_tag
+mkdir -p "$LOCK"; echo 999999 > "$LOCK/pid"; echo 20261124T000000Z-2 > "$LOCK/run"; echo "deploy ix-lima" > "$LOCK/what"
+check "a lock whose owner is gone is not a reason to refuse (it is taken over by the next operation)" '
+  o="$(panel 8 enter enter y wait)"; tag_is ix-colorado 2.14.1 && grep -q "COMPOSE up" "$FIX/calls.log"'
+rm -rf instances/.deltactl; reset_tag
+# A run that was interrupted and nobody has reviewed blocks every new operation (lib/core/runs.sh): deploy would die with the message of runs.blocked.
+mkdir -p instances/.deltactl/pending; printf 'deploy\tix-lima\n' > instances/.deltactl/pending/20261123T100000Z-7
+o="$(panel 8 enter enter y wait)"
+check "an interrupted run nobody has reviewed: y writes nothing and says which run and where to review it" '
+  tag_is ix-colorado 2.14.0 && ! grep -q "COMPOSE" "$FIX/calls.log" && echo "$o" | last_frame | grep -q "20261123T100000Z-7 (deploy ix-lima)" && echo "$o" | last_frame | grep -q "sin revisar"'
+check "...but g, that only saves the tag and starts nothing, still works" '
+  o="$(panel 8 enter enter g)"; tag_is ix-colorado 2.14.1 && ! grep -q "COMPOSE" "$FIX/calls.log"'
+rm -rf instances/.deltactl; reset_tag
 check "the other tags of the instance and its other files are not touched" 'grep -q "^S1_TAG=2.9.0$" instances/ix-colorado/.env.instance && [ -f instances/ix-colorado/.env.s0 ]'
 check "an image of another architecture is not offered: Enter says why instead of opening the dialog" 'o="$(panel 8 up enter)"; f="$(echo "$o" | last_frame)"; echo "$f" | grep -q "imagen de arquitectura arm64" && ! echo "$f" | grep -q "Elige la instancia"'
 check "an instance that uses another image name for the service is listed with the reason" '

@@ -52,6 +52,16 @@ dash_iu_write() { # instance service tag
   return 0
 }
 
+# Another operation (from another terminal, or a run that was interrupted and nobody reviewed) would make the deploy fail after the tag is written:
+# the file would say one version and the container run another. With deploy=1 (the tag is written to be deployed) both are a reason to refuse;
+# with deploy=0 (only the tag) only a live operation is: the deploy that runs could record the new tag over the old container.
+# Returns 0 after saying why when it is blocked.
+dash_iu_blocked() { # deploy(1|0)
+  if runs_busy; then dash_msg warn "$(t tui.img.use.busy "$RUNS_OWNER_WHAT" "$RUNS_OWNER_PID")"; return 0; fi
+  if [ "$1" -eq 1 ] && runs_pending; then dash_msg warn "$(t tui.img.use.blocked "$RUNS_PEND_ID" "$RUNS_PEND_WHAT")"; return 0; fi
+  return 1
+}
+
 dash_key_imguse() { # key
   local n="${#DASH_IU_NAMES[@]}" name="${DASH_IU_NAMES[$DASH_IU_SEL]:-}"
   if [ "$DASH_IU_STEP" = "pick" ]; then
@@ -70,11 +80,13 @@ dash_key_imguse() { # key
       DASH_MODE=normal
       # Only one command runs at a time: with one running nothing is written (a tag changed without its deploy would surprise).
       if job_running; then dash_msg warn "$(t tui.msg.busy)"; return 0; fi
+      if dash_iu_blocked 1; then return 0; fi
       dash_iu_write "$name" "$DASH_IU_SVC" "$DASH_IU_TAG" || return 0
       dash_start_job stay deploy "$name" "$DASH_IU_SVC"
       ;;
     g | G)
       DASH_MODE=normal
+      if dash_iu_blocked 0; then return 0; fi
       dash_iu_write "$name" "$DASH_IU_SVC" "$DASH_IU_TAG" || return 0
       dash_msg ok "$(t tui.img.use.saved "$name" "$(tag_var "$DASH_IU_SVC")" "$DASH_IU_TAG")"
       ;;
