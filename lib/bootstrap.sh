@@ -39,6 +39,8 @@ source "$ROOT/lib/core/instance.sh"
 source "$ROOT/lib/core/services.sh"
 # shellcheck source=lib/core/imagecat.sh
 source "$ROOT/lib/core/imagecat.sh"
+# shellcheck source=lib/core/envschema.sh
+source "$ROOT/lib/core/envschema.sh"
 # shellcheck source=lib/core/ports.sh
 source "$ROOT/lib/core/ports.sh"
 # shellcheck source=lib/core/status.sh

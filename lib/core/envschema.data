@@ -1,0 +1,46 @@
+# Rules of the environment-variable schema. Read by lib/core/envschema.sh; the variables themselves (key, file, type, default,
+# description) come from the glossary lib/help/variables.txt, so a variable added there shows up in the schema without touching this file.
+# Here only what a glossary line cannot say: how to validate a value and whether it is a secret.
+#
+# One rule per line, "pattern|validator|secret", the FIRST rule that matches wins:
+#   pattern    a glob on the key (`*_PORT`), or `<file>:<glob>` to limit it to one file (`.env.s1:IP_INTERNAL_CONNECTION`)
+#   validator  the check of the value (functions ev_<name> of envschema.sh; list in docs/env-variables.md): text, port, mongo-uri,
+#              public-url, url, url-ws, b64-32, secret-path, memory, bool, services-list, instance-name, image-name, tag, int,
+#              secret-min32, host, registry, duration, json-line, path
+#   secret     1 when the value is a secret: it is masked when listed and never printed unless asked for (0 otherwise)
+# Which variables the tool can GENERATE comes from the service catalog (lib/core/catalog.data, last field), not from here.
+.env.instance:INSTANCE|instance-name|0
+.env.instance:REGISTRY|registry|0
+.env.instance:COMPOSE_PROFILES|services-list|0
+.env.instance:DATA_DIR|path|0
+IP_SERVER|public-url|0
+AUTH_URL|url|0
+TRANSCRIPTOR_URL|url|0
+LIVEKIT_URL|url-ws|0
+MONGO*URI|mongo-uri|1
+JWT_EXPIRES_IN|duration|0
+DELTA_UNIVERSITY_HANDOFF_SECRET|secret-min32|1
+FEDERATION_ENCRYPTION_KEY|b64-32|1
+FCM_CERT|secret-path|0
+*_FCM_CERT|secret-path|0
+SERVERS_CONFIG|json-line|0
+IP_INTERNAL_CONNECTION|host|0
+TCP_LISTEN_HOST|host|0
+*_PORT|port|0
+PORT_*|port|0
+*_TAG|tag|0
+*_IMAGE|image-name|0
+*_MEM_LIMIT|memory|0
+*_ENABLED|bool|0
+*_CONCURRENCY|int|0
+*_SECONDS|int|0
+*_DIR|path|0
+API_KEY_*|text|1
+*_API_KEY|text|1
+*_SECRET|text|1
+*_KEY|text|1
+*_TOKEN|text|1
+*PASSWORD*|text|1
+*_URI|text|1
+*_URL|url|0
+*|text|0
