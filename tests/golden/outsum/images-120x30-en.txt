@@ -1,0 +1,31 @@
+=== frame 1 ===
+
+ 1 Instances 2 Resources [3 Output] 4 Runs 5 Processes 6 Console 7 Server 8 Images      ● ./deltactl images finished OK
+╭─ ▸Output · ./deltactl images · finished OK 00:42 · summary · ● 2 ────────────────────────────────────────────────────╮
+│ Images on this server                                                                                                │
+│                                                                                                                      │
+│ Architecture of this server: amd64                                                                                   │
+│                                                                                                                      │
+│ ── s0 = auth-backend ─────────────────────────────────────────────────────────────────────────────────────────────── │
+│   ○ 1.1  aaa112 · amd64 · 1 hour ago · 300MB                                                                         │
+│       unused (candidate for deletion)                                                                                │
+│   ● 1.0  aaa111 · amd64 · 1 hour ago · 300MB                                                                         │
+│       sim-01(current) sim-02(current) sim-03(current)                                                                │
+│                                                                                                                      │
+│ ── s1 = gueo-back-end ────────────────────────────────────────────────────────────────────────────────────────────── │
+│   ● 1.0  bbb222 · amd64 · 1 hour ago · 300MB                                                                         │
+│       sim-01(current) sim-02(current) sim-03(current)                                                                │
+│                                                                                                                      │
+│ The 'unused' versions are not used by any instance (neither as current nor as previous).                             │
+│ This command only lists: deleting images is up to you. Avoid 'docker image prune -a'.                                │
+│   → 1 of 3 image(s) unused. To delete a specific one: docker image rm <name>:<tag>                                   │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+ ↑↓ scroll · PgUp/PgDn · f follow · v summary/raw · e errors · x cancel · : command · ? help · q quit

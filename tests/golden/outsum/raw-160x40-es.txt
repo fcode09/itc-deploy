@@ -1,0 +1,41 @@
+=== frame 1 ===
+
+  1 Instancias   2 Recursos  [3 Salida]  4 Ejecuciones   5 Procesos   6 Consola   7 Servidor   8 Imágenes                      ● ./deltactl doctor terminó bien
+╭─ ▸Salida · ./deltactl doctor · terminó bien 00:42 ───────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│   ● Docker 27.0.0 (arquitectura amd64)                                                                                                                       │
+│   ● Docker Compose 2.30.0                                                                                                                                    │
+│                                                                                                                                                              │
+│ Recursos                                                                                                                                                     │
+│   ▲ Disco libre en /srv/deltactl: 5.1 GB (menos de 10 GB)                                                                                                    │
+│   ● Memoria: 8192 MB en total, 3072 MB disponibles                                                                                                           │
+│   ● Límites de memoria de las instancias: 7680 MB en total                                                                                                   │
+│                                                                                                                                                              │
+│ MongoDB                                                                                                                                                      │
+│   ● host.docker.internal:27017 alcanzable desde los contenedores (por 127.0.0.1)                                                                             │
+│   ● mongod permite 524288 archivos abiertos                                                                                                                  │
+│                                                                                                                                                              │
+│ Instancias                                                                                                                                                   │
+│   ● sim-01: permisos correctos                                                                                                                               │
+│   ● sim-02: permisos correctos                                                                                                                               │
+│   ● sim-03: permisos correctos                                                                                                                               │
+│                                                                                                                                                              │
+│ Herramientas                                                                                                                                                 │
+│   ● ss disponible                                                                                                                                            │
+│   ● openssl disponible                                                                                                                                       │
+│   ● gunzip disponible                                                                                                                                        │
+│                                                                                                                                                              │
+│ Recomendado                                                                                                                                                  │
+│   ℹ No se detectó nginx ni Caddy (recomendado)                                                                                                               │
+│       Sin un proxy no hay HTTPS ni nombres de dominio delante de las instancias                                                                              │
+│       Instalar (apt): sudo apt-get install -y nginx                                                                                                          │
+│   ℹ Falta 'certbot' (recomendado)                                                                                                                            │
+│       Sin él los certificados HTTPS se piden y renuevan a mano                                                                                               │
+│       Instalar (apt): sudo apt-get install -y certbot certbot-nginx                                                                                          │
+│   ● La hora del servidor está sincronizada (NTP)                                                                                                             │
+│   ● Cortafuegos activo: firewalld                                                                                                                            │
+│   ● curl disponible                                                                                                                                          │
+│                                                                                                                                                              │
+│   ▲ El servidor funciona, con 1 aviso(s)                                                                                                                     │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+ ↑↓ desplazar · PgUp/PgDn · f seguir · v resumen/crudo · e errores · x cancelar · : comando · ? ayuda · q salir

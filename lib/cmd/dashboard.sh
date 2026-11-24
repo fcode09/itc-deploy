@@ -24,6 +24,9 @@ source "$ROOT/lib/cmd/help.sh"
 source "$ROOT/lib/ui/tui.sh"
 source "$ROOT/lib/ui/layout.sh"
 source "$ROOT/lib/ui/kit/kit.sh"
+# The interpreter of what a command printed and the summary the Output view draws with it.
+source "$ROOT/lib/core/outparse.sh"
+source "$ROOT/lib/ui/outsummary.sh"
 source "$ROOT/lib/cmd/dashboard_view.sh"
 # The screens and the router (lib/screens/registry.sh): the views and modes below are the ones it registers.
 source "$ROOT/lib/screens/registry.sh"
@@ -34,6 +37,7 @@ DASH_SEL=0 DASH_SVC=0 DASH_RES_SEL=0 DASH_RES_SORT=name DASH_FOCUS=list DASH_ON_
 DASH_ZOOM=0 DASH_LOG_SCROLL=0 DASH_LOG_FILTER="" DASH_PAL_Q="" DASH_PAL_SEL=0
 DASH_PAL_ALL_L=() DASH_PAL_ALL_A=() DASH_PAL_LABELS=() DASH_PAL_ACTS=() DASH_PAL_RECENT=() PAL_SCORE=0
 DASH_OUT_SCROLL=0 DASH_OUT_ERRORS=0
+DASH_OUT_RAW=0 DASH_OUT_STOP=0 DASH_OUT_SUM=0   # the Output view: 1 = the raw text, the lines hidden above the summary, 1 while the summary is on screen
 DASH_PAUSED=0 DASH_DIRTY=1 DASH_QUIT=0 DASH_IDLE=0 DASH_SPIN=0 DASH_JOB_PENDING=0
 DASH_MSG="" DASH_MSG_KIND=info DASH_MSG_UNTIL=0
 DASH_HOST="" DASH_DOCKER_VER=""
@@ -365,7 +369,7 @@ dash_start_job() { # view args...
   [ "$UI_COLOR" -ne 1 ] || color=always
   job_start "$*" env COLUMNS=$((TUI_COLS - 4)) DELTACTL_UI=rich DELTACTL_COLOR="$color" \
     DELTACTL_LANG="${DELTACTL_LANG_ACTIVE:-es}" "$ROOT/deltactl" "$@"
-  DASH_OUT_SCROLL=0 DASH_JOB_DONE=0
+  DASH_OUT_SCROLL=0 DASH_OUT_STOP=0 DASH_JOB_DONE=0
   # The console keeps what was run and what it printed (dash_con_mirror copies the output as it arrives).
   dash_prompt_name
   dash_con_add "${TH[accent]:-$C_CYN}$DASH_PN $(dash_prompt_glyph)$C_OFF ./deltactl $*"

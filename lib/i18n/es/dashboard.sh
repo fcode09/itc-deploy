@@ -55,6 +55,9 @@ MSG_es["tui.out.scrolled"]="desplazado"
 MSG_es["tui.out.errors_only"]="solo errores"
 MSG_es["tui.out.lines"]="{1} líneas"
 MSG_es["tui.out.no_match"]="(ninguna línea con errores)"
+MSG_es["tui.out.summary"]="resumen"
+MSG_es["tui.out.raw"]="salida cruda"
+MSG_es["tui.out.unsummarised"]="+{1} líneas sin resumir: v muestra la salida cruda"
 
 # Messages of the status line
 MSG_es["tui.msg.busy"]="Hay un comando en ejecución: espera a que termine o cancélalo con x"
@@ -197,7 +200,7 @@ MSG_es["tui.pal.options"]="Opciones del panel"
 MSG_es["tui.pal.clear"]="Limpiar la consola"
 MSG_es["tui.pal.quit"]="Salir"
 MSG_es["tui.keys.resources"]="{1} mover · s ordenar · Enter abrir la instancia · : comando · ? ayuda · q salir"
-MSG_es["tui.keys.output"]="{1} desplazar · PgUp/PgDn · f seguir · e errores · x cancelar · : comando · ? ayuda · q salir"
+MSG_es["tui.keys.output"]="{1} desplazar · PgUp/PgDn · f seguir · v resumen/crudo · e errores · x cancelar · : comando · ? ayuda · q salir"
 MSG_es["tui.keys.running"]="x cancelar"
 
 # Actions of an instance

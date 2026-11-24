@@ -1,0 +1,41 @@
+=== frame 1 ===
+
+  1 Instancias   2 Recursos  [3 Salida]  4 Ejecuciones   5 Procesos   6 Consola   7 Servidor   8 Imágenes               ● ./deltactl deploy sim-01 terminó bien
+╭─ ▸Salida · ./deltactl deploy sim-01 · terminó bien 00:42 · resumen ──────────────────────────────────────────────────────────────────────────────────────────╮
+│ ● instancia 'sim-01' desplegada (s0 s1)                                                                                                                      │
+│                                                                                                                                                              │
+│   ● Validando compose...                                                                                                                                     │
+│   ● Imágenes locales (REGISTRY vacío): no se descarga nada.                                                                                                  │
+│   ● Levantando servicios (espera a que estén healthy)...                                                                                                     │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+ ↑↓ desplazar · PgUp/PgDn · f seguir · v resumen/crudo · e errores · x cancelar · : comando · ? ayuda · q salir

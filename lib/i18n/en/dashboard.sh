@@ -55,6 +55,9 @@ MSG_en["tui.out.scrolled"]="scrolled"
 MSG_en["tui.out.errors_only"]="errors only"
 MSG_en["tui.out.lines"]="{1} lines"
 MSG_en["tui.out.no_match"]="(no lines with errors)"
+MSG_en["tui.out.summary"]="summary"
+MSG_en["tui.out.raw"]="raw output"
+MSG_en["tui.out.unsummarised"]="+{1} lines not summarised: v shows the raw output"
 
 # Messages of the status line
 MSG_en["tui.msg.busy"]="A command is running: wait for it to finish or cancel it with x"
@@ -197,7 +200,7 @@ MSG_en["tui.pal.options"]="Panel options"
 MSG_en["tui.pal.clear"]="Clear the console"
 MSG_en["tui.pal.quit"]="Quit"
 MSG_en["tui.keys.resources"]="{1} move · s sort · Enter open the instance · : command · ? help · q quit"
-MSG_en["tui.keys.output"]="{1} scroll · PgUp/PgDn · f follow · e errors · x cancel · : command · ? help · q quit"
+MSG_en["tui.keys.output"]="{1} scroll · PgUp/PgDn · f follow · v summary/raw · e errors · x cancel · : command · ? help · q quit"
 MSG_en["tui.keys.running"]="x cancel"
 
 # Actions of an instance
