@@ -24,9 +24,7 @@ source "$ROOT/lib/ui/layout.sh"
 source "$ROOT/lib/ui/kit/kit.sh"
 source "$ROOT/lib/cmd/dashboard_view.sh"
 source "$ROOT/lib/cmd/dashboard_logs.sh"
-source "$ROOT/lib/cmd/dashboard_options.sh"
 source "$ROOT/lib/cmd/dashboard_alias.sh"
-source "$ROOT/lib/cmd/dashboard_new.sh"
 # The screens and the router (lib/screens/registry.sh): the views and modes below are the ones it registers.
 source "$ROOT/lib/screens/registry.sh"
 
