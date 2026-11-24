@@ -270,7 +270,7 @@ Evitar patrones extglob en reemplazos (`//`) sobre cadenas largas.
   y arranca `new <nombre> --services ... --s0-image ... --ip ... --generate-secrets`; si se cambia una pregunta, hay que cambiarla
   en los dos sitios (las validaciones y los textos son compartidos). El formulario dibuja dos paneles desde 92 columnas y 20
   filas; por debajo, solo los campos de la sección. Los servicios que aún no tienen Docker (walle, robin, link) se muestran
-  apagados y sus nombres están escritos a mano en `dash_nw_pane_services`; al dockerizar uno hay que sumarlo a `KNOWN_SERVICES` y
+  apagados y sus nombres están escritos a mano en `dash_nw_pane_services`; al dockerizar uno hay que darlo de alta en `lib/core/catalog.data` y
   quitarlo de ahí.
   El estado de las imágenes y los puertos se lee una vez al abrir el formulario: no se refresca mientras está abierto.
 - "Errores (10 min)" cuesta un `docker logs` por servicio cada 30 s, solo de la instancia seleccionada.

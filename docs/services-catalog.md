@@ -42,18 +42,21 @@ La clave `sN` de cada uno está **por asignar**. Ninguno tiene Dockerfile todav�
 
 ## Pasos para sumar un servicio nuevo
 
+Un servicio se define **una sola vez**, en `lib/core/catalog.data` (una línea; lo lee `lib/core/catalog.sh`). De esa línea salen
+`KNOWN_SERVICES`, el nombre de imagen por defecto, `REQUIRED_<SN>`, las variables de URI de Mongo de `check`, las carpetas de
+`data/`, los secretos que genera `--generate-secrets`, la plantilla que copia `new`, el puerto (`base + desplazamiento`), las
+opciones `--<sN>-image` y `--<sN>-tag` y la lista de la guía `./deltactl help servicios`.
+
 1. Dockerizarlo y dejar su imagen disponible en el servidor (`./deltactl load`) o publicada en un registry.
-2. Asignarle la siguiente clave libre (`s2`, `s3`...) y un puerto: `base + N` dentro del bloque de la instancia.
-3. Crear `services/compose-sN.yaml` siguiendo `compose-s0.yaml` (variables `SN_TAG`, `SN_PORT`, `SN_MEM_LIMIT`)
-   con `profiles: ["sN"]`. Si depende de otro servicio, `depends_on` con `required: false`.
-4. Añadir su línea a `include` en `compose.yaml`.
-5. Crear `templates/.env.sN.example` y añadir las variables a `templates/.env.instance.example`.
-6. Añadir `sN` a `KNOWN_SERVICES` (en `lib/core/config.sh`) y a `default_repo` (nombre por defecto de su imagen, en `lib/core/services.sh`) (las
-   variables `SN_IMAGE`, `SN_TAG`, `SN_PORT` y `SN_MEM_LIMIT` ya se ignoran si están exportadas en el shell), definir `preflight_sN` en `lib/cmd/deploy.sh`
-   y ampliar `lib/cmd/new.sh` (carpetas de `data/` y puertos). En ese mismo archivo, definir `REQUIRED_SN`
-   (sus variables obligatorias): lo usan la validación previa, `./deltactl new` y los tests de la ayuda.
-7. Las instancias existentes no lo activan solas: sumar `sN` a su `COMPOSE_PROFILES`.
-8. Documentar el servicio en la ayuda: cada variable de su plantilla en `lib/help/variables.txt`, una línea
-   en la guía `lib/help/topic-servicios.txt` y, si añade opciones a algún comando, su página `cmd-*.txt`.
-   `tests/run.sh test-help` falla mientras falte algo.
-9. Actualizar este catálogo y la tabla del README.
+2. Compose: `services/compose-sN.yaml` siguiendo `compose-s0.yaml` (variables `SN_TAG`, `SN_PORT`, `SN_MEM_LIMIT`, `profiles: ["sN"]`;
+   si depende de otro servicio, `depends_on` con `required: false`) y su línea en `include` de `compose.yaml`.
+3. Plantillas: `templates/.env.sN.example` y las variables `SN_TAG`, `SN_PORT` en `templates/.env.instance.example`.
+4. Catálogo y ayuda: la línea de `lib/core/catalog.data` (clave, nombre, imagen, puertos, plantilla, obligatorias, Mongo, dependencias,
+   memoria, carpetas, archivos de `secrets/`, secretos a generar), su descripción `catalog.desc.sN` en `lib/i18n/{es,en}/common.sh`,
+   cada variable de su plantilla en `lib/help/variables.txt` (y `en/`) y, si añade opciones a algún comando, su página `cmd-*.txt`.
+   `tests/run.sh test-help` y `test-catalog` fallan mientras falte algo.
+
+Solo hace falta código si el servicio tiene una regla propia: una comprobación previa especial se define como
+`preflight_extra_sN` en `lib/cmd/deploy.sh` (como la de `s1`, que avisa si `TCP_LISTEN_HOST` solo escucha en el contenedor).
+Las instancias existentes no lo activan solas: hay que sumar `sN` a su `COMPOSE_PROFILES`.
+Después, actualizar este catálogo y la tabla del README.

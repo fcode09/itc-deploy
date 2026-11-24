@@ -48,7 +48,7 @@ lib/
 ├─ bootstrap.sh    # carga todas las capas en orden
 ├─ i18n/           # idioma (es por defecto, en) y catálogos de mensajes: lo que lee el usuario
 ├─ ui/             # colores, tablas, banner, mensajes y confirmaciones: cómo se muestra
-├─ core/           # reglas: instancias, servicios, imágenes, puertos (sin entrada/salida propia)
+├─ core/           # reglas: instancias, servicios (catalog.data: un servicio = una línea), imágenes, puertos (sin entrada/salida propia)
 ├─ adapters/       # docker.sh, state.sh (archivos de la instancia), host.sh (puertos, permisos, disco)
 ├─ cmd/            # un archivo por comando; se cargan al usarlos
 └─ help/           # las páginas de ayuda: español en help/, inglés en help/en/
