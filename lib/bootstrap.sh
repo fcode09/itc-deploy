@@ -45,6 +45,10 @@ source "$ROOT/lib/core/imagecat.sh"
 source "$ROOT/lib/core/envschema.sh"
 # shellcheck source=lib/core/envedit.sh
 source "$ROOT/lib/core/envedit.sh"
+# shellcheck source=lib/core/secretfile.sh
+source "$ROOT/lib/core/secretfile.sh"
+# shellcheck source=lib/core/proxy.sh
+source "$ROOT/lib/core/proxy.sh"
 # shellcheck source=lib/core/ports.sh
 source "$ROOT/lib/core/ports.sh"
 # shellcheck source=lib/core/status.sh
