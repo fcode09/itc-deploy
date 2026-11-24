@@ -7,7 +7,7 @@
 case "$1" in
   info)
     case "$*" in
-      *Architecture*) echo x86_64 ;;
+      *Architecture*) cat "$FIX/server_arch" 2> /dev/null || echo x86_64 ;;   # $FIX/server_arch (optional): the architecture of the server
       *ServerVersion*) echo 27.0.0 ;;
       *DockerRootDir*) echo "" ;;
     esac
@@ -29,15 +29,29 @@ case "$1" in
     exit 0 ;;
   image)
     case "$2" in
-      ls) awk -F'|' '{ split($1, r, ":"); printf "%s|%s|%s|1 hour ago|300MB\n", r[1], r[2], $2 }' "$FIX/images.txt" ;;
+      ls)
+        # repo|tag|id|created|size|created_at. The date comes from $FIX/image_dates.txt (ref|date, optional); without it the field is empty.
+        awk -F'|' -v dates="$FIX/image_dates.txt" '
+          BEGIN { while ((getline l < dates) > 0) { split(l, d, "|"); at[d[1]] = d[2] } }
+          { split($1, r, ":"); printf "%s|%s|%s|1 hour ago|300MB|%s\n", r[1], r[2], $2, at[$1] }' "$FIX/images.txt" ;;
       inspect)
-        ref="${*: -1}"
-        line="$(grep -F "$ref|" "$FIX/images.txt" | head -n1)"
-        [ -n "$line" ] || exit 1
-        case "$*" in
-          *Architecture*) echo "$(echo "$line" | cut -d'|' -f3)" ;;
-          *"{{.Id}}"*) echo "$(echo "$line" | cut -d'|' -f2)" ;;
-        esac ;;
+        # Any number of references (or ids) after the options; --format decides what each one prints: id|architecture, the architecture or the id.
+        shift 2
+        fmt="" refs=() rc=0
+        while [ "$#" -gt 0 ]; do
+          case "$1" in --format) fmt="$2"; shift 2 ;; *) refs+=("$1"); shift ;; esac
+        done
+        for ref in "${refs[@]}"; do
+          line="$(grep -F "$ref|" "$FIX/images.txt" | head -n1)"
+          if [ -z "$line" ]; then rc=1; continue; fi
+          id="$(echo "$line" | cut -d'|' -f2)" arch="$(echo "$line" | cut -d'|' -f3)"
+          case "$fmt" in
+            *Architecture*"{{.Id}}"* | *"{{.Id}}"*Architecture*) echo "$id|$arch" ;;
+            *Architecture*) echo "$arch" ;;
+            *"{{.Id}}"*) echo "$id" ;;
+          esac
+        done
+        [ "$rc" -eq 0 ] || exit 1 ;;
     esac
     exit 0 ;;
   run)

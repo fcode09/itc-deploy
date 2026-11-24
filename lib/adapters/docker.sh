@@ -82,11 +82,17 @@ dk_image_id() { docker image inspect --format '{{.Id}}' "$1" 2>/dev/null || true
 # Architecture of a loaded image (empty if it is not loaded).
 dk_image_arch() { docker image inspect --format '{{.Architecture}}' "$1" 2>/dev/null || true; }
 
-# Loaded images as "repository|tag|id|created|size" lines, and as "repository|tag" lines.
-dk_images_detail() { docker image ls --format '{{.Repository}}|{{.Tag}}|{{.ID}}|{{.CreatedSince}}|{{.Size}}'; }
+# Loaded images as "repository|tag|id|created|size|created_at" lines, and as "repository|tag" lines. `created` is Docker's "2 days ago" and
+# `created_at` its date ("2026-11-20 10:15:30 +0000 UTC"), last so that what reads the first five fields does not notice it: ONE query gives both.
+dk_images_detail() { docker image ls --format '{{.Repository}}|{{.Tag}}|{{.ID}}|{{.CreatedSince}}|{{.Size}}|{{.CreatedAt}}'; }
 dk_images_tags() { docker image ls --format '{{.Repository}}|{{.Tag}}' 2>/dev/null; }
 # "repository|tag|id" for every loaded image in ONE query (the id is the full "sha256:..." one).
 dk_images_ids() { docker image ls --no-trunc --format '{{.Repository}}|{{.Tag}}|{{.ID}}' 2>/dev/null; }
+
+# "id|architecture" for several images in ONE query (ids or references). What it cannot find, it leaves out.
+dk_images_arch() { # id_or_ref...
+  docker image inspect --format '{{.Id}}|{{.Architecture}}' "$@" 2>/dev/null || true
+}
 
 # Loads an image archive (docker save output, plain or gzip). Prints docker's output; returns its status.
 dk_load() { # file

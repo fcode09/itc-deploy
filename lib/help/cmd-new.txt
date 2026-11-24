@@ -21,7 +21,10 @@ confirmar lanza `new` con las respuestas como opciones.
 - `--existing` la municipalidad YA tiene datos: se marca como inicializada y `./deltactl init` no podrá ejecutarse nunca sobre
   ella.
 - `--s0-image <nombre>` y `--s1-image <nombre>` nombre de la imagen de cada servicio (sin etiqueta).
-- `--s0-tag <etiqueta>` y `--s1-tag <etiqueta>` versión a desplegar de cada servicio.
+- `--s0-tag <etiqueta>` y `--s1-tag <etiqueta>` versión a desplegar de cada servicio. Con `latest` se elige la versión
+  **más reciente** que este servidor puede usar (la ★ de `./deltactl images`: la más nueva por fecha de creación entre
+  las etiquetas de versión y de su arquitectura), no una etiqueta llamada `latest`; la instancia guarda la etiqueta
+  que resultó.
 - `--ip <url>` URL pública del sistema, con esquema (se guarda como IP_SERVER en s0 y s1).
 - `--generate-secrets` genera los secretos únicos (JWT y claves de cifrado); necesita openssl.
 

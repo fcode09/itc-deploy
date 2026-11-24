@@ -7,13 +7,21 @@ It only lists: it never deletes anything. Alias: `./deltactl versions`.
 $ ./deltactl images [service] [--json]
 
 ## How to read the table
+The versions of each image go from the newest to the oldest **by creation date of the image** (a tag is only a name).
 - `im-uno(current)` that instance uses the tag now
 - `im-uno(previous)` is the previous version kept for rollback
 - `unused (candidate for deletion)` no instance uses it
+- `★` the most recent one this server can use: the newest by date among the tags that are versions (`1.2.3`, `v1.2.3`,
+  `2026.11.3`) and of the server's architecture. It is the one `./deltactl new --s0-tag latest` picks
+- `▲` a tag that moves (`latest`, or not a version): it cannot take you back and it is never the ★
+- `✖` in ARQ: an image of another architecture; it would not start here
+- If a lower version was created after a higher one (was an old one rebuilt?), the table warns under that image
 
 ## Options
 - `service` shows only `s0` or only `s1`
-- `--json` output for scripts (no colors); `used_by` always uses `(current)` and `(previous)`, whatever the language
+- `--json` output for scripts (no colors); `used_by` always uses `(current)` and `(previous)`, whatever the language.
+  It also has `created_at` (ISO 8601 date in UTC, empty when Docker gives none), `latest` (`true` on the ★),
+  `compatible` (`false` for another architecture) and `kind` (`version`, `latest` or `other`)
 
 ## Examples
 $ ./deltactl images
