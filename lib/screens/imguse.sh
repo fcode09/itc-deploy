@@ -68,6 +68,8 @@ dash_key_imguse() { # key
   case "$1" in
     y | Y | s | S)
       DASH_MODE=normal
+      # Only one command runs at a time: with one running nothing is written (a tag changed without its deploy would surprise).
+      if job_running; then dash_msg warn "$(t tui.msg.busy)"; return 0; fi
       dash_iu_write "$name" "$DASH_IU_SVC" "$DASH_IU_TAG" || return 0
       dash_start_job stay deploy "$name" "$DASH_IU_SVC"
       ;;
