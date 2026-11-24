@@ -75,6 +75,19 @@ for size in 80x24 120x30 160x40; do
     ms "images: cursor moves (frame built again)" "$N" img_move
     ms "images: read the catalog (background in the panel)" 10 img_read
     DASH_VIEW=instances
+    # The new-instance wizard (mode newinst): a key moves the cursor of the step that is open (the whole frame is built again: the form, the
+    # preview and the list of the steps), once per step; opening it reads Docker once (names and images), shown apart.
+    # shellcheck disable=SC2329,SC2034  # called through ms
+    nz_open() { dash_nz_open; DASH_MODE=normal; }
+    # shellcheck disable=SC2329,SC2034  # called through ms
+    nz_key() { scr_newinst_key down; scr_newinst_key up; DASH_PC_SIG=(); dash_render; }
+    ms "wizard: open (reads Docker once)" 10 nz_open
+    dash_nz_open
+    for _s in 0 1 2 3; do
+      dash_nz_goto "$_s"
+      ms "wizard: step $((_s + 1)), a key and a frame" "$N" nz_key
+    done
+    DASH_MODE=normal
     ms "mt_sample" "$N" mt_sample
     # shellcheck disable=SC2329,SC2034  # called through ms; MT_HOST_DETAIL is read by mt_sample
     mt_detail() { MT_HOST_DETAIL=1 mt_sample; MT_HOST_DETAIL=0; }
