@@ -127,6 +127,7 @@ for size in 80x24 120x30 160x40; do
     ms "output (summary): new output, whole frame" "$N" out_cold
     DASH_OUT_RAW=1
     ms "output (raw): hot frame" "$N" dash_render
+    # shellcheck disable=SC2034  # read by the Output view
     DASH_OUT_RAW=0 DASH_VIEW=instances
     ms "mt_sample" "$N" mt_sample
     # shellcheck disable=SC2329,SC2034  # called through ms; MT_HOST_DETAIL is read by mt_sample
