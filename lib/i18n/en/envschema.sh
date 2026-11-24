@@ -4,6 +4,7 @@
 # Validation of values (lib/core/envschema.sh). None of them repeats the value: it may be a secret.
 
 MSG_en["envschema.err.newline"]="the value cannot contain line breaks"
+MSG_en["envschema.err.key"]="the name of a variable can only have letters, digits and _ (and not start with a digit)"
 MSG_en["envschema.err.required"]="it is required: it cannot be left empty"
 MSG_en["envschema.err.fixed"]="it is set by the compose or the image: it does not go in the .env"
 MSG_en["envschema.err.unknown"]="a variable the glossary does not know (see ./deltactl help variable)"

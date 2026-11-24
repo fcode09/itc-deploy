@@ -4,6 +4,7 @@
 # Validation of values (lib/core/envschema.sh). None of them repeats the value: it may be a secret.
 
 MSG_es["envschema.err.newline"]="el valor no puede tener saltos de línea"
+MSG_es["envschema.err.key"]="el nombre de la variable solo puede tener letras, números y _ (y no empezar con un número)"
 MSG_es["envschema.err.required"]="es obligatoria: no puede quedar vacía"
 MSG_es["envschema.err.fixed"]="la fija el compose o la imagen: no va en el .env"
 MSG_es["envschema.err.unknown"]="variable que el glosario no conoce (ver ./deltactl help variable)"

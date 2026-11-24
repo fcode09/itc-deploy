@@ -177,12 +177,14 @@ env_warn_busy() {
 }
 
 env_set() { # instance target value have_value stdin force
-  local inst="$1" value="$3" have="$4" use_stdin="$5" force="$6" rc=0 secret shown
+  local inst="$1" value="$3" have="$4" use_stdin="$5" force="$6" rc=0 secret shown typed=0
   env_resolve "$inst" "$2"
   local f="$TARGET_FILE" key="$TARGET_KEY"
   envschema_load
   if [ "$use_stdin" -eq 1 ]; then
-    IFS= read -r value || [ -n "$value" ] || true
+    # All of the standard input, not its first line: a value with a line break (a PEM) is then refused, not cut in silence.
+    IFS= read -r -d '' value || true
+    value="${value%$'\n'}"
     value="${value%$'\r'}"
     have=1
   fi
@@ -193,10 +195,12 @@ env_set() { # instance target value have_value stdin force
     if [ -t 0 ] && [ "$secret" = 1 ]; then
       read -rs -p "$(t env.prompt_secret "$key")" value
       printf '\n'
-      have=1
+      have=1 typed=1
     fi
   fi
   [ "$have" -eq 1 ] || die "$(t env.set_value_missing "$inst" "$key")"
+  # A secret on the command line stays in `ps` and in the history of the shell.
+  if [ "$secret" = 1 ] && [ "$use_stdin" -eq 0 ] && [ "$typed" -eq 0 ]; then warn "$(t env.argv_secret "$(envedit_word "$f"):$key")"; fi
   env_warn_busy
   envedit_save "$inst" "$f" "$key" "$value" "$force" || rc=$?
   case "$rc" in

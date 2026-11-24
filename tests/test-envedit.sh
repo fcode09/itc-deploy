@@ -275,7 +275,34 @@ check "si el segundo renombrado falla, el primero vuelve a lo que era y s0 y s1 
   r="$(ROOT="$PWD" bash -c "source lib/bootstrap.sh; n=0; mv() { n=\$((n + 1)); if [ \$n -eq 2 ]; then return 1; fi; command mv \"\$@\"; }; envedit_generate ee-i .env.s0 JWT_SECRET; echo \$?")"
   [ "$r" = 2 ] && cmp -s "$FIX/i0.before" instances/ee-i/.env.s0 && cmp -s "$FIX/i1.before" instances/ee-i/.env.s1 && no_leftovers'
 
-section "11. un cambio hecho mientras se despliega sigue pendiente"
+section "11. lo que se escribe es lo que se valida: sin depender del locale, con la clave correcta y sin forzar lo que no se puede"
+check "los validadores no dependen del locale: en en_US.UTF-8 un acento no es una letra de host ni un dígito árabe es un puerto" '
+  [ "$(ROOT="$PWD" LC_ALL=en_US.UTF-8 bash -c "source lib/bootstrap.sh; envschema_validate_r host \"é.com\"; echo \$EV_RC")" = 1 ] \
+  && [ "$(ROOT="$PWD" LC_ALL=en_US.UTF-8 bash -c "source lib/bootstrap.sh; envschema_validate_r tag \"é\"; echo \$EV_RC")" = 1 ] \
+  && [ "$(ROOT="$PWD" LC_ALL=en_US.UTF-8 bash -c "source lib/bootstrap.sh; envschema_validate_r port \"٣٣\"; echo \$EV_RC")" = 1 ]'
+check "set de un puerto con dígitos árabes sale con un error del validador (no con un fallo de aritmética) y no escribe" '
+  cp instances/ee-a/.env.instance "$FIX/b12"; out="$(LC_ALL=en_US.UTF-8 D env ee-a set S0_PORT "٣٣" 2>&1)"; rc=$?
+  [ "$rc" -ne 0 ] && ! echo "$out" | grep -qi "invalid\|integer\|constant" && cmp -s "$FIX/b12" instances/ee-a/.env.instance'
+check "el nombre de la variable se valida también al guardar (envedit_save): con un salto de línea no escribe nada" '
+  cp instances/ee-a/.env.s0 "$FIX/b13"; k="$(printf "A\nB")"
+  r="$(ROOT="$PWD" bash -c "source lib/bootstrap.sh; envedit_save ee-a .env.s0 \"\$1\" x 1; echo \$?" _ "$k")"; [ "$r" = 1 ] && cmp -s "$FIX/b13" instances/ee-a/.env.s0'
+check "--force no cambia INSTANCE a un nombre que no es el de la carpeta" '
+  cp instances/ee-a/.env.instance "$FIX/b14"; ! D env ee-a set INSTANCE=otra --force >/dev/null 2>&1 && cmp -s "$FIX/b14" instances/ee-a/.env.instance'
+check "un secreto pasado como argumento avisa (historial del shell y ps); con --stdin o una variable que no es secreta, no" '
+  D env ee-a set s0:GOOGLE_KEY argvZ9 2>&1 | grep -q "historial de tu shell" \
+  && ! { printf "stdinZ9\n" | D env ee-a set s0:GOOGLE_KEY --stdin 2>&1 | grep -q "historial de tu shell"; } \
+  && ! D env ee-a set S0_PORT 4110 2>&1 | grep -q "historial de tu shell"'
+check "--stdin lee todo: un valor con saltos de línea (un PEM) se rechaza en vez de cortarse en la primera línea en silencio" '
+  cp instances/ee-a/.env.s0 "$FIX/b15"; ! { printf "linea1\nlinea2\n" | D env ee-a set s0:GOOGLE_KEY --stdin >/dev/null 2>&1; } && cmp -s "$FIX/b15" instances/ee-a/.env.s0'
+check "--stdin quita solo el salto de línea final (con o sin CRLF)" '
+  printf "valorZ\r\n" | D env ee-a set s0:GOOGLE_KEY --stdin >/dev/null 2>&1; grep -qx "GOOGLE_KEY=valorZ" instances/ee-a/.env.s0'
+newinst ee-j
+mkdir -p "$FIX/nosha"; for b in bash cat sed grep head tr cut wc dirname basename mktemp mv rm cp chmod stat date sort uname id ls cksum readlink; do p="$(command -v $b)" && ln -sf "$p" "$FIX/nosha/$b"; done
+check "sin sha256sum no se marca nada (un CRC de 32 bits no es una prueba): env pending dice que no puede saberlo" '
+  ROOT="$PWD" PATH="$FIX/nosha" /bin/bash -c "source lib/bootstrap.sh; envedit_mark_deployed ee-j 1 s0 s1" >/dev/null 2>&1; ! grep -q "^ENV_SUM" instances/ee-j/.deployed 2>/dev/null \
+  && [ "$(run "envedit_deploy_state_r ee-j .env.s0; echo \$ED_DEPLOY")" = unknown ]'
+
+section "12. un cambio hecho mientras se despliega sigue pendiente"
 newinst ee-g
 sed -i "s/^S0_PORT=.*/S0_PORT=29796/; s/^S1_PORT=.*/S1_PORT=29797/" instances/ee-g/.env.instance
 # While compose runs `up`, another terminal changes a value: the containers got the old one.

@@ -101,12 +101,15 @@ envedit_save() { # instance file key value [force]
   envschema_load
   EV_RC=0 EV_MSG=""
   if [[ "$val" == *$'\n'* || "$val" == *$'\r'* ]]; then ev_fail envschema.err.newline; return 1; fi
+  # Whatever calls this, a key that is not a variable name never goes into a file (a line break in it would add lines).
+  if ! [[ "$key" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then ev_fail envschema.err.key; return 1; fi
   if envedit_is_secret "$file" "$key"; then secret=1; fi
   if [ -z "${ENV_KEY[$id]+x}" ]; then
     if [ "$force" != 1 ]; then ev_fail envschema.err.unknown; return 1; fi
   else
     envschema_check_r "$file" "$key" "$val" "$inst"
-    if [ "$EV_RC" = 1 ] && { [ "$force" != 1 ] || [ "${ENV_TYPE[$id]}" = fixed ]; }; then return 1; fi
+    # --force never writes a fixed variable, nor an INSTANCE that is not the folder's name (another compose project: duplicated containers)
+    if [ "$EV_RC" = 1 ] && { [ "$force" != 1 ] || [ "${ENV_TYPE[$id]}" = fixed ] || [ "$id" = ".env.instance|INSTANCE" ]; }; then return 1; fi
   fi
   envedit_set "$INSTANCES_DIR/$inst/$file" "$key" "$val" "$secret" || return 2
   return 0
@@ -243,10 +246,10 @@ envedit_sum_r() { # path
   local h=""
   ED_SUM=""
   [ -f "$1" ] || return 0
+  # Only a real hash: a 32-bit CRC lets a change go unnoticed, and a mark that does not tell is better than a mark that lies. Without
+  # sha256sum nothing is marked and `env pending` says it cannot know.
   if command -v sha256sum > /dev/null 2>&1; then
     read -r h _ < <(sha256sum < "$1") || true
-  elif command -v cksum > /dev/null 2>&1; then
-    read -r h _ < <(cksum < "$1") || true
   fi
   ED_SUM="$h"
 }
