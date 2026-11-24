@@ -223,7 +223,7 @@ section "9. cost: no process per reading and a bounded time per source"
 fnbody() { sed -n "/^$1() {/,/^}/p" lib/adapters/host.sh; }
 check "the readers of the server start no process (no \$( ), no pipes, no external program)" \
   'for f in host_cpu_read host_load_full_read host_uptime_read host_mem_detail_read host_temp_read host_net_read host_diskio_read host_disks_read; do ! fnbody $f | grep -vE "^\s*#" | grep -qE "\\$\\([^(]|\b(awk|sed|grep|cut|tr|cat|df|date)\b"; done'
-check "the only process of the use of the disks is one df, behind its cache" '[ "$(fnbody host_disk_usage_read | grep -cE "\\$\\([^(]")" = "1" ]'
+check "the only process of the use of the disks is one df (with a 3 s limit), behind its cache" '[ "$(fnbody host_disk_usage_read | grep -cE "\\$\\([^(]")" = "2" ] && fnbody host_disk_usage_read | grep -q "timeout 3 df"'
 bench() { # snippet -> best average microseconds per call over three batches of 200
   lib "$1
 best=999999999

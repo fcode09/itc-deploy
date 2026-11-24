@@ -460,7 +460,12 @@ host_disk_usage_read() {
   now="${EPOCHSECONDS:-0}"
   if [ "${HOST_FAKE_NOW_US:-}" != "" ]; then now=$((HOST_FAKE_NOW_US / 1000000)); fi
   if [ "${#HOST_DISK_TOTAL[@]}" -eq "$HOST_DISK_N" ] && [ $((now - HOST_DISK_USAGE_AT)) -lt "$HOST_DISK_TTL" ]; then return 0; fi
-  out="$("${DELTACTL_DF:-df}" -Pk "${HOST_DISK_MNT[@]}" 2>/dev/null)" || [ -n "$out" ] || return 1
+  # (a network mount that hangs would hang df, and the panel with it: a 3 s limit when `timeout` exists)
+  if [ -z "${DELTACTL_DF:-}" ] && host_has timeout; then
+    out="$(timeout 3 df -Pk "${HOST_DISK_MNT[@]}" 2>/dev/null)" || [ -n "$out" ] || return 1
+  else
+    out="$("${DELTACTL_DF:-df}" -Pk "${HOST_DISK_MNT[@]}" 2>/dev/null)" || [ -n "$out" ] || return 1
+  fi
   HOST_DISK_TOTAL=() HOST_DISK_USED=() HOST_DISK_PCT=()
   while read -r dev total used avail pct mnt; do
     [[ "$total" =~ ^[0-9]+$ ]] || continue
