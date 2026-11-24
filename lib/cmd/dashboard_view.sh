@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC2034  # the DASH_* and DSV_* variables are shared with lib/cmd/dashboard.sh
-# Drawing of the interactive panel: header, tabs, the views (instances, resources, output; runs is in dashboard_runs.sh), the dialogs and
-# the key bars. Sourced by lib/cmd/dashboard.sh. It only builds TUI_FRAME; it never runs anything.
+# Drawing shared by every screen of the interactive panel: header, tab line, the frame of a dialog, the message line, the key bar
+# and the frame itself (dash_render). The screens draw their own body (lib/screens/). Sourced by lib/cmd/dashboard.sh. It only
+# builds TUI_FRAME; it never runs anything.
 #
 # Speed matters here: a frame is built at most once per change and every helper returns its result in a variable
 # (no `$(...)`, which would fork a process per call). Texts are translated once and cached (see dt).
@@ -187,7 +188,7 @@ dash_tabs_line() {
   done
   dash_job_label
   right="$DASH_JL"
-  # The card of the command that is running: how many processes it has and what they use (see dashboard_procs.sh).
+  # The card of the command that is running: how many processes it has and what they use (see lib/screens/procs.sh).
   if [ -n "$DASH_PC_TXT" ] && job_running; then right+=" $C_GRY$UI_S_DOT $DASH_PC_TXT$C_OFF"; fi
   if [ "$DASH_PAUSED" -eq 1 ]; then dt tui.paused; right="$C_YEL$DTV$C_OFF${right:+  $right}"; fi
   tui_vlen "$left"; lw="$TUI_VL"

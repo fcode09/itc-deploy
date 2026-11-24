@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Tests of the interactive panel (lib/cmd/dashboard*.sh) and its terminal layer (lib/ui/tui.sh).
+# Tests of the interactive panel (lib/cmd/dashboard*.sh, lib/screens/*.sh) and its terminal layer (lib/ui/tui.sh).
 # The panel runs in test mode: DELTACTL_TUI_KEYS points to a file with one key name per line and every frame is
 # printed as plain text, so no real terminal is needed. Docker is simulated, and so are /proc and the cgroup files
 # (DELTACTL_PROC_ROOT / DELTACTL_CGROUP_ROOT). Runs from the root of the isolated copy (tests/run.sh).

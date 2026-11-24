@@ -125,7 +125,7 @@ check "status detail: English labels" 'bash ./deltactl new i18n-st >/dev/null 2>
 
 
 section "7. the code is English: Spanish lives only in the catalogs, the help pages and the templates"
-check "no accented letters or inverted punctuation in the code" '! LC_ALL=C.UTF-8 grep -rnE "[áéíóúñÁÉÍÓÚÑ¿¡]" deltactl lib/bootstrap.sh lib/cmd lib/core lib/ui lib/adapters lib/i18n/i18n.sh'
+check "no accented letters or inverted punctuation in the code" '! LC_ALL=C.UTF-8 grep -rnE "[áéíóúñÁÉÍÓÚÑ¿¡]" deltactl lib/bootstrap.sh lib/cmd lib/screens lib/core lib/ui lib/adapters lib/i18n/i18n.sh'
 check "every lib/cmd command has a catalog file in both languages (or needs none)" 'for c in ops load list rollback images completion help check deploy init doctor new menu status; do for l in es en; do [ -f "lib/i18n/$l/$c.sh" ] || { echo "missing lib/i18n/$l/$c.sh"; exit 1; }; done; done'
 
 

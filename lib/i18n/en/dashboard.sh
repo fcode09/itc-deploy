@@ -79,7 +79,7 @@ MSG_en["tui.msg.lang_set"]="Language: {1}"
 MSG_en["tui.msg.theme_set"]="Theme: {1}"
 MSG_en["tui.lang_name"]="English"
 MSG_en["tui.name.keys"]="Enter confirms · Esc cancels"
-# New-instance form: sections on the left, fields on the right (lib/cmd/dashboard_new.sh)
+# New-instance form: sections on the left, fields on the right (lib/screens/wizard.sh)
 MSG_en["tui.nw.title"]="New instance"
 MSG_en["tui.nw.sec.name"]="Name"
 MSG_en["tui.nw.sec.services"]="Services"
@@ -227,7 +227,7 @@ MSG_en["tui.help.head.runs"]="RUNS"
 MSG_en["tui.help.head.procs"]="PROCESS"
 MSG_en["tui.help.head.console"]="CONSOLE"
 
-# Runs view (lib/cmd/dashboard_runs.sh)
+# Runs view (lib/screens/runs.sh)
 MSG_en["tui.tab.runs"]="Runs"
 MSG_en["tui.keys.runs"]="{1} choose · Enter output · PgUp/PgDn detail · t statistics · : command · ? help · q quit"
 MSG_en["tui.keys.runs_stats"]="s one instance / all · t or Esc go back · : command · ? help · q quit"
@@ -259,7 +259,7 @@ MSG_en["tui.runs.log_lines"]="lines {1}-{2} of {3}"
 MSG_en["tui.runs.indexing"]="indexing…"
 MSG_en["tui.runs.no_output"]="This run left no output"
 
-# Processes view (lib/cmd/dashboard_procs.sh)
+# Processes view (lib/screens/procs.sh)
 MSG_en["tui.tab.procs"]="Processes"
 MSG_en["tui.tab.console"]="Console"
 MSG_en["tui.keys.console"]="Enter or : type · {1} scroll · PgUp/PgDn page · Home/End · Esc back · q quit"
@@ -278,7 +278,7 @@ MSG_en["tui.runs.partial"]="Stopping does not undo what Docker changed."
 MSG_en["tui.runs.review_pending"]="needs review"
 MSG_en["tui.runs.resolve_cmd"]="./deltactl runs resolve {1}"
 
-# Logs pane: stream, pause, errors only, search (lib/cmd/dashboard_logs.sh)
+# Logs pane: stream, pause, errors only, search (lib/screens/instances_logs.sh)
 MSG_en["tui.logs.paused"]="paused"
 MSG_en["tui.logs.paused_n"]="paused +{1}"
 MSG_en["tui.logs.errors"]="errors"

@@ -1,15 +1,16 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC2034  # the DASH_* and DSV_* variables are shared with lib/cmd/dashboard_view.sh
-# The interactive panel: one screen, four views, live figures. It is what ./deltactl and ./deltactl menu open in a
+# The interactive panel: one screen, six views, live figures. It is what ./deltactl and ./deltactl menu open in a
 # real terminal; without one (a pipe, a script, TERM=dumb) they keep showing the static home screen and the numbered menu.
 #
-# Views (1 to 5 or Tab): Instances (list + detail of the selected one + output of the last command), Resources (every
-# service with memory, CPU and trend), Output (the full output of the last command, scrollable) and Runs (the history of the
-# operations that changed something, lib/cmd/dashboard_runs.sh) and Processes (what the running command is made of and what the
-# panel itself costs, lib/cmd/dashboard_procs.sh).
-# Commands run in the background inside the panel (lib/core/jobs.sh): the screen keeps updating while they run and
-# `:` runs any ./deltactl command. The new-instance wizard is a form inside the panel (lib/cmd/dashboard_new.sh); the other
-# interactive commands (the menu, a leading `!`) run in the terminal and come back.
+# This file is the controller: the state every screen shares, the background work (Docker state, errors, events, logs of a
+# service), the commands that run inside the panel (lib/core/jobs.sh), the global keys, the mouse and the main loop.
+# Drawing the shared parts (header, tabs, dialog frame, key bar, the frame itself) is lib/cmd/dashboard_view.sh. Everything
+# else is a SCREEN in lib/screens/, registered in lib/screens/registry.sh (read its header for the contract, and to add one):
+#   views (tabs 1 to 6)  instances, resources, output, runs, procs, console
+#   modes (they take the keyboard over a view)  menu, confirm, name, cmd, filter, find, wizard (the new-instance form),
+#                        palette, help, options
+# The other interactive commands (the menu, a leading `!`) run in the terminal and come back.
 #
 # What keeps it light: it sleeps in `read -t` between keys; the figures come from the kernel through Bash builtins
 # (lib/core/metrics.sh); Docker is queried only when it reports an event (or every 30 s as a safety net); and a frame
