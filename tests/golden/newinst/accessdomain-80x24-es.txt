@@ -1,0 +1,25 @@
+=== frame 1 ===
+
+ [1 Instancias]  2   3   4   5   6   7   8   9                                 
+╭─┐nueva instancia┌──────────────────────────────────────────────┐instancia-1┌─╮
+│ ●━━━━━━━━━━●━━━━━━━━━━●━━━━━━━━━━●━━━━━━━━━━▲━━━━━━━━━━▲━━━━━━━━━━◉          │
+│ Nombre     Servicios  Versiones  Datos      Variables  Secretos   Acceso     │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─┐ ▸7 · Acceso ┌──────────────────────────────────────────────────────────────╮
+│ Dominio   ● muni.example.com                                                 │
+│ Proxy     ( nginx)  ( Caddy)  ▸ (los dos)                                    │
+│ HTTPS     [x]                                                                │
+│ ℹ No se detectó nginx ni Caddy en este servidor (el bloque se puede generar  │
+│   igual).                                                                    │
+│ Bloque de nginx → instances/instancia-1/proxy/nginx.conf                     │
+│ map $http_upgrade $connection_upgrade { default upgrade; '' close; }         │
+│                                                                              │
+│ # s0                                                                         │
+│ server {                                                                     │
+│     listen 80;                                                               │
+│     server_name auth-backend.muni.example.com;                               │
+│ … y 42 líneas más (se guardan enteras en la instancia)                       │
+│                                                                              │
+╰─┘Esc atrás└─┘Enter crear└─┘Tab vista previa└─────────────────────────────────╯
+
+ ↑↓ mover · ←→ espacio cambia · c copia el bloque · Esc atrás · Tab vista previa

@@ -1,0 +1,31 @@
+=== frame 1 ===
+
+ [1 Instancias] 2 Recursos 3 Salida 4 Ejecuciones 5 Procesos 6 Consola 7 Servidor 8 Imágenes 9 Variables               
+╭─┐nueva instancia┌──────────────────────────────────────────────────────────────────────────────────────┐instancia-1┌─╮
+│ ●━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━▲━━━━━━━━━━━━━━━▲━━━━━━━━━━━━━━━◉         Paso 7 de 7│
+│ Nombre          Servicios       Versiones       Datos           Variables       Secretos        Acceso               │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭─┐ ▸7 · Acceso ┌──────────────────────────────────────────────────────╮╭─┐vista previa┌───────────────────────────────╮
+│                                                                      ││ instances/instancia-1/                       │
+│ ¿Con qué nombre se entra desde internet? Con un dominio se prepara el││   .env.instance                              │
+│ bloque de nginx o Caddy; es solo texto: no se instala ni se recarga  ││     COMPOSE_PROFILES=s0,s1                   │
+│ nada.                                                                ││     S0_PORT=4100                             │
+│                                                                      ││     S0_TAG=2.14.1                            │
+│ Dominio   ○  opcional · p. ej. muni.example.com                      ││     S1_PORT=4101                             │
+│ Proxy     ( nginx)  ( Caddy)  ▸ (los dos)                            ││     S1_TAG=2.9.0                             │
+│ HTTPS     [x]                                                        ││   .env.s0 .env.s1                            │
+│                                                                      ││   secrets/  data/                            │
+│ ℹ No se detectó nginx ni Caddy en este servidor (el bloque se puede  ││     data/ vacía: init la siembra             │
+│   generar igual).                                                    ││   variables: 0 puestas · 4 generadas         │
+│                                                                      ││                                              │
+│ Sin dominio no se genera ningún bloque de proxy. Podrás hacerlo      ││ ≈ ./deltactl new instancia-1                 │
+│ después, en la pestaña Acceso de la instancia. Nada se escribe en    ││     --services s0,s1 --s0-tag 2.14.1         │
+│ /etc.                                                                ││     --s1-tag 2.9.0 --env-file <respuestas>   │
+│                                                                      ││                                              │
+│                                                                      ││                                              │
+│                                                                      ││                                              │
+│                                                                      ││                                              │
+│                                                                      ││                                              │
+╰─┘Esc atrás└─┘Enter crear└────────────────────────────────────────────╯╰──────────────────────────────────────────────╯
+
+ ↑↓ mover · ←→ espacio cambia · c copia el bloque · v nginx/Caddy · Enter crea · Esc atrás · Tab vista previa

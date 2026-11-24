@@ -1,0 +1,25 @@
+=== frame 1 ===
+
+ [1 Instancias]  2   3   4   5   6   7   8   9                                 
+╭─┐nueva instancia┌──────────────────────────────────────────────┐instancia-1┌─╮
+│ ●━━━━━━━━━━●━━━━━━━━━━●━━━━━━━━━━●━━━━━━━━━━▲━━━━━━━━━━▲━━━━━━━━━━◉          │
+│ Nombre     Servicios  Versiones  Datos      Variables  Secretos   Acceso     │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─┐ ▸7 · Acceso ┌──────────────────────────────────────────────────────────────╮
+│ Dominio   ○  opcional · p. ej. muni.example.com                              │
+│ Proxy     ( nginx)  ( Caddy)  ▸ (los dos)                                    │
+│ HTTPS     [x]                                                                │
+│ ℹ No se detectó nginx ni Caddy en este servidor (el bloque se puede generar  │
+│   igual).                                                                    │
+│ Sin dominio no se genera ningún bloque de proxy. Podrás hacerlo después, en  │
+│ la pestaña Acceso de la instancia. Nada se escribe en /etc.                  │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+╰─┘Esc atrás└─┘Enter crear└─┘Tab vista previa└─────────────────────────────────╯
+
+ ↑↓ mover · ←→ espacio cambia · c copia el bloque · Esc atrás · Tab vista previa

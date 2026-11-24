@@ -1,0 +1,25 @@
+=== frame 1 ===
+
+ [1 Instances]  2   3   4   5   6   7   8   9                                  
+╭─┐new instance┌─────────────────────────────────────────────────┐instancia-1┌─╮
+│ ●━━━━━━━━━━●━━━━━━━━━━●━━━━━━━━━━●━━━━━━━━━━◉━━━━━━━━━━○━━━━━━━━━━○          │
+│ Name       Services   Versions   Data       Variables  Secrets    Access     │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─┐ ▸5 · Variables ┌───────────────────────────────────────────────────────────╮
+│ 3 required to fill in · 0 set · 4 generated                                  │
+│ ▸ .env.instance                                                  12 variables│
+│ ▾ .env.s0                                          9 variables · 1 to fill in│
+│ ▲ IP_SERVER                       (empty)                            required│
+│ ● JWT_SECRET                      ⚿ ••••••••••                        changed│
+│ ● MONGO_URI                       ⚿ ••••••••••                               │
+│ ● IP_INTERNAL_CONNECTION          s1                                         │
+│ ▾ .env.s1                                         27 variables · 2 to fill in│
+│ ▲ IP_SERVER                       (empty)                            required│
+│ ● AUTH_URL                        http://s0:3200                             │
+│ ─────────────────────────────────────────────────────────────────────────────│
+│ .env.instance  created with the instance                                     │
+│ This file does not exist yet: it is made from its template when the instance │
+│ is created, with what is set here.                                           │
+╰─┘Esc back└─┘Enter next└─┘Tab preview└────────────────────────────────────────╯
+
+ ↑↓ move · Enter edits · g generates · r shows · Esc back · Tab preview
