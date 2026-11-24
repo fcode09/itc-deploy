@@ -26,8 +26,83 @@ mt_interval_us() {
   printf '%s' "$((s * 1000000))"
 }
 
+# --- The server as a whole (the Server screen) ---------------------------------------------------------------
+# mt_host_sample reads the sources of lib/adapters/host.sh that the screen draws: CPU (total and per core), memory by kind, load average,
+# temperature, network, disk I/O and the use of the disks. It runs inside mt_sample only when the panel sets MT_HOST_DETAIL=1 (the Server
+# screen is on show), so the other views do not pay for it. Every source can be missing (WSL, a container): MT_SRC[<source>] is 1 when
+# it answered at the last reading and 0 when it did not, and the screen says "not available" instead of leaving a hole.
+# The histories are space-separated strings of the last MT_HIST_LEN readings, like the others: MT_HH_CPU (percent), MT_HH_NETD and
+# MT_HH_NETU (bytes per second), MT_HH_DIOR / MT_HH_DIOW (bytes per second), MT_HH_TEMP (degrees).
+MT_HOST_DETAIL=0
+declare -gA MT_SRC=()
+declare -ga MT_CORE_PCT=()
+MT_CPU_ALL="" MT_TEMP_EVERY=3 MT_HH_CPU="" MT_HH_NETD="" MT_HH_NETU="" MT_HH_DIOR="" MT_HH_DIOW="" MT_HH_TEMP=""
+MT_NET_DOWN_MAX=0 MT_NET_UP_MAX=0 MT_NET_DOWN_TOTAL=0 MT_NET_UP_TOTAL=0 MT_NET_START_RX="" MT_NET_START_TX=""
+MT_HOST_N=0 MT_DISK_AT=0
+
+# Largest value of a history string into MT_MAXV (0 when empty).
+MT_MAXV=0
+mt_max_of() { # history
+  local v
+  MT_MAXV=0
+  for v in $1; do [ "$v" -le "$MT_MAXV" ] || MT_MAXV="$v"; done
+}
+
+mt_host_sample() {
+
+  MT_HOST_N=$((MT_HOST_N + 1))
+  if host_cpu_read; then
+    MT_SRC[cpu]=1
+    if [ "$HOST_CPU_READY" -eq 1 ]; then
+      MT_CORE_PCT=("${HOST_CPU_PCT[@]}")
+      MT_CPU_ALL="${HOST_CPU_PCT[0]}"
+      mt_push "$MT_HH_CPU" "$MT_CPU_ALL" hcpu; MT_HH_CPU="$MT_H"
+    fi
+  else
+    MT_SRC[cpu]=0 MT_CPU_ALL="" MT_CORE_PCT=()
+  fi
+  if host_mem_detail_read; then MT_SRC[mem]=1; else MT_SRC[mem]=0; fi
+  if host_load_full_read; then MT_SRC[load]=1; else MT_SRC[load]=0; fi
+  if host_uptime_read; then MT_SRC[uptime]=1; else MT_SRC[uptime]=0; fi
+  if host_net_read; then
+    MT_SRC[net]=1
+    [ -n "$MT_NET_START_RX" ] || { MT_NET_START_RX="$HOST_NET_RX_TOTAL" MT_NET_START_TX="$HOST_NET_TX_TOTAL"; }
+    MT_NET_DOWN_TOTAL=$((HOST_NET_RX_TOTAL - MT_NET_START_RX)) MT_NET_UP_TOTAL=$((HOST_NET_TX_TOTAL - MT_NET_START_TX))
+    if [ -n "$HOST_NET_DOWN_BPS" ]; then
+      mt_push "$MT_HH_NETD" "$HOST_NET_DOWN_BPS" hnetd; MT_HH_NETD="$MT_H"; mt_max_of "$MT_HH_NETD"; MT_NET_DOWN_MAX="$MT_MAXV"
+      mt_push "$MT_HH_NETU" "$HOST_NET_UP_BPS" hnetu; MT_HH_NETU="$MT_H"; mt_max_of "$MT_HH_NETU"; MT_NET_UP_MAX="$MT_MAXV"
+    fi
+  else
+    MT_SRC[net]=0
+  fi
+  if host_diskio_read; then
+    MT_SRC[diskio]=1
+    if [ -n "$HOST_DISKIO_READ_BPS" ]; then
+      mt_push "$MT_HH_DIOR" "$HOST_DISKIO_READ_BPS" hdior; MT_HH_DIOR="$MT_H"
+      mt_push "$MT_HH_DIOW" "$HOST_DISKIO_WRITE_BPS" hdiow; MT_HH_DIOW="$MT_H"
+    fi
+  else
+    MT_SRC[diskio]=0
+  fi
+  # Temperatures move slowly and some sensors are slow to read: every MT_TEMP_EVERY samples (the first one always).
+  if [ $(((MT_HOST_N - 1) % MT_TEMP_EVERY)) -eq 0 ]; then
+    if host_temp_read; then
+      MT_SRC[temp]=1
+      mt_push "$MT_HH_TEMP" "$HOST_TEMP_CPU_C" htemp; MT_HH_TEMP="$MT_H"
+    else
+      MT_SRC[temp]=0
+    fi
+  fi
+  # The list of mounts almost never changes (every 30 samples); its use is cached by host_disk_usage_read (a `df`, at most every 30 s).
+  if [ "$HOST_DISK_N" -eq 0 ] || [ $(((MT_HOST_N - 1) % 30)) -eq 0 ]; then host_disks_read || true; fi
+  if host_disk_usage_read; then MT_SRC[disk]=1; else MT_SRC[disk]=0; fi
+  return 0
+}
+
 # Forgets every reading (used when the panel starts or the containers are reloaded).
 mt_reset() {
+  MT_HH_CPU="" MT_HH_NETD="" MT_HH_NETU="" MT_HH_DIOR="" MT_HH_DIOW="" MT_HH_TEMP="" MT_HOST_N=0
+  MT_NET_DOWN_MAX=0 MT_NET_UP_MAX=0 MT_NET_START_RX="" MT_NET_START_TX=""
   MT_MEM=() MT_LIM=() MT_CPU=() MT_HMEM=() MT_HCPU=()
   MT_CG_PID=() MT_CG_VER=() MT_CG_MEMDIR=() MT_CG_CPUDIR=() MT_PREV_CPU=() MT_PREV_T=() MT_HN=()
   # (MT_SAMPLES keeps counting: the panel keys its cached boxes on it, so it must never come back to a value it had)
@@ -80,6 +155,7 @@ mt_sample() {
     MT_HOST_TOTAL_KB="" MT_HOST_USED_KB="" MT_HOST_PCT=""
   fi
   host_load_read && MT_HOST_LOAD="$HOST_LOAD1" || MT_HOST_LOAD=""
+  [ "$MT_HOST_DETAIL" != 1 ] || mt_host_sample
 
   for key in "${!MT_CG_PID[@]}"; do
     [ -n "${ST_STATE[$key]+x}" ] || mt_forget "$key"
