@@ -23,7 +23,6 @@ source "$ROOT/lib/ui/tui.sh"
 source "$ROOT/lib/ui/layout.sh"
 source "$ROOT/lib/ui/kit/kit.sh"
 source "$ROOT/lib/cmd/dashboard_view.sh"
-source "$ROOT/lib/cmd/dashboard_logs.sh"
 # The screens and the router (lib/screens/registry.sh): the views and modes below are the ones it registers.
 source "$ROOT/lib/screens/registry.sh"
 
@@ -497,51 +496,6 @@ dash_menu_run() {
 
 # --- Keys ------------------------------------------------------------------------------------------------
 
-# The list of instances has one more position than instances: the "New instance" button, at the top. Up and down walk the
-# whole ring (button, instance 1, ..., instance n, button).
-dash_select() { # delta
-  local n="${#DASH_NAMES[@]}" pos
-  if [ "$DASH_ON_NEW" -eq 1 ]; then pos=0; else pos=$((DASH_SEL + 1)); fi
-  pos=$(((pos + n + 1 + $1) % (n + 1)))
-  if [ "$pos" -eq 0 ]; then
-    DASH_ON_NEW=1
-  else
-    DASH_ON_NEW=0 DASH_SEL=$((pos - 1))
-  fi
-  DASH_SVC=0 DASH_DET_OFF=0 DASH_FOCUS=list
-}
-
-dash_select_service() { # delta
-  local -a svcs
-  [ "$DASH_ON_NEW" -eq 0 ] && [ "${#DASH_NAMES[@]}" -gt 0 ] || return 0
-  read -ra svcs <<< "${DASH_SVCS[${DASH_NAMES[$DASH_SEL]}]:-}"
-  [ "${#svcs[@]}" -gt 0 ] || return 0
-  DASH_SVC=$(((DASH_SVC + ${#svcs[@]} + $1) % ${#svcs[@]}))
-}
-
-# Right arrow: the focus goes from the list of instances into the services of the selected instance.
-dash_focus_services() {
-  local -a svcs
-  [ "$DASH_ON_NEW" -eq 0 ] && [ "${#DASH_NAMES[@]}" -gt 0 ] || return 0
-  read -ra svcs <<< "${DASH_SVCS[${DASH_NAMES[$DASH_SEL]}]:-}"
-  [ "${#svcs[@]}" -gt 0 ] || return 0
-  DASH_FOCUS=svc
-}
-
-# Service of the selected instance as "instance service" (empty when there is none).
-dash_current_target() {
-  local name svc
-  local -a svcs
-  [ "$DASH_ON_NEW" -eq 0 ] || return 1
-  [ "${#DASH_NAMES[@]}" -gt 0 ] || return 1
-  name="${DASH_NAMES[$DASH_SEL]}"
-  read -ra svcs <<< "${DASH_SVCS[$name]:-}"
-  [ "${#svcs[@]}" -gt 0 ] || return 1
-  svc="${svcs[$DASH_SVC]:-${svcs[0]}}"
-  DASH_T_INST="$name" DASH_T_SVC="$svc"
-}
-DASH_T_INST="" DASH_T_SVC=""
-
 dash_toggle_language() {
   local next=en
   [ "${DELTACTL_LANG_ACTIVE:-es}" != "en" ] || next=es
@@ -599,31 +553,6 @@ dash_key_global() { # key ; returns 0 when handled
     d) dash_start_job output doctor ;;
     i) dash_start_job output images ;;
     *) return 1 ;;
-  esac
-}
-
-# Two places can have the focus: the list of instances (up/down choose an instance; right enters its services) and the services
-# of the selected instance (up/down choose a service; left or Esc go back to the list). The first row of the list is the
-# "New instance" button.
-dash_key_instances() {
-  local have=1
-  { [ "$DASH_ON_NEW" -eq 0 ] && [ "${#DASH_NAMES[@]}" -gt 0 ]; } || have=0
-  if [ "$DASH_FOCUS" = "logs" ] && dash_key_logs "$1"; then return 0; fi
-  case "$1" in
-    z) dash_toggle_zoom ;;
-    up | k) if [ "$DASH_FOCUS" = "svc" ]; then dash_select_service -1; else dash_select -1; fi ;;
-    down | j) if [ "$DASH_FOCUS" = "svc" ]; then dash_select_service 1; else dash_select 1; fi ;;
-    left | h) DASH_FOCUS=list ;;
-    right) if [ "$DASH_FOCUS" = "svc" ]; then dash_focus_logs; else dash_focus_services; fi ;;
-    enter)
-      if [ "$DASH_ON_NEW" -eq 1 ]; then dash_open_new
-      elif [ "$have" -eq 1 ]; then dash_open_actions "${DASH_NAMES[$DASH_SEL]}"; fi
-      ;;
-    l) [ "$have" -eq 0 ] || { dash_current_target && dash_start_job output logs "$DASH_T_INST" "$DASH_T_SVC" -f; } ;;
-    u) [ "$have" -eq 0 ] || dash_start_job stay deploy "${DASH_NAMES[$DASH_SEL]}" ;;
-    c) [ "$have" -eq 0 ] || dash_start_job stay check "${DASH_NAMES[$DASH_SEL]}" ;;
-    s) [ "$have" -eq 0 ] || dash_start_job output status "${DASH_NAMES[$DASH_SEL]}" ;;
-    e) [ "$have" -eq 0 ] || dash_errors_request "${DASH_NAMES[$DASH_SEL]}" ;;
   esac
 }
 
@@ -693,51 +622,6 @@ dash_key_confirm() {
 # --- Panes: focus ring, zoom, logs, palette ------------------------------------------------------------------------------
 # The Overview has up to three panes that take the keyboard: the instances, the services of the selected instance and its logs.
 # Tab / Shift+Tab walk them, `z` zooms the focused one to the whole body (Esc comes back), and Ctrl+P opens a palette of actions.
-
-dash_focus_cycle() { # +1 | -1
-  local -a order=(list)
-  local i cur=0 n
-  { [ "$DASH_ON_NEW" -eq 0 ] && [ "${#DASH_NAMES[@]}" -gt 0 ]; } || { DASH_FOCUS=list; return 0; }
-  order+=(svc)
-  if dash_overview_fits; then order+=(logs); fi
-  n="${#order[@]}"
-  for i in "${!order[@]}"; do [ "${order[$i]}" != "$DASH_FOCUS" ] || cur="$i"; done
-  DASH_FOCUS="${order[$(((cur + n + $1) % n))]}"
-}
-
-# Right arrow from the services: on to the logs (they only exist on the wide layout).
-dash_focus_logs() { if dash_overview_fits; then DASH_FOCUS=logs; fi; }
-
-dash_toggle_zoom() {
-  [ "$DASH_VIEW" = "instances" ] || return 0
-  if [ "$DASH_FOCUS" = "logs" ] && ! dash_overview_fits; then return 0; fi
-  DASH_ZOOM=$((1 - DASH_ZOOM))
-}
-
-# Keys of the logs pane: scroll by line or page, Home/End, `/` to filter. Returns 0 when it handled the key.
-dash_key_logs() { # key
-  local page=$((TUI_ROWS / 2))
-  case "$1" in
-    up | k) DASH_LOG_SCROLL=$((DASH_LOG_SCROLL + 1)) ;;
-    down | j) [ "$DASH_LOG_SCROLL" -le 0 ] || DASH_LOG_SCROLL=$((DASH_LOG_SCROLL - 1)) ;;
-    pgup) DASH_LOG_SCROLL=$((DASH_LOG_SCROLL + page)) ;;
-    pgdn) DASH_LOG_SCROLL=$((DASH_LOG_SCROLL - page)); [ "$DASH_LOG_SCROLL" -ge 0 ] || DASH_LOG_SCROLL=0 ;;
-    home) DASH_LOG_SCROLL=100000 ;;           # clamped to the oldest line when drawn
-    end | G | f)                              # follow the end again (and resume, if it was paused)
-      DASH_LOG_SCROLL=0 DASH_LOG_MIDX=-1
-      [ "$DASH_LS_PAUSED" -eq 0 ] || dash_logs_pause_toggle
-      ;;
-    space | ' ') dash_logs_pause_toggle ;;
-    e) DASH_LOG_ERRONLY=$((1 - DASH_LOG_ERRONLY)) DASH_LOG_SCROLL=0 DASH_LOG_MIDX=-1 ;;
-    '/') DASH_MODE=filter DASH_BUF="$DASH_LOG_FILTER" DASH_CUR="${#DASH_LOG_FILTER}" ;;
-    s) DASH_MODE=find DASH_BUF="$DASH_LOG_FIND" DASH_CUR="${#DASH_LOG_FIND}" ;;
-    ']') dash_logs_jump 1 ;;
-    '[') dash_logs_jump -1 ;;
-    left | h) DASH_FOCUS=svc ;;
-    *) return 1 ;;
-  esac
-  return 0
-}
 
 # --- The palette: a fuzzy list of what can be done now. Actions reuse the menu runner (and so its confirmations).
 dash_pal_add() { DASH_PAL_ALL_L+=("$1"); DASH_PAL_ALL_A+=("$2"); }

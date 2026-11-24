@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# shellcheck disable=SC2034  # the DASH_LS_* and DASH_LOG_* variables are shared with lib/cmd/dashboard.sh and dashboard_view.sh
-# The logs pane of the panel: what it shows of the selected service, live. Sourced by lib/cmd/dashboard.sh.
+# shellcheck disable=SC2034  # the DASH_LS_* and DASH_LOG_* variables are shared with lib/cmd/dashboard.sh, dashboard_view.sh and the other screens
+# The logs pane of the panel: what it shows of the selected service, live. Loaded by lib/screens/instances.sh.
 #
 # While the pane is on screen (the Overview with the services of an instance selected, or its zoom) and the service is running, a
 # `docker logs --tail 200 -f` runs and feeds the pane (through a file, see below); when the pane is not shown the process is stopped, so a panel
