@@ -1,0 +1,8 @@
+╭─┐¹Para desplegar┌────────────────────────────────────────────────────────────────────────────────────┐1 de 6 listos┌─╮
+│ ✖ Variables obligatorias  IP_SERVER, DEEPGRAM_API_KEY                                                    ⏎ completar │
+│ ✖ Archivos de secretos    fcm.json, keeper-fcm.json                                                         ⏎ añadir │
+│ ● Versiones elegidas      s0 2.14.1 · s1 2.9.0                                                                       │
+│ ○ Comprobación (check)    sin ejecutar                                                                    ⏎ ejecutar │
+│ ○ Datos iniciales (init)  sin sembrar                                                                      ⏎ sembrar │
+│ ◐ Despliegue              en curso 00:12                                                                             │
+╰─┘Enter resolver└─┘u desplegar└───────────────────────────────────────────────────────────────────────────────────────╯

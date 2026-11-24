@@ -68,3 +68,31 @@ kit_metric_row <etiqueta> <valor> <%> <hist> <max|auto> <ancho> <filas-gráfica>
 - El medidor dibuja lo lleno en octavos de celda, con el color de cada celda según su posición en el degradado de la magnitud, y la pista
   tenue detrás (`░`). Se recuerda por (magnitud, %, ancho, tema).
 - `kit_leader` recorta la etiqueta con `…` antes de perder el valor.
+
+## Formularios y navegación
+
+Todos son puros (datos → líneas) y encajan dentro de `kit_box`; ninguno lanza procesos.
+
+| Componente | Función | Resultado |
+| --- | --- | --- |
+| Estados | `kit_state_icon <ok|warn|err|pend|run|info>`, `kit_state_color` | `KIT_ICON`, `KIT_COL` (icono y color de cada estado; sin color el icono lo dice: `● ▲ ✖ ○ ◐`) |
+| Pasos | `kit_stepper <ancho> <actual> [counter=txt] etiqueta[:estado] ...` | `KS_LINES` (2 líneas), `KS_COLS`, `KS_CW`; en estrecho (paso < 7 celdas) las etiquetas ceden: `4/8 Datos` |
+| Pestañas | `kit_tabs <ancho> <activa> etiqueta ...` | `KT_LINE`, `KT_COLS`, `KT_WID` (para localizar un clic); desplaza con `‹ ›` si no caben |
+| Campo | `kit_field_render <etiqueta> <valor> <cursor> <ancho> [label_width= focus=1 mask=1 reveal=1 placeholder= state= msg= unit=]` y `kit_field_key <tecla>` / `kit_field_insert <texto>` | `KIT_OUT`; estado del campo en `KF_VALUE`/`KF_CUR`. `kit_field_key` devuelve 1 para lo que debe manejar quien llama (Enter, Esc, Tab, flechas arriba/abajo) |
+| Validadores | `kit_validate <función> <valor>`; `kv_required`, `kv_name`, `kv_port` | `KV_STATE` (ok/warn/err/pend), `KV_MSG` |
+| Tabla | `kit_table <ancho> <alto> <columnas> <filas> [sel= sort=col:asc\|desc filter= top= mag= empty= max=]` | `KTB_LINES`, `KTB_COUNT` (`n/m`, para un chip), `KTB_SEL` (índice en las filas originales), `KTB_TOP`, `KTB_N` |
+| Lista de tareas | `kit_checklist <ancho> <items> [sel=N]` con `estado\|título\|detalle\|acción` | `KCK_LINES`, `KCK_OK`, `KCK_TOTAL`, `KCK_NEXT`; la acción sale como `⏎ completar` |
+| Aviso | `kit_toast_set <tipo> <texto> [seg]`, `kit_toast_line <ancho>` | `KIT_OUT` (en blanco al caducar; reloj `KIT_NOW` o `$SECONDS`) |
+| Modal | `kit_modal_confirm`, `kit_modal_name` (escribir el nombre), `kit_center` | `KIT_BOX`; `kit_modal_name_ok` compara exactamente |
+| Texto | `kit_wrap <texto> <ancho>` | `KW_LINES` |
+
+- Las filas seleccionadas de tabla y lista empiezan por `TUI_SEL`, igual que el cuerpo de `kit_box`: se pintan con los colores de selección del tema.
+- Columnas de tabla: `titulo|ancho|alineación|banderas` (`*` reparte el resto, `num` ordena como número, `spark` dibuja el historial como gráfica de una fila).
+
+## Galería y pruebas
+
+- `tests/tools/kit_scenes.sh` define las escenas (datos fijos); `tests/test-kit.sh` y `tests/test-graphs.sh` comparan cada una a 80, 120 y 160 columnas con
+  `tests/golden/kit/` (`DELTACTL_GOLDEN=record` las regraba, solo si el cambio es intencionado).
+- `tests/tools/gallery.sh <carpeta>` dibuja todas las escenas con color en los 6 temas y 3 tamaños y escribe `.ansi` (para `less -R`) y `.html` (navegador);
+  `tests/tools/gallery.sh --show <tema> <ancho>` las imprime en el terminal. En el HTML algunas fuentes dibujan el braille más ancho que una celda: en el
+  terminal real depende de la fuente, por eso `DELTACTL_GRAPH=blocks` fuerza bloques.
