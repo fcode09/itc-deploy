@@ -8,8 +8,8 @@ usage: pty_shot.py OUT.json ROWS COLS [step ...]
 Read-only against the real Docker (status and metrics); it never changes an instance unless the steps run a command yourself."""
 import fcntl, json, os, pty, select, struct, subprocess, sys, termios, time
 
-REPO = "/mnt/e/ITC/itc-deploy"
-D = "/tmp/dctl-shot"
+REPO = os.environ.get("DELTACTL_REPO") or os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+D = os.environ.get("DELTACTL_SHOT_DIR", "/tmp/dctl-shot")
 
 BASE16 = [(0, 0, 0), (205, 49, 49), (13, 188, 121), (229, 229, 16), (36, 114, 200), (188, 63, 188), (17, 168, 205), (229, 229, 229),
           (102, 102, 102), (241, 76, 76), (35, 209, 139), (245, 245, 67), (59, 142, 234), (214, 112, 214), (41, 184, 219), (255, 255, 255)]
