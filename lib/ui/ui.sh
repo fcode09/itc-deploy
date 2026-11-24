@@ -75,6 +75,8 @@ ui_init() {
     UI_SPARK=(_ . : - = + '*' '#')
   fi
   if [ "$UI_UTF8" -eq 1 ]; then UI_S_ELL='…'; else UI_S_ELL='~'; fi
+  # The symbols of the redesign (lib/ui/tokens.sh, loaded after this file) follow the same rich/UTF-8 decision.
+  ! declare -F ui_tokens_symbols > /dev/null || ui_tokens_symbols
 }
 
 ui_init
