@@ -1101,7 +1101,7 @@ check "PgUp moves almost a screen and stops when the first line reaches the top"
 check "Home goes to the first line, End and PgDn back to the end" '[ "$(run_lib "$CON dash_key_console home; a=\$DASH_CON_SCROLL; dash_key_console end; b=\$DASH_CON_SCROLL; dash_key_console home; dash_key_console pgdn; echo \$a-\$b-\$DASH_CON_SCROLL")" = "7-0-0" ]'
 check "the arrows move one line and never past either end" '[ "$(run_lib "$CON dash_key_console up; a=\$DASH_CON_SCROLL; dash_key_console down; dash_key_console down; echo \$a-\$DASH_CON_SCROLL")" = "1-0" ]'
 out="$(PANEL_ROWS=55 panel '?' x q)"
-check "the help lists the Console view" 'echo "$out" | frame_n 2 | grep -q "1-8  Instancias .* Consola · Servidor · Imágenes" && echo "$out" | frame_n 2 | grep -q "CONSOLA  6 a pantalla completa"'
+check "the help lists the Console view" 'echo "$out" | frame_n 2 | grep -q "1-8 *Instancias .* Consola · Servidor" && echo "$out" | frame_n 2 | grep -q "^[ |]*Imágenes" && echo "$out" | frame_n 2 | grep -q "CONSOLA  6 a pantalla completa"'
 
 section "25. aliases of the console: short names for commands, kept next to the history"
 mkdir -p "$FIX/al"; rm -f "$FIX/al/"*
