@@ -150,8 +150,12 @@ dash_nzs_versions_state() {
 dash_nz_ver_summary() { # service width
   local s="$1" tag="${DASH_NZ_TAG[$1]:-}" row acc="${TH[accent]:-}" dim="${TH[dim]:-}" r="$TH_RESET" star=""
   if [ -n "$tag" ]; then
-    dash_nz_ver_row "$s" "$tag"
-    [ "$DASH_NZ_T" -ne "$KVP_STAR" ] || star=" ${TH[ok]:-}$UI_S_STAR$r"
+    # (the star is the tag of the row the picker starts on, when that is a version: two calls, not a walk over every row)
+    kit_vpick_select "DASH_NZ_REC_$s" "" other=1 load=0
+    if [ "$KVP_STAR" -ge 0 ]; then
+      kit_vpick_pick "DASH_NZ_REC_$s" "$KVP_STAR" "$DASH_NZ_ARCH"
+      [ "$KVP_TAG" != "$tag" ] || star=" ${TH[ok]:-}$UI_S_STAR$r"
+    fi
     kit_state_icon ok
     row="  $KIT_ICON $C_BLD$s$r $UI_S_DOT ${CAT_NAME[$s]}  $acc$tag$r$star"
   else

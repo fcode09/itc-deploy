@@ -139,6 +139,7 @@ dash_nz_open() {
     if [ -n "$(port_owner "$p" "")" ] || host_port_in_use "$p"; then DASH_NZ_PBUSY[$s]=1; fi
   done
   dash_nz_images_load
+  DASH_PC_SIG[nzbar]="" DASH_PC_SIG[nzpv]="" DASH_PC_SIG[nzst]=""   # (what Docker said may differ from the last time: the boxes are built again)
   DASH_NZ_I=0 DASH_NZ_MAX=0
   dash_nz_call 0 enter || true
   DASH_MODE=newinst
@@ -258,13 +259,13 @@ scr_newinst_key() { # key
 
 # A left click in the bar of steps opens a step already visited.
 scr_newinst_click() { # column row
-  local i n="${#DASH_NZ_STEPS[@]}" cw="$KS_CW" col
+  local i n="${#DASH_NZ_STEPS[@]}" cw="$DASH_NZ_KCW" col
   [ "$cw" -gt 0 ] || return 0
   [ "$2" -ge "$DASH_NZ_KROW" ] && [ "$2" -le $((DASH_NZ_KROW + 1)) ] || return 0
   col=$(($1 - DASH_NZ_KX))
   for ((i = n - 1; i >= 0; i--)); do
-    [ "${KS_COLS[$i]:-}" ] || continue
-    if [ "$col" -ge "${KS_COLS[$i]}" ]; then
+    [ "${DASH_NZ_KCOLS[$i]:-}" ] || continue
+    if [ "$col" -ge "${DASH_NZ_KCOLS[$i]}" ]; then
       if [ "$i" -le "$DASH_NZ_MAX" ]; then DASH_NZ_V=$((DASH_NZ_V + 1)); dash_nz_goto "$i"; DASH_DIRTY=1; fi
       return 0
     fi
@@ -372,10 +373,19 @@ dash_nz_fit() { # rows
   [ "$j" -le "$1" ] || DASH_NZ_B=("${DASH_NZ_B[@]:0:$1}")
 }
 
-scr_newinst_render() { # width height
-  local w="$1" h="$2" n="${#DASH_NZ_STEPS[@]}" i st lab sh=4 hb lw=0 rw=0 wide=0 iw ih fw pbh=0 sbh=0 title foot nm back nxt line
-  local -a sa=() items=() left=() right=() out=() errl=() pv=() sb=()
-  # The bar of steps: the states of the steps already visited, the open one and the ones to come.
+# What the answers are, as a string, for the signature of the boxes that depend on them (DASH_NZ_AS).
+DASH_NZ_AS="" DASH_NZ_KCOLS=() DASH_NZ_KCW=0
+DASH_PC_nzbar=() DASH_PC_nzpv=() DASH_PC_nzst=()   # the boxes of the bar, the preview and the steps, kept while their signature holds (dash_pc_get)
+dash_nz_asig() {
+  local s
+  DASH_NZ_AS="$DASH_NZ_I|$DASH_NZ_MAX|$DASH_NZ_NAME|$DASH_NZ_DATA|$DASH_NZ_GEN|$DASH_NZ_DOCKER"
+  for s in "${KNOWN_SERVICES[@]}"; do DASH_NZ_AS+="|${DASH_NZ_SEL[$s]:-0}:${DASH_NZ_TAG[$s]:-}"; done
+}
+
+# The bar of steps (a box of 4 rows) into TUI_BOX: the states of the steps already visited, the open one and the ones to come.
+dash_nz_bar() { # width
+  local w="$1" i n="${#DASH_NZ_STEPS[@]}" st lab title nm
+  local -a items=() sa=()
   for ((i = 0; i < n; i++)); do
     t_r "tui.nz.step.${DASH_NZ_STEPS[$i]}"; lab="$T_OUT"
     if [ "$i" -eq "$DASH_NZ_I" ]; then st=active
@@ -386,17 +396,39 @@ scr_newinst_render() { # width height
     items+=("$lab:$st")
   done
   t_r tui.nz.counter $((DASH_NZ_I + 1)) "$n"
+  kit_stepper $((w - 3)) $((DASH_NZ_I + 1)) "counter=$T_OUT" "${items[@]}"
+  DASH_NZ_KCOLS=("${KS_COLS[@]}") DASH_NZ_KCW="$KS_CW"
+  sa=("${KS_LINES[@]}")
+  t_r tui.nz.title; title="$T_OUT"
+  nm="${DASH_NZ_NAME}"
+  kit_box "$w" 4 sa "chips=$title" ${nm:+"status=$nm"}
+  TUI_BOX=("${KIT_BOX[@]}")
+}
+
+scr_newinst_render() { # width height
+  local w="$1" h="$2" n="${#DASH_NZ_STEPS[@]}" i st lab sh=4 hb lw=0 rw=0 wide=0 iw ih fw pbh=0 sbh=0 title foot back nxt line bsig
+  local -a items=() left=() right=() out=() errl=() pv=() sb=()
+  dash_nz_asig
+  bsig="$w|$h|$DASH_LANG_N|${UI_UTF8:-0}|${TH_NAME:-}|$DASH_NZ_AS"
   if [ "$h" -ge 14 ]; then
-    kit_stepper $((w - 3)) $((DASH_NZ_I + 1)) "counter=$T_OUT" "${items[@]}"
-    sa=("${KS_LINES[@]}")
-    t_r tui.nz.title; title="$T_OUT"
-    nm="${DASH_NZ_NAME}"
-    kit_box "$w" 4 sa "chips=$title" ${nm:+"status=$nm"}
-    out=("${KIT_BOX[@]}")
+    if ! dash_pc_get nzbar "$bsig"; then dash_nz_bar "$w"; dash_pc_put nzbar "$bsig"; fi
+    out=("${TUI_BOX[@]}")
     DASH_NZ_KROW=4 DASH_NZ_KX=2
   else
+    # (a short screen: the bar is two plain lines, not a box)
     sh=2
+    for ((i = 0; i < n; i++)); do
+      t_r "tui.nz.step.${DASH_NZ_STEPS[$i]}"; lab="$T_OUT"
+      if [ "$i" -eq "$DASH_NZ_I" ]; then st=active
+      elif [ "$i" -le "$DASH_NZ_MAX" ]; then
+        dash_nz_state "$i"
+        case "$DASH_NZ_ST" in ok) st="done" ;; warn) st=warn ;; err) st=err ;; *) st=todo ;; esac
+      else st=todo; fi
+      items+=("$lab:$st")
+    done
+    t_r tui.nz.counter $((DASH_NZ_I + 1)) "$n"
     kit_stepper $((w - 2)) $((DASH_NZ_I + 1)) "counter=$T_OUT" "${items[@]}"
+    DASH_NZ_KCOLS=("${KS_COLS[@]}") DASH_NZ_KCW="$KS_CW"
     out=(" ${KS_LINES[0]}" " ${KS_LINES[1]}")
     DASH_NZ_KROW=3 DASH_NZ_KX=2
   fi
@@ -437,23 +469,31 @@ scr_newinst_render() { # width height
     if [ "$wide" -eq 1 ]; then fw="$rw"; else fw="$w"; fi
     sbh=0 pbh="$hb"
     if [ "$wide" -eq 1 ] && [ $((hb - n - 2)) -ge 8 ]; then sbh=$((n + 2)) pbh=$((hb - sbh)); fi
-    dash_nz_preview $((fw - 3))
-    dash_nz_pv_fit $((pbh - 2))
-    pv=("${DASH_NZ_P[@]}")
-    t_r tui.nz.preview
-    if [ "$wide" -eq 1 ]; then
-      kit_box "$fw" "$pbh" pv "chips=$T_OUT"
+    if dash_pc_get nzpv "$bsig|$wide|$pbh|$fw"; then right=("${TUI_BOX[@]}")
     else
-      title="$T_OUT"; t_r tui.nz.foot.back; back="$T_OUT"; t_r tui.nz.foot.form
-      kit_box "$fw" "$pbh" pv "chips=$title" "footer={Tab} $T_OUT|{Esc} $back" focus=1
+      dash_nz_preview $((fw - 3))
+      dash_nz_pv_fit $((pbh - 2))
+      pv=("${DASH_NZ_P[@]}")
+      t_r tui.nz.preview
+      if [ "$wide" -eq 1 ]; then
+        kit_box "$fw" "$pbh" pv "chips=$T_OUT"
+      else
+        title="$T_OUT"; t_r tui.nz.foot.back; back="$T_OUT"; t_r tui.nz.foot.form
+        kit_box "$fw" "$pbh" pv "chips=$title" "footer={Tab} $T_OUT|{Esc} $back" focus=1
+      fi
+      right=("${KIT_BOX[@]}")
+      TUI_BOX=("${right[@]}"); dash_pc_put nzpv "$bsig|$wide|$pbh|$fw"
     fi
-    right=("${KIT_BOX[@]}")
     if [ "$sbh" -gt 0 ]; then
-      dash_nz_steps_lines $((fw - 3))
-      sb=("${DASH_NZ_S[@]}")
-      t_r tui.nz.steps
-      kit_box "$fw" "$sbh" sb "chips=$T_OUT"
-      right+=("${KIT_BOX[@]}")
+      if dash_pc_get nzst "$bsig|$sbh|$fw"; then right+=("${TUI_BOX[@]}")
+      else
+        dash_nz_steps_lines $((fw - 3))
+        sb=("${DASH_NZ_S[@]}")
+        t_r tui.nz.steps
+        kit_box "$fw" "$sbh" sb "chips=$T_OUT"
+        TUI_BOX=("${KIT_BOX[@]}"); dash_pc_put nzst "$bsig|$sbh|$fw"
+        right+=("${KIT_BOX[@]}")
+      fi
     fi
   fi
   if [ "$wide" -eq 1 ]; then
