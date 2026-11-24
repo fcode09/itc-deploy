@@ -16,7 +16,7 @@ Un panel de una sola pantalla (`./deltactl` en una terminal, o `./deltactl menu`
   (PgUp/PgDn desplazan el detalle). `t` da las estadísticas por operación (`s` las limita a una instancia) y `Enter` abre su salida
   guardada en un visor paginado: un log de cualquier tamaño se indexa una vez (un punto de control por cada 500 líneas, en segundo
   plano a partir de 8 MiB) y cada página se lee desde el punto de control más cercano, así que la memoria no crece con el log.
-- **Logs de un servicio** (vista Instancias en pantalla ancha, o `z` para ampliarlos; `lib/cmd/dashboard_logs.sh`): mientras el panel de
+- **Logs de un servicio** (vista Instancias en pantalla ancha, o `z` para ampliarlos; `lib/screens/instances_logs.sh`): mientras el panel de
   logs se ve y el servicio corre, un `docker logs --tail 200 -f` escribe en un fichero temporal y el panel lo lee (no por tubería: bash lee
   una tubería byte a byte, ~500 µs por línea, y un fichero por bloques, ~20 µs). Se mata al dejar de verse, al cambiar de servicio (el
   nuevo arranca como mucho cada 300 ms) y al salir. Anillo de 1500 líneas; la pantalla se actualiza cada segundo con el foco y cada 2 s
@@ -52,7 +52,7 @@ imágenes) → `perf(panel)` (segundo plano, dibujo rápido, caché del cuerpo).
   real), siguientes pasos (solo si hay) y logs en vivo | eventos (≥150 columnas), con la salida del último comando debajo. Por debajo
   de 120 columnas se mantiene la vista compacta.
 - **Historial**: una muestra cada 2 s (`DELTACTL_METRICS_INTERVAL`), 120 muestras = 4 minutos en los gráficos.
-- **Opciones** (tecla `o`, o "Opciones del panel" en Ctrl+P; `lib/cmd/dashboard_options.sh`): tema, idioma, muestreo de cifras
+- **Opciones** (tecla `o`, o "Opciones del panel" en Ctrl+P; `lib/screens/options.sh`): tema, idioma, muestreo de cifras
   (1, 2, 3, 5 o 10 s), relectura del estado sin eventos de Docker (2, 5, 10, 15, 30 o 60 s) y teclas vim (`j k h g G`; con `no` solo
   valen las flechas, Inicio y Fin). ↑↓ eligen, ←→ o Enter cambian, Esc cierra. Cada cambio se aplica al momento y se guarda en el mismo
   `~/.config/deltactl/config` que `UI_LANG` y `UI_THEME` (`TUI_SAMPLE`, `TUI_REFRESH`, `TUI_VIM=on|off`), con escritura atómica
@@ -63,7 +63,7 @@ imágenes) → `perf(panel)` (segundo plano, dibujo rápido, caché del cuerpo).
   un terminal; las órdenes se quedan en la consola en vez de abrir Salida. Esc suelta el teclado (↑↓, PgUp/PgDn casi una pantalla e
   Inicio/Fin recorren lo escrito; Enter o `:` vuelven a escribir) y otra Esc vuelve a Instancias. Tab llega a ella desde Procesos sin
   tomar el teclado, para que recorrer las vistas con Tab nunca se quede atascado en la línea.
-- **Alias de la consola** (`lib/cmd/dashboard_alias.sh`): `alias up=deploy colorado` hace que `up` valga por esa orden como primera
+- **Alias de la consola** (`lib/screens/console_alias.sh`): `alias up=deploy colorado` hace que `up` valga por esa orden como primera
   palabra (el resto de la línea va detrás: `alias lg=logs colorado` y luego `lg s0 -f`); `alias` los lista, `alias up` muestra uno y
   `unalias up` lo borra; Tab completa sus nombres. Se guardan en `aliases`, junto al historial (modo 600, reescrito entero con un
   archivo temporal y un renombrado). El archivo son datos: una línea que no es un alias válido se ignora. Solo admiten órdenes de
@@ -116,12 +116,16 @@ con color) y en el muestreo (~10 ms). Los gráficos ya son incrementales (`gfx_a
 | --- | --- |
 | `lib/ui/theme.sh` | Temas, conversión de colores (24 bits → 256 → 16), bordes, rampa de degradado |
 | `lib/ui/gfx.sh` | Gráficos de área de varias filas (bloques de 1/8), con versión incremental |
-| `lib/cmd/dashboard.sh` | Controlador: estado, bucle, teclas, línea de comandos, trabajo en segundo plano (`dash_async*`), eventos de Docker |
-| `lib/cmd/dashboard_view.sh` | Dibujo: cabecera, pestañas, vistas, diálogos. Solo construye `TUI_FRAME`, nunca ejecuta nada |
-| `lib/cmd/dashboard_runs.sh` | Vista Ejecuciones: lectura del historial, detalle, comparación, estadísticas, visor de logs paginado, teclas |
-| `lib/cmd/dashboard_procs.sh` | Vista Procesos y tarjeta de la cabecera: árbol de `/proc` (`DELTACTL_PROC_ROOT` en los tests) y coste del panel |
-| `lib/cmd/dashboard_options.sh` | Pantalla de Opciones: lectura y validación de `TUI_*` en el archivo de configuración, cambios y diálogo |
-| `lib/cmd/dashboard_alias.sh` | Alias de la consola: validación, archivo `aliases`, órdenes `alias`/`unalias` y sustitución |
+| `lib/cmd/dashboard.sh` | Controlador: estado compartido, trabajo en segundo plano (`dash_async*`), eventos de Docker, trabajos, teclas globales, ratón y bucle |
+| `lib/cmd/dashboard_view.sh` | Dibujo compartido: cabecera, pestañas, marco de los diálogos, barra de teclas y el fotograma (`dash_render`). Solo construye `TUI_FRAME`, nunca ejecuta nada |
+| `lib/screens/registry.sh` | Registro de pantallas y router: una línea por pantalla y el contrato que cumple cada una (ver «Pantallas» abajo) |
+| `lib/screens/instances.sh` (+ `instances_logs.sh`) | Vista Instancias: lista, detalle, vista ancha, zoom, teclas y el panel de logs en vivo |
+| `lib/screens/resources.sh`, `output.sh` | Vistas Recursos y Salida |
+| `lib/screens/runs.sh` | Vista Ejecuciones: lectura del historial, detalle, comparación, estadísticas, visor de logs paginado, teclas |
+| `lib/screens/procs.sh` | Vista Procesos y tarjeta de la cabecera: árbol de `/proc` (`DELTACTL_PROC_ROOT` en los tests) y coste del panel |
+| `lib/screens/console.sh` (+ `console_alias.sh`) | Vista Consola y la consola de Instancias: historial, órdenes propias, completado y envío; alias (`alias`/`unalias`, archivo `aliases`) |
+| `lib/screens/menu.sh`, `confirm.sh`, `name.sh`, `palette.sh`, `help.sh`, `options.sh`, `wizard.sh` | Modos con diálogo: menú de acciones, confirmación, «escribe el nombre», paleta, ayuda de teclas, Opciones (`TUI_*` en el archivo de configuración) y el formulario de nueva instancia |
+| `lib/screens/cmd.sh`, `filter.sh`, `find.sh` | Modos de línea: orden que se escribe (`:`), filtro (`/`) y búsqueda (`s`) de los logs; el editor de línea es `dash_key_edit` (en `cmd.sh`) |
 | `lib/ui/layout.sh` | Motor de layout: `lay_split` reparte columnas o filas entre paneles por reglas (deseado, mínimo, máximo, crecimiento, opcional) |
 | `lib/ui/tui.sh` | Terminal: pantalla alterna, teclas, cajas, recorte con colores, dibujo incremental |
 | `lib/core/metrics.sh` | Muestreo de memoria/CPU por servicio, historial, formato (bytes, %, sparkline) |
@@ -129,6 +133,28 @@ con color) y en el muestreo (~10 ms). Los gráficos ya son incrementales (`gfx_a
 | `lib/adapters/host.sh` | Lectores de `/proc` y cgroups (solo builtins de Bash) |
 | `lib/adapters/docker.sh` | `dk_container_rows` (con pid y reinicios), `dk_events_stream`, `dk_images_ids` |
 | `lib/i18n/{es,en}/dashboard.sh` | Textos del panel |
+
+## Pantallas: cómo está organizado el panel y cómo añadir una
+
+El panel se compone de **pantallas** con un contrato común (`lib/screens/registry.sh` lo documenta función por función). Hay dos clases:
+
+- **Vistas** (las pestañas, `1` a `6` o Tab): `instances`, `resources`, `output`, `runs`, `procs`, `console`. Una es la actual (`DASH_VIEW`).
+- **Modos** (toman el teclado sobre una vista): `menu`, `confirm`, `name`, `cmd`, `filter`, `find`, `wizard`, `palette`, `help`, `options`.
+  Uno es el actual (`DASH_MODE`); `normal` es ninguno.
+
+El resto del panel ya no nombra ninguna: la línea de pestañas, los dígitos, Tab, Esc, la barra de teclas, el cuerpo, la firma del fotograma,
+el trabajo periódico y el ratón recorren el registro y llaman a las funciones `scr_<id>_*` (`render`, `key`, `keys`, `texts`, `sig`,
+`enter`, `tab`, `back`, `tick`, `poll`, `click`).
+
+**Para añadir una pantalla**: crear `lib/screens/<id>.sh` con al menos `scr_<id>_render <ancho> <alto>`, `scr_<id>_key <tecla>` y
+`scr_<id>_keys <ancho>`, y añadir **una línea** al final de `lib/screens/registry.sh`
+(`dash_screen_register <id> <clave del título> <1 si el cuerpo muestra cifras en vivo>` para una vista, `dash_mode_register <id>` para un modo).
+La firma (`scr_<id>_sig`) debe sumar a `DASH_SIG` todo lo que cambia lo que dibuja: el cuerpo se reutiliza mientras la firma no cambie, así que
+un valor que falte es una pantalla desactualizada. Los textos que cambian con el idioma van en `scr_<id>_texts`.
+
+Comprobación de refactores: `tests/tools/panel_scenarios.sh <carpeta>` ejecuta 30 secuencias de teclas (vistas, diálogos, asistente, opciones, ayuda,
+paleta, consola, ratón) a cinco tamaños y guarda **todos** los fotogramas; dos árboles de dos versiones del código se comparan con `diff -r`.
+`tests/tools/panel_frames.sh` hace lo mismo con la última imagen de cada vista.
 
 ## Cómo probar
 
@@ -240,7 +266,7 @@ Evitar patrones extglob en reemplazos (`//`) sobre cadenas largas.
 
 - Un solo comando a la vez; el resto espera o se rechaza con un aviso.
 - La línea de comandos separa por espacios (no admite comillas); `menu` y los comandos con `!` delante salen al terminal. El
-  asistente de `new` ya no sale: es un formulario del panel (`lib/cmd/dashboard_new.sh`) que repite lo que pregunta `lib/cmd/new.sh`
+  asistente de `new` ya no sale: es un formulario del panel (`lib/screens/wizard.sh`) que repite lo que pregunta `lib/cmd/new.sh`
   y arranca `new <nombre> --services ... --s0-image ... --ip ... --generate-secrets`; si se cambia una pregunta, hay que cambiarla
   en los dos sitios (las validaciones y los textos son compartidos). El formulario dibuja dos paneles desde 92 columnas y 20
   filas; por debajo, solo los campos de la sección. Los servicios que aún no tienen Docker (walle, robin, link) se muestran
