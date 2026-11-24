@@ -16,6 +16,7 @@ _deltactl_complete() {
   case "$cmd" in
     new) flags="--services --existing --wizard --s0-image --s1-image --s0-tag --s1-tag --ip --generate-secrets" ;;
     init) flags="--yes" ;;
+    doctor) flags="--json" ;;
     rollback) flags="--yes" ;;
     down) flags="--yes" ;;
     status) flags="--json --stats --strict --watch" ;;
