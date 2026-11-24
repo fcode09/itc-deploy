@@ -18,7 +18,7 @@
 │ ● FCM_CERT                   /run/secrets/fcm.json                                                                 ││ Por defecto: http://localhost          │
 │ ● KEEPER_FCM_CERT            /run/secrets/keeper-fcm.json                                                          ││                                        │
 │ ▲ FEDERATION_ENCRYPTION_KEY  (vacía)                                                                   obligatoria ││ ✖ debe ser una URL con esquema y host: │
-│ ● SERVERS_CONFIG             []                                                                                    ││   http://host o https://host           │
+│ ● SERVERS_CONFIG             ⚿ ••••••••••                                                                          ││   http://host o https://host           │
 │ ▲ DEEPGRAM_API_KEY           (vacía)                                                                   obligatoria ││                                        │
 │                                                                                                                    ││                                        │
 │                                                                                                                    ││                                        │
