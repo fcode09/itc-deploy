@@ -213,6 +213,31 @@ check "with no instance that has the service nothing opens and the message says 
   echo "$o" | last_frame | grep -q "Ninguna instancia tiene activo el servicio s0"'
 check "the dialog of using a version is in English too" 'LANGX=en panel 8 enter enter | last_frame | grep -q "Change the version of s0 in .ix-colorado.: 2.14.0 → 2.14.1" && LANGX=en panel 8 enter | last_frame | grep -q "Choose the instance where to use auth-backend:2.14.1"'
 
+section "7c. an instance can only use a version it can find: the name of its images"
+# A local instance runs auth-backend:<tag> and never pulls (pull policy never); one with a REGISTRY runs <registry>/auth-backend:<tag>, which
+# Docker pulls when it is not loaded. A tag that is loaded under another name is not the image of the instance: the tag would be written and
+# the deploy would fail, or pull something else.
+printf '%s\n' "reg.io/auth-backend:2.12.0|sha256:ra1aaaaaaaaaaa|amd64" >> "$FIX/images.txt"
+printf '%s\n' "reg.io/auth-backend:2.12.0|2026-10-01 12:00:00 +0000 UTC" >> "$FIX/image_dates.txt"
+: > "$FIX/calls.log"
+o="$(panel 8 end up enter)"
+check "a local instance cannot use a tag that is only loaded as reg.io/auth-backend: it says what it needs and what there is" '
+  f="$(echo "$o" | last_frame)"; echo "$f" | grep -q "ix-colorado .*solo cargada como reg.io/auth-backend"'
+o="$(panel 8 end up enter enter)"
+check "Enter on it says why and writes nothing" '[ "$(tag_of ix-colorado)" = 2.14.0 ] && echo "$o" | last_frame | grep -q "ix-colorado usa imágenes locales: necesita auth-backend:2.12.0, solo cargada como reg.io/auth-backend" && echo "$o" | last_frame | grep -q "Elige la instancia"'
+sed -i 's/^REGISTRY=.*/REGISTRY=reg.io/' instances/ix-lima/.env.instance
+grep -q '^REGISTRY=reg.io$' instances/ix-lima/.env.instance || echo 'REGISTRY=reg.io' >> instances/ix-lima/.env.instance
+o="$(panel 8 end up enter)"
+check "an instance with the registry reg.io can use the version loaded as reg.io/auth-backend" '
+  f="$(echo "$o" | last_frame)"; echo "$f" | grep -q "ix-lima .*ahora 2.14.1 → 2.12.0"'
+o="$(panel 8 down down enter)"
+check "and cannot use one that is only loaded under the bare name: it would be pulled from the registry, which may not have it" '
+  f="$(echo "$o" | last_frame)"; echo "$f" | grep -q "ix-lima .*no cargada como reg.io/auth-backend" && echo "$f" | grep -q "ix-colorado .*ya usa esta versión"'
+o="$(LANGX=en panel 8 down down enter)"
+check "the reasons are in English too" 'echo "$o" | last_frame | grep -q "ix-lima .*not loaded as reg.io/auth-backend"'
+sed -i 's/^REGISTRY=.*/REGISTRY=/' instances/ix-lima/.env.instance
+images_fixture "$FIX"
+
 section "8. keys: loading an archive"
 printf 'x' > "$FIX/app.tar"
 printf 'Loaded image: auth-backend:2.15.0\n' > "$FIX/load_result"

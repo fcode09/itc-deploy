@@ -19,6 +19,8 @@
 # What loading leaves (index i is one tag of one image; the groups are service + image name):
 #   IC_N                     how many tags
 #   IC_SVC IC_REPO IC_TAG IC_ID IC_ARCH IC_SINCE IC_SIZE      as Docker said them (IC_ARCH is ? when it is not known)
+#   IC_FULL[i]               the name Docker gives the image, with its registry if it has one ("reg.io/auth-backend"); IC_REPO is the name of
+#                            the group ("auth-backend"), which also holds the tags loaded as "<registry>/auth-backend"
 #   IC_EPOCH[i]              creation date in seconds since 1970 (0 when Docker gave none)
 #   IC_KIND[i]               ver | latest | other
 #   IC_VNUM[i] IC_VPRE[i]    the version of a "ver" tag: its dotted numbers and its pre-release ("rc1"), both without the leading v
@@ -32,7 +34,7 @@
 #   IC_SERVER_ARCH           the server's architecture
 
 IC_N=0 IC_SERVER_ARCH=""
-IC_SVC=() IC_REPO=() IC_TAG=() IC_ID=() IC_ARCH=() IC_SINCE=() IC_SIZE=() IC_EPOCH=() IC_KIND=() IC_VNUM=() IC_VPRE=() IC_OK=() IC_STAR=() IC_USE=()
+IC_SVC=() IC_REPO=() IC_FULL=() IC_TAG=() IC_ID=() IC_ARCH=() IC_SINCE=() IC_SIZE=() IC_EPOCH=() IC_KIND=() IC_VNUM=() IC_VPRE=() IC_OK=() IC_STAR=() IC_USE=()
 IC_GROUPS=()
 declare -gA IC_ORDER=() IC_STARIDX=() IC_DISC=() IC_USED=() IC_REPOS=()
 
@@ -232,9 +234,9 @@ ic_arch_fetch() { # id...
 # do not use yet (the one a person is typing in the wizard) to the groups.
 ic_load() {
   local extra full tag id since size created svc repo i g j line sid arch star found nxt_done
-  local -a raw=() ids=() order=() cand=() nxt=()
+  local -a raw=() ids=() order=() cand=() bare=() nxt=()
   local -A seen=()
-  IC_N=0 IC_SVC=() IC_REPO=() IC_TAG=() IC_ID=() IC_ARCH=() IC_SINCE=() IC_SIZE=() IC_EPOCH=() IC_KIND=() IC_VNUM=() IC_VPRE=() IC_OK=() IC_STAR=() IC_USE=()
+  IC_N=0 IC_SVC=() IC_REPO=() IC_FULL=() IC_TAG=() IC_ID=() IC_ARCH=() IC_SINCE=() IC_SIZE=() IC_EPOCH=() IC_KIND=() IC_VNUM=() IC_VPRE=() IC_OK=() IC_STAR=() IC_USE=()
   IC_GROUPS=() IC_ORDER=() IC_STARIDX=() IC_DISC=()
   dk_ready || return 1
   IC_SERVER_ARCH="$(server_arch)"
@@ -254,7 +256,7 @@ ic_load() {
         [ -n "$tag" ] && [ "$tag" != "<none>" ] || continue
         case "$full" in "$repo" | */"$repo") ;; *) continue ;; esac
         i="$IC_N"
-        IC_SVC[i]="$svc" IC_REPO[i]="$repo" IC_TAG[i]="$tag" IC_ID[i]="$id" IC_SINCE[i]="$since" IC_SIZE[i]="$size"
+        IC_SVC[i]="$svc" IC_REPO[i]="$repo" IC_FULL[i]="$full" IC_TAG[i]="$tag" IC_ID[i]="$id" IC_SINCE[i]="$since" IC_SIZE[i]="$size"
         if ic_epoch "$created"; then IC_EPOCH[i]="$IC_E"; else IC_EPOCH[i]=0; fi
         if [ "$tag" = latest ]; then IC_KIND[i]=latest IC_VNUM[i]="" IC_VPRE[i]=""
         elif ic_version "$tag"; then IC_KIND[i]=ver IC_VNUM[i]="$IC_VN" IC_VPRE[i]="$IC_VP"
@@ -294,13 +296,17 @@ ic_load() {
     done
     IC_ORDER[$g]="${order[*]-}"
     star=-1
-    cand=()
+    cand=() bare=()
     for i in ${order[@]+"${order[@]}"}; do
       # A stable version only: 2.0.0-rc1, 2.14.0-debug or 2.0.0-alpine are listed and can be chosen by hand, but "the most recent version" is
       # never one of them (an instance of a municipality must not be moved to a release candidate or a variant by a date).
       [ "${IC_KIND[$i]}" = ver ] && [ -z "${IC_VPRE[$i]}" ] && [ "${IC_OK[$i]}" -eq 1 ] && [ "${IC_EPOCH[$i]}" -gt 0 ] || continue
       cand+=("$i")
+      [ "${IC_FULL[$i]}" != "$repo" ] || bare+=("$i")
     done
+    # An instance with local images (the default, and the only ones `new` makes) runs <image>:<tag> and never pulls: a tag that is only loaded
+    # under the name of a registry is not one it can run. The star is chosen among the tags loaded under the bare name when there are any.
+    if [ "${#bare[@]}" -gt 0 ]; then cand=("${bare[@]}"); fi
     if [ "${#cand[@]}" -gt 0 ]; then
       star="${cand[0]}"
       IC_STAR[star]=1

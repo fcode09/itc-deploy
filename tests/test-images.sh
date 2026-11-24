@@ -213,6 +213,19 @@ dates "auth-backend:2.0.0-rc1|2026-11-20 00:00:00 +0000 UTC" "auth-backend:2.0.0
 check "only pre-releases and variants: there is no star and nothing to resolve (nothing is guessed for a municipality)" '[ "$(lib2 t_onlylatest)" = "1 []" ]'
 check "and new --s0-tag latest says there is no version to choose and creates nothing" 'o="$(img2 new im-prerel --s0-tag latest)"; rc=$?; [ "$rc" -ne 0 ] && [ ! -e instances/im-prerel ] && echo "$o" | grep -q "no version to choose for s0"'
 
+section "6c. the same image under the name of a registry: what an instance can find"
+# A local instance (empty REGISTRY) runs auth-backend:<tag> and never pulls; one with a REGISTRY runs <registry>/auth-backend:<tag>. The tags
+# loaded as reg.io/auth-backend are in the group of auth-backend, and their name is kept (IC_FULL): the star is a tag a local instance can run.
+images_are "auth-backend:1.0|sha256:r1|amd64" "reg.io/auth-backend:2.0|sha256:r2|amd64" "reg.io/auth-backend:1.0|sha256:r1|amd64"
+dates "auth-backend:1.0|2026-11-01 00:00:00 +0000 UTC" "reg.io/auth-backend:2.0|2026-11-20 00:00:00 +0000 UTC" "reg.io/auth-backend:1.0|2026-11-01 00:00:00 +0000 UTC"
+t_full() { ic_load; local i; for ((i = 0; i < IC_N; i++)); do printf '%s=%s ' "${IC_TAG[$i]}" "${IC_FULL[$i]}"; done; }
+check "the name Docker gives each image is kept, with its registry" '[ "$(lib2 t_full)" = "1.0=auth-backend 2.0=reg.io/auth-backend 1.0=reg.io/auth-backend " ]'
+check "the star is a version loaded under the bare name when there is one (the newest by date is only loaded as reg.io/auth-backend)" '[ "$(lib2 t_latest)" = "1.0 " ]'
+images_are "reg.io/auth-backend:2.0|sha256:r2|amd64" "reg.io/auth-backend:1.0|sha256:r1|amd64"
+check "when every one has the name of a registry, the star is the newest of them (an instance with that REGISTRY can use it)" '[ "$(lib2 t_latest)" = "2.0 " ]'
+t_latest_s0() { ic_load; ic_latest s0; echo "$IC_LATEST"; }
+check "...and new --s0-tag latest keeps it" 'img2 new im-reg --s0-tag latest > /dev/null; grep -q "^S0_TAG=2.0$" instances/im-reg/.env.instance; rm -rf instances/im-reg'
+
 section "7. use by instances and image names that are not the default one"
 rm -rf instances/im-one   # (the instance of the sections above)
 bash ./deltactl new im-uso >/dev/null 2>&1

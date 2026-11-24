@@ -35,7 +35,7 @@ DASH_IMG_NOTE=""         # the warning of the group of the version under the cur
 # Runs in the background: reads Docker and prints the tables of the catalog as `declare -p` lines.
 dash_img_dump() {
   if ! ic_load; then echo "DASH_IMG_NODOCKER=1"; return 0; fi
-  declare -p IC_N IC_SERVER_ARCH IC_SVC IC_REPO IC_TAG IC_ID IC_ARCH IC_SINCE IC_SIZE IC_EPOCH IC_KIND IC_VNUM IC_VPRE IC_OK IC_STAR IC_USE \
+  declare -p IC_N IC_SERVER_ARCH IC_SVC IC_REPO IC_FULL IC_TAG IC_ID IC_ARCH IC_SINCE IC_SIZE IC_EPOCH IC_KIND IC_VNUM IC_VPRE IC_OK IC_STAR IC_USE \
     IC_GROUPS IC_ORDER IC_STARIDX IC_DISC
 }
 

@@ -12,8 +12,33 @@ DASH_IU_STEP=pick        # pick | confirm
 DASH_IU_SVC="" DASH_IU_REPO="" DASH_IU_TAG=""
 DASH_IU_NAMES=()         # the instances that have the service active
 DASH_IU_CUR=()           # the tag each one has now
-DASH_IU_WHY=()           # "" when the version can be used there, else why not
+DASH_IU_WHY=()           # "" when the version can be used there, else why not (short: it goes in the row)
+DASH_IU_HELP=()          # the same said in full, for the line of messages when Enter is pressed on it (empty: the short one says it all)
 DASH_IU_SEL=0
+
+# Can the instance find the image of the version under the cursor? A local instance (empty REGISTRY) runs <image>:<tag> and never pulls; one with
+# a REGISTRY runs <registry>/<image>:<tag>, which Docker pulls when it is not loaded. A tag that is loaded under another name (the catalog keeps
+# the name Docker gives each image) is not the image of the instance: writing it would make the deploy fail, or pull something else.
+# Returns 1 with the reason in DASH_IU_R (short) and DASH_IU_RL (full).
+DASH_IU_R="" DASH_IU_RL=""
+dash_iu_findable() { # instance repo tag
+  local reg want i others=""
+  get_var_r "$INSTANCES_DIR/$1/.env.instance" REGISTRY; reg="${GV%/}"
+  want="$2"; [ -z "$reg" ] || want="$reg/$2"
+  for ((i = 0; i < IC_N; i++)); do
+    [ "${IC_SVC[$i]}" = "$DASH_IU_SVC" ] && [ "${IC_REPO[$i]}" = "$2" ] && [ "${IC_TAG[$i]}" = "$3" ] || continue
+    [ "${IC_FULL[$i]}" != "$want" ] || return 0
+    case ", $others, " in *", ${IC_FULL[$i]}, "*) ;; *) others+="${others:+, }${IC_FULL[$i]}" ;; esac
+  done
+  if [ -z "$reg" ]; then
+    t_r tui.img.use.not_local "$others"; DASH_IU_R="$T_OUT"
+    t_r tui.img.use.not_local_full "$1" "$2:$3" "$others"; DASH_IU_RL="$T_OUT"
+  else
+    t_r tui.img.use.not_registry "$want"; DASH_IU_R="$T_OUT"
+    t_r tui.img.use.not_registry_full "$1" "$reg" "$2:$3" "$want"; DASH_IU_RL="$T_OUT"
+  fi
+  return 1
+}
 
 # Opens the dialog for the version under the cursor of the Images view (a message when it cannot be used anywhere).
 dash_img_use() {
@@ -25,7 +50,7 @@ dash_img_use() {
   fi
   svc="${DASH_IMG_G%%|*}" repo="${DASH_IMG_G#*|}" tag="${IC_TAG[$DASH_IMG_CI]}"
   DASH_IU_SVC="$svc" DASH_IU_REPO="$repo" DASH_IU_TAG="$tag"
-  DASH_IU_NAMES=() DASH_IU_CUR=() DASH_IU_WHY=() DASH_IU_SEL=0
+  DASH_IU_NAMES=() DASH_IU_CUR=() DASH_IU_WHY=() DASH_IU_HELP=() DASH_IU_SEL=0
   for name in "${DASH_NAMES[@]}"; do
     case " ${DASH_SVCS[$name]:-} " in *" $svc "*) ;; *) continue ;; esac
     f="$INSTANCES_DIR/$name/.env.instance"
@@ -34,6 +59,7 @@ dash_img_use() {
     DASH_IU_NAMES+=("$name") DASH_IU_CUR+=("$cur")
     if [ "$sr" != "$repo" ]; then t_r tui.img.use.other_image "$sr"; DASH_IU_WHY+=("$T_OUT")
     elif [ "$cur" = "$tag" ]; then t_r tui.img.use.same; DASH_IU_WHY+=("$T_OUT")
+    elif ! dash_iu_findable "$name" "$repo" "$tag"; then DASH_IU_WHY+=("$DASH_IU_R"); DASH_IU_HELP[${#DASH_IU_NAMES[@]} - 1]="$DASH_IU_RL"
     else DASH_IU_WHY+=(""); fi
   done
   if [ "${#DASH_IU_NAMES[@]}" -eq 0 ]; then dash_msg warn "$(t tui.img.use.none "$svc")"; return 0; fi
@@ -69,7 +95,7 @@ dash_key_imguse() { # key
       up | k) [ "$DASH_IU_SEL" -le 0 ] || DASH_IU_SEL=$((DASH_IU_SEL - 1)) ;;
       down | j) [ "$DASH_IU_SEL" -ge $((n - 1)) ] || DASH_IU_SEL=$((DASH_IU_SEL + 1)) ;;
       enter)
-        if [ -n "${DASH_IU_WHY[$DASH_IU_SEL]:-}" ]; then dash_msg warn "${DASH_IU_WHY[$DASH_IU_SEL]}"; else DASH_IU_STEP=confirm; fi
+        if [ -n "${DASH_IU_WHY[$DASH_IU_SEL]:-}" ]; then dash_msg warn "${DASH_IU_HELP[$DASH_IU_SEL]:-${DASH_IU_WHY[$DASH_IU_SEL]}}"; else DASH_IU_STEP=confirm; fi
         ;;
       esc | q) DASH_MODE=normal; dash_msg info "$(t tui.msg.cancelled)" ;;
     esac
