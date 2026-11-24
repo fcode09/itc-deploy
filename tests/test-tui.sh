@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Tests of the interactive panel (lib/cmd/dashboard*.sh) and its terminal layer (lib/ui/tui.sh).
+# Tests of the interactive panel (lib/cmd/dashboard*.sh, lib/screens/*.sh) and its terminal layer (lib/ui/tui.sh).
 # The panel runs in test mode: DELTACTL_TUI_KEYS points to a file with one key name per line and every frame is
 # printed as plain text, so no real terminal is needed. Docker is simulated, and so are /proc and the cgroup files
 # (DELTACTL_PROC_ROOT / DELTACTL_CGROUP_ROOT). Runs from the root of the isolated copy (tests/run.sh).
@@ -1234,5 +1234,29 @@ printf 'TUI_VIM=off\n' > "$FIX/vim.cfg"
 out="$(DELTACTL_CONFIG="$FIX/vim.cfg" PANEL_ROWS=55 panel '?' j q)"
 check "with the vim keys off, j is a key like any other in the help: it goes back" 'echo "$out" | frame_n 3 | grep -q "\[1 Instancias\]"'
 rm -f "$FIX/vim.cfg"
+
+section "30. the screen registry: a screen is one file and one line"
+R7="$FIX/r7"
+mkdir -p "$R7/instances"
+cp -r deltactl lib templates services compose.yaml "$R7/"
+cat > "$R7/lib/screens/demo.sh" <<'DEMO'
+scr_demo_render() { local i; for ((i = 0; i < $2; i++)); do TUI_FRAME+=("  demo screen line $i of width $1"); done; } # width height
+scr_demo_key() { :; }
+scr_demo_keys() { TUI_FRAME+=(" demo keys"); }
+scr_demo_sig() { DASH_SIG+="|demo"; }
+DEMO
+sed -i 's/^dash_mode_register menu$/dash_screen_register demo tui.tab.output 0\ndash_mode_register menu/' "$R7/lib/screens/registry.sh"
+panel7() { printf '%s\n' "$@" > "$FIX/keys7.txt"; (cd "$R7" && DELTACTL_TUI_KEYS="$FIX/keys7.txt" DELTACTL_UI=rich DELTACTL_COLOR=never DELTACTL_ASCII=1 COLUMNS=100 DELTACTL_TUI_ROWS=30 bash ./deltactl 2>&1); }
+out="$(panel7 7 q)"
+check "a screen registered with one line gets the next tab number and the digit opens it" 'echo "$out" | frame_n 2 | grep -q "demo screen line 0 of width 100" && echo "$out" | frame_n 2 | sed -n 3p | grep -q "\[7 Salida\]"'
+check "its key line is the one its contract draws" 'echo "$out" | frame_n 2 | tail -1 | grep -q "demo keys"'
+check "the body is exactly as tall as the body of any other view" '[ "$(echo "$out" | frame_n 2 | grep -c "demo screen line")" -eq 26 ]'
+out="$(panel7 6 esc tab tab q)"
+check "Tab goes from the last view to the new one and on to the first" 'echo "$out" | frame_n 4 | grep -q "demo screen line 0" && echo "$out" | frame_n 5 | grep -q "\[1 Instancias\]"'
+out="$(panel7 7 esc q)"
+check "Esc leaves a screen with no back step for the first view" 'echo "$out" | frame_n 3 | grep -q "\[1 Instancias\]"'
+out="$(panel7 8 q)"
+check "a digit with no screen is ignored" 'echo "$out" | frame_n 2 | grep -q "\[1 Instancias\]"'
+rm -rf "$R7"
 
 finish

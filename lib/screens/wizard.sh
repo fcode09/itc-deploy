@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# shellcheck disable=SC2034  # the DASH_* variables are shared with lib/cmd/dashboard.sh and lib/cmd/dashboard_view.sh
-# The "New instance" form of the panel (mode wizard). Sourced by lib/cmd/dashboard.sh.
+# shellcheck disable=SC2034,SC2154  # the DASH_* variables are shared with lib/cmd/dashboard.sh, dashboard_view.sh and the other screens
+# The "New instance" form of the panel (mode wizard). Loaded by lib/screens/registry.sh.
 #
 # It is a settings form, not a questionnaire: on the left the sections of an instance with their state (an icon at the start of
 # each row), on the right the fields of the section in use. Sections: name, services, data, images, access (URL and secrets) and
@@ -705,4 +705,12 @@ dash_nw_keys() { # width
   if [ "$DASH_NW_FOCUS" = pane ] || [ "$DASH_NW_WIDE" -eq 0 ]; then
     if [ "$DASH_NW_CR" -gt 0 ]; then TUI_CURSOR="$DASH_NW_CR;$DASH_NW_CC"; fi
   fi
+}
+
+# --- The contract of lib/screens/registry.sh --------------------------------------------------------------------
+scr_wizard_render() { dash_dialog_wizard "$2"; } # width height
+scr_wizard_key() { dash_key_wizard "$1"; }
+scr_wizard_keys() { dash_nw_keys "$1"; TUI_FRAME+=(" $DASH_KBV"); } # width
+scr_wizard_sig() {
+  [ "$DASH_MODE" != "wizard" ] || DASH_SIG+="|$DASH_NW_V|$DASH_NW_SEC|$DASH_NW_F|$DASH_NW_FOCUS|$DASH_BUF|$DASH_CUR|$DASH_NW_ERR"
 }

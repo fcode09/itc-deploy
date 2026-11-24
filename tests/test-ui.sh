@@ -8,7 +8,7 @@ export LANG=C.UTF-8
 unset NO_COLOR DELTACTL_COLOR DELTACTL_UI DELTACTL_ASCII COLUMNS
 
 section "1. sintaxis"
-for f in deltactl lib/bootstrap.sh lib/ui/ui.sh lib/cmd/*.sh; do
+for f in deltactl lib/bootstrap.sh lib/ui/ui.sh lib/cmd/*.sh lib/screens/*.sh; do
   bash -n "$f" || { echo "  SYNTAX ERROR $f"; fail=$((fail + 1)); }
 done
 check "todos los scripts compilan" 'true'

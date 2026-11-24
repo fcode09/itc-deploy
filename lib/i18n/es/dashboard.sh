@@ -79,7 +79,7 @@ MSG_es["tui.msg.lang_set"]="Idioma: {1}"
 MSG_es["tui.msg.theme_set"]="Tema: {1}"
 MSG_es["tui.lang_name"]="español"
 MSG_es["tui.name.keys"]="Enter confirma · Esc cancela"
-# New-instance form: sections on the left, fields on the right (lib/cmd/dashboard_new.sh)
+# New-instance form: sections on the left, fields on the right (lib/screens/wizard.sh)
 MSG_es["tui.nw.title"]="Nueva instancia"
 MSG_es["tui.nw.sec.name"]="Nombre"
 MSG_es["tui.nw.sec.services"]="Servicios"
@@ -227,7 +227,7 @@ MSG_es["tui.help.head.runs"]="EJECUC."
 MSG_es["tui.help.head.procs"]="PROCES."
 MSG_es["tui.help.head.console"]="CONSOLA"
 
-# Runs view (lib/cmd/dashboard_runs.sh)
+# Runs view (lib/screens/runs.sh)
 MSG_es["tui.tab.runs"]="Ejecuciones"
 MSG_es["tui.keys.runs"]="{1} elegir · Enter salida · PgUp/PgDn detalle · t estadísticas · : comando · ? ayuda · q salir"
 MSG_es["tui.keys.runs_stats"]="s una instancia / todas · t o Esc vuelven · : comando · ? ayuda · q salir"
@@ -259,7 +259,7 @@ MSG_es["tui.runs.log_lines"]="líneas {1}-{2} de {3}"
 MSG_es["tui.runs.indexing"]="indexando…"
 MSG_es["tui.runs.no_output"]="Esta ejecución no dejó salida"
 
-# Processes view (lib/cmd/dashboard_procs.sh)
+# Processes view (lib/screens/procs.sh)
 MSG_es["tui.tab.procs"]="Procesos"
 MSG_es["tui.tab.console"]="Consola"
 MSG_es["tui.keys.console"]="Enter o : escribe · {1} desplazan · PgUp/PgDn página · Inicio/Fin · Esc vuelve · q salir"
@@ -278,7 +278,7 @@ MSG_es["tui.runs.partial"]="Parar no deshace lo ya cambiado en Docker."
 MSG_es["tui.runs.review_pending"]="pendiente de revisar"
 MSG_es["tui.runs.resolve_cmd"]="./deltactl runs resolve {1}"
 
-# Logs pane: stream, pause, errors only, search (lib/cmd/dashboard_logs.sh)
+# Logs pane: stream, pause, errors only, search (lib/screens/instances_logs.sh)
 MSG_es["tui.logs.paused"]="pausa"
 MSG_es["tui.logs.paused_n"]="pausa +{1}"
 MSG_es["tui.logs.errors"]="errores"

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# shellcheck disable=SC2034  # the DASH_* variables are shared with lib/cmd/dashboard.sh and lib/cmd/dashboard_view.sh
+# shellcheck disable=SC2034,SC2154  # the DASH_* variables are shared with lib/cmd/dashboard.sh, dashboard_view.sh and the other screens
 # Options screen of the panel (key o): theme, language, sampling interval, refresh interval and the vim keys, in one place.
-# Sourced by lib/cmd/dashboard.sh.
+# Loaded by lib/screens/registry.sh.
 #
 # Every change applies at once and is remembered in the user config file, the one that already keeps UI_LANG and UI_THEME
 # (i18n_config_file: $DELTACTL_CONFIG, else ~/.config/deltactl/config). It is written with set_var, a temporary file swapped in
@@ -210,3 +210,13 @@ dash_dialog_options() { # body_height
   dt tui.opt.title
   dash_dialog "$1" "$DTV" 60
 }
+
+# --- The contract of lib/screens/registry.sh --------------------------------------------------------------------
+scr_options_render() { dash_dialog_options "$2"; } # width height
+scr_options_key() { dash_key_options "$1"; }
+scr_options_keys() { # width
+  local line
+  dt tui.opt.keys; line="${DTV//\{1\}/$DASH_UD}"
+  dash_keybar "${line//\{2\}/$DASH_LR}" "$1"; TUI_FRAME+=(" $DASH_KBV")
+}
+scr_options_sig() { DASH_SIG+="|$DASH_OPT_SEL|$DASH_OPT_N"; }

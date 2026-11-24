@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# shellcheck disable=SC2034  # the DASH_P* variables are shared with lib/cmd/dashboard.sh and dashboard_view.sh
+# shellcheck disable=SC2034,SC2154  # the DASH_P* variables are shared with lib/cmd/dashboard.sh, dashboard_view.sh and the other screens
 # The Processes view of the panel (key 5) and the card in the header: what the command that is running is made of, live, and what
-# the panel itself costs. Sourced by lib/cmd/dashboard.sh. Everything is read with Bash builtins from /proc (DELTACTL_PROC_ROOT points
+# the panel itself costs. Loaded by lib/screens/registry.sh. Everything is read with Bash builtins from /proc (DELTACTL_PROC_ROOT points
 # to another tree in the tests), the same way the sampler of a recorded run does it, so looking costs next to nothing.
 #
 # "Memory" is the sum of the resident pages of the command's processes without the wrapper that waits for it, like `runs show`;
@@ -246,3 +246,11 @@ dash_key_procs() {
     home | g) DASH_PROCS_OFF=0 ;;
   esac
 }
+
+# --- The contract of lib/screens/registry.sh --------------------------------------------------------------------
+scr_procs_render() { dash_view_procs "$2"; } # width height
+scr_procs_key() { dash_key_procs "$1"; }
+scr_procs_keys() { dash_keys_view procs "$1"; } # width
+scr_procs_texts() { DASH_KEYS[procs]="$(t tui.keys.procs "$DASH_UD")"; }
+scr_procs_sig() { DASH_SIG+="|$DASH_PROCS_N|$DASH_PROCS_OFF|$DASH_PC_TXT"; }
+scr_procs_tick() { dash_procs_tick; }

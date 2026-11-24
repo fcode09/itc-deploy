@@ -2,7 +2,7 @@
 # ./deltactl new <instance> [--services s0,s1] [--existing] [--wizard]: creates instances/<instance>/ from the templates.
 # Without a name and in a terminal (or with --wizard) it opens a wizard that asks the essentials.
 # The wizard's answers also exist as flags (--s0-image, --s1-image, --s0-tag, --s1-tag, --ip, --generate-secrets): the panel's
-# form (lib/cmd/dashboard_new.sh) collects the answers itself and starts `new <name> ...` with them.
+# form (lib/screens/wizard.sh) collects the answers itself and starts `new <name> ...` with them.
 
 # REQUIRED_* and check_required come from deploy.sh
 source "$ROOT/lib/cmd/deploy.sh"
