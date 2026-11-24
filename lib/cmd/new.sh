@@ -82,21 +82,27 @@ new_wizard() {
   new_ask_yn "$(t new.ask_create)" y || die "$(t err.cancelled)"
 }
 
-# `--sN-tag latest` asks for the MOST RECENT version of the image (lib/core/imagecat.sh: the newest by creation date among the version tags
-# that this server can run), not for a tag called "latest", which moves and cannot be gone back to. It is resolved to the tag it names.
-new_resolve_latest() {
+# `--sN-tag latest` asks for the MOST RECENT version of the image (lib/core/imagecat.sh: the newest by creation date among the stable version
+# tags that this server can run), not for a tag called "latest", which moves and cannot be gone back to. It is resolved to the tag it names.
+# Only for the services the instance has (the argument is the --services list; empty is all of them). `new` itself never needed Docker, so
+# when Docker does not answer nothing is resolved: the tag stays "latest" with a warning, as it was asked. When Docker answers and there is no
+# version to choose, it fails before anything is created.
+new_resolve_latest() { # [services]
   local svc repo
-  local -a want=()
+  local -a want=() act=()
+  if [ -n "$1" ]; then IFS=',' read -ra act <<< "${1// /}"; else act=("${KNOWN_SERVICES[@]}"); fi
   for svc in "${KNOWN_SERVICES[@]}"; do
     [ "${W_TAG[$svc]:-}" = latest ] || continue
+    case " ${act[*]} " in *" $svc "*) ;; *) continue ;; esac
     want+=("$svc=${W_IMG[$svc]:-$(default_repo "$svc")}")
   done
   [ "${#want[@]}" -gt 0 ] || return 0
-  check_docker
-  ic_load "${want[@]}" || die "$(t err.docker_daemon)"
-  for svc in "${KNOWN_SERVICES[@]}"; do
-    [ "${W_TAG[$svc]:-}" = latest ] || continue
-    repo="${W_IMG[$svc]:-$(default_repo "$svc")}"
+  if ! ic_load "${want[@]}"; then
+    for svc in "${want[@]}"; do warn "$(t new.latest_nodocker "${svc%%=*}" "$(tag_var "${svc%%=*}")")"; done
+    return 0
+  fi
+  for svc in "${want[@]}"; do
+    repo="${svc#*=}" svc="${svc%%=*}"
     ic_latest "$svc" "$repo" || die "$(t new.latest_none "$svc" "$repo" "$IC_SERVER_ARCH")$(see local-images)"
     info "$(t new.latest_resolved "$svc" "$repo" "$IC_LATEST")"
     W_TAG[$svc]="$IC_LATEST"
@@ -244,7 +250,6 @@ cmd_new() {
     img="${W_IMG[$svc]:-}"
     [ -z "$img" ] || valid_image_name "$img" || die "$(t new.err_image_invalid "$img")$(see local-images)"
   done
-  new_resolve_latest
   if [ "$W_GEN" -eq 1 ] && ! command -v openssl > /dev/null 2>&1; then die "$(t new.err_generate_no_openssl)"; fi
 
   if [ -n "$services" ]; then
@@ -273,6 +278,8 @@ cmd_new() {
       warn "$(t new.port_busy "$p")"
     fi
   done
+
+  new_resolve_latest "$services"   # (before anything is created: when there is no version to choose nothing is left behind)
 
   mkdir -p "$dir/secrets"
   for svc in "${KNOWN_SERVICES[@]}"; do

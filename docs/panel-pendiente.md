@@ -193,18 +193,24 @@ selector de versión del kit (`kit_vpick`, una tabla por imagen, con `msg=0` y u
   `declare -p` de las tablas `IC_*` (solo esas se cargan; `DASH_IMG_NODOCKER=1` si Docker no responde). En el modo de prueba (`DELTACTL_TUI_KEYS`) es
   síncrono. Se vuelve a leer al elegir la vista, cuando termina un comando (`JOB_SEQ` nuevo con `JOB_RC`: `scr_images_tick`), cada `DASH_IMG_EVERY` (60) s
   mientras está a la vista (`scr_images_poll`) y con `R`. Al aplicar el resultado el cursor se queda en la misma versión (imagen y etiqueta); la primera vez
-  va a la ★ de la primera imagen.
+  va a la ★ de la primera imagen. Una lectura que muere o que lleva un minuto sin responder se olvida (`dash_async_take`) y `scr_images_tick` libera la
+  vista (`DASH_IMG_BUSY=0`; sin respuesta previa dice que Docker no responde, con una la deja). Una lectura lanzada antes de que acabe un comando no borra
+  la marca de «catálogo viejo»: `dash_img_stale` cuenta los comandos que acabaron (`DASH_IMG_GEN`) y la respuesta solo limpia `DASH_IMG_STALE` si se pidió
+  después (`DASH_IMG_REQ_GEN`).
 - **Dibujo**: `dash_img_build` arma las líneas (un título por imagen, su tabla, el aviso si el orden por fecha y por versión discrepan) y solo se repite
   cuando cambian la respuesta, el idioma, el tema o el ancho; el cursor solo cambia qué línea lleva la marca de selección, y la ventana sobre la lista lo
   mantiene a la vista. Las marcas (★ ▲ ✖) no dependen del color: en ASCII son `*`, `!` y `x`.
 - **Usar una versión**: `dash_img_use` abre `imguse` con las instancias de `DASH_NAMES` que tienen el servicio (`DASH_SVCS`); `dash_iu_write` escribe
   `<SN>_TAG` con `set_var` (sustituye el archivo de una vez) y `y` lanza `deploy <instancia> <sN>` con `dash_start_job`. Nada se escribe antes de la respuesta.
+  Antes de escribir, `dash_iu_blocked` mira sin tomarlo el candado de las mutaciones (`runs_busy`) y, para `y`, las ejecuciones interrumpidas sin revisar
+  (`runs_pending`); y al armar la lista `dash_iu_findable` descarta (con el motivo en la fila y entero al pulsar Enter) las instancias que no encontrarían la
+  imagen: una local necesita `<imagen>:<etiqueta>` cargada con ese nombre, una con `REGISTRY` necesita `<registry>/<imagen>:<etiqueta>` (`IC_FULL`).
 - **Cargar**: `dash_img_load_ask` abre `imgload` con el campo del kit (`KF_VALUE`, `KF_CUR`); Enter con un archivo que existe lanza
   `dash_start_job stay load <archivo>` y recuerda su `JOB_SEQ` (`DASH_IMG_JOB`) para mostrar el archivo que se carga y releer al terminar.
 - **Pruebas**: `tests/test-imgview.sh` (escenas de `tests/tools/images_scenes.sh` en `tests/golden/images/` a 80x24, 120x30 y 160x40, y las teclas de punta
   a punta contra el docker simulado: usar una versión con `g` y con `y`, copiar con `DELTACTL_CLIP`, cargar un archivo y ver la versión nueva). El docker
   simulado (`tests/fake-docker.sh`) entiende `docker load` (`load_result`, `load_date`, `load_arch`), las fechas de creación (`image_dates.txt`) y la
-  arquitectura del servidor (`server_arch`).
+  arquitectura del servidor (`server_arch`), un demonio que no responde (`daemon_down`) y anotar cada llamada (`log_all` → `all_calls.log`).
 
 ## La vista Servidor y la barrera de primer arranque
 

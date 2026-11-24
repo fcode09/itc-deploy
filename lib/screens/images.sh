@@ -20,6 +20,8 @@ DASH_IMG_N=0             # answers applied, for the frame signature
 DASH_IMG_AT=0            # SECONDS of the last request
 DASH_IMG_EVERY=60        # seconds between two reads while the view is on screen
 DASH_IMG_STALE=0         # 1: a command ended since the last read
+DASH_IMG_GEN=0           # counts the commands that ended (dash_img_stale): a read launched before the last one gives an old answer
+DASH_IMG_REQ_GEN=0       # DASH_IMG_GEN when the read in flight was launched
 DASH_IMG_SEL=0           # the version under the cursor (index into DASH_IMG_ITEMS)
 DASH_IMG_OPEN=0          # 1: the detail of the version is open
 DASH_IMG_JOB=0           # JOB_SEQ of the load this view started (0: none running)
@@ -35,7 +37,7 @@ DASH_IMG_NOTE=""         # the warning of the group of the version under the cur
 # Runs in the background: reads Docker and prints the tables of the catalog as `declare -p` lines.
 dash_img_dump() {
   if ! ic_load; then echo "DASH_IMG_NODOCKER=1"; return 0; fi
-  declare -p IC_N IC_SERVER_ARCH IC_SVC IC_REPO IC_TAG IC_ID IC_ARCH IC_SINCE IC_SIZE IC_EPOCH IC_KIND IC_VNUM IC_VPRE IC_OK IC_STAR IC_USE \
+  declare -p IC_N IC_SERVER_ARCH IC_SVC IC_REPO IC_FULL IC_TAG IC_ID IC_ARCH IC_SINCE IC_SIZE IC_EPOCH IC_KIND IC_VNUM IC_VPRE IC_OK IC_STAR IC_USE \
     IC_GROUPS IC_ORDER IC_STARIDX IC_DISC
 }
 
@@ -60,7 +62,9 @@ dash_img_apply() { # text
   done <<< "$1"
   if [ "$nodocker" -eq 1 ]; then DASH_IMG_STATE=nodocker; IC_N=0 IC_GROUPS=() DASH_IMG_ITEMS=()
   else DASH_IMG_STATE=ready; dash_img_items; fi
-  DASH_IMG_BUSY=0 DASH_IMG_N=$((DASH_IMG_N + 1)) DASH_IMG_STALE=0 DASH_DIRTY=1
+  # The answer clears the mark that the catalog is old only when it was asked for after the last command ended.
+  [ "$DASH_IMG_REQ_GEN" -ne "$DASH_IMG_GEN" ] || DASH_IMG_STALE=0
+  DASH_IMG_BUSY=0 DASH_IMG_N=$((DASH_IMG_N + 1)) DASH_DIRTY=1
   local found=-1
   for i in "${!DASH_IMG_ITEMS[@]}"; do
     it="${DASH_IMG_ITEMS[$i]}"
@@ -73,11 +77,15 @@ dash_img_apply() { # text
   [ "$DASH_IMG_SEL" -ge 0 ] || DASH_IMG_SEL=0
 }
 
+# A command ended (a load, a deploy, a tag written): what the catalog says may be old.
+dash_img_stale() { DASH_IMG_STALE=1 DASH_IMG_GEN=$((DASH_IMG_GEN + 1)); }
+
 # Asks for a read without waiting for it (the synchronous one in the test mode).
 dash_img_request() {
   DASH_IMG_AT="$SECONDS"
-  if tui_test_mode; then dash_img_apply "$(dash_img_dump)"; return 0; fi
+  if tui_test_mode; then DASH_IMG_REQ_GEN="$DASH_IMG_GEN"; dash_img_apply "$(dash_img_dump)"; return 0; fi
   [ -z "${DASH_AS_PID[images]:-}" ] || return 0
+  DASH_IMG_REQ_GEN="$DASH_IMG_GEN"
   [ "$DASH_IMG_STATE" = "ready" ] || DASH_IMG_STATE=loading
   DASH_IMG_BUSY=1 DASH_DIRTY=1
   dash_async images "" dash_img_dump || true
@@ -311,9 +319,16 @@ scr_images_enter() {
 # Every turn of the loop, whatever the view: the answer of the read, and a command that ended (a load or a deploy changes what is loaded
 # and who uses it).
 scr_images_tick() {
-  if dash_async_take images; then dash_img_apply "$DASH_AS_TEXT"; fi
+  if dash_async_take images; then
+    dash_img_apply "$DASH_AS_TEXT"
+  elif [ "$DASH_IMG_BUSY" -eq 1 ] && [ -z "${DASH_AS_PID[images]:-}" ]; then
+    # The read died or was cut after a minute: free the view (R and the periodic read ask again). Without an answer yet it says Docker does not
+    # answer instead of staying on "reading…"; with one, the previous answer stays on screen.
+    DASH_IMG_BUSY=0 DASH_DIRTY=1
+    [ "$DASH_IMG_STATE" != "loading" ] || DASH_IMG_STATE=nodocker
+  fi
   if [ -n "$JOB_RC" ] && [ "$JOB_SEQ" -ne "$DASH_IMG_SEEN" ]; then
-    DASH_IMG_SEEN="$JOB_SEQ" DASH_IMG_STALE=1
+    DASH_IMG_SEEN="$JOB_SEQ"; dash_img_stale
     if [ "$DASH_IMG_JOB" -eq "$JOB_SEQ" ]; then DASH_IMG_JOB=0 DASH_IMG_LOADING="" DASH_DIRTY=1; fi
   fi
   [ "$DASH_VIEW" != "images" ] || [ "$DASH_IMG_STALE" -eq 0 ] || [ "$DASH_IMG_STATE" = "none" ] || dash_img_request

@@ -1,7 +1,9 @@
 # new · create an instance
 
 It creates the `instances/<instance>/` folder with the configuration ready to fill in.
-It does not touch Docker and does not start anything.
+It does not start anything and it does not need Docker to create the instance. The only
+exception is `--sN-tag latest`, which asks Docker which versions are loaded; if Docker does not
+answer, the instance is still created and the tag stays `latest` (with a warning).
 
 ## Usage
 $ ./deltactl new <instance> [--services s0,s1] [--existing]
@@ -21,8 +23,10 @@ terminal, and on confirmation it starts `new` with the answers as options.
 - `--existing` the municipality ALREADY has data: it is marked as initialized and `./deltactl init` can never run on it.
 - `--s0-image <name>` and `--s1-image <name>` image name of each service (without a tag).
 - `--s0-tag <tag>` and `--s1-tag <tag>` version to deploy of each service. With `latest` the **most recent** version
-  this server can use is chosen (the ★ of `./deltactl images`: the newest by creation date among the version tags of its
-  architecture), not a tag called `latest`; the instance stores the tag it resolved to.
+  this server can use is chosen (the ★ of `./deltactl images`: the newest by creation date among the
+  stable version tags, without a suffix such as `-rc1` or `-debug`, of its architecture), not a tag
+  called `latest`; the instance stores the tag it resolved to. Only the services of the instance
+  (`--services`) are resolved. If there is no version to choose, it fails and creates nothing.
 - `--ip <url>` public URL of the system, with its scheme (stored as IP_SERVER in s0 and s1).
 - `--generate-secrets` generates the unique secrets (JWT and encryption keys); needs openssl.
 
