@@ -3,7 +3,9 @@ new · crear una instancia
 ---------------------------
 
 Crea la carpeta `instances/<instancia>/` con la configuración lista para completar.
-No toca Docker y no levanta nada.
+No levanta nada y no necesita Docker para crear la instancia. La única excepción es
+`--sN-tag latest`, que le pregunta a Docker qué versiones hay cargadas; si Docker no responde,
+la instancia se crea igual y la etiqueta se queda en `latest` (con un aviso).
 
 Uso
   $ ./deltactl new <instancia> [--services s0,s1] [--existing]
@@ -28,8 +30,10 @@ Opciones
     etiqueta).
   . `--s0-tag <etiqueta>` y `--s1-tag <etiqueta>` versión a desplegar de cada servicio. Con `latest`
     se elige la versión **más reciente** que este servidor puede usar (la ★ de `./deltactl images`:
-    la más nueva por fecha de creación entre las etiquetas de versión y de su arquitectura), no una
-    etiqueta llamada `latest`; la instancia guarda la etiqueta que resultó.
+    la más nueva por fecha de creación entre las etiquetas de versión estable, sin sufijo como
+    `-rc1` o `-debug`, de su arquitectura), no una etiqueta llamada `latest`; la instancia guarda la
+    etiqueta que resultó. Solo se resuelven los servicios de la instancia (`--services`). Si no hay
+    una versión que elegir, falla y no crea nada.
   . `--ip <url>` URL pública del sistema, con esquema (se guarda como IP_SERVER en s0 y s1).
   . `--generate-secrets` genera los secretos únicos (JWT y claves de cifrado); necesita openssl.
 
