@@ -396,7 +396,8 @@ ev_json-line() {
 
 # Validates a value with a validator by name. The empty value is checked by the caller (envschema_check_r), not here.
 envschema_validate_r() { # validator value [instance]
-  local v="$1" fn
+  # The classes of the checks ([0-9], [A-Za-z]) mean the same in every locale: in en_US.UTF-8 they match accents and Arabic digits.
+  local v="$1" fn LC_ALL=C
   EV_INSTANCE="${3:-}"
   if [[ "$2" == *$'\n'* || "$2" == *$'\r'* ]]; then ev_fail envschema.err.newline; return 0; fi
   fn="ev_$v"

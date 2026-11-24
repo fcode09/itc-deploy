@@ -23,7 +23,7 @@ DELTA_UNIVERSITY_HANDOFF_SECRET|secret-min32|1
 FEDERATION_ENCRYPTION_KEY|b64-32|1
 FCM_CERT|secret-path|0
 *_FCM_CERT|secret-path|0
-SERVERS_CONFIG|json-line|0
+SERVERS_CONFIG|json-line|1
 IP_INTERNAL_CONNECTION|host|0
 TCP_LISTEN_HOST|host|0
 *_PORT|port|0
@@ -40,7 +40,12 @@ API_KEY_*|text|1
 *_SECRET|text|1
 *_KEY|text|1
 *_TOKEN|text|1
-*PASSWORD*|text|1
+*SECRET*|text|1
+*TOKEN*|text|1
+*PASS*|text|1
+*PWD*|text|1
+*CREDENTIAL*|text|1
+*PRIVATE*|text|1
 *_URI|text|1
 *_URL|url|0
 *|text|0

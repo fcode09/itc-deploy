@@ -82,11 +82,17 @@ check "una clave que no es secreta deja el modo del archivo como estaba (644)" '
 check "un secreto deja el archivo en 600" 'run "envedit_set $FIX/m.env A 5 1" && [ "$(mode "$FIX/m.env")" = 600 ]'
 check "un archivo nuevo nace en 600" 'rm -f "$FIX/n.env"; ( umask 022; run "envedit_set $FIX/n.env A 1" ); [ "$(mode "$FIX/n.env")" = 600 ]'
 chmod 640 "$FIX/rt.env"
-check "la copia .bak tiene el modo del original y el contenido de antes del primer cambio" '
+check "la copia .bak es siempre 600 (aunque el original sea 640) y tiene el contenido de antes del primer cambio" '
   cp "$FIX/rt.orig" "$F"; chmod 640 "$F"; rm -f "$F.bak"
   ROOT="$PWD" bash -c "source lib/bootstrap.sh; envedit_set $F A primero; envedit_set $F A segundo" \
-    && [ "$(mode "$F.bak")" = 640 ] && cmp -s "$FIX/rt.orig" "$F.bak" && grep -q "^A=segundo$" "$F"'
-check "la copia se hace una vez por sesión: el segundo cambio no la pisa (arriba .bak sigue siendo el original)" 'cmp -s "$FIX/rt.orig" "$F.bak"'
+    && [ "$(mode "$F.bak")" = 600 ] && cmp -s "$FIX/rt.orig" "$F.bak" && grep -q "^A=segundo$" "$F"'
+check "la copia se hace una vez por sesión (proceso): el segundo cambio no la pisa (arriba .bak sigue siendo el original)" 'cmp -s "$FIX/rt.orig" "$F.bak"'
+check "un archivo en 644 con secretos deja su .bak en 600, y un .bak viejo en 644 se aprieta a 600" '
+  cp "$FIX/rt.orig" "$F"; chmod 644 "$F"; rm -f "$F.bak"; ( umask 022; : > "$F.bak" ); chmod 644 "$F.bak"
+  run "envedit_set $F A nuevo 1" && [ "$(mode "$F.bak")" = 600 ] && cmp -s "$FIX/rt.orig" "$F.bak"'
+check "cada ejecución del comando env hace su propia copia: el segundo set por CLI pisa el .bak con el estado previo al último cambio" '
+  D env ee-a set s0:GOOGLE_KEY primeroZ1 >/dev/null 2>&1; D env ee-a set s0:GOOGLE_KEY segundoZ2 >/dev/null 2>&1
+  grep -q "^GOOGLE_KEY=primeroZ1$" instances/ee-a/.env.s0.bak && grep -q "^GOOGLE_KEY=segundoZ2$" instances/ee-a/.env.s0 && [ "$(mode instances/ee-a/.env.s0.bak)" = 600 ]'
 check "un fallo al escribir no crea la copia" '
   cp "$FIX/rt.orig" "$F"; rm -f "$F.bak"
   ROOT="$PWD" bash -c "source lib/bootstrap.sh; envedit_emit() { return 1; }; ! envedit_set $F A 1" && [ ! -e "$F.bak" ]'
@@ -215,5 +221,98 @@ check "un deploy que falla no deja marca" '
   echo 23 > "$FIX/fail_pull"; sed -i "s/^REGISTRY=.*/REGISTRY=reg.test/" instances/ee-e/.env.instance; D deploy ee-e >/dev/null 2>&1; rm -f "$FIX/fail_pull"; ! grep -q "^ENV_SUM" instances/ee-e/.deployed 2>/dev/null'
 check "las marcas de .deployed no rompen la lectura de las etiquetas desplegadas (status)" '
   [ "$(run "get_var_r instances/ee-c/.deployed S0_TAG; printf %s \$GV")" = "1.0" ]'
+
+section "9. un secreto que el glosario no conoce tampoco se imprime"
+newinst ee-f
+# A variable typed by hand whose name says it is a secret: set does not repeat it, get and list mask it, the file stays private.
+hidden_unknown() { # KEY
+  local k="$1" v="valor-$1-Q7" out
+  chmod 644 instances/ee-f/.env.s0
+  out="$(D env ee-f set "s0:$k" "$v" --force 2>&1)"
+  ! grep -qF "$v" <<< "$out" || { echo "set repite el valor"; return 1; }
+  grep -qx "$k=$v" instances/ee-f/.env.s0 || { echo "no se guardó"; return 1; }
+  [ "$(mode instances/ee-f/.env.s0)" = 600 ] || { echo "el archivo no quedó en 600"; return 1; }
+  [ "$(D env ee-f get "s0:$k" 2>/dev/null)" = "********" ] || { echo "get no lo enmascara"; return 1; }
+  [ "$(D env ee-f get "s0:$k" --reveal 2>/dev/null)" = "$v" ] || { echo "get --reveal no lo muestra"; return 1; }
+  ! D env ee-f list s0 2>&1 | grep -qF "$v" || { echo "list lo muestra"; return 1; }
+  D env ee-f list s0 --reveal 2>&1 | grep -qF "$v" || { echo "list --reveal no lo muestra"; return 1; }
+}
+for k in DB_PASSWD SMTP_PASS JWT_SECRET_OLD EXTRA_PASSWORD API_PWD MY_PRIVATE_THING AWS_CREDENTIALS; do
+  check "$k escrito a mano se trata como un secreto en set, get y list" "hidden_unknown $k"
+done
+check "get con la clave sola (sin archivo) también lo enmascara" '[ "$(D env ee-f get DB_PASSWD 2>/dev/null)" = "********" ]'
+check "list --json no trae el valor de un secreto desconocido y dice secret: true" '
+  out="$(D env ee-f list s0 --json 2>&1)"; ! grep -qF "valor-DB_PASSWD-Q7" <<< "$out" && grep -F "\"key\": \"DB_PASSWD\"" <<< "$out" | grep -q "\"secret\": true"'
+check "una variable que no parece secreta sí se ve (EXTRA_NOTE)" '
+  D env ee-f set s0:EXTRA_NOTE visibleX --force >/dev/null 2>&1; [ "$(D env ee-f get s0:EXTRA_NOTE 2>/dev/null)" = "visibleX" ]'
+check "envedit_is_secret: conocida por el glosario (JWT_SECRET) y desconocida por su nombre (DB_PASSWD); S0_PORT y EXTRA_NOTE no" '
+  [ "$(run "for k in JWT_SECRET DB_PASSWD S0_PORT EXTRA_NOTE; do if envedit_is_secret .env.s0 \$k; then printf 1; else printf 0; fi; done")" = "1100" ]'
+check "SERVERS_CONFIG (el JSON de los webhooks) es un secreto: set no lo repite y list lo enmascara" '
+  out="$(D env ee-f set s1:SERVERS_CONFIG "{\"a\":\"tokenZZ9\"}" 2>&1)"; ! grep -qF tokenZZ9 <<< "$out" && ! D env ee-f list s1 2>&1 | grep -qF tokenZZ9'
+check "envedit_show enmascara un secreto desconocido" '[ "$(run "envedit_show .env.s0 DB_PASSWD abc; printf %s \"\$ED_SHOW\"")" = "********" ]'
+
+section "10. generate de un secreto compartido: confirma si cualquiera de los archivos tiene valor, y no deja uno distinto del otro"
+newinst ee-i
+sed -i 's/^JWT_SECRET=.*/JWT_SECRET=/' instances/ee-i/.env.s0
+cp instances/ee-i/.env.s0 "$FIX/i0.before"; cp instances/ee-i/.env.s1 "$FIX/i1.before"
+check "el valor está solo en s1: generate sobre s0, sin terminal ni --yes, pide confirmación (falla) y no cambia nada" '
+  ! D env ee-i generate s0:JWT_SECRET </dev/null >/dev/null 2>&1 && cmp -s "$FIX/i0.before" instances/ee-i/.env.s0 && cmp -s "$FIX/i1.before" instances/ee-i/.env.s1'
+check "…y el aviso dice en qué archivo está el valor que se reemplaza (s1)" 'D env ee-i generate s0:JWT_SECRET </dev/null 2>&1 | grep -q "JWT_SECRET ya tiene un valor.*\.env\.s1"'
+check "con --yes se escribe el MISMO valor en s0 y s1" '
+  D env ee-i generate s0:JWT_SECRET --yes >/dev/null 2>&1; a="$(grep "^JWT_SECRET=" instances/ee-i/.env.s0)"; b="$(grep "^JWT_SECRET=" instances/ee-i/.env.s1)"; [ "$a" = "$b" ] && [ ${#a} -gt 60 ]'
+cp instances/ee-i/.env.s0 "$FIX/i0.before"; cp instances/ee-i/.env.s1 "$FIX/i1.before"
+no_leftovers() { # nothing next to the env files but their .bak copies (no temporary, no private original)
+  local f
+  for f in instances/ee-i/.env.s[01].*; do
+    [ -e "$f" ] || continue
+    case "$f" in *.bak) ;; *) return 1 ;; esac
+  done
+}
+check "si no se puede preparar el segundo archivo, el primero no cambia (todo o nada) y no queda ningún temporal" '
+  r="$(ROOT="$PWD" bash -c "source lib/bootstrap.sh; envedit_emit() { case \"\$1\" in *.env.s1) return 1 ;; esac; command true; }; envedit_generate ee-i .env.s0 JWT_SECRET; echo \$?")"
+  [ "$r" = 2 ] && cmp -s "$FIX/i0.before" instances/ee-i/.env.s0 && cmp -s "$FIX/i1.before" instances/ee-i/.env.s1 && no_leftovers'
+check "si el segundo renombrado falla, el primero vuelve a lo que era y s0 y s1 siguen con el mismo valor" '
+  r="$(ROOT="$PWD" bash -c "source lib/bootstrap.sh; n=0; mv() { n=\$((n + 1)); if [ \$n -eq 2 ]; then return 1; fi; command mv \"\$@\"; }; envedit_generate ee-i .env.s0 JWT_SECRET; echo \$?")"
+  [ "$r" = 2 ] && cmp -s "$FIX/i0.before" instances/ee-i/.env.s0 && cmp -s "$FIX/i1.before" instances/ee-i/.env.s1 && no_leftovers'
+
+section "11. lo que se escribe es lo que se valida: sin depender del locale, con la clave correcta y sin forzar lo que no se puede"
+check "los validadores no dependen del locale: en en_US.UTF-8 un acento no es una letra de host ni un dígito árabe es un puerto" '
+  [ "$(ROOT="$PWD" LC_ALL=en_US.UTF-8 bash -c "source lib/bootstrap.sh; envschema_validate_r host \"é.com\"; echo \$EV_RC")" = 1 ] \
+  && [ "$(ROOT="$PWD" LC_ALL=en_US.UTF-8 bash -c "source lib/bootstrap.sh; envschema_validate_r tag \"é\"; echo \$EV_RC")" = 1 ] \
+  && [ "$(ROOT="$PWD" LC_ALL=en_US.UTF-8 bash -c "source lib/bootstrap.sh; envschema_validate_r port \"٣٣\"; echo \$EV_RC")" = 1 ]'
+check "set de un puerto con dígitos árabes sale con un error del validador (no con un fallo de aritmética) y no escribe" '
+  cp instances/ee-a/.env.instance "$FIX/b12"; out="$(LC_ALL=en_US.UTF-8 D env ee-a set S0_PORT "٣٣" 2>&1)"; rc=$?
+  [ "$rc" -ne 0 ] && ! echo "$out" | grep -qi "invalid\|integer\|constant" && cmp -s "$FIX/b12" instances/ee-a/.env.instance'
+check "el nombre de la variable se valida también al guardar (envedit_save): con un salto de línea no escribe nada" '
+  cp instances/ee-a/.env.s0 "$FIX/b13"; k="$(printf "A\nB")"
+  r="$(ROOT="$PWD" bash -c "source lib/bootstrap.sh; envedit_save ee-a .env.s0 \"\$1\" x 1; echo \$?" _ "$k")"; [ "$r" = 1 ] && cmp -s "$FIX/b13" instances/ee-a/.env.s0'
+check "--force no cambia INSTANCE a un nombre que no es el de la carpeta" '
+  cp instances/ee-a/.env.instance "$FIX/b14"; ! D env ee-a set INSTANCE=otra --force >/dev/null 2>&1 && cmp -s "$FIX/b14" instances/ee-a/.env.instance'
+check "un secreto pasado como argumento avisa (historial del shell y ps); con --stdin o una variable que no es secreta, no" '
+  D env ee-a set s0:GOOGLE_KEY argvZ9 2>&1 | grep -q "historial de tu shell" \
+  && ! { printf "stdinZ9\n" | D env ee-a set s0:GOOGLE_KEY --stdin 2>&1 | grep -q "historial de tu shell"; } \
+  && ! D env ee-a set S0_PORT 4110 2>&1 | grep -q "historial de tu shell"'
+check "--stdin lee todo: un valor con saltos de línea (un PEM) se rechaza en vez de cortarse en la primera línea en silencio" '
+  cp instances/ee-a/.env.s0 "$FIX/b15"; ! { printf "linea1\nlinea2\n" | D env ee-a set s0:GOOGLE_KEY --stdin >/dev/null 2>&1; } && cmp -s "$FIX/b15" instances/ee-a/.env.s0'
+check "--stdin quita solo el salto de línea final (con o sin CRLF)" '
+  printf "valorZ\r\n" | D env ee-a set s0:GOOGLE_KEY --stdin >/dev/null 2>&1; grep -qx "GOOGLE_KEY=valorZ" instances/ee-a/.env.s0'
+newinst ee-j
+mkdir -p "$FIX/nosha"; for b in bash cat sed grep head tr cut wc dirname basename mktemp mv rm cp chmod stat date sort uname id ls cksum readlink; do p="$(command -v $b)" && ln -sf "$p" "$FIX/nosha/$b"; done
+check "sin sha256sum no se marca nada (un CRC de 32 bits no es una prueba): env pending dice que no puede saberlo" '
+  ROOT="$PWD" PATH="$FIX/nosha" /bin/bash -c "source lib/bootstrap.sh; envedit_mark_deployed ee-j 1 s0 s1" >/dev/null 2>&1; ! grep -q "^ENV_SUM" instances/ee-j/.deployed 2>/dev/null \
+  && [ "$(run "envedit_deploy_state_r ee-j .env.s0; echo \$ED_DEPLOY")" = unknown ]'
+
+section "12. un cambio hecho mientras se despliega sigue pendiente"
+newinst ee-g
+sed -i "s/^S0_PORT=.*/S0_PORT=29796/; s/^S1_PORT=.*/S1_PORT=29797/" instances/ee-g/.env.instance
+# While compose runs `up`, another terminal changes a value: the containers got the old one.
+printf 'cd %q && bash ./deltactl env ee-g set s0:JWT_EXPIRES_IN 9h > "$FIX/hook.out" 2>&1\n' "$PWD" > "$FIX/hook_up"
+D deploy ee-g > /dev/null 2>&1
+rm -f "$FIX/hook_up"
+check "el deploy terminó bien y el cambio de en medio llegó al archivo" 'grep -q "^JWT_EXPIRES_IN=9h$" instances/ee-g/.env.s0 && grep -q "^ENV_SUM_S0=" instances/ee-g/.deployed'
+check "…pero ese archivo queda PENDIENTE: la marca es la de antes del cambio" '[ "$(run "envedit_pending ee-g")" = ".env.s0" ] && D env ee-g pending 2>&1 | grep -q ".env.s0"'
+check "…y los que no cambiaron quedan sincronizados" '[ "$(run "for f in .env.instance .env.s1; do envedit_deploy_state_r ee-g \$f; printf \"%s \" \$ED_DEPLOY; done")" = "synced synced " ]'
+check "env set avisa cuando hay una operación en curso (deploy)" 'grep -q "operación en curso" "$FIX/hook.out" && grep -q "deploy ee-g" "$FIX/hook.out"'
+check "sin operación en curso no avisa" '! D env ee-g set s0:JWT_EXPIRES_IN 8h 2>&1 | grep -q "operación en curso"'
 
 finish

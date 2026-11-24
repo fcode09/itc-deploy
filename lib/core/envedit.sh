@@ -49,30 +49,45 @@ envedit_emit() { # file key value
   [ "$found" = 1 ] || printf '%s=%s\n' "$key" "$val"
 }
 
-# Copy of the file before the first change of this session, once per file. Same mode as the original.
+# Copy of the file before the first change of this session (the process: a new `deltactl env` run copies again, over the old one),
+# once per file. It is ALWAYS readable only by its owner: what it holds is what the file held, secrets included, whatever its mode.
 envedit_backup() { # file
   [ -f "$1" ] || return 0
   [ -z "${ENVEDIT_BAKED[$1]:-}" ] || return 0
   ( umask 077; cp -f "$1" "$1.bak" ) 2> /dev/null || return 1
-  chmod --reference="$1" "$1.bak" 2> /dev/null || chmod 600 "$1.bak" 2> /dev/null || true
+  chmod 600 "$1.bak" 2> /dev/null || return 1   # cp keeps the mode of an old .bak that was already there
   ENVEDIT_BAKED[$1]=1
 }
 
-# Sets KEY=VALUE in a file, atomically. $4 = 1 when the variable is a secret: the file is then left readable only by its owner.
-# No validation: that is envedit_save. Returns 1 when it could not write (the file is then exactly as it was).
-envedit_set() { # file key value [secret]
+# Rebuilds a file aside (a temporary next to it) with KEY=VALUE set, without touching the file: the path is left in ED_TMP.
+# $4 = 1 when the variable is a secret: the file is then left readable only by its owner. Returns 1 when it could not (nothing is left).
+ED_TMP=""
+envedit_stage() { # file key value [secret]
   local file="$1" key="$2" val="$3" secret="${4:-0}" tmp
+  ED_TMP=""
   tmp="$(umask 077; mktemp "$file.XXXXXX")" || return 1
   if ! envedit_emit "$file" "$key" "$val" > "$tmp"; then
     rm -f "$tmp"
     return 1
   fi
-  envedit_backup "$file" || { rm -f "$tmp"; return 1; }
   if [ -f "$file" ]; then
     chmod --reference="$file" "$tmp" 2> /dev/null || chmod 600 "$tmp" 2> /dev/null || true
   fi
   [ "$secret" != 1 ] || chmod 600 "$tmp" 2> /dev/null || true
-  mv -f "$tmp" "$file" || { rm -f "$tmp"; return 1; }
+  ED_TMP="$tmp"
+}
+
+# Puts what envedit_stage prepared in place of the file (the copy first): one rename. Returns 1 when it could not (the temporary is removed).
+envedit_commit() { # file tmp
+  envedit_backup "$1" || { rm -f "$2"; return 1; }
+  mv -f "$2" "$1" || { rm -f "$2"; return 1; }
+}
+
+# Sets KEY=VALUE in a file, atomically. $4 = 1 when the variable is a secret: the file is then left readable only by its owner.
+# No validation: that is envedit_save. Returns 1 when it could not write (the file is then exactly as it was).
+envedit_set() { # file key value [secret]
+  envedit_stage "$1" "$2" "$3" "${4:-0}" || return 1
+  envedit_commit "$1" "$ED_TMP"
 }
 
 # Validated save of a variable of an instance. Leaves EV_RC / EV_MSG as the schema left them.
@@ -86,24 +101,34 @@ envedit_save() { # instance file key value [force]
   envschema_load
   EV_RC=0 EV_MSG=""
   if [[ "$val" == *$'\n'* || "$val" == *$'\r'* ]]; then ev_fail envschema.err.newline; return 1; fi
+  # Whatever calls this, a key that is not a variable name never goes into a file (a line break in it would add lines).
+  if ! [[ "$key" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then ev_fail envschema.err.key; return 1; fi
+  if envedit_is_secret "$file" "$key"; then secret=1; fi
   if [ -z "${ENV_KEY[$id]+x}" ]; then
     if [ "$force" != 1 ]; then ev_fail envschema.err.unknown; return 1; fi
-    envschema_classify "$file" "$key"
-    secret="$ES_SECRET"
   else
-    secret="${ENV_SECRET[$id]}"
     envschema_check_r "$file" "$key" "$val" "$inst"
-    if [ "$EV_RC" = 1 ] && { [ "$force" != 1 ] || [ "${ENV_TYPE[$id]}" = fixed ]; }; then return 1; fi
+    # --force never writes a fixed variable, nor an INSTANCE that is not the folder's name (another compose project: duplicated containers)
+    if [ "$EV_RC" = 1 ] && { [ "$force" != 1 ] || [ "${ENV_TYPE[$id]}" = fixed ] || [ "$id" = ".env.instance|INSTANCE" ]; }; then return 1; fi
   fi
   envedit_set "$INSTANCES_DIR/$inst/$file" "$key" "$val" "$secret" || return 2
   return 0
 }
 
+# Is a variable of a file a secret? The one answer for everything that prints a value (list, get, set, the editor): the glossary's when
+# it knows the variable, the rules by name (envschema_classify) when it does not, so DB_PASSWD or JWT_SECRET_OLD typed by hand are not
+# printed either. Returns 0 for a secret. Nothing here starts a process.
+envedit_is_secret() { # file key
+  envschema_load
+  if [ -n "${ENV_KEY[$1|$2]+x}" ]; then [ "${ENV_SECRET[$1|$2]:-0}" = 1 ]; return; fi
+  envschema_classify "$1" "$2"
+  [ "$ES_SECRET" = 1 ]
+}
+
 # What to show of a value: a secret is masked (an empty one is shown as empty: there is nothing to protect).
 ED_SHOW=""
 envedit_show() { # file key value   (the result is in ED_SHOW)
-  envschema_load
-  if [ "${ENV_SECRET[$1|$2]:-0}" = 1 ] && [ -n "$3" ]; then ED_SHOW="$ENVEDIT_MASK"; else ED_SHOW="$3"; fi
+  if [ -n "$3" ] && envedit_is_secret "$1" "$2"; then ED_SHOW="$ENVEDIT_MASK"; else ED_SHOW="$3"; fi
 }
 
 # Status of one variable of an instance: ED_STATE is
@@ -163,23 +188,51 @@ envedit_shared_files_r() { # instance key
 # write. The value is never printed.
 ENVEDIT_WRITTEN=()
 envedit_generate() { # instance file key
-  local inst="$1" file="$2" key="$3" kind val f
+  local inst="$1" file="$2" key="$3" kind val
   envschema_load
   kind="${ENV_GEN[$file|$key]:-}"
   [ -n "$kind" ] || return 1
   val="$(envedit_random "$kind")" || return 1
   [ -n "$val" ] || return 1
   ENVEDIT_WRITTEN=()
+  local -a targets=() tmps=() origs=()
+  local i path
   if [ "$kind" = shared ]; then
     envedit_shared_files_r "$inst" "$key"
-    for f in "${ENVEDIT_SHARED[@]}"; do
-      envedit_set "$INSTANCES_DIR/$inst/$f" "$key" "$val" 1 || return 2
-      ENVEDIT_WRITTEN+=("$f")
-    done
+    targets=("${ENVEDIT_SHARED[@]}")
   else
-    envedit_set "$INSTANCES_DIR/$inst/$file" "$key" "$val" 1 || return 2
-    ENVEDIT_WRITTEN+=("$file")
+    targets=("$file")
   fi
+  # All or nothing: every file is rebuilt aside, with a private copy of what it is now, and only then are they put in place. A
+  # failure on the way leaves the files as they were (a shared secret with two different values would sign in one service what the
+  # others cannot read).
+  for i in "${!targets[@]}"; do
+    path="$INSTANCES_DIR/$inst/${targets[$i]}"
+    if envedit_stage "$path" "$key" "$val" 1; then
+      tmps+=("$ED_TMP")
+      if ( umask 077; cp -f "$path" "$ED_TMP.orig" ) 2> /dev/null; then origs+=("$ED_TMP.orig"); continue; fi
+    fi
+    rm -f ${tmps[@]+"${tmps[@]}"} ${origs[@]+"${origs[@]}"}
+    return 2
+  done
+  for i in "${!targets[@]}"; do
+    if ! envedit_backup "$INSTANCES_DIR/$inst/${targets[$i]}"; then
+      rm -f "${tmps[@]}" "${origs[@]}"
+      return 2
+    fi
+  done
+  for i in "${!targets[@]}"; do
+    if ! mv -f "${tmps[$i]}" "$INSTANCES_DIR/$inst/${targets[$i]}"; then
+      # A rename that fails after another went through (almost never: the same folder): the earlier files go back to what they were.
+      local j
+      for ((j = 0; j < i; j++)); do mv -f "${origs[$j]}" "$INSTANCES_DIR/$inst/${targets[$j]}" 2> /dev/null || true; done
+      rm -f "${tmps[@]}" "${origs[@]}"
+      ENVEDIT_WRITTEN=()
+      return 2
+    fi
+    ENVEDIT_WRITTEN+=("${targets[$i]}")
+  done
+  rm -f "${origs[@]}"
   return 0
 }
 
@@ -193,10 +246,10 @@ envedit_sum_r() { # path
   local h=""
   ED_SUM=""
   [ -f "$1" ] || return 0
+  # Only a real hash: a 32-bit CRC lets a change go unnoticed, and a mark that does not tell is better than a mark that lies. Without
+  # sha256sum nothing is marked and `env pending` says it cannot know.
   if command -v sha256sum > /dev/null 2>&1; then
     read -r h _ < <(sha256sum < "$1") || true
-  elif command -v cksum > /dev/null 2>&1; then
-    read -r h _ < <(cksum < "$1") || true
   fi
   ED_SUM="$h"
 }
@@ -204,21 +257,42 @@ envedit_sum_r() { # path
 # Name of the key of a file's mark in .deployed: .env.s0 -> ENV_SUM_S0.
 envedit_sum_key() { local w="${1#.env.}"; printf 'ENV_SUM_%s' "${w^^}"; }
 
-# Records the sums of the files that a deploy used: the .env of each service given and, when `all` is 1 (the whole instance was
-# deployed), .env.instance too. A file that is not there is skipped. Returns 1 when .deployed could not be written.
-envedit_mark_deployed() { # instance all(0|1) service...
+# The sums of the files that a deploy is about to use, taken BEFORE compose reads them (a deploy can take minutes, and a value changed
+# meanwhile is not in the containers: it has to stay pending). Leaves them in ENVEDIT_SNAP (file -> sum).
+declare -gA ENVEDIT_SNAP=()
+envedit_snapshot() { # instance all(0|1) service...
   local inst="$1" all="$2" dir f svc
   shift 2
   dir="$INSTANCES_DIR/$inst"
   local -a files=()
+  ENVEDIT_SNAP=()
   [ "$all" != 1 ] || files+=(.env.instance)
   for svc in "$@"; do files+=(".env.$svc"); done
   for f in "${files[@]}"; do
     [ -f "$dir/$f" ] || continue
     envedit_sum_r "$dir/$f"
     [ -n "$ED_SUM" ] || continue
-    set_var "$dir/.deployed" "$(envedit_sum_key "$f")" "$ED_SUM" || return 1
+    ENVEDIT_SNAP[$f]="$ED_SUM"
   done
+  return 0
+}
+
+# Records the snapshot in .deployed (only when the deploy ended well). Returns 1 when .deployed could not be written.
+envedit_mark_snapshot() { # instance
+  local f dir="$INSTANCES_DIR/$1" rc=0
+  for f in "${!ENVEDIT_SNAP[@]}"; do
+    set_var "$dir/.deployed" "$(envedit_sum_key "$f")" "${ENVEDIT_SNAP[$f]}" || rc=1
+  done
+  ENVEDIT_SNAP=()
+  return "$rc"
+}
+
+# Records the sums of the files that a deploy used: the .env of each service given and, when `all` is 1 (the whole instance was
+# deployed), .env.instance too. A file that is not there is skipped. Returns 1 when .deployed could not be written.
+# (A deploy takes the snapshot before it starts and marks it when it ends well; this is both at once.)
+envedit_mark_deployed() { # instance all(0|1) service...
+  envedit_snapshot "$@"
+  envedit_mark_snapshot "$1"
 }
 
 # Is the file as it was when it was deployed? ED_DEPLOY is

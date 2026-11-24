@@ -515,6 +515,26 @@ check "goto changes the view" 'echo "$out" | last_frame | grep -q "\[2 Recursos\
 out="$(panel : $(typed "status tui-a") enter wait : $(typed "history") enter q)"
 check "history lists what was typed, numbered" 'echo "$out" | last_frame | grep -q "1  status tui-a"'
 check "a command typed in the console is saved on disk" 'grep -qx "status tui-a" "$FIX/history"'
+# What the console does with a line: it runs as a job or in the terminal (stubs that only say which), and whether it is kept.
+con_submit() { # line
+  LINE="$1" run_lib 'dash_terminal() { echo "TERMINAL:$*"; }; dash_start_job() { echo "JOB:$*"; }; DASH_BUF="$LINE"; dash_submit_cmd; echo "N=${#DASH_HIST[@]}"'
+}
+rm -f "$FIX/history"
+check "a line that writes an environment value (env … set) runs in the terminal, never as a job, and is not kept in the history" '
+  out="$(con_submit "env tui-a set s0:GOOGLE_KEY sekretoQ9")"
+  echo "$out" | grep -q "^TERMINAL:env tui-a set s0:GOOGLE_KEY sekretoQ9$" && ! echo "$out" | grep -q "^JOB:" && echo "$out" | grep -qx "N=0" \
+  && ! grep -qs sekretoQ9 "$FIX/history"'
+check "the same with ./deltactl, with a leading ! and for generate" '
+  for l in "./deltactl env tui-a set s0:X sekretoQ9" "!env tui-a set s0:X sekretoQ9" "env tui-a generate s0:JWT_SECRET"; do
+    out="$(con_submit "$l")"; echo "$out" | grep -q "^TERMINAL:" && echo "$out" | grep -qx "N=0" || exit 1
+  done; ! grep -qs "sekretoQ9\|generate" "$FIX/history"'
+check "an alias that expands to env … set is not kept either" '
+  mkdir -p "$FIX/al2"; printf "es=env tui-a set\n" > "$FIX/al2/aliases"
+  out="$(LINE="es s0:X sekretoQ9" DELTACTL_CONFIG="$FIX/al2/c.cfg" run_lib "dash_terminal() { echo TERMINAL:\$*; }; dash_start_job() { echo JOB:\$*; }; dash_alias_load; DASH_BUF=\"\$LINE\"; dash_submit_cmd; echo N=\${#DASH_HIST[@]}")"
+  echo "$out" | grep -q "^TERMINAL:env tui-a set s0:X sekretoQ9$" && echo "$out" | grep -qx "N=0" && ! grep -qs sekretoQ9 "$FIX/al2/history"'
+check "env list and the other commands are still jobs and are kept" '
+  out="$(con_submit "env tui-a list")"; echo "$out" | grep -q "^JOB:.*env tui-a list" && echo "$out" | grep -qx "N=1" && grep -qx "env tui-a list" "$FIX/history"'
+rm -f "$FIX/history"
 panel : $(typed "status tui-a") enter wait q > /dev/null
 out="$(KEEP_HISTORY=1 panel : up)"
 check "the history from the previous session is loaded" 'echo "$out" | last_frame | grep -q "tui-a > status tui-a|"'

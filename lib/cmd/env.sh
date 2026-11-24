@@ -102,14 +102,13 @@ env_list() { # instance file-filter reveal json
     for key in ${keys[@]+"${keys[@]}"} ${extra[@]+"${extra[@]}"}; do
       id="$f|$key"
       if [ -z "${ENV_KEY[$id]+x}" ]; then
-        envschema_classify "$f" "$key"
         get_var_r "$INSTANCES_DIR/$inst/$f" "$key"
         ED_VALUE="$GV" ED_STATE=extra
-        local secret="$ES_SECRET"
       else
         envedit_state_r "$inst" "$f" "$key"
-        local secret="${ENV_SECRET[$id]}"
       fi
+      local secret=0
+      ! envedit_is_secret "$f" "$key" || secret=1
       if [ "$reveal" -eq 1 ] || [ "$secret" != 1 ] || [ -z "$ED_VALUE" ]; then shown="$ED_VALUE"; else shown="$ENVEDIT_MASK"; fi
       if [ "$json" -eq 1 ]; then
         [ "$first" -eq 1 ] || printf ',\n'
@@ -161,7 +160,7 @@ env_get() { # instance target reveal
     printf '\n'
     return 0
   fi
-  if [ "${ENV_SECRET[$f|$key]:-0}" = 1 ] && [ "$reveal" -ne 1 ]; then
+  if [ "$reveal" -ne 1 ] && envedit_is_secret "$f" "$key"; then
     printf '%s\n' "$ENVEDIT_MASK"
     info "$(t env.secret_hidden "$key" "$inst" "$(envedit_word "$f"):$key")" >&2
     return 0
@@ -171,26 +170,38 @@ env_get() { # instance target reveal
 
 # ---------- set ----------
 
+# A value written while an operation (a deploy, a rollback) is running may not be in what that operation starts: say so.
+env_warn_busy() {
+  if runs_busy; then warn "$(t env.busy "${RUNS_OWNER_WHAT:-?}")"; fi
+  return 0
+}
+
 env_set() { # instance target value have_value stdin force
-  local inst="$1" value="$3" have="$4" use_stdin="$5" force="$6" rc=0 secret shown
+  local inst="$1" value="$3" have="$4" use_stdin="$5" force="$6" rc=0 secret shown typed=0
   env_resolve "$inst" "$2"
   local f="$TARGET_FILE" key="$TARGET_KEY"
   envschema_load
   if [ "$use_stdin" -eq 1 ]; then
-    IFS= read -r value || [ -n "$value" ] || true
+    # All of the standard input, not its first line: a value with a line break (a PEM) is then refused, not cut in silence.
+    IFS= read -r -d '' value || true
+    value="${value%$'\n'}"
     value="${value%$'\r'}"
     have=1
   fi
-  secret="${ENV_SECRET[$f|$key]:-0}"
+  secret=0
+  ! envedit_is_secret "$f" "$key" || secret=1
   if [ "$have" -eq 0 ]; then
     # Without a value: a secret is asked for hidden (nothing is left on the screen or in the history); anything else is a usage error.
     if [ -t 0 ] && [ "$secret" = 1 ]; then
       read -rs -p "$(t env.prompt_secret "$key")" value
       printf '\n'
-      have=1
+      have=1 typed=1
     fi
   fi
   [ "$have" -eq 1 ] || die "$(t env.set_value_missing "$inst" "$key")"
+  # A secret on the command line stays in `ps` and in the history of the shell.
+  if [ "$secret" = 1 ] && [ "$use_stdin" -eq 0 ] && [ "$typed" -eq 0 ]; then warn "$(t env.argv_secret "$(envedit_word "$f"):$key")"; fi
+  env_warn_busy
   envedit_save "$inst" "$f" "$key" "$value" "$force" || rc=$?
   case "$rc" in
     1) die "$(t env.refused "$key" "$EV_MSG")" ;;
@@ -206,7 +217,7 @@ env_set() { # instance target value have_value stdin force
 # ---------- generate ----------
 
 env_generate() { # instance target
-  local inst="$1" kind f key cur rc=0 files msg
+  local inst="$1" kind f key cur rc=0 files msg where sf
   env_resolve "$inst" "$2"
   f="$TARGET_FILE" key="$TARGET_KEY"
   envschema_load
@@ -215,18 +226,25 @@ env_generate() { # instance target
   command -v openssl > /dev/null 2>&1 || die "$(t env.openssl_missing)"
   get_var_r "$INSTANCES_DIR/$inst/$f" "$key"
   cur="$GV"
+  where="$f"
   files="$f"
   if [ "$kind" = shared ]; then
     envedit_shared_files_r "$inst" "$key"
     files="${ENVEDIT_SHARED[*]}"
+    # A shared secret is written in every file that has it: a value in ANY of them is replaced, not only the one that was named.
+    for sf in "${ENVEDIT_SHARED[@]}"; do
+      get_var_r "$INSTANCES_DIR/$inst/$sf" "$key"
+      if [ -n "$GV" ]; then cur="$GV"; where="$sf"; break; fi
+    done
   fi
   if [ -n "$cur" ]; then
-    msg="$(t env.gen_replace "$key" "$f")"
+    msg="$(t env.gen_replace "$key" "$where")"
     [ "$kind" != shared ] || msg+=" $(t env.gen_replace_shared "$files")"
     [ "$kind" != b64-32 ] || msg+=" $(t env.gen_replace_data)"
     warn "$msg"
     confirm "$(t env.gen_confirm "$key")" || { info "$(t env.gen_cancelled)"; return 0; }
   fi
+  env_warn_busy
   envedit_generate "$inst" "$f" "$key" || rc=$?
   case "$rc" in
     1) die "$(t env.openssl_missing)" ;;
