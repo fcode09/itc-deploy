@@ -165,7 +165,7 @@ lector es de orden de cientos de microsegundos y ninguno lanza un proceso.
 El panel se compone de **pantallas** con un contrato común (`lib/screens/registry.sh` lo documenta función por función). Hay dos clases:
 
 - **Vistas** (las pestañas, `1` a `7` o Tab): `instances`, `resources`, `output`, `runs`, `procs`, `console`, `server`. Una es la actual (`DASH_VIEW`).
-- **Modos** (toman el teclado sobre una vista): `menu`, `confirm`, `name`, `cmd`, `filter`, `find`, `wizard`, `palette`, `help`, `options`, `srvask`.
+- **Modos** (toman el teclado sobre una vista): `menu`, `confirm`, `name`, `cmd`, `filter`, `find`, `wizard`, `newinst`, `palette`, `help`, `options`, `srvask`.
   Uno es el actual (`DASH_MODE`); `normal` es ninguno.
 
 El resto del panel ya no nombra ninguna: la línea de pestañas, los dígitos, Tab, Esc, la barra de teclas, el cuerpo, la firma del fotograma,
@@ -205,6 +205,37 @@ selector de versión del kit (`kit_vpick`, una tabla por imagen, con `msg=0` y u
   a punta contra el docker simulado: usar una versión con `g` y con `y`, copiar con `DELTACTL_CLIP`, cargar un archivo y ver la versión nueva). El docker
   simulado (`tests/fake-docker.sh`) entiende `docker load` (`load_result`, `load_date`, `load_arch`), las fechas de creación (`image_dates.txt`) y la
   arquitectura del servidor (`server_arch`).
+
+## El asistente de nueva instancia por pasos (modo `newinst`)
+
+`lib/screens/newinst.sh` es el **motor** y `lib/screens/newinst/<paso>.sh` son los **pasos**. Se abre en lugar del formulario antiguo (`lib/screens/wizard.sh`)
+cuando el ajuste `TUI_WIZARD=2` está en el archivo de configuración o se arranca el panel con `DELTACTL_WIZARD=2`; por omisión sigue abriéndose el antiguo
+hasta que el nuevo cree, revise y avise (tareas N2 y N3 del plan). `n`, la paleta, la consola y el botón de la cabecera llaman a `dash_open_new`, que
+decide.
+
+- **Qué se ve**: una barra de progreso arriba (`kit_stepper`: ● hecho, ◉ abierto, ▲ con aviso, ✖ con error, ○ por venir), el formulario del paso a la izquierda
+  (`kit_box` con el número y el nombre del paso en el borde y `Esc atrás`/`Enter siguiente` en el pie) y, a la derecha desde 100 columnas, la **vista previa**
+  (los archivos que se crearán, las variables que fijan las respuestas y el comando `./deltactl new …` equivalente, partido por opciones) y la lista del
+  estado de cada paso. En una pantalla estrecha solo hay el formulario y **Tab** lo cambia por la vista previa. Por debajo de 14 filas la barra son dos
+  líneas sin marco.
+- **Teclas**: Enter sigue con lo propuesto y Esc vuelve (en el primer paso, con algo elegido, pide Esc otra vez); PgUp/PgDn van al paso anterior y siguiente;
+  los dígitos y un clic en la barra saltan a un paso ya visitado (en un paso donde se escribe, como el nombre, los dígitos son texto).
+- **Los cuatro pasos de hoy**: *Nombre* (la primera `instancia-N` libre; libre = sin carpeta, sin proyecto de Compose con contenedores y sin red
+  `<nombre>_…`: `lib/core/instname.sh` lee Docker una vez al abrir y compara sin lanzar procesos en cada tecla), *Servicios* (una tarjeta por servicio del
+  catálogo con su descripción, puerto, memoria y dependencias), *Versiones* (el selector del kit con la ★ ya elegida; una por servicio, la que tiene el
+  cursor desplegada) y *Datos* (nueva o ya existente, con la consecuencia dicha). Las imágenes son las del catálogo: cambiar el nombre de la imagen es una
+  variable de la instancia (paso de variables, tarea N2).
+- **Al terminar** (Enter en el último paso) arranca `./deltactl new <nombre> …` como trabajo del panel, igual que el formulario antiguo, tras volver a
+  comprobar todos los pasos: si un nombre dejó de estar libre mientras tanto, abre ese paso con el motivo y no crea nada. Nada se escribe antes.
+- **Para añadir un paso**: crear `lib/screens/newinst/<id>.sh` con `dash_nzs_<id>_render <ancho> <alto>` (añade líneas a `DASH_NZ_B`) y, si hace falta,
+  `_key`, `_enter`, `_state`, `_gate`, `_typing`, `_args` (opciones que añade a `new`) y `_preview`; añadir los textos `tui.nz.step.<id>`, `tui.nz.help.<id>`
+  y `tui.nz.keys.<id>` en los dos idiomas y **una línea** `dash_nz_step_register <id>` al final de `newinst.sh`. El motor no cambia. El contrato completo
+  está en la cabecera de `lib/screens/newinst.sh`.
+- **Pruebas**: `tests/test-newinst.sh` (registro y apertura, nombres libres y tomados con el docker simulado, cada paso, el recorrido, la instancia creada
+  de punta a punta, escenas de `tests/tools/newinst_scenes.sh` en `tests/golden/newinst/` a 80x24, 120x30 y 160x40 y su degradación). El docker simulado
+  entiende `network ls` (`networks.txt`) y `ps -a --format` con el proyecto de cada contenedor (`containers.txt`).
+- **Límites de hoy**: no hay todavía el editor de variables, los secretos, el acceso ni la revisión (N2 y N3); el paso de versiones no carga archivos `.tar`
+  (se hace en la vista Imágenes, `l`); el ratón solo actúa en la barra de pasos.
 
 ## La vista Servidor y la barrera de primer arranque
 
