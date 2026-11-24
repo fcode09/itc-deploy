@@ -1,0 +1,31 @@
+=== frame 1 ===
+  ITC  testhost · Memory ███░░░ 5.6/11.5 GB 48% ▂▁▄▂▁▄ · Load 3.18 · Docker 27.0.0 · containers 3.3G
+  1 Instances   2 Resources   3 Output   4 Runs   5 Processes   6 Console  [7 Server]                                  
+╭─┐ ▸requirements ┌────────────────────────────────────────────────────────────────┐6/9 ready · 3 recommended pending┌─╮
+│   REQUIRED                                               │   RECOMMENDED                                             │
+│   ● Docker Engine                 Docker 27.0.0 (archite │   ● mongod file limit             mongod allows 524288 op │
+│   ● Access to the Docker daemon   The Docker daemon answ │   ▲ Reverse proxy (nginx or Cadd  Neither nginx nor Caddy │
+│   ● Docker Compose 2.20 or newer  Docker Compose 2.30.0  │   ▲ certbot                       'certbot' is missing (r │
+│ ▸ ✖ Free disk                     Low free disk in /var/ │   ● Synchronized clock            The server clock is syn │
+│   ● Memory                        Memory: 11776 MB in to │   ▲ Firewall                      No active firewall was  │
+│   ✖ MongoDB reachable             127.0.0.1:27017 does n │   ● curl                          curl available          │
+│   ▲ ss (iproute2)                 'ss' is missing        │                                                           │
+│   └ What for: Images, data and logs take disk: with less than 3 GB free a deploy can fail halfway.                   │
+│   └ How: Images and logs need space. Free some disk or move Docker.                                                  │
+╰─┘Enter details└─┘c copy└─┘! run└─┘m metrics└─────────────────────────────────────────────────────────────────────────╯
+╭─┐cpu┌─────────────────────────────────┐61°C┌─╮╭─┐memory┌─────────────────────┐48%┌─╮╭─┐disks┌────────────────────────╮
+│ CPU ▕████████▏░░░░░░░░░░░░░▏ 37%             ││ Used ···················· 5.61 GiB ││ /          ████▎  86%  204 GiB │
+│ Load 3.18 2.64 1.97 · 8 cores                ││ █████████████▉░░░░░░░░░░░░░░░  48% ││ /srv/data  █░░░░  22%  500 GiB │
+│    ⡀           ⢀          ⢀                  ││ Available ··············· 5.88 GiB ││ /var/backu █▎░░░  25% 1000 GiB │
+│  ⢀⡀⣇⢠ ⡄⢠      ⣇⢸ ⡀⢠ ⡄⢰   ⣇⢸⡀⡀⢠ ⡄    ⢀⢸  ⢀ ⡀⢠ ││ Total ····················· 11 GiB ││ I/O ▼ 7.0 MiB/s ▲ 16.0 MiB/s   │
+│ ⡇⢸⣇⣿⣼⡄⣧⢸⡆⢰ ⣆⢸⢀⣿⣼⡀⣧⢸⡆⣷⢸⡇⢸ ⣿⣸⡇⣇⢸⡄⣧ ⡆⢰ ⣿⣸⡇⣧⢸⡀⣇⢸ ││ Cached ·················· 4.00 GiB ││                                │
+│ ⣿⣸⣿⣿⣿⣧⣿⣾⣷⣸⣇⣿⣸⣿⣿⣿⣧⣿⣼⣷⣿⣾⣿⣸⣇⣿⣿⣇⣿⣾⣧⣿⣄⣷⣸⣆⣿⣿⣿⣿⣼⣧⣿⣾ ││ Free ···················· 1.00 GiB ││                                │
+╰──────────────────────────────────────────────╯╰────────────────────────────────────╯╰────────────────────────────────╯
+╭─┐network┌─┐enp3s0┌─────────────────────┐up 02:22┌─╮╭─┐containers┌──────────────────────────────────────────────┐4/4┌─╮
+│ 5.0MB⢠⡀⣦⣰⡄⣄⢠⡀⢀⡀⡀⣤⡀⣤⣰⣄⣄⢠⡀⣄⢠⡀⢠⡀⣄⣰⣄⣆⢠⡀⣄⢠⡀⣄ ⡀⢰⣄⣦⢠⡀⣄⢠⡀ ││ SVC  INSTANCE        CPU                    MEMORY STATE        │
+│ 5.0MB                                             ││ s0   colorado        ⣄⣰⣄⣆⢠⡀⢠⡀⣄⢠⡀⣄        196M/512M ● healthy    │
+│ ▼ 4.0 MiB/s  top 4.8 MiB/s                        ││ s1   colorado        ⣄⣰⣄⣆⢠⡀⢠⡀⣄⢠⡀⣄        1.1G/2.0G ● healthy    │
+│ ▲ 1.4 KiB/s  top 615.2 KiB/s                      ││ s0   piura           ⡀⣦⣰⡄⣄⢠⡀⣄⢠⣀⢀         180M/512M ● healthy    │
+╰───────────────────────────────────────────────────╯╰─────────────────────────────────────────────────────────────────╯
+
+ ↑↓ choose · Enter details · m metrics · c copy · ! run · R recheck · : command · ? help · q quit

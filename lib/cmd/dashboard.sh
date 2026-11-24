@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC2034  # the DASH_* and DSV_* variables are shared with lib/cmd/dashboard_view.sh
-# The interactive panel: one screen, six views, live figures. It is what ./deltactl and ./deltactl menu open in a
+# The interactive panel: one screen, seven views, live figures. It is what ./deltactl and ./deltactl menu open in a
 # real terminal; without one (a pipe, a script, TERM=dumb) they keep showing the static home screen and the numbered menu.
 #
 # This file is the controller: the state every screen shares, the background work (Docker state, errors, events, logs of a
 # service), the commands that run inside the panel (lib/core/jobs.sh), the global keys, the mouse and the main loop.
 # Drawing the shared parts (header, tabs, dialog frame, key bar, the frame itself) is lib/cmd/dashboard_view.sh. Everything
 # else is a SCREEN in lib/screens/, registered in lib/screens/registry.sh (read its header for the contract, and to add one):
-#   views (tabs 1 to 6)  instances, resources, output, runs, procs, console
+#   views (tabs 1 to 7)  instances, resources, output, runs, procs, console, server
 #   modes (they take the keyboard over a view)  menu, confirm, name, cmd, filter, find, wizard (the new-instance form),
-#                        palette, help, options
+#                        palette, help, options, srvask (a question about the server's requirements)
 # The other interactive commands (the menu, a leading `!`) run in the terminal and come back.
 #
 # What keeps it light: it sleeps in `read -t` between keys; the figures come from the kernel through Bash builtins
@@ -506,7 +506,10 @@ dash_key_global() { # key ; returns 0 when handled
       if job_cancel; then dash_msg warn "$(t tui.msg.cancelling)"; else dash_msg info "$(t tui.msg.nothing_running)"; fi
       ;;
     ':') DASH_MODE=cmd DASH_BUF="" DASH_CUR=0 DASH_HIDX="${#DASH_HIST[@]}" ;;
-    '!') DASH_MODE=cmd DASH_BUF="!" DASH_CUR=1 DASH_HIDX="${#DASH_HIST[@]}" ;;
+    '!')
+      # A view can take the key for itself (the Server view runs the command of a requirement); else it opens a command line for the terminal.
+      if declare -F "scr_${DASH_VIEW}_bang" > /dev/null && "scr_${DASH_VIEW}_bang"; then :; else DASH_MODE=cmd DASH_BUF="!" DASH_CUR=1 DASH_HIDX="${#DASH_HIST[@]}"; fi
+      ;;
     n) dash_open_new ;;
     d) dash_start_job output doctor ;;
     i) dash_start_job output images ;;

@@ -15,6 +15,7 @@ se está ejecutando, actualizado solo. Fuera de una terminal (una tubería, `TER
 | `4` | Ejecuciones | El historial de operaciones (deploy, init, rollback...) con su consumo, la comparación con las anteriores y sus logs guardados |
 | `5` | Procesos | De qué está hecho el comando que se está ejecutando y cuánto cuesta el propio panel |
 | `6` | Consola | La consola a pantalla completa, lista para escribir |
+| `7` | Servidor | Qué necesita el servidor para funcionar (con el comando para instalarlo) y cómo va: CPU, memoria, discos, red y contenedores |
 
 Tab y Mayús+Tab recorren las vistas (en Instancias, los paneles: lista, servicios y logs). Esc vuelve un paso atrás.
 
@@ -41,6 +42,28 @@ Tab y Mayús+Tab recorren las vistas (en Instancias, los paneles: lista, servici
 - **Cancelar**: `x` (o Ctrl+C) para el comando en curso.
 - **Logs de un servicio**: con el foco en ellos, Espacio pausa, `f` vuelve a seguir el final, `e` deja solo errores y avisos, `/`
   filtra, `s` busca (`[` y `]` saltan entre coincidencias).
+
+## Servidor y requisitos (`7`)
+
+Arriba está la lista de lo que necesita el servidor, con un icono por requisito (● listo, ▲ falta algo recomendado o con aviso, ✖ error,
+○ espera a otro, ◐ comprobando) y, en dos columnas desde 120 columnas, **obligatorios** (Docker, acceso al daemon, Compose 2.20, disco,
+memoria, MongoDB, `ss`, `openssl`, `gunzip`) y **recomendados** (límite de archivos de `mongod`, nginx o Caddy, `certbot`, hora sincronizada,
+cortafuegos, `curl`). Es la misma lista que usa `./deltactl doctor` ([server-prerequisites.md](server-prerequisites.md)). Debajo, en cajas como
+las de btop: CPU (gráfica braille del total y, encima, una caja con cada núcleo y la carga), memoria por tipo (usada, disponible, total, caché,
+libre y swap), discos con su barra de uso, red con la gráfica espejo (bajada arriba, subida abajo) y, desde 120 columnas, los contenedores.
+Lo que el sistema no da (WSL, un contenedor) se ve como «no disponible en este sistema».
+
+- **↑ ↓** eligen un requisito; debajo de la lista se ve para qué sirve, qué dijo la comprobación y cómo arreglarlo (el comando de tu
+  distribución: apt, dnf, pacman o apk, según `/etc/os-release`; si el requisito no se instala con un paquete, lo que aconseja la comprobación).
+- **Enter** abre el detalle completo (cada resultado con su consejo, el comando de cada gestor si la distribución no se reconoce y la página
+  de la guía); Enter o Esc lo cierran.
+- **c** copia el comando (al portapapeles del escritorio con `wl-copy`, `xclip`, `xsel` o `pbcopy`; si no hay, al del terminal con OSC 52; si
+  tampoco, lo muestra para que lo selecciones).
+- **!** lo ejecuta en la terminal, **después de preguntar**: la ventana muestra el comando entero y solo `y` lo lanza (ahí `sudo` pide la
+  contraseña). El panel **nunca instala nada por su cuenta**. Al volver se comprueban de nuevo los requisitos.
+- **m** deja solo las cifras del servidor (los requisitos ceden su sitio; a 80x24 es la forma de ver los discos y la red); **R** vuelve a
+  comprobar. Los requisitos se comprueban solos cada 30 s mientras la vista está a la vista.
+- Las cifras del servidor (CPU por núcleo, temperatura, red, discos) solo se leen mientras esta vista es la actual.
 
 ## Alias de la consola
 
@@ -77,7 +100,8 @@ esos 30 s.
 
 ## Terminales
 
-- Mínimo 60 columnas x 14 filas; desde 120x28 aparece la vista ancha (con gráficos, logs y, desde 150 columnas, eventos).
+- Mínimo 60 columnas x 14 filas; desde 120x28 aparece la vista ancha (con gráficos, logs y, desde 150 columnas, eventos). Con siete vistas,
+  a 80 columnas la línea de pestañas deja solo el número de las que no están activas.
 - Funciona con `xterm`, `xterm-256color`, `screen`/`tmux`, la consola de Linux y `vt100`; con `LANG=C` dibuja en ASCII; con
   `NO_COLOR` sin colores; con color real si el terminal lo anuncia (`COLORTERM=truecolor`). `tests/tools/pty_matrix.py` lo
   comprueba en un pseudo-terminal real contra un Docker simulado.

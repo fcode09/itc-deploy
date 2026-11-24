@@ -173,7 +173,7 @@ MSG_en["tui.con.hint"]=": type a command · ! in the terminal · Tab completes �
 MSG_en["tui.con.keys"]="Enter runs · Tab completes · {1} history · Ctrl+U/K/W delete · Ctrl+L clears · Ctrl+C cancels · Esc goes back"
 MSG_en["tui.con.theme_now"]="Current theme: {1}  (theme <name> changes it)"
 MSG_en["tui.con.bad_theme"]="There is no theme '{1}'. Available: {2}"
-MSG_en["tui.con.bad_view"]="Views: instances · resources · output · runs · procs · console"
+MSG_en["tui.con.bad_view"]="Views: instances · resources · output · runs · procs · console · server"
 MSG_en["tui.con.history_empty"]="The history is empty."
 MSG_en["tui.con.shell_hint"]="You are in a normal shell inside the installation. Type exit to come back to the panel."
 MSG_en["tui.con.help"]="CONSOLE: type any deltactl command, without the prefix\n  status colorado · deploy colorado s1 · logs colorado s0 -f · check colorado\n\nPANEL COMMANDS\n  help               this help\n  clear  (Ctrl+L)    clear the console\n  theme [name]       show or change the theme (matrix cyber amber nord dracula mono)\n  history            the last commands\n  goto <view>        instances · resources · output · runs · procs · console\n  alias n=command    a short name for a command (alias lists · unalias n removes)\n  refresh · quit     refresh · leave\n\nKEYS\n  Enter runs · Tab completes · ↑↓ history · ←→ Home End move the cursor\n  Ctrl+U/K/W delete to the start / the end / the word · PgUp PgDn scroll\n  Ctrl+C cancels the command · a leading ! runs it in the terminal · a lone ! opens a shell"
@@ -217,7 +217,7 @@ MSG_en["tui.confirm_stop"]="Stops {1} of '{2}' without removing it (./deltactl d
 
 # Help overlay
 MSG_en["tui.help_title"]="Keys"
-MSG_en["tui.help"]="VIEWS    1-6  Instances · Resources · Output · Runs · Processes · Console\n\nINSTANCES\n  ↑ ↓  (k j)          instance (the first row is + New) · → services · ← or Esc goes back\n  Tab  Shift+Tab      next / previous pane (instances · services · logs)\n  z                   zoom the focused pane (Esc closes it)\n  Logs (focused)      ↑ ↓ PgUp PgDn Home End scroll · / filters by text · Space pause · f follow · e errors · s search ([ ] jump)\n  Enter · l u c s     actions · logs · deploy · check · status\n  Ctrl+P              action palette (search: depl, logs, theme...)\n\nRUN\n  :  !                command (status colorado, logs x -f ...) · the same, in the terminal\n  x · n d i           cancel · new instance · diagnosis · images\n\nRESOURCES ↑ ↓ choose · s sorts (name, memory, CPU) · Enter opens the instance of the service\nOUTPUT   ↑ ↓ PgUp PgDn scroll · f follows the end · e only errors\nRUNS     ↑ ↓ choose · PgUp PgDn detail · t statistics (s: instance) · Enter output\nPROCESS  ↑ ↓ PgUp PgDn scroll the process tree\nCONSOLE  6 full screen · Esc lets go of the keyboard · Enter or : type again\nMOUSE    (in Options) click a tab or an instance (a second click: actions) · wheel\nGENERAL  r refresh · p pause · L language · T theme · o options · ? help · q or Esc quit"
+MSG_en["tui.help"]="VIEWS    1-7  Instances · Resources · Output · Runs · Processes · Console · Server\n\nINSTANCES\n  ↑ ↓  (k j)          instance (the first row is + New) · → services · ← or Esc goes back\n  Tab  Shift+Tab      next / previous pane (instances · services · logs)\n  z                   zoom the focused pane (Esc closes it)\n  Logs (focused)      ↑ ↓ PgUp PgDn Home End scroll · / filters by text · Space pause · f follow · e errors · s search ([ ] jump)\n  Enter · l u c s     actions · logs · deploy · check · status\n  Ctrl+P              action palette (search: depl, logs, theme...)\n\nRUN\n  :  !                command (status colorado, logs x -f ...) · the same, in the terminal\n  x · n d i           cancel · new instance · diagnosis · images\n\nRESOURCES ↑ ↓ choose · s sorts (name, memory, CPU) · Enter opens the instance of the service\nOUTPUT   ↑ ↓ PgUp PgDn scroll · f follows the end · e only errors\nRUNS     ↑ ↓ choose · PgUp PgDn detail · t statistics (s: instance) · Enter output\nPROCESS  ↑ ↓ PgUp PgDn scroll the process tree\nCONSOLE  6 full screen · Esc lets go of the keyboard · Enter or : type again\nSERVER   ↑ ↓ choose a requirement · Enter details · c copies the command · ! runs it (asks first) · m metrics · R checks again\nMOUSE    (in Options) click a tab or an instance (a second click: actions) · wheel\nGENERAL  r refresh · p pause · L language · T theme · o options · ? help · q or Esc quit"
 MSG_en["tui.help_close"]="Press any key to go back"
 MSG_en["tui.help_scroll"]="{1} PgUp PgDn scroll · another key goes back"
 MSG_en["tui.help.head.instances"]="INSTANCES"
@@ -226,6 +226,7 @@ MSG_en["tui.help.head.output"]="OUTPUT"
 MSG_en["tui.help.head.runs"]="RUNS"
 MSG_en["tui.help.head.procs"]="PROCESS"
 MSG_en["tui.help.head.console"]="CONSOLE"
+MSG_en["tui.help.head.server"]="SERVER"
 
 # Runs view (lib/screens/runs.sh)
 MSG_en["tui.tab.runs"]="Runs"

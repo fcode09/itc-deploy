@@ -1,0 +1,25 @@
+=== frame 1 ===
+  ITC  testhost · Memoria ███░░░ 5.6/11.5 GB 48% · Carga 3.18 · Docker 27.0.0
+  1   2   3   4   5   6  [7 Servidor]                                          
+╭─┐ ▸requisitos ┌───────────────────────────────────────────────┐comprobando…┌─╮
+│   OBLIGATORIOS                                                               │
+│ ▸ ◐ Docker Engine                                                            │
+│   ◐ Acceso al daemon de Docker                                               │
+│   ◐ Docker Compose 2.20 o superior                                           │
+│   ◐ Disco libre                                                              │
+│   ◐ Memoria                                                                  │
+│   └ Para qué: Ejecuta los servicios de cada instancia en contenedores.       │
+│                                                                              │
+╰─┘Enter detalle└─┘c copiar└─┘! ejecutar└─┘m métricas└─────────────────────────╯
+╭─┐cpu┌────────────────────────────────────╮╭─┐memoria┌────────────────────────╮
+│ no disponible en este sistema            ││ no disponible en este sistema    │
+│                                          ││                                  │
+│                                          ││                                  │
+│                                          ││                                  │
+│                                          ││                                  │
+│                                          ││                                  │
+│                                          ││                                  │
+│                                          ││                                  │
+╰──────────────────────────────────────────╯╰──────────────────────────────────╯
+
+ ↑↓ elegir · Enter detalle · m métricas · c copiar · ? ayuda · q salir
