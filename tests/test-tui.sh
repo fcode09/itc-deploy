@@ -1250,7 +1250,7 @@ out="$(PANEL_ROWS=55 panel '?' q)"
 check "the help has a section for the Resources view" 'echo "$out" | frame_n 2 | grep -q "RECURSOS .* s ordena"'
 out="$(PANEL_COLS=60 panel '?' mouse:65:10:10 q)"
 check "the wheel scrolls the help when it does not fit" 'echo "$out" | frame_n 3 | grep -q "Teclas . 2-23/"'
-check "with colours on, the highlighted heading wraps like the others" '[ "$(ROOT="$PWD" DELTACTL_TUI_KEYS=/dev/null DELTACTL_UI=rich DELTACTL_COLOR=always COLUMNS=60 bash -c "source lib/bootstrap.sh; source lib/cmd/dashboard.sh; tui_size; dash_init; DASH_VIEW=output; DASH_MODE=help; DASH_HELP_OFF=-1; dash_dialog_help 26; for l in \"\${DASH_DLG[@]}\"; do tui_strip_ansi \"\$l\"; echo \"\$TUI_OUT\"; done" | grep -A1 "^  SALIDA" | tail -1 | grep -c "^           · e solo errores$")" = "1" ]'
+check "with colours on, the highlighted heading wraps like the others" '[ "$(ROOT="$PWD" DELTACTL_TUI_KEYS=/dev/null DELTACTL_UI=rich DELTACTL_COLOR=always COLUMNS=60 bash -c "source lib/bootstrap.sh; source lib/cmd/dashboard.sh; tui_size; dash_init; DASH_VIEW=output; DASH_MODE=help; DASH_HELP_OFF=-1; dash_dialog_help 26; for l in \"\${DASH_DLG[@]}\"; do tui_strip_ansi \"\$l\"; echo \"\$TUI_OUT\"; done" | grep -A1 "^  SALIDA" | tail -1 | grep -c "^           · v resumen o salida cruda · e solo errores$")" = "1" ]'
 printf 'TUI_VIM=off\n' > "$FIX/vim.cfg"
 out="$(DELTACTL_CONFIG="$FIX/vim.cfg" PANEL_ROWS=55 panel '?' j q)"
 check "with the vim keys off, j is a key like any other in the help: it goes back" 'echo "$out" | frame_n 3 | grep -q "\[1 Instancias\]"'

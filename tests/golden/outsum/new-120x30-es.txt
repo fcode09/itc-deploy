@@ -1,0 +1,31 @@
+=== frame 1 ===
+
+  1   2  [3 Salida]  4   5   6   7   8   9                                       ● ./deltactl new colorado terminó bien
+╭─ ▸Salida · ./deltactl new colorado · terminó bien 00:42 · resumen · ● 0 ▲ 4 ─────────────────────────────────────────╮
+│ ● instancia 'colorado' creada en /srv/deltactl/instances/colorado (puertos 4130/4131)                                │
+│                                                                                                                      │
+│ ── Pendiente de completar antes de ./deltactl deploy ─────────────────────────────────────────────────────────────── │
+│   ▲ .env.instance  S0_TAG, S1_TAG                                                                                    │
+│   ▲ .env.s0        IP_SERVER, JWT_SECRET                                                                             │
+│   ▲ .env.s1        IP_SERVER, JWT_SECRET, FEDERATION_ENCRYPTION_KEY, DEEPGRAM_API_KEY                                │
+│   ▲ secrets/       fcm.json, keeper-fcm.json                                                                         │
+│                                                                                                                      │
+│ ── Siguientes pasos ──────────────────────────────────────────────────────────────────────────────────────────────── │
+│   1. Completa /srv/deltactl/instances/colorado/.env.instance (S0_TAG, S1_TAG, REGISTRY)                              │
+│   2. Completa /srv/deltactl/instances/colorado/.env.s0 y /srv/deltactl/instances/colorado/.env.s1 (secretos, URI de  │
+│      Mongo, IP_SERVER)                                                                                               │
+│   3. Copia los JSON de Firebase a /srv/deltactl/instances/colorado/secrets/ (fcm.json y keeper-fcm.json)             │
+│   4. ./deltactl check colorado (comprueba todo sin levantar nada)                                                    │
+│   5. ./deltactl deploy colorado                                                                                      │
+│ Detalle de cada variable: ./deltactl help variable <NOMBRE> · guía completa: ./deltactl help nueva-instancia         │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+ ↑↓ desplazar · PgUp/PgDn · f seguir · v resumen/crudo · e errores · x cancelar · : comando · ? ayuda · q salir

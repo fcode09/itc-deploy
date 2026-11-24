@@ -1,0 +1,25 @@
+=== frame 1 ===
+
+  1   2  [3 Output]  4   5   6   7   8   9  ● ./deltactl new colorado finished 
+╭─ ▸Output · ./deltactl new colorado · finished OK 00:42 · summary · 1-18/22 ──╮
+│ ● instance 'colorado' created in /srv/deltactl/instances/colorado (ports     │
+│   4130/4131)                                                                 │
+│                                                                              │
+│ ── Still to complete before ./deltactl deploy ────────────────────────────── │
+│   ▲ .env.instance  S0_TAG, S1_TAG                                            │
+│   ▲ .env.s0        IP_SERVER, JWT_SECRET                                     │
+│   ▲ .env.s1        IP_SERVER, JWT_SECRET, FEDERATION_ENCRYPTION_KEY,         │
+│                    DEEPGRAM_API_KEY                                          │
+│   ▲ secrets/       fcm.json, keeper-fcm.json                                 │
+│                                                                              │
+│ ── Next steps ────────────────────────────────────────────────────────────── │
+│   1. Fill in /srv/deltactl/instances/colorado/.env.instance (S0_TAG, S1_TAG, │
+│      REGISTRY)                                                               │
+│   2. Fill in /srv/deltactl/instances/colorado/.env.s0 and                    │
+│      /srv/deltactl/instances/colorado/.env.s1 (secrets, Mongo URIs,          │
+│      IP_SERVER)                                                              │
+│   3. Copy the Firebase JSON files to                                         │
+│      /srv/deltactl/instances/colorado/secrets/ (fcm.json and keeper-fcm.json │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+ ↑↓ scroll · PgUp/PgDn · f follow · v summary/raw · e errors · ? help · q quit

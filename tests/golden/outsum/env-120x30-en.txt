@@ -1,0 +1,31 @@
+=== frame 1 ===
+
+  1   2  [3 Output]  4   5   6   7   8   9                                     ● ./deltactl env sim-01 list finished OK
+╭─ ▸Output · ./deltactl env sim-01 list · finished OK 00:42 · summary · 1-24/57 · ● 34 ✖ 2 ────────────────────────────╮
+│ Variables of sim-01                                                                                                  │
+│                                                                                                                      │
+│ ── instance ──────────────────────────────────────────────────────────────────────────────────────────────────────── │
+│   ● INSTANCE          sim-01                                                                                 ok      │
+│   ○ REGISTRY          -                                                                                      not set │
+│   ● COMPOSE_PROFILES  s0,s1                                                                                  ok      │
+│   ● S0_IMAGE          auth-backend                                                                           ok      │
+│   ● S1_IMAGE          gueo-back-end                                                                          ok      │
+│   ● S0_TAG            1.0                                                                                    ok      │
+│   ● S1_TAG            1.0                                                                                    ok      │
+│   ● S0_PORT           4100                                                                                   ok      │
+│   ● S1_PORT           4101                                                                                   ok      │
+│   ● S0_MEM_LIMIT      512m                                                                                   ok      │
+│   ● S1_MEM_LIMIT      2g                                                                                     ok      │
+│   ○ DATA_DIR          -                                                                                      not set │
+│                                                                                                                      │
+│ ── s0 ────────────────────────────────────────────────────────────────────────────────────────────────────────────── │
+│   ● IP_SERVER                    http://h                                                                    ok      │
+│   ● JWT_SECRET                   ********                                                                    ok      │
+│   ● JWT_EXPIRES_IN               8h                                                                          ok      │
+│   ● MONGO_URI                    ********                                                                    ok      │
+│   ● IP_INTERNAL_CONNECTION       s1                                                                          ok      │
+│   ○ GOOGLE_KEY                   -                                                                           not set │
+│   ● PROFILE_PROPAGATION_ENABLED  true                                                                        ok      │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+ ↑↓ scroll · PgUp/PgDn · f follow · v summary/raw · e errors · x cancel · : command · ? help · q quit

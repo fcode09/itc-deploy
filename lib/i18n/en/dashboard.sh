@@ -55,6 +55,9 @@ MSG_en["tui.out.scrolled"]="scrolled"
 MSG_en["tui.out.errors_only"]="errors only"
 MSG_en["tui.out.lines"]="{1} lines"
 MSG_en["tui.out.no_match"]="(no lines with errors)"
+MSG_en["tui.out.summary"]="summary"
+MSG_en["tui.out.raw"]="raw output"
+MSG_en["tui.out.unsummarised"]="+{1} lines not summarised: v shows the raw output"
 
 # Messages of the status line
 MSG_en["tui.msg.busy"]="A command is running: wait for it to finish or cancel it with x"
@@ -197,7 +200,7 @@ MSG_en["tui.pal.options"]="Panel options"
 MSG_en["tui.pal.clear"]="Clear the console"
 MSG_en["tui.pal.quit"]="Quit"
 MSG_en["tui.keys.resources"]="{1} move · s sort · Enter open the instance · : command · ? help · q quit"
-MSG_en["tui.keys.output"]="{1} scroll · PgUp/PgDn · f follow · e errors · x cancel · : command · ? help · q quit"
+MSG_en["tui.keys.output"]="{1} scroll · PgUp/PgDn · f follow · v summary/raw · e errors · x cancel · : command · ? help · q quit"
 MSG_en["tui.keys.running"]="x cancel"
 
 # Actions of an instance
@@ -217,7 +220,7 @@ MSG_en["tui.confirm_stop"]="Stops {1} of '{2}' without removing it (./deltactl d
 
 # Help overlay
 MSG_en["tui.help_title"]="Keys"
-MSG_en["tui.help"]="VIEWS    1-9  Instances · Resources · Output · Runs · Processes · Console · Server · Images · Variables\n\nINSTANCES\n  ↑ ↓  (k j)          instance (the first row is + New) · → services · ← or Esc goes back\n  Tab  Shift+Tab      next / previous pane (instances · services · logs)\n  z                   zoom the focused pane (Esc closes it)\n  Logs (focused)      ↑ ↓ PgUp PgDn Home End scroll · / filters by text · Space pause · f follow · e errors · s search ([ ] jump)\n  Enter · l u c s     actions · logs · deploy · check · status\n  Ctrl+P              action palette (search: depl, logs, theme...)\n\nRUN\n  :  !                command (status colorado, logs x -f ...) · the same, in the terminal\n  x · n d i           cancel · new instance · diagnosis · images\n\nRESOURCES ↑ ↓ choose · s sorts (name, memory, CPU) · Enter opens the instance of the service\nOUTPUT   ↑ ↓ PgUp PgDn scroll · f follows the end · e only errors\nRUNS     ↑ ↓ choose · PgUp PgDn detail · t statistics (s: instance) · Enter output\nPROCESS  ↑ ↓ PgUp PgDn scroll the process tree\nCONSOLE  6 full screen · Esc lets go of the keyboard · Enter or : type again\nVARIABLES ↑ ↓ choose · Enter edits · g generates a secret · r shows it for a moment · d default value · a advanced · s saves · u saves and deploys\nIMAGES   ↑ ↓ choose a version · Enter use in an instance · Space detail · l load a file · c copy · R read again\nSERVER   ↑ ↓ choose a requirement · Enter details · c copies the command · ! runs it (asks first) · m metrics · R checks again\nMOUSE    (in Options) click a tab or an instance (a second click: actions) · wheel\nGENERAL  r refresh · p pause · L language · T theme · o options · ? help · q or Esc quit"
+MSG_en["tui.help"]="VIEWS    1-9  Instances · Resources · Output · Runs · Processes · Console · Server · Images · Variables\n\nINSTANCES\n  ↑ ↓  (k j)          instance (the first row is + New) · → services · ← or Esc goes back\n  Tab  Shift+Tab      next / previous pane (instances · services · logs)\n  z                   zoom the focused pane (Esc closes it)\n  Logs (focused)      ↑ ↓ PgUp PgDn Home End scroll · / filters by text · Space pause · f follow · e errors · s search ([ ] jump)\n  Enter · l u c s     actions · logs · deploy · check · status\n  Ctrl+P              action palette (search: depl, logs, theme...)\n\nRUN\n  :  !                command (status colorado, logs x -f ...) · the same, in the terminal\n  x · n d i           cancel · new instance · diagnosis · images\n\nRESOURCES ↑ ↓ choose · s sorts (name, memory, CPU) · Enter opens the instance of the service\nOUTPUT   ↑ ↓ PgUp PgDn scroll · f follows the end · v summary or raw output · e only errors\nRUNS     ↑ ↓ choose · PgUp PgDn detail · t statistics (s: instance) · Enter output\nPROCESS  ↑ ↓ PgUp PgDn scroll the process tree\nCONSOLE  6 full screen · Esc lets go of the keyboard · Enter or : type again\nVARIABLES ↑ ↓ choose · Enter edits · g generates a secret · r shows it for a moment · d default value · a advanced · s saves · u saves and deploys\nIMAGES   ↑ ↓ choose a version · Enter use in an instance · Space detail · l load a file · c copy · R read again\nSERVER   ↑ ↓ choose a requirement · Enter details · c copies the command · ! runs it (asks first) · m metrics · R checks again\nMOUSE    (in Options) click a tab or an instance (a second click: actions) · wheel\nGENERAL  r refresh · p pause · L language · T theme · o options · ? help · q or Esc quit"
 MSG_en["tui.help_close"]="Press any key to go back"
 MSG_en["tui.help_scroll"]="{1} PgUp PgDn scroll · another key goes back"
 MSG_en["tui.help.head.instances"]="INSTANCES"

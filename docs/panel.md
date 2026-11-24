@@ -11,7 +11,7 @@ se está ejecutando, actualizado solo. Fuera de una terminal (una tubería, `TER
 | --- | --- | --- |
 | `1` | Instancias | La lista de instancias, el detalle de la seleccionada (servicios, memoria, CPU, errores), sus gráficos y sus logs en vivo, y la consola debajo |
 | `2` | Recursos | Todos los servicios de todas las instancias en una tabla; `s` ordena por nombre, memoria o CPU |
-| `3` | Salida | La salida completa del último comando |
+| `3` | Salida | El resultado del último comando: de `new`, `check`, `deploy`, `init`, `doctor`, `images` y `env` un resumen con iconos, secciones y veredicto (`v` pasa a la salida cruda); de cualquier otro, la salida completa |
 | `4` | Ejecuciones | El historial de operaciones (deploy, init, rollback...) con su consumo, la comparación con las anteriores y sus logs guardados |
 | `5` | Procesos | De qué está hecho el comando que se está ejecutando y cuánto cuesta el propio panel |
 | `6` | Consola | La consola a pantalla completa, lista para escribir |

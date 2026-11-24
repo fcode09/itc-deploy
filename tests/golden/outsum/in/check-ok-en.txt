@@ -1,0 +1,16 @@
+
+Check of 'sim-01'
+───────────────────
+  services     s0 s1
+
+  ● Complete configuration (required variables, image names and secrets)
+  ● The instance's compose is valid
+  ● s0: image auth-backend:1.0 loaded (aaa111, amd64)
+  ● s1: image gueo-back-end:1.0 loaded (bbb222, amd64)
+  ● s0: port 4100 is free
+  ● s1: port 4101 is free
+  ● Data: init (.initialized marker present)
+  ℹ Databases: not tested. Add --mongo to check the connection of each service
+
+  ● All good: ready to deploy
+  → ./deltactl deploy sim-01

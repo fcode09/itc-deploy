@@ -1,0 +1,25 @@
+=== frame 1 ===
+
+  1   2  [3 Salida]  4   5   6   7   8   9     ● ./deltactl doctor terminó bien
+╭─ ▸Salida · ./deltactl doctor · terminó bien 00:42 · resumen · 1-18/39 ───────╮
+│ Diagnóstico del servidor                                                     │
+│                                                                              │
+│ ── Docker ────────────────────────────────────────────────────────────────── │
+│   ● Docker 27.0.0 (arquitectura amd64)                                       │
+│   ● Docker Compose 2.30.0                                                    │
+│                                                                              │
+│ ── Recursos ──────────────────────────────────────────────────────────────── │
+│   ▲ Disco libre en /srv/deltactl: 5.1 GB (menos de 10 GB)                    │
+│   ● Memoria: 8192 MB en total, 3072 MB disponibles                           │
+│   ● Límites de memoria de las instancias: 7680 MB en total                   │
+│                                                                              │
+│ ── MongoDB ───────────────────────────────────────────────────────────────── │
+│   ● host.docker.internal:27017 alcanzable desde los contenedores (por        │
+│     127.0.0.1)                                                               │
+│   ● mongod permite 524288 archivos abiertos                                  │
+│                                                                              │
+│ ── Instancias ────────────────────────────────────────────────────────────── │
+│   ● sim-01: permisos correctos                                               │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+ ↑↓ desplazar · PgUp/PgDn · f seguir · v resumen/crudo · ? ayuda · q salir

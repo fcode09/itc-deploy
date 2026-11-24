@@ -1,0 +1,25 @@
+=== frame 1 ===
+
+  1   2  [3 Output]  4   5   6   7   8   9      ● ./deltactl images finished OK
+╭─ ▸Output · ./deltactl images · finished OK 00:42 · summary · 1-18/20 · ● 2 ──╮
+│ Images on this server                                                        │
+│                                                                              │
+│ Architecture of this server: amd64                                           │
+│                                                                              │
+│ ── s0 = auth-backend ─────────────────────────────────────────────────────── │
+│   ○ 1.1  aaa112 · amd64 · 1 hour ago · 300MB                                 │
+│       unused (candidate for deletion)                                        │
+│   ● 1.0  aaa111 · amd64 · 1 hour ago · 300MB                                 │
+│       sim-01(current) sim-02(current) sim-03(current)                        │
+│                                                                              │
+│ ── s1 = gueo-back-end ────────────────────────────────────────────────────── │
+│   ● 1.0  bbb222 · amd64 · 1 hour ago · 300MB                                 │
+│       sim-01(current) sim-02(current) sim-03(current)                        │
+│                                                                              │
+│ The 'unused' versions are not used by any instance (neither as current nor   │
+│ as previous).                                                                │
+│ This command only lists: deleting images is up to you. Avoid 'docker image   │
+│ prune -a'.                                                                   │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+ ↑↓ scroll · PgUp/PgDn · f follow · v summary/raw · e errors · ? help · q quit
