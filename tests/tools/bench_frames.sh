@@ -27,8 +27,9 @@ for size in 80x24 120x30 160x40; do
     set +e
     tui_size; dash_init
     dash_refresh > /dev/null 2>&1; mt_sample; sleep 0.3; mt_sample
-    # The Server view reads the figures of the host as well (MT_HOST_DETAIL): three readings, the counters of the simulated host moving.
-    for _t in 1 2 3; do sim_host_tick $((_t * 5)); MT_HOST_DETAIL=1 mt_sample; sleep 0.2; done; MT_HOST_DETAIL=0
+    # The Server view reads the figures of the host as well (MT_HOST_DETAIL): a full history (120 readings, one second apart on a fake clock)
+    # of the simulated host, whose counters move.
+    for _t in $(seq 1 125); do sim_host_tick "$_t"; HOST_FAKE_NOW_US=$((_t * 1000000)) MT_HOST_DETAIL=1 mt_sample; done; MT_HOST_DETAIL=0
     dash_srv_apply "$(dash_srv_dump)" > /dev/null 2>&1
     dash_host_build
     echo "== $size"
@@ -40,6 +41,16 @@ for size in 80x24 120x30 160x40; do
     # shellcheck disable=SC2329  # called through ms
     cold() { DASH_PC_SIG=(); dash_render; }
     ms "dash_render instances, cold" 10 cold
+    # The Server view at every sample (what it costs every 2 s while it is on screen). "idle": the figures do not move (the boxes are reused);
+    # "busy": the simulated host moves, so every box is built again (the sampling of the host is part of it).
+    # shellcheck disable=SC2329  # called through ms
+    fresh_idle() { MT_SAMPLES=$((MT_SAMPLES + 1)); dash_render; }
+    # shellcheck disable=SC2329,SC2034  # called through ms; the variables are read by the panel
+    fresh_busy() { _t=$((_t + 1)); sim_host_tick "$_t"; HOST_FAKE_NOW_US=$((_t * 1000000)) MT_HOST_DETAIL=1 mt_sample; MT_HOST_DETAIL=0; dash_render; }
+    DASH_VIEW=server
+    ms "dash_render server, idle sample" "$N" fresh_idle
+    ms "server: sample + render, busy" "$N" fresh_busy
+    DASH_VIEW=instances
     ms "mt_sample" "$N" mt_sample
     # shellcheck disable=SC2329,SC2034  # called through ms; MT_HOST_DETAIL is read by mt_sample
     mt_detail() { MT_HOST_DETAIL=1 mt_sample; MT_HOST_DETAIL=0; }
