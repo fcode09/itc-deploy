@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Times the panel's frame builders against the simulated server (never the real Docker): one frame per view at 80x24, 120x30 and 160x40
-# (average of N, default 40). Used for the before/after numbers of the redesign. usage: tests/tools/bench_frames.sh [N] [theme]
+# (average of N, default 40; the Server view against a simulated host, tests/tools/sim_env.sh). Used for the before/after numbers of the redesign. usage: tests/tools/bench_frames.sh [N] [theme]
 set -u
 N="${1:-40}" THEME="${2:-matrix}"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -8,6 +8,7 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$HERE/sim_env.sh"
 TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
 sim_build "$TMP/sim" 12
+sim_host "$TMP/host"
 cd "$SIM_REPO" || exit 1
 ms() { # label n command...
   local label="$1" n="$2" i t0 t1
@@ -25,9 +26,13 @@ for size in 80x24 120x30 160x40; do
     source lib/bootstrap.sh; source lib/cmd/dashboard.sh
     set +e
     tui_size; dash_init
-    dash_refresh > /dev/null 2>&1; mt_sample; sleep 0.3; mt_sample; dash_host_build
+    dash_refresh > /dev/null 2>&1; mt_sample; sleep 0.3; mt_sample
+    # The Server view reads the figures of the host as well (MT_HOST_DETAIL): three readings, the counters of the simulated host moving.
+    for _t in 1 2 3; do sim_host_tick $((_t * 5)); MT_HOST_DETAIL=1 mt_sample; sleep 0.2; done; MT_HOST_DETAIL=0
+    dash_srv_apply "$(dash_srv_dump)" > /dev/null 2>&1
+    dash_host_build
     echo "== $size"
-    for v in instances resources output runs procs console; do
+    for v in instances resources output runs procs console server; do
       DASH_VIEW="$v"
       ms "dash_render $v (cached/hot)" "$N" dash_render
     done
@@ -36,5 +41,8 @@ for size in 80x24 120x30 160x40; do
     cold() { DASH_PC_SIG=(); dash_render; }
     ms "dash_render instances, cold" 10 cold
     ms "mt_sample" "$N" mt_sample
+    # shellcheck disable=SC2329,SC2034  # called through ms; MT_HOST_DETAIL is read by mt_sample
+    mt_detail() { MT_HOST_DETAIL=1 mt_sample; MT_HOST_DETAIL=0; }
+    ms "mt_sample, with the host figures" "$N" mt_detail
   )
 done

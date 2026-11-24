@@ -5,6 +5,7 @@
 usage: pty_shot.py OUT.json ROWS COLS [step ...]
   steps: sleep:SECONDS | key:CHAR | text:STRING | enter | esc | up | down | left | right | tab
   environment passed through: DELTACTL_THEME, DELTACTL_TRUECOLOR, COLORTERM, WT_SESSION, DELTACTL_LANG
+  DELTACTL_SHOT_ALL=1 copies every instance of DELTACTL_REPO (a simulated server from tests/tools/sim_env.sh), not only "colorado"
 Read-only against the real Docker (status and metrics); it never changes an instance unless the steps run a command yourself."""
 import fcntl, json, os, pty, select, struct, subprocess, sys, termios, time
 
@@ -162,9 +163,10 @@ KEYS = {"enter": b"\r", "esc": b"\x1b", "up": b"\x1b[A", "down": b"\x1b[B", "rig
 def main():
     out, rows, cols = sys.argv[1], int(sys.argv[2]), int(sys.argv[3])
     steps = sys.argv[4:] or ["sleep:4"]
+    inst = "cp -rp instances/. " + D + "/instances/ 2>/dev/null" if os.environ.get("DELTACTL_SHOT_ALL") else "cp -p instances/colorado/.[a-z]* " + D + "/instances/colorado/ 2>/dev/null"
     subprocess.run(
-        f"rm -rf {D}; mkdir -p {D}/instances/colorado; cd {REPO} && cp -r deltactl lib templates services examples compose.yaml {D}/ "
-        f"&& cp -p instances/colorado/.[a-z]* {D}/instances/colorado/ 2>/dev/null; touch {D}/instances/.gitkeep; "
+        f"rm -rf {D}; mkdir -p {D}/instances/colorado; cd {REPO} && cp -r deltactl lib templates services examples compose.yaml {D}/ 2>/dev/null; "
+        f"{inst}; touch {D}/instances/.gitkeep; "
         f"find {D} -name '*.sh' -o -name deltactl | xargs sed -i 's/\\r$//'", shell=True, check=True)
     env = dict(os.environ, TERM="xterm-256color", LANG="C.UTF-8", DELTACTL_CONFIG=D + "/.cfg-absent")
     pid, fd = pty.fork()

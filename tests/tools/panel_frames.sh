@@ -10,12 +10,13 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$HERE/sim_env.sh"
 TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
 sim_build "$TMP/sim" 12
+sim_host "$TMP/host"
 mkdir -p "$OUT"
 cd "$SIM_REPO" || exit 1
 export LANG=C.UTF-8
 for size in 80x24 120x30 160x40; do
   cols="${size%x*}" rows="${size#*x}"
-  for view in 1 2 3 4 5 6; do
+  for view in 1 2 3 4 5 6 7; do
     printf '%s\n' "$view" q > "$TMP/keys"
     for mode in plain color; do
       if [ "$mode" = plain ]; then c=(DELTACTL_COLOR=never); else c=(DELTACTL_COLOR=always COLORTERM=truecolor); fi
