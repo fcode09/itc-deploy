@@ -10,8 +10,9 @@ distribución (se detecta con `/etc/os-release`: apt, dnf, pacman o apk) para qu
 ## En el panel
 
 La vista **Servidor** (`7`) muestra esta misma lista con un icono por requisito, para qué sirve, qué dijo la comprobación y el comando para tu
-distribución; `c` lo copia y `!` lo ejecuta en la terminal **después de preguntar** (el panel nunca instala nada por su cuenta). Detalle en
-[panel.md](panel.md).
+distribución; `c` lo copia y `!` lo ejecuta en la terminal **después de preguntar** (el panel nunca instala nada por su cuenta). Si al abrir el
+panel falta un obligatorio, abre en esa vista; y crear una instancia pregunta antes mientras falte algo obligatorio (en Opciones, «Aviso de
+requisitos» lo apaga). Detalle en [panel.md](panel.md).
 
 ## Qué se comprueba
 

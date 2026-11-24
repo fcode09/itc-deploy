@@ -65,6 +65,11 @@ Lo que el sistema no da (WSL, un contenedor) se ve como «no disponible en este 
   comprobar. Los requisitos se comprueban solos cada 30 s mientras la vista está a la vista.
 - Las cifras del servidor (CPU por núcleo, temperatura, red, discos) solo se leen mientras esta vista es la actual.
 
+**Aviso al abrir el panel**: si falta algo obligatorio (error de Docker, del daemon, de Compose, de disco o de MongoDB), el panel abre en
+esta vista y lo dice en la línea de mensajes; las demás vistas siguen disponibles. Con todo en su sitio no dice nada. **Crear una instancia**
+(`n`, el botón o `new`) pregunta antes mientras falte algo obligatorio: `y` crea igualmente, `v` muestra los requisitos, `n` no vuelve a
+avisar (se guarda `TUI_PREREQ=off`; en Opciones, «Aviso de requisitos» lo vuelve a activar) y Esc cancela.
+
 ## Alias de la consola
 
 Para las órdenes que repites:
@@ -83,13 +88,16 @@ Se guardan junto al historial (`~/.config/deltactl/aliases`). Solo admiten coman
 
 ## Opciones (`o`)
 
-Tema, idioma, cada cuánto se leen las cifras, cada cuánto se relee el estado sin eventos de Docker, teclas vim y ratón. Cada cambio
+Tema, idioma, cada cuánto se leen las cifras, cada cuánto se relee el estado sin eventos de Docker, teclas vim, ratón y el aviso de
+requisitos del servidor. Cada cambio
 se aplica al momento y se guarda en `~/.config/deltactl/config`. Las variables `DELTACTL_THEME`, `DELTACTL_LANG`,
 `DELTACTL_METRICS_INTERVAL` y `DELTACTL_REFRESH` mandan al arrancar (la pantalla lo indica).
 
 - **Teclas vim** (activadas por defecto): `j k h g G` se mueven como las flechas, Inicio y Fin.
 - **Ratón** (desactivado por defecto): clic en una pestaña abre su vista; en una instancia la selecciona y un segundo clic abre sus
   acciones; la rueda desplaza. Mientras está activo, el texto se selecciona con Mayús.
+- **Aviso de requisitos** (activado por defecto, `TUI_PREREQ`): avisa al abrir el panel y al crear una instancia si falta algo obligatorio
+  del servidor (ver «Servidor y requisitos»).
 
 También: `T` cambia de tema, `L` de idioma, `p` pausa la actualización, `r` refresca, `n` crea una instancia, `d` diagnóstico,
 `i` imágenes.

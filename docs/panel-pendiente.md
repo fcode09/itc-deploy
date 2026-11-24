@@ -183,7 +183,7 @@ Comprobación de refactores: `tests/tools/panel_scenarios.sh <carpeta>` ejecuta 
 paleta, consola, ratón) a cinco tamaños y guarda **todos** los fotogramas; dos árboles de dos versiones del código se comparan con `diff -r`.
 `tests/tools/panel_frames.sh` hace lo mismo con la última imagen de cada vista.
 
-## La vista Servidor
+## La vista Servidor y la barrera de primer arranque
 
 `lib/screens/server.sh` (vista `server`, 7) y `lib/screens/srvask.sh` (modo `srvask`, la pregunta). Se construyen con el kit (`kit_box` con chips y
 pie, `kit_graph` y `kit_graph_mirror`, `kit_meter`, `kit_leader`, `kit_table`, `kit_state_icon`, `kit_overlay` para la caja de los núcleos sobre la
@@ -197,6 +197,11 @@ segunda fila primero).
 - **Copiar y ejecutar**: `dash_srv_copy` (`wl-copy`, `xclip`, `xsel`, `pbcopy`, OSC 52) y `dash_srv_terminal`, que solo llama el modo `srvask` tras un
   `y`. Nada instala por su cuenta. Variables de prueba: `DELTACTL_CLIP` (un comando que lee el texto por su entrada, en vez de tocar el portapapeles) y
   `DELTACTL_PR_SHELL` (el intérprete del comando, en vez de `bash`: los tests ponen un script que solo anota qué se le pidió).
+- **Primer arranque**: `dash_srv_startup` pide la comprobación al arrancar; con un obligatorio en `err` abre la vista Servidor y avisa una vez
+  (`dash_srv_after_apply`). `dash_open_new` (el único punto por el que se abre el formulario de nueva instancia) llama a `dash_srv_blocking` y, si
+  falta algo y la persona no ha dicho que siga, abre `srvask` en vez del formulario. La opción `TUI_PREREQ=on|off` (Opciones) lo apaga y enciende.
+  En el modo de prueba el arranque no comprueba nada salvo con `DELTACTL_TUI_GATE=1`: así las demás pruebas no abren en esta vista por lo que le
+  falte a la máquina donde corren.
 - **Pruebas**: `tests/test-server.sh`; las escenas con datos fijos (`tests/tools/server_scenes.sh`: ok, missing, open, zoom, na, loading) son las
   instantáneas de `tests/golden/server/` (`DELTACTL_GOLDEN=record` las regraba). `tests/tools/sim_env.sh` tiene `sim_host`, un servidor simulado
   (CPU, red, discos y sensor en un `/proc` y un `/sys` falsos) con `sim_host_tick` para moverlo.
