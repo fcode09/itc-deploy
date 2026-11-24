@@ -100,11 +100,11 @@ th_grad_use() { # magnitude
 # Colour of $2 percent (0-100) of magnitude $1 into TH_C. Nothing when the theme has no colours.
 th_grad() { # magnitude percent
   [ "${TH_GR_BUILT[$1]-}" = "$TH_GR_GEN" ] || th_grad_build "$1"
-  local -n _gr="TH_GR_$1"
-  local p="$2"
-  [ "$p" -ge 0 ] 2> /dev/null || p=0
+  local p="$2" ref
+  case "$p" in '' | *[!0-9]*) p=0 ;; esac
   [ "$p" -le 100 ] || p=100
-  TH_C="${_gr[$p]-}"
+  ref="TH_GR_$1[$p]"
+  TH_C="${!ref-}"
 }
 
 # New theme: the gradients are stale (they are rebuilt on first use) and the extra tokens are set (called by theme_apply).
