@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# shellcheck disable=SC2034  # the scene lists and the nameref targets are read by whoever sources this file
+# shellcheck disable=SC2034,SC2178,SC2128  # the scene lists and the nameref targets are read by whoever sources this file
 # Scenes of the UI kit: each one draws components with fixed sample data at a given width, as lines on stdout. They are the golden
 # snapshots of tests/test-kit.sh and the pages of the gallery (tests/tools/gallery.sh). Sourced, never executed; needs ROOT, the
 # bootstrap and lib/ui/tui.sh already loaded, and a theme applied.
@@ -8,6 +8,7 @@ source "$ROOT/lib/ui/kit/kit.sh"
 
 KIT_SCENES=(box_chips box_footer box_focus inset)
 KIT_SCENES_GRAPHS=(graph_cpu graph_mirror meters metric_rows)
+KIT_SCENES_FORMS=(stepper tabs fields table checklist toast_modal)
 
 kit_scene_body() { # array-name count text   fills the array with sample lines
   local -n _b="$1"
@@ -123,6 +124,98 @@ scene_metric_rows() { # width
   kit_box $((w - w / 2)) 12 right 'chips=disks'
   local i
   for ((i = 0; i < 12; i++)); do printf '%s%s\n' "${lbox[$i]}" "${KIT_BOX[$i]}"; done
+}
+
+scene_stepper() { # width
+  local w="$1"
+  kit_stepper "$w" 3 "counter=Paso 3 de 8" Nombre Servicios Versiones Datos Variables Secretos Acceso Revisión
+  printf '%s\n' "${KS_LINES[@]}"
+  echo
+  kit_stepper "$w" 5 "counter=Paso 5 de 8" Nombre Servicios Versiones:warn Datos Variables:err Secretos Acceso Revisión
+  printf '%s\n' "${KS_LINES[@]}"
+  echo
+  kit_stepper 40 4 "counter=Paso 4 de 8" Nombre Servicios Versiones Datos Variables Secretos Acceso Revisión
+  printf '%s\n' "${KS_LINES[@]}"
+  echo
+  kit_stepper 24 2 Uno Dos Tres
+  printf '%s\n' "${KS_LINES[@]}"
+}
+
+scene_tabs() { # width
+  local w="$1"
+  kit_tabs "$w" 1 Resumen Servicios Variables Datos Acceso Logs Historial; printf '%s\n' "$KT_LINE"
+  kit_tabs "$w" 3 Resumen Servicios ^Variables Datos Acceso Logs Historial; printf '%s\n' "$KT_LINE"
+  kit_tabs "$w" 7 Resumen Servicios Variables Datos Acceso Logs Historial; printf '%s\n' "$KT_LINE"
+  kit_tabs 30 4 Resumen Servicios Variables Datos Acceso Logs Historial; printf '%s\n' "$KT_LINE"
+  kit_tabs 30 7 Resumen Servicios Variables Datos Acceso Logs Historial; printf '%s\n' "$KT_LINE"
+}
+
+scene_fields() { # width
+  local w="$1" body=() fw=$(($1 - 4))
+  kit_field_render "Nombre" "colorado" 8 "$fw" label_width=12 focus=1 state=ok msg=disponible; body+=("$KIT_OUT")
+  kit_field_render "Nombre" "Colorado!" 3 "$fw" label_width=12 state=err msg="a-z 0-9 -"; body+=("$KIT_OUT")
+  kit_field_render "Puerto" "" 0 "$fw" label_width=12 placeholder="4100" state=pend; body+=("$KIT_OUT")
+  kit_field_render "S0_PORT" "4100" 2 "$fw" label_width=12 focus=1 unit="(libre)" state=ok; body+=("$KIT_OUT")
+  kit_field_render "JWT_SECRET" "supersecreto" 0 "$fw" label_width=12 mask=1 state=ok msg=generado; body+=("$KIT_OUT")
+  kit_field_render "JWT_SECRET" "supersecreto" 0 "$fw" label_width=12 mask=1 reveal=1 state=ok; body+=("$KIT_OUT")
+  kit_field_render "MONGO_URI" "mongodb://host.docker.internal:27017/authsoftware2021?replicaSet=rs0&readPreference=primary" 40 "$fw" label_width=12 focus=1 state=warn msg="usa host.docker.internal"; body+=("$KIT_OUT")
+  kit_box "$w" 9 body 'chips=1:variables|^editar' 'footer={Enter} ^editar|^g generar|^r revelar'
+  printf '%s\n' "${KIT_BOX[@]}"
+}
+
+scene_table() { # width
+  local w="$1" cols=() rows=() sep=$'\x1f' tw=$(($1 - 4)) body
+  cols=("SVC|5|l" "IMAGEN|*|l" "ESTADO|10|l" "MEM MB|7|r|num" "CPU|5|r|num" "TENDENCIA|12|l|spark")
+  rows=("s0${sep}auth-backend:2.14.1${sep}healthy${sep}196${sep}3%${sep}5 12 8 20 33 41 30 22 18 25 31 28"
+        "s1${sep}gueo-back-end:2.9.0${sep}healthy${sep}1230${sep}21%${sep}60 70 80 90 85 70 60 65 75 80 88 92"
+        "s0${sep}auth-backend:2.13.2${sep}unhealthy${sep}180${sep}1%${sep}1 1 2 1 1 3 2 1 1 2 1 1"
+        "s1${sep}gueo-back-end:2.8.0${sep}stopped${sep}-${sep}-${sep}0 0 0")
+  kit_table "$tw" 6 cols rows sel=1 sort=3:desc mag=cpu
+  body=("${KTB_LINES[@]}")
+  kit_box "$w" 8 body "chips=2:servicios|^filtro" "status=$KTB_COUNT" 'footer={↑} elegir|{Enter} abrir|^s ordenar'
+  printf '%s\n' "${KIT_BOX[@]}"
+  kit_table "$tw" 4 cols rows sel=0 filter=auth empty="sin coincidencias"
+  body=("${KTB_LINES[@]}")
+  kit_box "$w" 6 body "chips=2:servicios|filtro: auth" "status=$KTB_COUNT"
+  printf '%s\n' "${KIT_BOX[@]}"
+  kit_table "$tw" 3 cols rows sel=3 filter=zzz empty="sin coincidencias"
+  body=("${KTB_LINES[@]}")
+  kit_box "$w" 5 body "chips=2:servicios|filtro: zzz" "status=$KTB_COUNT"
+  printf '%s\n' "${KIT_BOX[@]}"
+}
+
+scene_checklist() { # width
+  local w="$1" items=() body=()
+  items=("err|Variables obligatorias|IP_SERVER, DEEPGRAM_API_KEY|completar"
+         "err|Archivos de secretos|fcm.json, keeper-fcm.json|añadir"
+         "ok|Versiones elegidas|s0 2.14.1 · s1 2.9.0|"
+         "pend|Comprobación (check)|sin ejecutar|ejecutar"
+         "pend|Datos iniciales (init)|sin sembrar|sembrar"
+         "run|Despliegue|en curso 00:12|")
+  kit_checklist $((w - 4)) items sel=1
+  body=("${KCK_LINES[@]}")
+  kit_box "$w" 8 body "chips=1:Para desplegar" "status=$KCK_OK de $KCK_TOTAL listos" 'footer={Enter} resolver|^u desplegar'
+  printf '%s\n' "${KIT_BOX[@]}"
+}
+
+scene_toast_modal() { # width
+  local w="$1" base=() i line
+  KIT_NOW=100 kit_toast_set ok "S0_TAG guardado" 3
+  KIT_NOW=101 kit_toast_line "$w"; printf '[%s]\n' "$KIT_OUT"
+  KIT_NOW=105 kit_toast_line "$w"; printf '[%s]\n' "$KIT_OUT"
+  KIT_NOW=100 kit_toast_set err "no se pudo escribir .env.s0" 3
+  KIT_NOW=101 kit_toast_line "$w"; printf '[%s]\n' "$KIT_OUT"
+  for ((i = 0; i < 14; i++)); do printf -v line '%*s' "$w" ''; base+=("${line// /·}"); done
+  kit_modal_confirm 44 "Rollback" "Vuelve a las etiquetas del despliegue anterior de colorado (s0 2.13.2, s1 2.8.0). Los datos no se tocan." yes=Aceptar no=Cancelar sel=no
+  local m1=("${KIT_BOX[@]}")
+  kit_center base m1
+  printf '%s\n' "${base[@]}"
+  base=()
+  for ((i = 0; i < 14; i++)); do printf -v line '%*s' "$w" ''; base+=("${line// /·}"); done
+  kit_modal_name 50 "Sembrar datos" "init VACÍA y vuelve a crear las colecciones de colorado. No se puede deshacer." colorado colo 4 "prompt=Escribe el nombre para confirmar:"
+  local m2=("${KIT_BOX[@]}")
+  kit_center base m2
+  printf '%s\n' "${base[@]}"
 }
 
 kit_scene() { # name width

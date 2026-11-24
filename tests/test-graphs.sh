@@ -335,11 +335,12 @@ GOLD_DIR="${DELTACTL_GOLDEN_DIR:-tests/golden}/kit"
 MODE="${DELTACTL_GOLDEN:-check}"
 mkdir -p "$GOLD_DIR" 2> /dev/null || true
 scene_text() { # scene width
-  kr "$NC" <<EOS
+  kr "$NC" <<EOS | sed 's/\x1b\[[0-9;]*m//g'
 source tests/tools/kit_scenes.sh
 kit_scene $1 $2
 EOS
 }
+# (the snapshots are plain text: the colour and reverse-video sequences are removed)
 names="$(kr "$NC" <<'EOS'
 source tests/tools/kit_scenes.sh
 echo "${KIT_SCENES_GRAPHS[*]}"
