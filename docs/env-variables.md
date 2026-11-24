@@ -79,3 +79,14 @@ functions, so both write the same way.
 
 State of a variable (`envedit_state_r`): `ok`, `warn` (valid with a warning), `invalid`, `missing` (required and empty), `example` (still has the
 `CAMBIAR…` of the template: `deploy` refuses it too), `default` (empty, but the glossary has a default), `unset` and `fixed`.
+
+`envedit_state_value_r <instance> <file> <key> <value>` gives the same state for a value the caller already holds (nothing is read from the file): the
+panel's editor uses it for the values it has staged.
+
+## Changing them in the panel: the Variables view
+
+View 9 of the panel (`lib/screens/env.sh`, built on the kit's editor `lib/ui/kit/env_editor.sh`; see `docs/ui-kit.md` and `docs/panel-pendiente.md`) edits the
+same files with the same functions. It lists the variables by file with what is still to fill in, validates what is typed as it is typed, and **writes nothing until
+`s`**: the changes wait in memory, a value that does not validate stops the whole save, and leaving with changes asks first. A secret is drawn as dots (`r` shows it
+for a few seconds, `g` generates one: the same value in every file that shares it), a `fixed` variable is never listed, and a file changed since the last deploy is
+marked ↻ (the sums of `.deployed` are read in the background). `u` saves and, after asking, deploys.

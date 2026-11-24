@@ -243,6 +243,33 @@ decide.
 - **Límites de hoy**: no hay todavía el editor de variables, los secretos, el acceso ni la revisión (N2 y N3); el paso de versiones no carga archivos `.tar`
   (se hace en la vista Imágenes, `l`); el ratón solo actúa en la barra de pasos.
 
+## La vista Variables
+
+`lib/screens/env.sh` (vista `env`, 9) y `lib/screens/envedit.sh` (modo `envedit`, el editor tiene el teclado). El editor es el del kit
+(`lib/ui/kit/env_editor.sh`, ver [ui-kit.md](ui-kit.md)); la vista pone lo que es del panel: qué instancia, el teclado, los mensajes, el despliegue que
+sigue a un guardado y las marcas «sin desplegar».
+
+- **Qué instancia**: la elegida en Instancias (`dash_env_target`). Con cambios preparados la vista conserva la suya aunque se cambie la selección (caminar
+  a otra vista no pierde nada); `[` y `]` cambian de instancia solo cuando no hay cambios. Si se llega a la vista sin su dígito (paleta, `goto env`) el editor
+  se abre en el primer dibujo.
+- **El teclado es un modo**: con el dígito `9` el editor recibe el teclado (`DASH_MODE=envedit`): aquí `d` es «valor por defecto» (no «diagnóstico»), `r`
+  «revelar» y `g` «generar», así que las letras no llegan a las teclas globales. Lo que el editor no usa sí llega al panel (`scr_envedit_key` lo pasa a
+  `dash_key_global`): los dígitos cambian de vista, Tab sigue, `?` ayuda, `:` la línea de comandos, `q` sale (pregunta antes si hay cambios; como Esc).
+  Con la vista a la vista pero sin el teclado (se llegó con Tab) la primera tecla que el panel no toma se lo da y va al editor, de modo que Enter es «editar».
+- **Marcas «sin desplegar»**: se leen en segundo plano (`dash_async env`, `dash_env_dump`: sumar un archivo es un proceso) al abrir, al terminar un comando
+  y tras guardar; el resultado llega como líneas `archivo estado` (`synced`, `pending`, `unknown`) a `KEE_DEPLOY`. En el modo de prueba es síncrono. Si
+  una vista se abre antes de que llegue, simplemente no muestra ↻ todavía.
+- **Guardar y desplegar**: `u` pregunta («¿Guardar los cambios (n) y desplegar X?»); con `y` guarda y la vista lanza `dash_start_job stay deploy <instancia>`,
+  un comando como cualquiera (en segundo plano, en Salida, se cancela con `x`). Un guardado rechazado no despliega.
+- **Coste** (equipo con carga 3–4, simulado): una tecla que mueve el cursor 20–26 ms a 160x40 (el dibujo de una fila cuesta más que todo lo demás, así que las
+  filas dibujadas se guardan mientras nada de lo que enseñan cambie: `KEE_LC`, invalidada por `KEE_GEN`); abrir una instancia ~65 ms (cada archivo se lee una vez
+  y se evalúa cada variable, una sola vez por apertura); en reposo ~0,8 % de una CPU (el cuerpo se reutiliza entre muestras, no hay animación).
+- **Pestañas**: con nueve vistas, a 100 columnas la línea de pestañas enseña solo el número de las que no están abiertas (a 110 caben los nombres); los
+  clics siguen la forma que se dibuja. Una pantalla registrada con una línea en `test-tui` ocupa el sitio de la novena pestaña: un dígito no abre una décima.
+- **Pruebas**: `tests/test-envview.sh` (el modelo, cada tecla, que nada se escribe hasta `s`, el todo-o-nada del guardado, que un secreto no sale en ningún
+  fotograma, 48 instantáneas de `tests/tools/env_scenes.sh` en `tests/golden/envview/` a 80x24, 120x30 y 160x40 — 13 escenas en español y 3 en inglés —
+  y las teclas de punta a punta contra el docker simulado).
+
 ## La vista Servidor y la barrera de primer arranque
 
 `lib/screens/server.sh` (vista `server`, 7) y `lib/screens/srvask.sh` (modo `srvask`, la pregunta). Se construyen con el kit (`kit_box` con chips y

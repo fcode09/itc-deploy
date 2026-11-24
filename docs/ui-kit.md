@@ -103,11 +103,40 @@ Cómo se usa: la vista abre el selector en `KVP_DEFAULT` (la ★), de modo que *
 que puede arrancar se elige; una que no, enseña `KVP_WHY`; «escribir otra» activa `typing=1`; «cargar» pide el archivo y lanza `load` como trabajo en segundo
 plano. Solo se construyen las filas que se ven (una lista puede ser larga). Pruebas: `tests/test-picker.sh`; escena `vpick` en `tests/tools/kit_scenes.sh`.
 
+## Editor de variables (`env_editor.sh`)
+
+El editor de las variables de entorno de una instancia, **un solo componente** para todos los sitios donde se editan: la vista Variables del panel
+(`lib/screens/env.sh`), el paso 5 del asistente de nueva instancia y la pestaña Variables del espacio de trabajo de la instancia. Se abre con
+`kee_open <instancia>` (los archivos que hay en disco; los valores se leen una vez) o con `kee_init <instancia> <archivo>…` (un modelo sin archivos detrás,
+el del asistente: valores vacíos, `kee_put <archivo> <clave> <valor>` rellena uno). Qué es cada variable lo dice `lib/core/envschema.sh` y cómo se escribe
+`lib/core/envedit.sh`; el editor no repite ninguna de las dos cosas.
+
+- **Qué enseña**: las variables por archivo (`.env.instance`, `.env.s0`, `.env.s1`…), cada archivo plegable y con cuántas faltan por rellenar y si cambió desde
+  el último despliegue (↻); una fila por variable (icono de estado, nombre, valor, nota); la descripción de la que está bajo el cursor, **a la derecha** desde
+  100 columnas y **debajo de la lista** con menos; y la validación en vivo de lo que se escribe. Una variable `fija` (la pone el compose) no entra en el
+  modelo, así que no se lista ni se edita. Las opcionales que están bien son las «avanzadas»: `a` las enseña; las obligatorias y las que necesitan una mirada
+  (no válidas, con aviso, con el CAMBIAR de la plantilla) se ven siempre. Al abrir, los archivos sin nada que arreglar empiezan plegados si otro tiene algo.
+- **Nunca escribe mientras se teclea**: los cambios quedan *preparados* (`KEE_VAL` frente a `KEE_BASE`) y se escriben juntos con `s` por `envedit_save`
+  (atómico, conserva comentarios y orden, modo 600 en un secreto). Antes se validan **todos**: un valor no válido detiene todo el guardado y no se escribe
+  nada; si un archivo no se puede escribir, el editor lo dice, los cambios siguen preparados y el archivo queda como estaba. Salir con cambios pregunta.
+- **Un secreto no se dibuja nunca**: su valor son diez puntos fijos (la longitud no dice nada) hasta que `r` lo enseña unos segundos (`kee_tick` lo vuelve a
+  tapar); el campo de un secreto muestra puntos al teclear y empieza vacío (se escribe uno nuevo, no se añade al que había). Los mensajes no repiten valores.
+- **Teclas** (`kee_key <tecla>` devuelve 0 si la usó, 1 si es del panel; después se leen `KEE_ACTION` — `leave`, `deploy`, `prev`, `next` — y
+  `KEE_NOTE_KIND`/`KEE_NOTE`, un mensaje para la línea de estado): ↑↓ PgUp PgDn Inicio Fin · Enter pliega un archivo o edita una variable · `g` genera (pregunta si
+  ya había valor; el mismo valor en todos los archivos que lo comparten) · `d` el valor por defecto · `r` revela · `a` avanzadas · `s` guarda · `u` guarda y
+  pide desplegar (pregunta) · `[` `]` otra instancia · Esc sale. Mientras se teclea un valor: las teclas del campo (`kit_field_key`); Enter lo acepta si
+  valida, Esc lo cancela. En un modelo sin disco `s` y `u` no son del editor (devuelven 1): el anfitrión escribe.
+- **Dibujo**: `kee_render <ancho> <alto> [chips=… focus=… side=auto|0|1]` → `KEE_BOX`; `kee_hint <ancho>` da la última línea (las teclas de lo que hace el editor
+  ahora). `KEE_REV` cambia en cada mutación: el anfitrión lo pone en la firma del fotograma.
+
+Pruebas: `tests/test-envview.sh`; escenas de `tests/tools/env_scenes.sh`, instantáneas en `tests/golden/envview/`.
+
 ## Quién lo usa
 
 La vista **Servidor** del panel (`lib/screens/server.sh`) es la primera pantalla hecha con el kit: `kit_box` (chips, estado y pie), `kit_graph` y
 `kit_graph_mirror`, `kit_meter`, `kit_leader`, `kit_table`, `kit_state_icon` y `kit_overlay` (la caja de los núcleos flotando sobre la gráfica de CPU).
-Sus escenas con datos fijos están en `tests/tools/server_scenes.sh`.
+Sus escenas con datos fijos están en `tests/tools/server_scenes.sh`. La vista **Imágenes** usa el selector de versión y la vista **Variables** el editor de
+variables.
 
 ## Galería y pruebas
 
