@@ -9,7 +9,7 @@ Un panel de una sola pantalla (`./deltactl` en una terminal, o `./deltactl menu`
 - **Instancias**: lista con `n/m`, memoria y CPU; detalle de la seleccionada (por servicio: imagen, estado, tiempo activo, puerto,
   reinicios, memoria y CPU con barra y tendencia, errores de los últimos 10 min, siguientes pasos) y el panel de salida del último comando.
 - **Recursos**: todos los servicios de todas las instancias con memoria, CPU, tendencia, reinicios y tiempo activo; orden con `s`.
-- **Salida**: la salida completa del último comando, con desplazamiento (`↑↓`, PgUp/PgDn, Home/End), `f` para seguir y `e` solo errores.
+- **Salida**: el último comando. Los que tienen forma (`new`, `check`, `deploy`, `init`, `doctor`, `images`, `env`, `rollback`, `adopt`) se muestran como resumen (ver «El resumen de la Salida» abajo); `v` alterna con la salida cruda, que es la que se ve siempre para cualquier otro comando. Desplazamiento (`↑↓`, PgUp/PgDn, Home/End), `f` para seguir y `e` solo errores (siempre sobre la salida cruda).
 - **Ejecuciones** (`4`): el historial de las operaciones que cambian algo (`lib/core/runs.sh`). Lista (las que están en curso primero,
   luego las más nuevas), y de la seleccionada: estado y código, comparación con la anterior correcta de la misma operación y con la
   media de las cinco anteriores (duración, CPU, docker, memoria pico), consumo, contenedores antes y después y el final de su salida
@@ -120,7 +120,9 @@ con color) y en el muestreo (~10 ms). Los gráficos ya son incrementales (`gfx_a
 | `lib/cmd/dashboard_view.sh` | Dibujo compartido: cabecera, pestañas, marco de los diálogos, barra de teclas y el fotograma (`dash_render`). Solo construye `TUI_FRAME`, nunca ejecuta nada |
 | `lib/screens/registry.sh` | Registro de pantallas y router: una línea por pantalla y el contrato que cumple cada una (ver «Pantallas» abajo) |
 | `lib/screens/instances.sh` (+ `instances_logs.sh`) | Vista Instancias: lista, detalle, vista ancha, zoom, teclas y el panel de logs en vivo |
-| `lib/screens/resources.sh`, `output.sh` | Vistas Recursos y Salida |
+| `lib/screens/resources.sh`, `output.sh` | Vistas Recursos y Salida (esta dibuja el resumen o la salida cruda) |
+| `lib/core/outparse.sh` | Intérprete de lo que imprimió un comando: filas (titular, secciones, elementos con estado, fases, pasos numerados, veredicto). Solo lee y no dibuja |
+| `lib/ui/outsummary.sh` | Dibuja esas filas con el kit y guarda el resultado hasta que cambian la salida, el tamaño, el idioma o el tema |
 | `lib/screens/runs.sh` | Vista Ejecuciones: lectura del historial, detalle, comparación, estadísticas, visor de logs paginado, teclas |
 | `lib/screens/procs.sh` | Vista Procesos y tarjeta de la cabecera: árbol de `/proc` (`DELTACTL_PROC_ROOT` en los tests) y coste del panel |
 | `lib/screens/console.sh` (+ `console_alias.sh`) | Vista Consola y la consola de Instancias: historial, órdenes propias, completado y envío; alias (`alias`/`unalias`, archivo `aliases`) |
@@ -133,6 +135,41 @@ con color) y en el muestreo (~10 ms). Los gráficos ya son incrementales (`gfx_a
 | `lib/adapters/host.sh` | Lectores de `/proc`, `/sys` y cgroups (solo builtins de Bash): CPU por núcleo, memoria por tipo, carga, arranque, temperaturas, red, discos |
 | `lib/adapters/docker.sh` | `dk_container_rows` (con pid y reinicios), `dk_events_stream`, `dk_images_ids` |
 | `lib/i18n/{es,en}/dashboard.sh` | Textos del panel |
+
+## El resumen de la Salida
+
+La vista Salida no vuelca texto: cuando el comando tiene forma, `lib/core/outparse.sh` lo lee y `lib/ui/outsummary.sh` lo dibuja (la vista Actividad
+de la tarea A2 usará los mismos dos archivos). Los comandos **no cambian lo que imprimen** (los golden de la CLI no se tocaron) y la salida cruda
+sigue intacta en `JOB_LINES`: `v` alterna, `e` (solo errores) y la ayuda de la vista siguen trabajando sobre ella.
+
+**Qué se reconoce** (`out_parse <array> <línea de comando> [en curso] [código]`): `new`, `check`, `deploy`, `init`, `doctor`, `images`, `env`, `rollback` y
+`adopt`; el comando se toma de la primera palabra del título del trabajo. Se reconoce por la **forma** y por el **catálogo i18n**, nunca por texto suelto:
+
+| Forma | Cómo se lee |
+| --- | --- |
+| Título subrayado (`───`) | `OUT_TITLE` |
+| `OK …` / `ERROR …` / `AVISO …` en el margen (claves `label.*`) | el primer `OK`/`ERROR` es el titular (`OUT_HEAD_*`; un `ERROR` pesa más que un `OK`); los demás y los `AVISO` son elementos |
+| `●` `▲` `✖` `ℹ` `→` (modo rico) o `*` `!` `x` `i` `->` (llano), con 2 o más espacios de sangría | elemento con estado ok / warn / err / info, o la pista (`→`); `título  detalle` (dos espacios) separa el detalle de la misma línea |
+| Líneas con más sangría que el elemento | su explicación (`OUT_R_SUB`) |
+| `  1. texto` | paso numerado |
+| Títulos y fases de los catálogos (`new.pending_title`, `new.next_title`, `deploy.validating`, `init.step1`…) | secciones y fases (`step`); la última fase queda «en curso», fallida o hecha según el comando |
+| Cabecera de tabla en mayúsculas (3 o más columnas) | `env` (una sección por archivo, el estado se lee de `env.state.*`) e `images` (estado por `images.use_*`) |
+| Última línea con marcador tras un blanco, en `check` y `doctor` | el veredicto (`OUT_VER_*`) |
+
+Las **dos lenguas a la vez**: lo que imprimió un comando sigue leyéndose si el panel cambia de idioma después (`out_init` carga el catálogo que falte).
+Si una salida no se reconoce (otro comando, texto inesperado, un título sin nada debajo) `out_parse` devuelve 1 y la vista muestra la salida cruda, sin
+error. Lo que está en el medio y no se resume (el progreso de docker en un `deploy`) se cuenta en `OUT_IGNORED` y la vista lo dice en la última línea.
+El resumen **no añade palabras**: `tests/test-outsum.sh` comprueba que cada palabra del resumen salió del comando.
+
+**Añadir un comando**: poner su primera palabra en `out_kind_of`, y si tiene secciones, fases o tablas propias, sus claves i18n en `out_init` (o su
+cabecera, si la tabla es nueva, en la rama `case "$OUT_KIND"` de las filas de tabla). Un archivo de captura (`tests/tools/outsum_capture.sh`) y una
+escena (`tests/tools/outsum_scenes.sh`) para su golden.
+
+**Coste**: se lee una vez por salida y tamaño (el resultado se guarda en `OUTSUM_*`; el fotograma no vuelve a leer). Con la máquina a carga ≈ 2
+(`bench_frames.sh`): un fotograma con el resumen ya hecho 2,5–3,2 ms (igual que la salida cruda: 2,5–3,4 ms), una tecla de desplazamiento 8–10 ms, y
+leer y dibujar de nuevo la salida de `doctor` (37 líneas) 19–22 ms, una vez. Mientras el comando corre y llegan líneas, el resumen se rehace como mucho
+cada 300 ms, y de `deploy`/`init`/`rollback` solo se leen las 150 primeras y las 150 últimas líneas (el progreso de docker son miles): 3000 líneas
+cuestan unos 75 ms por rehacer, no por fotograma.
 
 ## El servidor entero: fuentes de métricas
 
