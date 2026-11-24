@@ -82,6 +82,27 @@ new_wizard() {
   new_ask_yn "$(t new.ask_create)" y || die "$(t err.cancelled)"
 }
 
+# `--sN-tag latest` asks for the MOST RECENT version of the image (lib/core/imagecat.sh: the newest by creation date among the version tags
+# that this server can run), not for a tag called "latest", which moves and cannot be gone back to. It is resolved to the tag it names.
+new_resolve_latest() {
+  local svc repo
+  local -a want=()
+  for svc in "${KNOWN_SERVICES[@]}"; do
+    [ "${W_TAG[$svc]:-}" = latest ] || continue
+    want+=("$svc=${W_IMG[$svc]:-$(default_repo "$svc")}")
+  done
+  [ "${#want[@]}" -gt 0 ] || return 0
+  check_docker
+  ic_load "${want[@]}" || die "$(t err.docker_daemon)"
+  for svc in "${KNOWN_SERVICES[@]}"; do
+    [ "${W_TAG[$svc]:-}" = latest ] || continue
+    repo="${W_IMG[$svc]:-$(default_repo "$svc")}"
+    ic_latest "$svc" "$repo" || die "$(t new.latest_none "$svc" "$repo" "$IC_SERVER_ARCH")$(see local-images)"
+    info "$(t new.latest_resolved "$svc" "$repo" "$IC_LATEST")"
+    W_TAG[$svc]="$IC_LATEST"
+  done
+}
+
 # Applies to the newly created .env files what the wizard answered.
 new_apply_wizard() { # instance existing
   local name="$1" existing="$2" dir f svc secret item var kind
@@ -223,6 +244,7 @@ cmd_new() {
     img="${W_IMG[$svc]:-}"
     [ -z "$img" ] || valid_image_name "$img" || die "$(t new.err_image_invalid "$img")$(see local-images)"
   done
+  new_resolve_latest
   if [ "$W_GEN" -eq 1 ] && ! command -v openssl > /dev/null 2>&1; then die "$(t new.err_generate_no_openssl)"; fi
 
   if [ -n "$services" ]; then

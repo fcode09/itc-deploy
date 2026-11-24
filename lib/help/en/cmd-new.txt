@@ -20,7 +20,9 @@ terminal, and on confirmation it starts `new` with the answers as options.
 - `--services s0,s1` services active in the instance (s0,s1 by default). E.g.: `--services s1` creates an instance with only Gue.
 - `--existing` the municipality ALREADY has data: it is marked as initialized and `./deltactl init` can never run on it.
 - `--s0-image <name>` and `--s1-image <name>` image name of each service (without a tag).
-- `--s0-tag <tag>` and `--s1-tag <tag>` version to deploy of each service.
+- `--s0-tag <tag>` and `--s1-tag <tag>` version to deploy of each service. With `latest` the **most recent** version
+  this server can use is chosen (the ★ of `./deltactl images`: the newest by creation date among the version tags of its
+  architecture), not a tag called `latest`; the instance stores the tag it resolved to.
 - `--ip <url>` public URL of the system, with its scheme (stored as IP_SERVER in s0 and s1).
 - `--generate-secrets` generates the unique secrets (JWT and encryption keys); needs openssl.
 
