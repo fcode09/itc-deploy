@@ -1,0 +1,41 @@
+=== frame 1 ===
+  ITC  testhost · Memoria ███░░░ 5.6/11.5 GB 48% ▄▃▂▅▃▂ · Carga 3.18 · Docker 27.0.0 · contenedores 1.5G
+ [1 Instancias]  2 Recursos   3 Salida   4 Ejecuciones   5 Procesos   6 Consola   7 Servidor   8 Imágenes   9 Variables                                        
+╭─ Instancias ───────────────────────────╮╭─┐ ▸ix-lima · 1/2 ┌─────────────────────────────────────────────────┐▲ parcial┌─╮╭─ Eventos ────────────────────────╮
+│   + Nueva instancia                    ││ ╭─┐s0┌─┐auth-backend:2.14.1┌──────────╮╭─┐s1┌─┐gueo-back-end:2.9.0┌┐✖ exited┌─╮││ Sin eventos todavía              │
+│                  n/m      mem    cpu   ││ │ activo 6h12m  ·  :4110              ││ :4111                                │││                                  │
+│   ●● ix-colorado 2/2    1.3G  25.1%    ││ │ mem ······················ 180M/512M││ sin lectura                          │││                                  │
+│ ▸ ●✖ ix-lima     1/2    180M   1.2%    ││ │ 35%                                 ││                                      │││                                  │
+│   ✖✖ ix-piura    0/2       -      -    ││ │       ⣀⣀⣀⣠⣀⣄⣠⣀⣄⣰⣄⣆⣠⣀⣠⣀⣄⣠⣀⣄⣰⣄⣦⣠⣀⣀⣀⣀⣠⣀││                                      │││                                  │
+│   ○○ ix-sullana  0/2       -      -    ││ │ cpu ··························· 1.2%││                                      │││                                  │
+╰────────────────────────────────────────╯│ │ 1%                                  ││                                      │││                                  │
+╭─ Servidor ─────────────────────────────╮│ │       ⣄⣠⣀⣄⣠⣀⣄⣠⣀⣦⣀⣆⣦⣰⣄⣠⣀⣄⣠⣀⣤⣸⣤⣄⣀⣄⣠⣀⣄⣠││                                      │││                                  │
+│ Memoria █████░░░░░ 5.6/11.5 GB 48%     ││ ╰─────────────────────────────────────╯╰──────────────────────────────────────╯││                                  │
+│                  ▃                     ││   Total  mem 180M/512M  cpu 1.2%  datos: sembrados                             ││                                  │
+│                  █   ▄                 ││ Para desplegar · 5                                                             ││                                  │
+│   ▁  ▁  ▄  ▄  █  ██  █     ▂  ▃  ▂  ▆  ││   ▲ levantar de nuevo ix-lima/s1                                    ⏎ desplegar││                                  │
+│   █  █▁ █▂ █▁ █▅ ██▆ █  █  █  █  █▃ █▂ ││ ▸ ✖ Faltan variables por rellenar  s1: 2                             ⏎ rellenar││                                  │
+│ ▆ █▅ ██ ██ ██▁██▁███▅█▄ █▄ █▇ █▇ ██ ██ ││   ○ Variables cambiadas sin desplegar  s0, instance             ⏎ ver variables││                                  │
+│ █▃██▃██▆██▆████████████ ██▁██▅██▄█████▇││   ℹ s0: hay una versión más reciente ★  2.15.0 (ahora 2.14.1)   ⏎ ver versiones││                                  │
+│ Carga 3.18                             ││   ✖ Al servidor le falta: docker compose                         ⏎ ver servidor││                                  │
+│ contenedores 1.5G                      ││                                                                                ││                                  │
+│ Docker 27.0.0                          │╰─┘u desplegar└─┘c comprobar└─┘s estado└─┘l logs└─┘t pendientes└─┘Enter más└─────╯│                                  │
+│                                        │╭─ Logs · s0 · siguiendo ────────────────────────────────────────────────────────╮│                                  │
+│                                        ││ Leyendo el log...                                                              ││                                  │
+│                                        ││                                                                                ││                                  │
+│                                        ││                                                                                ││                                  │
+│                                        ││                                                                                ││                                  │
+│                                        ││                                                                                ││                                  │
+│                                        ││                                                                                ││                                  │
+│                                        ││                                                                                ││                                  │
+╰────────────────────────────────────────╯╰────────────────────────────────────────────────────────────────────────────────╯╰──────────────────────────────────╯
+╭─ Consola ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│ ix-lima ❯ : escribe un comando · ! en el terminal · Tab completa · ↑ historial · help                                                                        │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+ ↑↓ fila · Enter resolver · Tab siguiente · ← volver · : comando · ? ayuda · q salir

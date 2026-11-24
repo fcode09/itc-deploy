@@ -158,9 +158,13 @@ check "Tab wraps around the views" 'echo "$out" | frame_n 6 | grep -q "\[6 Conso
 out="$(panel tab q)"
 check "on the instances view Tab moves the focus to the services" 'echo "$out" | frame_n 2 | grep -q ">tui-a" && echo "$out" | frame_n 2 | grep -q "\[1 Instancias\]"'
 out="$(panel tab tab q)"
-check "and on to the list again (the logs pane exists only on the wide layout)" 'echo "$out" | frame_n 3 | grep -q ">Instancias"'
+check "and on to the logs, which are a tab of the workspace on a screen too small for the overview" 'echo "$out" | frame_n 3 | grep -q ">Logs" && echo "$out" | frame_n 3 | grep -q "Resumen \[Logs\]"'
+out="$(panel tab tab tab q)"
+check "and on to the list again" 'echo "$out" | frame_n 4 | grep -q ">Instancias"'
 out="$(panel btab q)"
-check "Shift+Tab goes the other way round" 'echo "$out" | frame_n 2 | grep -q ">tui-a"'
+check "Shift+Tab goes the other way round: from the list to the logs" 'echo "$out" | frame_n 2 | grep -q ">Logs"'
+out="$(panel btab btab q)"
+check "and on to the services" 'echo "$out" | frame_n 3 | grep -q ">tui-a"'
 
 section "3b. the new-instance form (inside the panel)"
 out="$(panel n)"
@@ -475,7 +479,7 @@ check "the test mode takes the size from DELTACTL_TUI_ROWS and COLUMNS" '[ "$(DE
 section "11. wide layout and the new data"
 check "the overview fills every wide size exactly: each body line is as wide as the screen and its border closes" 'for s in 120x30 150x40 200x60 300x90; do c=${s%x*}; r=${s#*x}; run_lib "COLUMNS=$c; DELTACTL_TUI_ROWS=$r; tui_size; $CPU_SCRIPT; dash_render" | last_frame | awk -v c=$c -v r=$r "NR>=4 && NR<=r-1 { if (length(\$0) != c || substr(\$0, length(\$0), 1) !~ /[|+]/) { bad = 1; print s, NR, length(\$0) > \"/dev/stderr\" } } END { exit bad }" || exit 1; done'
 check "below 120 columns the compact view is kept" 'run_lib "COLUMNS=119; tui_size; $CPU_SCRIPT; dash_render" | last_frame | grep -q "Instancias" && ! run_lib "COLUMNS=119; tui_size; $CPU_SCRIPT; dash_render" | last_frame | grep -q -- "- Servidor "'
-check "the wide overview has the server box and the services table" 'run_lib "COLUMNS=160; DELTACTL_TUI_ROWS=40; tui_size; $CPU_SCRIPT; dash_render" | last_frame | grep -q "Servidor" && run_lib "COLUMNS=160; DELTACTL_TUI_ROWS=40; tui_size; $CPU_SCRIPT; dash_render" | last_frame | grep -q "SVC"'
+check "the wide overview has the server box and the services as cards (one per service, with its image and its state in the border)" 'run_lib "COLUMNS=160; DELTACTL_TUI_ROWS=40; tui_size; $CPU_SCRIPT; dash_render" | last_frame | grep -q "Servidor" && run_lib "COLUMNS=160; DELTACTL_TUI_ROWS=40; tui_size; $CPU_SCRIPT; dash_render" | last_frame | grep -q "\[s0\]-\[auth-backend:1.0\]-\[. healthy\]" && run_lib "COLUMNS=160; DELTACTL_TUI_ROWS=40; tui_size; $CPU_SCRIPT; dash_render" | last_frame | grep -q "\[s1\]-\[gueo-back-end:1.0\]"'
 check "a wide screen shows the events box from 150 columns" 'run_lib "COLUMNS=150; DELTACTL_TUI_ROWS=40; tui_size; $CPU_SCRIPT; dash_render" | last_frame | grep -q "Eventos" && ! run_lib "COLUMNS=149; DELTACTL_TUI_ROWS=40; tui_size; $CPU_SCRIPT; dash_render" | last_frame | grep -q "Eventos"'
 check "an event is kept as epoch|name|action" '[ "$(run_lib "dash_event_add \"1700000000|s0_x|die\"; echo \"\${DASH_EVENTS[0]}\"")" = "1700000000|s0_x|die" ]'
 check "a bare action becomes an event of an unknown container" '[ "$(run_lib "dash_event_add start; r=\"\${DASH_EVENTS[0]#*|}\"; echo \"\$r\"")" = "-|start" ]'
@@ -560,7 +564,7 @@ out="$(panel tab z q)"
 check "zooming the services gives them the whole body" 'echo "$out" | frame_n 3 | grep -q ">tui-a" && ! echo "$out" | frame_n 3 | grep -qE -- "\+- >?Consola"'
 check "the focus ring goes list, services, logs, list on a wide screen" '[ "$(run_lib "COLUMNS=160; DELTACTL_TUI_ROWS=40; tui_size; dash_refresh; for i in 1 2 3; do dash_focus_cycle 1; printf \"%s \" \$DASH_FOCUS; done")" = "svc logs list " ]'
 check "and goes the other way with Shift+Tab" '[ "$(run_lib "COLUMNS=160; DELTACTL_TUI_ROWS=40; tui_size; dash_refresh; for i in 1 2 3; do dash_focus_cycle -1; printf \"%s \" \$DASH_FOCUS; done")" = "logs svc list " ]'
-check "on a narrow screen there is no logs pane in the ring" '[ "$(run_lib "dash_refresh; for i in 1 2 3; do dash_focus_cycle 1; printf \"%s \" \$DASH_FOCUS; done")" = "svc list svc " ]'
+check "on a narrow screen the logs are a tab of the workspace and still in the ring" '[ "$(run_lib "dash_refresh; for i in 1 2 3 4; do dash_focus_cycle 1; printf \"%s \" \$DASH_FOCUS; done")" = "svc logs list svc " ]'
 check "the New button has no services to enter, so Tab keeps the list" '[ "$(run_lib "dash_refresh; DASH_ON_NEW=1; dash_focus_cycle 1; echo \$DASH_FOCUS")" = "list" ]'
 LOGS_WIDE='COLUMNS=160; DELTACTL_TUI_ROWS=40; tui_size; dash_init; dash_refresh; mt_sample; dash_current_target; DASH_LOGS[tui-a/s0]="$(seq -f "line %g ok" 1 30)"; DASH_LOGS_AT[tui-a/s0]=1;'
 check "the logs pane shows the end of the log while it follows" 'run_lib "$LOGS_WIDE dash_render" | last_frame | grep -q "line 30 ok" && run_lib "$LOGS_WIDE dash_render" | last_frame | grep -q "siguiendo"'

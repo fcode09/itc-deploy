@@ -1,0 +1,25 @@
+=== frame 1 ===
+  ITC  testhost · Memoria ███░░░ 5.6/11.5 GB 48% ▄▃▂▅▃▂ · Carga 3.18
+ [1 Instancias]  2   3   4   5   6   7   8   9                                 
+╭─ Instancias ─────────────────────────────────────────────────────────────────╮
+│   + Nueva instancia                                                          │
+│                  n/m      mem    cpu                                         │
+│   ●● ix-colorado 2/2    1.3G  25.1%                                          │
+│ ▸ ●✖ ix-lima     1/2    180M   1.2%                                          │
+│   ✖✖ ix-piura    0/2       -      -                                          │
+╰──────────────────────────────────────────────────────────────────────────────╯
+[Resumen] Logs                                                                  
+╭─┐ ▸ix-lima · 1/2 ┌───────────────────────────────────────────────┐▲ parcial┌─╮
+│     mem  ████░░░░░░░░ 180M/512M  35%  ▂▅▃▂▁▄▂▁▄▂▁▄▃▁                         │
+│     cpu  ░░░░░░░░░░░░ 1.2%  █▅▂▁▆▃▁▆▃▁▆▄▁▆                                   │
+│ Para desplegar · 5                                                           │
+│ ▸ ✖ Faltan variables por rellenar  s1: 2                           ⏎ rellenar│
+╰─┘u desplegar└─┘c comprobar└─┘s estado└─┘l logs└─┘< > pestaña└─┘Enter más└────╯
+╭─ Consola ────────────────────────────────────────────────────────────────────╮
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│ ix-lima ❯ : escribe un comando · ! en el terminal · Tab completa · ↑ historia│
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+ ↑↓ fila · Enter resolver · Tab siguiente · ← volver · ? ayuda · q salir

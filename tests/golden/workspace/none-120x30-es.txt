@@ -1,0 +1,31 @@
+=== frame 1 ===
+  ITC  testhost · Memoria ███░░░ 5.6/11.5 GB 48% ▄▃▂▅▃▂ · Carga 3.18 · Docker 27.0.0 · contenedores 1.5G
+ [1 Instancias] 2 Recursos 3 Salida 4 Ejecuciones 5 Procesos 6 Consola 7 Servidor 8 Imágenes 9 Variables               
+╭─ ▸Instancias ──────────────────────╮╭─ Nueva instancia ──────────────────────────────────────────────────────────────╮
+│ ▸ + Nueva instancia                ││                                                                                │
+│                                    ││ Crea la carpeta de una instancia nueva a partir de las plantillas.             │
+│ (sin instancias; n crea una)       ││ Enter abre el asistente (nombre, servicios y puertos) y vuelve aquí.           │
+│                                    ││                                                                                │
+╰────────────────────────────────────╯│ También: n desde cualquier vista, o escribe  : new <nombre>                    │
+╭─ Servidor ─────────────────────────╮│                                                                                │
+│ Memoria █████░░░░░ 5.6/11.5 GB 48% ││                                                                                │
+│              ▃                     ││                                                                                │
+│              █   ▄                 ││                                                                                │
+│  ▁  ▄  ▄  █  ██  █     ▂  ▃  ▂  ▆  ││                                                                                │
+│  █▁ █▂ █▁ █▅ ██▆ █  █  █  █  █▃ █▂ ││                                                                                │
+│  ██ ██ ██▁██▁███▅█▄ █▄ █▇ █▇ ██ ██ ││                                                                                │
+│ ▃██▆██▆████████████ ██▁██▅██▄█████▇││                                                                                │
+│ Carga 3.18                         ││                                                                                │
+│ contenedores 1.5G                  ││                                                                                │
+│ Docker 27.0.0                      ││                                                                                │
+╰────────────────────────────────────╯╰────────────────────────────────────────────────────────────────────────────────╯
+╭─ Consola ────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│ deltactl ❯ : escribe un comando · ! en el terminal · Tab completa · ↑ historial · help                               │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+ ↑↓ elegir · Enter crea la instancia · : comando · ? ayuda · q salir

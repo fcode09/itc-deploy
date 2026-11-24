@@ -71,7 +71,7 @@ dash_log_mark() { # line lowered_find
 dash_ls_wanted() {
   DASH_LS_WANT="" DASH_LS_CN=""
   [ "$DASH_VIEW" = "instances" ] || return 1
-  if [ "$DASH_ZOOM" -eq 1 ]; then [ "$DASH_FOCUS" = "logs" ] || return 1; else dash_overview_fits || return 1; fi
+  dash_logs_visible || return 1
   dash_current_target || return 1
   DASH_LS_WANT="$DASH_T_INST/$DASH_T_SVC"
   [ "${ST_STATE[$DASH_LS_WANT]:-}" = "running" ] && [ -n "${ST_CNAME[$DASH_LS_WANT]:-}" ] || { DASH_LS_WANT=""; return 1; }
