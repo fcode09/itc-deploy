@@ -50,6 +50,18 @@ help_title() { # file
   done < "$1"
 }
 
+# A help page with its generated parts: the line "@@services@@" is replaced by the services of the catalog (lib/core/catalog.data),
+# so a new service shows up in the guide without touching the page. Everything else goes through as it is.
+help_expand() { # file
+  local line
+  while IFS= read -r line || [ -n "$line" ]; do
+    case "${line%$'\r'}" in
+      '@@services@@') catalog_help_lines ;;
+      *) printf '%s\n' "$line" ;;
+    esac
+  done < "$1"
+}
+
 help_topics_list() {
   local t
   ui_h2 "$(t help.guides)"
@@ -96,7 +108,7 @@ help_page() { # name
   f="$(help_page_file cmd "$n" || true)"
   [ -n "$f" ] || f="$(help_page_file topic "$n" || true)"
   if [ -n "$f" ]; then
-    ui_render_file "$f"
+    ui_render_file <(help_expand "$f")
     printf '\n'
     return 0
   fi
@@ -188,7 +200,7 @@ help_search() { # text...
       *) continue ;;
     esac
     [ -n "$pf" ] || pf="$f"
-    lines="$(help_logical_lines "$pf")"
+    lines="$(help_logical_lines <(help_expand "$pf"))"
     grep -qiF -- "$q" <<< "$lines" || continue
     found=1
     ui_h2 "./deltactl help $n"

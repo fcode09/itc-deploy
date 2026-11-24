@@ -2,7 +2,7 @@
 # Docker adapter: the ONLY place that runs the `docker` binary. Commands and core rules call these
 # functions, so what the tool asks Docker is visible in one file and tests can replace Docker with a
 # simulated binary on the PATH (tests/fake-docker.sh).
-# Sourced by lib/bootstrap.sh; requires KNOWN_SERVICES (lib/core/config.sh) and ROOT.
+# Sourced by lib/bootstrap.sh; requires KNOWN_SERVICES (lib/core/catalog.sh) and ROOT.
 
 # --- Availability ------------------------------------------------------------------------------------
 dk_installed() { command -v docker >/dev/null 2>&1; }

@@ -3,27 +3,20 @@
 
 # Default image name (without registry or tag) of each service.
 default_repo() { # service
-  case "$1" in
-    s0) echo "auth-backend" ;;
-    s1) echo "gueo-back-end" ;;
-    *) return 1 ;;
-  esac
+  [ -n "${CAT_REPO[$1]:-}" ] || return 1
+  printf '%s\n' "${CAT_REPO[$1]}"
 }
 
 # Image name of a service: <SN>_IMAGE from the instance's .env.instance, or the default.
 # service_repo_r leaves it in SR without starting any process.
 SR=""
 service_repo_r() { # service [instance]
-  local svc="$1" name="${2:-}" def
+  local svc="$1" name="${2:-}"
   SR=""
-  case "$svc" in
-    s0) def="auth-backend" ;;
-    s1) def="gueo-back-end" ;;
-    *) return 1 ;;
-  esac
+  [ -n "${CAT_REPO[$svc]:-}" ] || return 1
   GV=""
   [ -z "$name" ] || get_var_r "$INSTANCES_DIR/$name/.env.instance" "${svc^^}_IMAGE"
-  SR="${GV:-$def}"
+  SR="${GV:-${CAT_REPO[$svc]}}"
 }
 service_repo() { # service [instance]
   service_repo_r "$@" || return 1
