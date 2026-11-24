@@ -1,0 +1,41 @@
+=== frame 1 ===
+
+  1 Instancias   2 Recursos   3 Salida   4 Ejecuciones   5 Procesos   6 Consola   7 Servidor  [8 Imágenes]                                                     
+╭─┐ ▸⁸imágenes ┌────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐servidor amd64 · 0 versiones┌─╮
+│ ▾ s0 · auth-backend                                                                                                                             sin imágenes │
+│   No hay versiones cargadas de esta imagen. Pulsa l para cargar un archivo (.tar o .tar.gz).                                                                 │
+│                                                                                                                                                              │
+│ ▾ s1 · gueo-back-end                                                                                                                            sin imágenes │
+│   No hay versiones cargadas de esta imagen. Pulsa l para cargar un archivo (.tar o .tar.gz).                                                                 │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+╰─┘Enter usar en una instancia…└─┘l cargar .tar└─┘Espacio detalle└─┘c copiar└─┘R releer└───────────────────────────────────────────────────────────────────────╯
+
+ ↑↓ elegir · Enter usar en una instancia · Espacio detalle · l cargar · c copiar · R releer · : comando · ? ayuda · q salir

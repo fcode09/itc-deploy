@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # `docker` simulado y determinista para los tests: no necesita Docker real y nunca levanta nada.
 # Se copia a "$FIX/bin/docker" (ver tests/test-guided.sh y tests/test-menu.sh). Entiende solo lo que usa deltactl:
-#   info, network inspect, ps, image ls/inspect, run (prueba de Mongo) y compose (version, config, up/pull/...).
+#   info, network inspect, ps, image ls/inspect, load, run (prueba de Mongo) y compose (version, config, up/pull/...).
 # Estado simulado en $FIX: images.txt (ref|id|arquitectura), calls.log (lo que se intentó ejecutar),
-# y los archivos compose_invalid y mongo_fail que fuerzan errores.
+# y los archivos compose_invalid y mongo_fail que fuerzan errores. Opcionales: image_dates.txt (referencia|fecha de creación), server_arch (la
+# arquitectura del servidor) y load_result/load_date/load_arch (lo que `docker load` imprime y carga).
 case "$1" in
   info)
     case "$*" in
@@ -53,6 +54,17 @@ case "$1" in
         done
         [ "$rc" -eq 0 ] || exit 1 ;;
     esac
+    exit 0 ;;
+  load)
+    # `docker load -i <file>` (or reading stdin): prints what $FIX/load_result says ("Loaded image: ref" lines, one per image) and adds those
+    # images to images.txt, dated $FIX/load_date (or now). Without $FIX/load_result it loads nothing, as an archive with no images does.
+    echo "$*" >> "$FIX/calls.log"   # (so the line is "load -i <file>")
+    [ -f "$FIX/load_result" ] || exit 0
+    cat "$FIX/load_result"
+    sed -n 's/^Loaded image: //p' "$FIX/load_result" | while IFS= read -r ref; do
+      printf '%s|sha256:%s|%s\n' "$ref" "$(printf '%s' "$ref" | cksum | cut -d' ' -f1)abcdef000000" "$(cat "$FIX/load_arch" 2> /dev/null || echo amd64)" >> "$FIX/images.txt"
+      printf '%s|%s\n' "$ref" "$(cat "$FIX/load_date" 2> /dev/null || date -u '+%Y-%m-%d %H:%M:%S +0000 UTC')" >> "$FIX/image_dates.txt"
+    done
     exit 0 ;;
   run)
     echo "run $*" >> "$FIX/calls.log"

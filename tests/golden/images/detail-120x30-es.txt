@@ -1,0 +1,31 @@
+=== frame 1 ===
+
+  1 Instancias   2 Recursos   3 Salida   4 Ejecuciones   5 Procesos   6 Consola   7 Servidor  [8 Imágenes]             
+╭─┐ ▸⁸imágenes ┌────────────────────────────────────────────────────────────────────────┐servidor amd64 · 6 versiones┌─╮
+│ ▾ s0 · auth-backend                                                                           5 versiones · ★ 2.14.1 │
+│   VERSIÓN       CREADA         TAMAÑO ARQ       USO                                                                  │
+│   3.0.0-rc1     hace 1 h         300MB arm64 ✖   sin usar                                                            │
+│   2.14.1 ★      hace 2 días      300MB amd64 ✔   ix-lima(actual)  ↑ más reciente                                     │
+│   latest ▲      hace 5 días      300MB amd64 ✔   sin usar                                                            │
+│   2.14.0        hace 9 días      300MB amd64 ✔   ix-colorado(actual)                                                 │
+│   2.13.2        hace 1 mes       300MB amd64 ✔   ix-lima(previa)                                                     │
+│                                                                                                                      │
+│ ▾ s1 · gueo-back-end                                                                             1 versión · ★ 2.9.0 │
+│   VERSIÓN       CREADA         TAMAÑO ARQ       USO                                                                  │
+│   2.9.0 ★       hace 5 días      300MB amd64 ✔   ix-colorado(actual) ix-lima(actual)  ↑ más reciente                 │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│ auth-backend:2.14.1                                                                                                  │
+│ ID a1aaaaaaaaaa · creada 2026-11-22T12:00:00Z (hace 2 días) · 300MB · amd64                                          │
+│ la usan: ix-lima(actual)                                                                                             │
+│                                                                                                                      │
+╰─┘Enter usar en una instancia…└─┘l cargar .tar└─┘Espacio detalle└─┘c copiar└─┘R releer└───────────────────────────────╯
+
+ ↑↓ elegir · Enter usar en una instancia · Espacio detalle · l cargar · c copiar · R releer · ? ayuda · q salir

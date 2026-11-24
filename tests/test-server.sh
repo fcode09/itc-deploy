@@ -70,11 +70,11 @@ check "texts with arguments fill {1}, {2} and {3} without a process" '[ "$(run_l
 
 section "2. the view is registered with one line and follows the contract"
 check "it is the seventh tab and its digit opens it" '[ "$(run_lib "dash_screen_by_number 7; echo \$DASH_SCR_ID")" = "server" ]'
-check "the dialog that asks is a mode" '[ "$(run_lib "printf \"%s \" \${DASH_MODES[@]}")" = "menu confirm name cmd filter find wizard palette help options srvask " ]'
+check "the dialog that asks is a mode" '[ "$(run_lib "printf \"%s \" \${DASH_MODES[@]}")" = "menu confirm name cmd filter find wizard palette help options srvask imguse imgload " ]'
 check "every function of the contract it uses is defined" 'run_lib "for f in render key keys texts sig enter back tick poll bang; do declare -F scr_server_\$f >/dev/null || exit 1; done; for f in render key keys sig; do declare -F scr_srvask_\$f >/dev/null || exit 1; done"'
 check "the requirements are shown required first, then recommended, in the order of the catalog" '[ "$(run_lib "echo \${DASH_SRV_ORDER[*]} \$DASH_SRV_NREQ")" = "docker daemon compose disk ram mongo ss openssl gunzip nofile proxy certbot timesync firewall curl 9" ]'
 check "its signature carries the state it draws" '[ "$(run_lib "DASH_SIG=; scr_server_sig; echo \$DASH_SIG")" = "|0|0|0|none|0|0" ]'
-check "it is in the list of views of the console, the palette and the error message" 'grep -q "console server" lib/screens/console.sh && grep -q "console server; do" lib/screens/palette.sh && grep -q "console · server" lib/i18n/es/dashboard.sh && grep -q "console · server" lib/i18n/en/dashboard.sh'
+check "it is in the list of views of the console, the palette and the error message" 'grep -q "console server" lib/screens/console.sh && grep -q "console server images; do" lib/screens/palette.sh && grep -q "console · server" lib/i18n/es/dashboard.sh && grep -q "console · server" lib/i18n/en/dashboard.sh'
 check "the registry documents the hook of the key !" 'grep -q "scr_<id>_bang" lib/screens/registry.sh'
 
 section "3. snapshots of the scenes (80x24, 120x30 and 160x40)"
