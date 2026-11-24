@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC2034  # MSG_es is read by t through a nameref
-# La vista Servidor del panel (lib/screens/server.sh) y la ventana que pregunta antes de ejecutar un comando
-# (lib/screens/srvask.sh): español. Lo carga lib/i18n/i18n.sh; no se ejecuta.
+# La vista Servidor del panel (lib/screens/server.sh) y la ventana que pregunta antes de ejecutar un comando o de crear una instancia
+# con requisitos sin cumplir (lib/screens/srvask.sh): español. Lo carga lib/i18n/i18n.sh; no se ejecuta.
 
 MSG_es["tui.tab.server"]="Servidor"
 MSG_es["tui.keys.server"]="{1} elegir · Enter detalle · m métricas · c copiar · ! ejecutar · R comprobar · : comando · ? ayuda · q salir"
@@ -53,3 +53,12 @@ MSG_es["tui.srv.run.sudo"]="sudo te pedirá la contraseña. deltactl nunca insta
 MSG_es["tui.srv.run.keys"]="y ejecutar · cualquier otra tecla cancela"
 MSG_es["tui.srv.run.keys.ascii"]="y ejecutar - cualquier otra tecla cancela"
 MSG_es["tui.srv.terminal"]="Ejecutando en la terminal: {1}"
+MSG_es["tui.srv.startup"]="Faltan {1} requisitos obligatorios del servidor: {2}"
+MSG_es["tui.srv.gate.title"]="Faltan requisitos del servidor"
+MSG_es["tui.srv.gate.text"]="Faltan {1} requisitos obligatorios: {2}."
+MSG_es["tui.srv.gate.warn"]="Crear una instancia ahora puede fallar al desplegarla."
+MSG_es["tui.srv.gate.keys"]="y crear igualmente · v ver requisitos · n no volver a avisar · Esc cancela"
+MSG_es["tui.srv.gate.keys.ascii"]="y crear igualmente - v ver requisitos - n no volver a avisar - Esc cancela"
+MSG_es["tui.srv.gate.off"]="No se volverá a avisar (Opciones lo vuelve a activar)"
+MSG_es["tui.opt.prereq"]="Aviso de requisitos"
+MSG_es["tui.opt.desc.prereq"]="Al abrir el panel y al crear una instancia, avisa si falta algo obligatorio del servidor."

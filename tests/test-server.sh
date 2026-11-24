@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC2016,SC2034  # the cases go in single quotes and are evaluated with eval
-# The Server view of the panel (lib/screens/server.sh, lib/screens/srvask.sh): the figures in human units, the golden
+# The Server view of the panel (lib/screens/server.sh, lib/screens/srvask.sh) and the first-run gate: the figures in human units, the golden
 # snapshots of its scenes (tests/tools/server_scenes.sh) at 80x24, 120x30 and 160x40, how it degrades (small screens, ASCII, no colour,
 # sources that are not there), its keys end to end against a simulated server, copying and running an install command (always asking
-# first). No real Docker, no real host, nothing installed:
+# first), the notice when the panel starts and the question before creating an instance. No real Docker, no real host, nothing installed:
 # the panel runs in test mode (DELTACTL_TUI_KEYS) and the command that would install something is replaced by a script that notes it.
 # Snapshots: tests/golden/server/<scene>-<cols>x<rows>-<lang>.txt. DELTACTL_GOLDEN=record rewrites them (only when a change is intended).
 # Run it from the root of the isolated copy (tests/run.sh).
@@ -12,7 +12,7 @@ set -u
 source tests/lib.sh
 export LANG=C.UTF-8 LC_ALL=C.UTF-8
 unset NO_COLOR DELTACTL_COLOR DELTACTL_UI DELTACTL_ASCII COLUMNS DELTACTL_TUI_KEYS DELTACTL_TUI_EVENTS DELTACTL_TUI_ROWS DELTACTL_THEME
-unset DELTACTL_REFRESH DELTACTL_METRICS_INTERVAL DELTACTL_TUI_IDLE_AFTER DELTACTL_CLIP DELTACTL_PR_SHELL DELTACTL_GRAPH TUI_GRAPH
+unset DELTACTL_REFRESH DELTACTL_METRICS_INTERVAL DELTACTL_TUI_IDLE_AFTER DELTACTL_TUI_GATE DELTACTL_CLIP DELTACTL_PR_SHELL DELTACTL_GRAPH TUI_GRAPH
 
 FIX="$(mktemp -d)"
 export FIX
@@ -53,7 +53,7 @@ chmod +x "$FIX/fakesh"
 
 KEYS="$FIX/keys.txt"
 # The panel with the keys given (one per line), a server that has Docker (ok) or one that has nothing (bad). ASCII, no colours, 100 x 30
-# (PANEL_COLS and PANEL_ROWS change the size).
+# (PANEL_COLS and PANEL_ROWS change the size). The panel starts on the first view unless DELTACTL_TUI_GATE=1 finds something missing.
 panel_ok() { printf '%s\n' "$@" > "$KEYS"; PATH="$FIX/bin:$PATH" DELTACTL_CONFIG="$CFG" DELTACTL_TUI_KEYS="$KEYS" DELTACTL_UI=rich DELTACTL_COLOR=never DELTACTL_ASCII=1 COLUMNS="${PANEL_COLS:-100}" DELTACTL_TUI_ROWS="${PANEL_ROWS:-30}" bash ./deltactl 2>&1; }
 panel_bad() { printf '%s\n' "$@" > "$KEYS"; PATH="$FIX/nopath" DELTACTL_PR_SBIN="" DELTACTL_CONFIG="$CFG" DELTACTL_TUI_KEYS="$KEYS" DELTACTL_UI=rich DELTACTL_COLOR=never DELTACTL_ASCII=1 COLUMNS="${PANEL_COLS:-100}" DELTACTL_TUI_ROWS="${PANEL_ROWS:-30}" bash ./deltactl 2>&1; }
 frame_n() { awk -v n="$1" '/^=== frame /{ f = ($3 == n) } f'; }
@@ -193,7 +193,49 @@ DELTACTL_PR_SHELL="$FIX/fakesh" panel_ok 7 '!' q > "$FIX/out.txt"
 check "a requirement that is fine has nothing to run" '[ ! -e "$FIX/ran.txt" ] && grep -q "ya está listo: no hay nada que ejecutar" "$FIX/out.txt"'
 check "outside this view ! is still the command line that runs in the terminal" '[ "$(panel_ok "!" x | last_frame | grep -c "!x")" -ge 1 ]'
 
-section "9. the check runs in the background and the figures are read only here"
+section "9. the notice when the panel starts (the first-run gate)"
+out="$(DELTACTL_TUI_GATE=1 panel_bad q)"
+check "with something required missing the panel opens on the Server view" 'echo "$out" | frame_n 1 | grep -q "\[7 Servidor\]"'
+check "and says what is missing, once, in the message line" 'echo "$out" | frame_n 1 | grep -q "Faltan 1 requisitos obligatorios del servidor: Docker Engine"'
+out="$(DELTACTL_TUI_GATE=1 panel_ok q)"
+check "with everything in place it stays on the first view and says nothing" 'echo "$out" | frame_n 1 | grep -q "\[1 Instancias\]" && ! echo "$out" | frame_n 1 | grep -q "Faltan"'
+out="$(panel_bad q)"
+check "in test mode, without DELTACTL_TUI_GATE, nothing is checked at start (the other tests open on the first view)" 'echo "$out" | frame_n 1 | grep -q "\[1 Instancias\]"'
+out="$(DELTACTL_TUI_GATE=1 panel_bad 7 esc q)"
+check "the view can be left: Esc goes to the first view, with nothing blocking the other views" 'echo "$out" | frame_n 3 | grep -q "\[1 Instancias\]"'
+out="$(DELTACTL_TUI_GATE=1 panel_bad 2 3 1 q)"
+check "the other views open normally from the notice" 'echo "$out" | frame_n 3 | grep -q "\[3 Salida\]"'
+
+section "10. creating an instance with something required missing"
+rm -f "$CFG"
+out="$(DELTACTL_TUI_GATE=1 panel_bad n)"
+check "n does not open the form: it asks first, naming what is missing" 'echo "$out" | last_frame | grep -q "Faltan requisitos del servidor" && echo "$out" | last_frame | grep -q "Faltan 1 requisitos obligatorios: Docker Engine" && echo "$out" | last_frame | grep -q "puede fallar" && ! echo "$out" | last_frame | grep -q ">Nombre de la instancia"'
+check "the key line offers the four answers" 'echo "$out" | last_frame | grep -q "y crear igualmente" && echo "$out" | last_frame | grep -q "v ver requisitos" && echo "$out" | last_frame | grep -q "n no volver a avisar"'
+out="$(DELTACTL_TUI_GATE=1 panel_bad n y)"
+check "y goes on: the form opens" 'echo "$out" | last_frame | grep -q ">Nombre de la instancia"'
+out="$(DELTACTL_TUI_GATE=1 panel_bad n y esc n)"
+check "and the question is not asked again in the same session" 'echo "$out" | last_frame | grep -q ">Nombre de la instancia" || echo "$out" | last_frame | grep -q "Nueva instancia"'
+out="$(DELTACTL_TUI_GATE=1 panel_bad 1 n v)"
+check "v shows the requirements" 'echo "$out" | last_frame | grep -q "\[7 Servidor\]" && echo "$out" | last_frame | grep -q "OBLIGATORIOS"'
+out="$(DELTACTL_TUI_GATE=1 panel_bad 1 n esc)"
+check "Esc cancels: back to where it was, nothing created" 'echo "$out" | last_frame | grep -q "\[1 Instancias\]" && ! echo "$out" | last_frame | grep -q ">Nombre de la instancia" && echo "$out" | last_frame | grep -q "Cancelado"'
+check "nothing is written to the config file by any of those answers" '[ ! -s "$CFG" ] || ! grep -q "TUI_PREREQ" "$CFG"'
+out="$(DELTACTL_TUI_GATE=1 panel_bad 1 n n)"
+check "n (do not warn again) goes on to the form and says it will not warn again" 'echo "$out" | last_frame | grep -q ">Nombre de la instancia" && echo "$out" | grep -q "No se volverá a avisar"'
+check "and it is remembered in the config file" 'grep -q "^TUI_PREREQ=off$" "$CFG"'
+out="$(DELTACTL_TUI_GATE=1 panel_bad q)"
+check "from then on the panel starts on the first view, with no notice" 'echo "$out" | frame_n 1 | grep -q "\[1 Instancias\]" && ! echo "$out" | frame_n 1 | grep -q "Faltan"'
+out="$(DELTACTL_TUI_GATE=1 panel_bad 1 n)"
+check "and n opens the form at once" 'echo "$out" | last_frame | grep -q ">Nombre de la instancia"'
+out="$(panel_bad o down down down down down down)"
+check "Options has the option, off, with what it does" 'echo "$out" | last_frame | grep -q "Aviso de requisitos" && echo "$out" | last_frame | grep -q "avisa si"'
+out="$(panel_bad o down down down down down down enter)"
+check "Options turns it back on (and remembers it)" 'echo "$out" | last_frame | grep -q "Aviso de requisitos: sí" || echo "$out" | grep -q "Aviso de requisitos: sí"; grep -q "^TUI_PREREQ=on$" "$CFG"'
+out="$(DELTACTL_TUI_GATE=1 panel_bad q)"
+check "and the notice is back" 'echo "$out" | frame_n 1 | grep -q "\[7 Servidor\]"'
+rm -f "$CFG"
+
+section "11. the check runs in the background and the figures are read only here"
 check "the answer of the check is loaded from the declare lines of the producer, and nothing else" '[ "$(run_lib "DASH_SRV_ORDER=(a); dash_srv_apply \$'"'"'declare -A PR_STATUS=([a]=\"err\" )\ndeclare -- PR_N_ERR=\"3\"\ndeclare -- EVIL=\"1\"\ndeclare -- PATH=\"/nowhere\"'"'"'; echo \"\${PR_STATUS[a]} \$PR_N_ERR [\${EVIL:-}] \$PATH\" | grep -c nowhere")" = "0" ]'
 check "the state goes from none to ready and the counts are drawn from it" '[ "$(PATH="$FIX/nopath" DELTACTL_PR_SBIN="" run_lib "echo \$DASH_SRV_STATE; dash_srv_request; echo \$DASH_SRV_STATE \$DASH_SRV_BAD \"\$DASH_SRV_BAD_NAMES\"" | tr "\n" " ")" = "none ready 1 Docker Engine " ]'
 check "in the real panel (not the test mode) the check is a background job: the answer arrives on a later turn" '[ "$(PATH="$FIX/nopath" DELTACTL_PR_SBIN="" run_lib "unset DELTACTL_TUI_KEYS; dash_init; dash_srv_request; a=\$DASH_SRV_STATE\$DASH_SRV_BUSY; for i in \$(seq 1 60); do dash_async_take prereq && { dash_srv_apply \"\$DASH_AS_TEXT\"; break; }; sleep 0.2; done; echo \$a \$DASH_SRV_STATE \$DASH_SRV_BUSY \$DASH_SRV_BAD")" = "loading1 ready 0 1" ]'
@@ -202,5 +244,9 @@ check "the figures of the server are read only while the view is current" '[ "$(
 check "choosing the view asks for the first sample at once and the check" '[ "$(PATH="$FIX/nopath" run_lib "MT_LAST_US=5; scr_server_enter; echo \$MT_LAST_US \$DASH_SRV_STATE")" = "0 ready" ]'
 check "the view is checked again every 30 s while it is on screen (not in test mode)" '[ "$(PATH="$FIX/nopath" run_lib "unset DELTACTL_TUI_KEYS; dash_init; DASH_SRV_AT=\$((SECONDS - 31)); scr_server_poll; a=\$DASH_SRV_BUSY; dash_async_stop; DASH_AS_PID[prereq]=; DASH_SRV_BUSY=0; DASH_SRV_AT=\$SECONDS; scr_server_poll; echo \$a \$DASH_SRV_BUSY")" = "1 0" ]'
 check "the body is built again with every sample, and reused when only the clock moved" '[ "$(run_lib "COLUMNS=120; DELTACTL_TUI_ROWS=30; tui_size; dash_init; DASH_VIEW=server; dash_render >/dev/null; a=\$DASH_BODY_SIG; dash_render >/dev/null; b=\$DASH_BODY_SIG; MT_SAMPLES=\$((MT_SAMPLES + 1)); dash_render >/dev/null; [ \"\$a\" = \"\$b\" ] && [ \"\$a\" != \"\$DASH_BODY_SIG\" ] && echo ok")" = "ok" ]'
+
+section "12. first-run gate: when it blocks"
+check "nothing blocks before the first check, with the option off, after going on, or with everything in place" '[ "$(PATH="$FIX/nopath" DELTACTL_PR_SBIN="" run_lib "dash_srv_blocking && echo b0; dash_srv_request; dash_srv_blocking && echo b1; DASH_SRV_SKIP=1; dash_srv_blocking && echo b2; DASH_SRV_SKIP=0; DASH_PREREQ=0; dash_srv_blocking && echo b3; DASH_PREREQ=1; DASH_SRV_BAD=0; dash_srv_blocking && echo b4; true" | tr "\n" " ")" = "b1 " ]'
+
 
 finish

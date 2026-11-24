@@ -673,6 +673,7 @@ cmd_dashboard() {
   mt_sample
   dash_host_build
   dash_events_start
+  dash_srv_startup      # the server's requirements are checked in the background; with one missing the panel opens on the Server view
   dash_loop
   dash_shutdown
   [ "$errexit" -eq 0 ] || set -e

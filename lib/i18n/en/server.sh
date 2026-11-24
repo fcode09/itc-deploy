@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC2034  # MSG_en is read by t through a nameref
-# The panel's Server view (lib/screens/server.sh) and the window that asks before running a command
-# (lib/screens/srvask.sh): English. Sourced by lib/i18n/i18n.sh; not executed.
+# The panel's Server view (lib/screens/server.sh) and the window that asks before running a command or creating an instance with
+# unmet requirements (lib/screens/srvask.sh): English. Sourced by lib/i18n/i18n.sh; not executed.
 
 MSG_en["tui.tab.server"]="Server"
 MSG_en["tui.keys.server"]="{1} choose · Enter details · m metrics · c copy · ! run · R recheck · : command · ? help · q quit"
@@ -53,3 +53,12 @@ MSG_en["tui.srv.run.sudo"]="sudo will ask for your password. deltactl never inst
 MSG_en["tui.srv.run.keys"]="y run · any other key cancels"
 MSG_en["tui.srv.run.keys.ascii"]="y run - any other key cancels"
 MSG_en["tui.srv.terminal"]="Running in the terminal: {1}"
+MSG_en["tui.srv.startup"]="{1} required server requirements are missing: {2}"
+MSG_en["tui.srv.gate.title"]="Server requirements missing"
+MSG_en["tui.srv.gate.text"]="{1} required requirements are missing: {2}."
+MSG_en["tui.srv.gate.warn"]="Creating an instance now may fail when it is deployed."
+MSG_en["tui.srv.gate.keys"]="y create anyway · v see the requirements · n do not warn again · Esc cancels"
+MSG_en["tui.srv.gate.keys.ascii"]="y create anyway - v see the requirements - n do not warn again - Esc cancels"
+MSG_en["tui.srv.gate.off"]="It will not warn again (Options turns it back on)"
+MSG_en["tui.opt.prereq"]="Requirements notice"
+MSG_en["tui.opt.desc.prereq"]="When the panel opens and when you create an instance, it warns if a required server item is missing."
