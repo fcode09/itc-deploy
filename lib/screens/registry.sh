@@ -27,6 +27,16 @@ DASH_SCREENS=()                                # ids of the views, in tab order
 declare -gA DASH_SCREEN_TITLE=() DASH_SCREEN_LIVE=()
 DASH_MODES=()                                  # ids of the modes
 DASH_SIG=""                                    # the signature being built (see dash_render)
+# The screens that define a hook that runs at every frame or turn, found once when they are registered: asking `declare -F` for every
+# screen at every frame would cost more than the hooks themselves.
+DASH_HOOK_SIG=() DASH_HOOK_TEXTS=() DASH_HOOK_TICK=()
+
+# Notes which of the frame-by-frame hooks the screen $1 defines (its file is already loaded).
+dash_screen_hooks() { # id
+  if declare -F "scr_$1_sig" > /dev/null; then DASH_HOOK_SIG+=("$1"); fi
+  if declare -F "scr_$1_texts" > /dev/null; then DASH_HOOK_TEXTS+=("$1"); fi
+  if declare -F "scr_$1_tick" > /dev/null; then DASH_HOOK_TICK+=("$1"); fi
+}
 
 # Registers a view: its id (also the name of its file), the key of its tab title and whether its body depends on the figures (the
 # samples, the state of Docker, the logs: 1) or only on what the user did (0). Loads its file.
@@ -36,6 +46,7 @@ dash_screen_register() { # id title_key live
   DASH_SCREEN_LIVE[$1]="$3"
   # shellcheck source=/dev/null
   source "$ROOT/lib/screens/$1.sh"
+  dash_screen_hooks "$1"
 }
 
 # Registers a mode (a dialog or a line being typed). Loads its file.
@@ -43,6 +54,7 @@ dash_mode_register() { # id
   DASH_MODES+=("$1")
   # shellcheck source=/dev/null
   source "$ROOT/lib/screens/$1.sh"
+  dash_screen_hooks "$1"
 }
 
 # Is $1 the id of a view?
@@ -106,25 +118,19 @@ dash_screen_keys() { # width
 # Rebuilds the language-dependent texts of every screen.
 dash_screen_texts() {
   local id
-  for id in "${DASH_SCREENS[@]}" "${DASH_MODES[@]}"; do
-    if declare -F "scr_${id}_texts" > /dev/null; then "scr_${id}_texts"; fi
-  done
+  for id in "${DASH_HOOK_TEXTS[@]}"; do "scr_${id}_texts"; done
 }
 
 # Adds to DASH_SIG what every screen's drawing depends on.
 dash_screen_sig() {
   local id
-  for id in "${DASH_SCREENS[@]}" "${DASH_MODES[@]}"; do
-    if declare -F "scr_${id}_sig" > /dev/null; then "scr_${id}_sig"; fi
-  done
+  for id in "${DASH_HOOK_SIG[@]}"; do "scr_${id}_sig"; done
 }
 
 # Background work of every view, then of the current one only while the panel runs (not paused).
 dash_screen_tick() {
   local id
-  for id in "${DASH_SCREENS[@]}"; do
-    if declare -F "scr_${id}_tick" > /dev/null; then "scr_${id}_tick"; fi
-  done
+  for id in "${DASH_HOOK_TICK[@]}"; do "scr_${id}_tick"; done
 }
 dash_screen_poll() {
   if declare -F "scr_${DASH_VIEW}_poll" > /dev/null; then "scr_${DASH_VIEW}_poll"; fi
