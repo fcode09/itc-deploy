@@ -42,18 +42,7 @@ dash_symbols_init() {
 # Texts that depend on the language (rebuilt when it changes).
 dash_texts_build() {
   DT=()
-  DASH_KEYS[instances]="$(t tui.keys.instances "$DASH_UD" "$DASH_RIGHT")"
-  DASH_KEYS[services]="$(t tui.keys.services "$DASH_UD" "$DASH_LEFT")"
-  DASH_KEYS[new]="$(t tui.keys.new "$DASH_UD")"
-  DASH_KEYS[logs]="$(t tui.keys.logs "$DASH_UD" "$DASH_LEFT")"
-  DASH_KEYS[zoom]="$(t tui.keys.zoom "$DASH_UD")"
-  DASH_KEYS[resources]="$(t tui.keys.resources "$DASH_UD" "$DASH_LR")"
-  DASH_KEYS[output]="$(t tui.keys.output "$DASH_UD" "$DASH_LR")"
-  DASH_KEYS[runs]="$(t tui.keys.runs "$DASH_UD")"
-  DASH_KEYS[runs_stats]="$(t tui.keys.runs_stats)"
-  DASH_KEYS[runs_log]="$(t tui.keys.runs_log "$DASH_UD")"
-  DASH_KEYS[procs]="$(t tui.keys.procs "$DASH_UD")"
-  DASH_KEYS[console]="$(t tui.keys.console "$DASH_UD")"
+  dash_screen_texts   # every screen builds its own key hints (scr_<id>_texts)
 }
 
 # A usage bar in a variable: dash_bar <percent> [cells]  (green below 70 %, yellow below 85 %, red above). Remembered.
@@ -184,9 +173,9 @@ DASH_JL=""
 # The tab line: the views and, at the right, the state of the current command.
 dash_tabs_line() {
   local v i=0 left="" short="" right="" pad lw rw piece
-  for v in instances resources output runs procs console; do
+  for v in "${DASH_SCREENS[@]}"; do
     i=$((i + 1))
-    dt "tui.tab.$v"
+    dt "${DASH_SCREEN_TITLE[$v]}"
     if [ "$DASH_VIEW" = "$v" ]; then
       # The active view is a filled pill; without colours it keeps the bracketed form.
       if [ -n "${TH[sel]:-}" ]; then piece=" ${TH[sel]}$C_BLD $i $DTV $C_OFF"; else piece=" $DASH_REV$C_BLD$C_CYN[$i $DTV]$C_OFF"; fi
@@ -221,9 +210,9 @@ TUI_TABS="" TAB_PAD="" DASH_TAB_SHORT=0
 DASH_TAB_I=0
 dash_tab_at() { # column
   local v i=0 start=0 w
-  for v in instances resources output runs procs console; do
+  for v in "${DASH_SCREENS[@]}"; do
     i=$((i + 1))
-    dt "tui.tab.$v"
+    dt "${DASH_SCREEN_TITLE[$v]}"
     w=$((${#DTV} + 5))
     [ "$DASH_TAB_SHORT" -eq 0 ] || [ "$DASH_VIEW" = "$v" ] || w=4
     if [ "$1" -gt "$start" ] && [ "$1" -le $((start + w)) ]; then DASH_TAB_I="$i"; return 0; fi
@@ -1406,57 +1395,21 @@ dash_keybar() { # text [width]
   DASH_KBV="$out"
 }
 
-# The last line: the keys of the current view, or the command being typed.
+# The hints of a view for the last line: the text of DASH_KEYS[$1] fitted to $2 cells, and what runs now ("x cancel") at its end.
+dash_keys_view() { # key_of_the_hints width
+  local kv="$1" w="$2" line
+  # (room is kept for "x cancel" while a command runs)
+  if job_running; then dt tui.keys.running; w=$((w - 3 - ${#DTV})); fi
+  dash_keybar "${DASH_KEYS[$kv]}" "$w"
+  line="$DASH_KBV"
+  if job_running; then dt tui.keys.running; line+=" $C_DIM$UI_S_DOT$C_OFF $C_YEL$DTV$C_OFF"; fi
+  TUI_FRAME+=(" $line")
+}
+
+# The last line: the keys of the current dialog, line being typed or view (each screen draws its own, scr_<id>_keys).
 dash_key_line() {
-  local line kv w=$((TUI_COLS - 1))
   TUI_CURSOR=""
-  case "$DASH_MODE" in
-    cmd)
-      if [ "$DASH_VIEW" = "instances" ] || [ "$DASH_VIEW" = "console" ]; then
-        # The console box holds the prompt: the last line only lists the keys of the line editor.
-        dt tui.con.keys; dash_keybar "${DTV//\{1\}/$DASH_UD}" "$w"
-        TUI_FRAME+=(" $DASH_KBV")
-        return 0
-      fi
-      dt tui.cmd.prompt
-      TUI_FRAME+=(" $C_GRY$DTV$C_OFF $C_BLD:$C_OFF$DASH_BUF")
-      tui_vlen " $DTV :$DASH_BUF"
-      TUI_CURSOR="$TUI_ROWS;$((TUI_VL + 2))"
-      return 0
-      ;;
-    menu) dt tui.dialog.keys; dash_keyfit "${DTV//\{1\}/$DASH_UD}" "$w"; TUI_FRAME+=(" $C_GRY$DASH_KF$C_OFF") ;;
-    confirm)
-      if [ "$UI_UTF8" -eq 1 ] && [ "$UI_RICH" -eq 1 ]; then dt tui.confirm.keys; else dt tui.confirm.keys.ascii; fi
-      dash_keyfit "$DTV" "$w"; TUI_FRAME+=(" $C_GRY$DASH_KF$C_OFF")
-      ;;
-    name) dt tui.name.keys; dash_keyfit "$DTV" "$w"; TUI_FRAME+=(" $C_GRY$DASH_KF$C_OFF") ;;
-    wizard) dash_nw_keys "$w"; TUI_FRAME+=(" $DASH_KBV") ;;
-    filter) dt tui.keys.filter; dash_keyfit "$DTV" "$w"; TUI_FRAME+=(" $C_GRY$DASH_KF$C_OFF") ;;
-    find) dt tui.keys.find; dash_keyfit "$DTV" "$w"; TUI_FRAME+=(" $C_GRY$DASH_KF$C_OFF") ;;
-    palette) dt tui.pal.keys; dash_keyfit "${DTV//\{1\}/$DASH_UD}" "$w"; TUI_FRAME+=(" $C_GRY$DASH_KF$C_OFF") ;;
-    help) dash_help_keys "$w"; TUI_FRAME+=(" $C_GRY$DASH_KF$C_OFF") ;;
-    options)
-      dt tui.opt.keys; line="${DTV//\{1\}/$DASH_UD}"
-      dash_keybar "${line//\{2\}/$DASH_LR}" "$w"; TUI_FRAME+=(" $DASH_KBV")
-      ;;
-    *)
-      # The hints follow the focus: on the New button, inside the services, or on the list of instances.
-      kv="$DASH_VIEW"
-      if [ "$DASH_VIEW" = "instances" ]; then
-        if [ "$DASH_ZOOM" -eq 1 ]; then kv=zoom
-        elif [ "$DASH_ON_NEW" -eq 1 ]; then kv=new
-        elif [ "$DASH_FOCUS" = "svc" ]; then kv=services
-        elif [ "$DASH_FOCUS" = "logs" ]; then kv=logs; fi
-      fi
-      [ "$DASH_VIEW" != "runs" ] || { [ "$DASH_RUNS_MODE" != "stats" ] && [ "$DASH_RUNS_MODE" != "log" ]; } || kv="runs_$DASH_RUNS_MODE"
-      # (room is kept for "x cancel" while a command runs)
-      if job_running; then dt tui.keys.running; w=$((w - 3 - ${#DTV})); fi
-      dash_keybar "${DASH_KEYS[$kv]}" "$w"
-      line="$DASH_KBV"
-      if job_running; then dt tui.keys.running; line+=" $C_DIM$UI_S_DOT$C_OFF $C_YEL$DTV$C_OFF"; fi
-      TUI_FRAME+=(" $line")
-      ;;
-  esac
+  dash_screen_keys $((TUI_COLS - 1))
 }
 
 # The body of the last frame and the state it was built from: when only the message or the command line changed (typing,
@@ -1480,29 +1433,7 @@ dash_build_body() { # body_height
     TUI_FRAME+=("")
     for i in "${!DASH_WRAP[@]}"; do TUI_FRAME+=(" $C_YEL${DASH_WRAP[$i]}$C_OFF"); done
   else
-    case "$DASH_MODE" in
-      menu) dash_dialog_menu "$bh" ;;
-      palette) dash_dialog_palette "$bh" ;;
-      confirm) dash_dialog_confirm "$bh" ;;
-      name) dash_dialog_name "$bh" ;;
-      wizard) dash_dialog_wizard "$bh" ;;
-      help) dash_dialog_help "$bh" ;;
-      options) dash_dialog_options "$bh" ;;
-      *)
-        case "$DASH_VIEW" in
-          instances)
-            if [ "$DASH_ZOOM" -eq 1 ]; then dash_view_zoom "$bh"
-            elif dash_overview_fits; then dash_view_overview "$bh"
-            else dash_view_instances "$bh"; fi
-            ;;
-          resources) dash_view_resources "$bh" ;;
-          output) dash_view_output "$bh" ;;
-          runs) dash_view_runs "$bh" ;;
-          procs) dash_view_procs "$bh" ;;
-          console) dash_view_console "$bh" ;;
-        esac
-        ;;
-    esac
+    dash_screen_render "$bh"   # the current dialog, or the current view
   fi
   # The body is exactly $bh lines: pad what is short and cut what is long.
   total=$((${#TUI_FRAME[@]} - 2))
@@ -1518,20 +1449,12 @@ dash_render() {
   TUI_FRAME=("$DASH_HOSTLINE" "$TUI_TABS")
   # The figures (samples, state of Docker, errors, events, logs of a service) only matter to the views that draw them. The others keep
   # their body between samples: rebuilding it every 2 s would redraw exactly the same lines.
-  case "$DASH_VIEW" in
-    output | runs | procs | console) data="" ;;
-    *) data="$MT_SAMPLES|$DASH_REFRESH_N|$DASH_ERRS_N|$DASH_EV_N|$DASH_LOGS_N" ;;
-  esac
-  sig="$DASH_VIEW|$DASH_MODE|$DASH_SEL|$DASH_SVC|$DASH_FOCUS|$DASH_ON_NEW|$DASH_RES_SEL|$DASH_RES_SORT|$data|$DASH_LANG_N"
-  sig+="|$JOB_SEQ|$JOB_TOTAL|${JOB_RC-r}|$JOB_CANCELLED|$DASH_OUT_SCROLL|$DASH_OUT_ERRORS|$TUI_ROWS|$TUI_COLS|$DASH_MENU_SEL|$DASH_CONF_TEXT|$DASH_NAME_TARGET"
-  [ "$DASH_MODE" != "name" ] || sig+="|$DASH_BUF"
-  [ "$DASH_MODE" != "wizard" ] || sig+="|$DASH_NW_V|$DASH_NW_SEC|$DASH_NW_F|$DASH_NW_FOCUS|$DASH_BUF|$DASH_CUR|$DASH_NW_ERR"
-  sig+="|$DASH_RUNS_SEL|$DASH_RUNS_OFF|$DASH_RUNS_MODE|$DASH_RUNS_N|$DASH_RUNS_STATS_INST|$DASH_RV_TOP|$DASH_RV_END|$DASH_RV_TOTAL|$DASH_PROCS_N|$DASH_PROCS_OFF|$DASH_PC_TXT"
-  sig+="|$DASH_CON_N|$DASH_CON_SCROLL|$DASH_ZOOM|$DASH_LOG_SCROLL|$DASH_LOG_FILTER|$DASH_PAL_Q|$DASH_PAL_SEL"
-  sig+="|$DASH_LOG_ERRONLY|$DASH_LOG_FIND|$DASH_LS_PAUSED|$DASH_LS_PEND|$DASH_LOG_MIDX|$DASH_OPT_SEL|$DASH_OPT_N|$DASH_HELP_OFF"
-  { [ "$DASH_MODE" != "filter" ] && [ "$DASH_MODE" != "find" ]; } || sig+="|$DASH_BUF|$DASH_CUR"
-  { [ "$DASH_MODE" != "cmd" ] || { [ "$DASH_VIEW" != "instances" ] && [ "$DASH_VIEW" != "console" ]; }; } || sig+="|$DASH_BUF|$DASH_CUR"
-  if job_running; then sig+="|$SECONDS"; fi
+  if dash_screen_live; then data="$MT_SAMPLES|$DASH_REFRESH_N|$DASH_ERRS_N|$DASH_EV_N|$DASH_LOGS_N"; else data=""; fi
+  # What the body depends on: the view and the mode, the figures, the language, the command and the size; then each screen's own state.
+  DASH_SIG="$DASH_VIEW|$DASH_MODE|$data|$DASH_LANG_N|$JOB_SEQ|$JOB_TOTAL|${JOB_RC-r}|$JOB_CANCELLED|$TUI_ROWS|$TUI_COLS"
+  dash_screen_sig
+  if job_running; then DASH_SIG+="|$SECONDS"; fi
+  sig="$DASH_SIG"
   if [ "$sig" = "$DASH_BODY_SIG" ]; then
     TUI_FRAME+=("${DASH_BODY[@]}")
   else
