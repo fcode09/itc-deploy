@@ -53,9 +53,16 @@ Termina con código 1 si hay errores, igual que el modo normal. Los textos salen
 ## Añadir un requisito
 
 1. Una fila en `lib/core/prereqs.data` (id, nivel, sección, enlace y comando para apt, dnf, pacman y apk; `-` si no hay).
+   Un mismo gestor no implica el mismo repositorio ni los mismos paquetes (dnf es Fedora, RHEL, Rocky, Amazon Linux…; Debian 12 no tiene
+   `docker-compose-v2`): una línea `@<id>|<distros>|<comando>` lo cambia para esas distribuciones (`debian<13` = solo las anteriores a la 13;
+   `-` = no se conoce un comando que funcione y el panel enseña el enlace en su lugar). Una versión desconocida no entra en una excepción.
 2. Su comprobación `prereq_check_<id>` en `lib/core/prereqs.sh`: solo lee, y comunica con `pr_res ok|warn|err|info <texto> [pista...]`
    (`pr_quiet` para un resultado que no se imprime y `pr_na` si no aplica).
 3. Su nombre y para qué sirve: `prereq.name.<id>` y `prereq.why.<id>` en `lib/i18n/{es,en}/prereqs.sh`.
 4. `tests/run.sh test-prereqs` y `test-i18n` fallan mientras falte algo.
 
 Las pruebas simulan `PATH`, `os-release` (`DELTACTL_OS_RELEASE`) y las carpetas `sbin` (`DELTACTL_PR_SBIN`).
+
+Lo que viene de fuera nunca se ejecuta como código: el host de `MONGO_URI` (o la puerta de enlace de Docker) llega a `dr_tcp` como argumento y solo
+si parece un nombre o una dirección; `mongodb+srv://` no tiene puerto que probar y se informa en vez de sondear el 27017. Cada pregunta de solo
+lectura a Docker se corta a los `PR_DOCKER_TIMEOUT` segundos (10), así que un daemon que no contesta es una comprobación fallida, no una que no termina.

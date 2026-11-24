@@ -7,16 +7,20 @@
 
 PR_IDS=()
 declare -gA PR_LEVEL=() PR_SECTION=() PR_URL=() PR_CMD=()   # PR_CMD["<id>|<manager>"]
+PR_OVR=()                                                    # exceptions by distribution: "<id>|<distros>|<command, or - for none>"
 PR_MANAGERS=(apt dnf pacman apk)
 
 # Reads the catalog. It starts no process: every field is split by `read`.
+# A line @<id>|<distro>[,<distro>...]|<command> overrides the command of the package manager for those distributions (distro<N: only
+# those older than major version N; "-" as the command = no command is known to work there). Same manager, different repository.
 prereq_load() { # [file]
   local file="${1:-$ROOT/lib/core/prereqs.data}" id level section url c_apt c_dnf c_pacman c_apk
-  PR_IDS=() PR_LEVEL=() PR_SECTION=() PR_URL=() PR_CMD=()
+  PR_IDS=() PR_LEVEL=() PR_SECTION=() PR_URL=() PR_CMD=() PR_OVR=()
   [ -r "$file" ] || return 1
   while IFS='|' read -r id level section url c_apt c_dnf c_pacman c_apk || [ -n "$id" ]; do
     id="${id%$'\r'}"
     case "$id" in '' | '#'*) continue ;; esac
+    case "$id" in @*) PR_OVR+=("${id#@}|$level|${section%$'\r'}"); continue ;; esac
     PR_IDS+=("$id")
     PR_LEVEL[$id]="$level" PR_SECTION[$id]="$section"
     [ "$url" = "-" ] || PR_URL[$id]="$url"
@@ -32,17 +36,18 @@ prereq_load
 # --- Distribution -------------------------------------------------------------------------------------------
 # PR_DISTRO_ID / PR_DISTRO_NAME from os-release (DELTACTL_OS_RELEASE replaces the path, for tests) and PR_MANAGER (apt, dnf, pacman,
 # apk, or empty when it is not known). Read with `read`: no process.
-PR_DISTRO_ID="" PR_DISTRO_NAME="" PR_MANAGER=""
+PR_DISTRO_ID="" PR_DISTRO_NAME="" PR_MANAGER="" PR_DISTRO_MAJOR=""
 prereq_distro() {
-  local f="${DELTACTL_OS_RELEASE:-/etc/os-release}" k v id="" like="" name="" pretty="" tok
-  PR_DISTRO_ID="" PR_DISTRO_NAME="" PR_MANAGER=""
+  local f="${DELTACTL_OS_RELEASE:-/etc/os-release}" k v id="" like="" name="" pretty="" ver="" tok
+  PR_DISTRO_ID="" PR_DISTRO_NAME="" PR_MANAGER="" PR_DISTRO_MAJOR=""
   if [ -r "$f" ]; then
     while IFS='=' read -r k v || [ -n "$k" ]; do
       v="${v%$'\r'}"; v="${v#\"}"; v="${v%\"}"; v="${v#\'}"; v="${v%\'}"
-      case "$k" in ID) id="$v" ;; ID_LIKE) like="$v" ;; NAME) name="$v" ;; PRETTY_NAME) pretty="$v" ;; esac
+      case "$k" in ID) id="$v" ;; ID_LIKE) like="$v" ;; NAME) name="$v" ;; PRETTY_NAME) pretty="$v" ;; VERSION_ID) ver="$v" ;; esac
     done < "$f"
   fi
   PR_DISTRO_ID="${id,,}"
+  PR_DISTRO_MAJOR="${ver%%.*}"
   PR_DISTRO_NAME="${pretty:-$name}"
   for tok in $PR_DISTRO_ID ${like,,}; do
     case "$tok" in
@@ -64,9 +69,27 @@ prereq_distro() {
 # Install command of a requirement for this server's package manager, in PR_INSTALL (empty when there is none).
 PR_INSTALL=""
 prereq_install_r() { # id [manager]
-  local m="${2:-$PR_MANAGER}"
+  local m="${2:-$PR_MANAGER}" o oid od oc d lt
   PR_INSTALL=""
-  [ -z "$m" ] || PR_INSTALL="${PR_CMD["$1|$m"]:-}"
+  [ -n "$m" ] || return 1
+  if [ "$m" = "$PR_MANAGER" ] && [ -n "$PR_DISTRO_ID" ]; then   # an exception of this distribution wins over the manager's command
+    for o in ${PR_OVR[@]+"${PR_OVR[@]}"}; do
+      IFS='|' read -r oid od oc <<< "$o"
+      [ "$oid" = "$1" ] || continue
+      for d in ${od//,/ }; do
+        lt=""
+        case "$d" in *"<"*) lt="${d#*<}" d="${d%%<*}" ;; esac
+        [ "$d" = "$PR_DISTRO_ID" ] || continue
+        if [ -n "$lt" ]; then   # only the versions older than lt; an unknown version is not covered by the exception
+          [[ "$PR_DISTRO_MAJOR" =~ ^[0-9]+$ ]] && [ "$PR_DISTRO_MAJOR" -lt "$lt" ] || continue
+        fi
+        [ "$oc" = "-" ] || PR_INSTALL="$oc"
+        [ -n "$PR_INSTALL" ]
+        return
+      done
+    done
+  fi
+  PR_INSTALL="${PR_CMD["$1|$m"]:-}"
   [ -n "$PR_INSTALL" ]
 }
 
@@ -116,20 +139,36 @@ dr_mem_mb() { # value
     printf "%d", n }'
 }
 
-# Can a TCP connection be opened? (3 s limit, no external tools)
+# Can a TCP connection be opened? (3 s limit, no external tools.) The host comes from a .env file or from Docker, so it is never put
+# into code: it must look like a host name or an address and the port like a number, and both reach the shell as arguments.
 dr_tcp() { # host port
-  timeout 3 bash -c "exec 3<>/dev/tcp/$1/$2" > /dev/null 2>&1
+  [[ "${1:-}" =~ ^[A-Za-z0-9._:-]+$ ]] && [[ "${2:-}" =~ ^[0-9]{1,5}$ ]] || return 1
+  # shellcheck disable=SC2016  # the program is meant to expand its own arguments
+  timeout 3 bash -c 'exec 3<>"/dev/tcp/$1/$2"' _ "$1" "$2" > /dev/null 2>&1
 }
 
-# Host and port of a URI mongodb://[user:password@]host[:port]/database
+# Host and port of a URI mongodb://[user:password@]host[:port][,host2...][/database][?options]  ->  "host port".
+# mongodb+srv has no port to try (the name is a DNS record): the port is the word srv. A host with strange characters comes out with
+# them replaced by "?", so it can be shown without sending escape sequences to the terminal.
 dr_mongo_hostport() { # uri -> "host port"
-  local u="${1#*://}" h p
-  u="${u#*@}"
-  u="${u%%/*}"
-  u="${u%%,*}"
-  h="${u%%:*}"
-  p="${u##*:}"
-  [ "$p" != "$u" ] || p=27017
+  local u="${1#*://}" h p rest srv=""
+  case "$1" in mongodb+srv://*) srv=1 ;; esac
+  u="${u%%[/?]*}"   # only the authority: the options may hold an @ that is not a user
+  u="${u##*@}"      # a password may hold an @: the host is after the last one
+  u="${u%%,*}"      # a list of hosts: the first
+  if [[ "$u" == \[* ]]; then   # [::1] or [::1]:27017
+    h="${u%%]*}"
+    h="${h#\[}"
+    rest="${u#*]}"
+    p="${rest#:}"
+    [ "$rest" != "$p" ] || p=""
+  else
+    h="${u%%:*}"
+    p=""
+    [ "$h" = "$u" ] || p="${u#*:}"
+  fi
+  h="${h//[!A-Za-z0-9._:-]/\?}"
+  if [ -n "$srv" ]; then p=srv; else [[ "$p" =~ ^[0-9]{1,5}$ ]] || p=27017; fi
   printf '%s %s' "$h" "$p"
 }
 
@@ -216,7 +255,7 @@ prereq_check_ram() {
 # MongoDB reachable from the host and, for host.docker.internal, from the containers (through Docker's gateway).
 prereq_check_mongo() {
   local gw="" f var uri h p seen="" svc
-  if pr_daemon; then gw="$(dk_network_gateway)"; fi
+  if pr_daemon; then gw="$(dk_network_gateway)"; gw="${gw//[!A-Za-z0-9._:-]/?}"; fi
   for svc in "${KNOWN_SERVICES[@]}"; do
     for f in "$INSTANCES_DIR"/*/.env."$svc"; do
       [ -f "$f" ] || continue
@@ -226,7 +265,9 @@ prereq_check_mongo() {
         read -r h p <<< "$(dr_mongo_hostport "$uri")"
         case " $seen " in *" $h:$p "*) continue ;; esac
         seen+=" $h:$p"
-        if [ "$h" = "host.docker.internal" ]; then
+        if [ "$p" = srv ]; then
+          pr_res info "$(t doctor.mongo_srv "$h")"   # a DNS name that resolves to the real servers: there is no port to try
+        elif [ "$h" = "host.docker.internal" ]; then
           # That is how containers get there: to Docker's gateway, not to the server's 127.0.0.1.
           if [ -z "$gw" ]; then
             pr_res info "$(t doctor.mongo_gw_unknown "$h:$p")"
@@ -353,6 +394,7 @@ PR_N_ERR=0 PR_N_WARN=0
 prereq_run_all() { # [section]
   local id st
   prereq_reset
+  DK_TIMEOUT="${PR_DOCKER_TIMEOUT:-10}"   # a docker that does not answer is a failed check, not a check that never ends
   PR_N_ERR=0 PR_N_WARN=0
   for id in "${PR_IDS[@]}"; do
     [ -z "${1:-}" ] || [ "${PR_SECTION[$id]}" = "$1" ] || continue
@@ -388,7 +430,7 @@ prereq_json() {
     rec="${PR_RECORDS[$id]}"
     r=0
     IFS="$PR_RS" read -ra recs <<< "$rec"
-    for res in "${recs[@]}"; do
+    for res in ${recs[@]+"${recs[@]}"}; do
       [ -n "$res" ] || continue
       IFS="$PR_FS" read -r st msg f <<< "$res"
       [ "$r" -eq 0 ] || printf ','

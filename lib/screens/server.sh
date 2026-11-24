@@ -44,9 +44,9 @@ dash_srv_order
 DASH_T=""
 dash_srv_t() { # key [a] [b] [c]
   dt "$1"
-  DASH_T="${DTV//\{1\}/${2:-}}"
-  DASH_T="${DASH_T//\{2\}/${3:-}}"
-  DASH_T="${DASH_T//\{3\}/${4:-}}"
+  DASH_T="${DTV//\{1\}/"${2:-}"}"   # (quoted: with patsub_replacement, Bash 5.2+, an & in the value would become the matched text)
+  DASH_T="${DASH_T//\{2\}/"${3:-}"}"
+  DASH_T="${DASH_T//\{3\}/"${4:-}"}"
 }
 
 # --- Figures in human units (integer arithmetic, no process) ------------------------------------------------------------
@@ -180,13 +180,13 @@ dash_srv_cmd() { # id
 
 # --- Copy and run -----------------------------------------------------------------------------------------------------
 
-# Puts a text in the clipboard: a tool of the desktop when there is one (DELTACTL_CLIP replaces them, for tests: a command that reads the
-# text from its input), else the terminal's own clipboard (OSC 52, which most terminals accept). Returns 1 when nothing could take it.
+# Puts a text in the clipboard: a tool of the desktop when there is one (DELTACTL_CLIP replaces them, only inside the tests: a command that
+# reads the text from its input), else the terminal's own clipboard (OSC 52, which most terminals accept). Returns 1 when nothing could take it.
 DASH_SRV_COPIED=""
 dash_srv_copy() { # text
   local text="$1" tool
   DASH_SRV_COPIED=""
-  if [ -n "${DELTACTL_CLIP:-}" ]; then
+  if host_test_hook && [ -n "${DELTACTL_CLIP:-}" ]; then
     printf '%s' "$text" | bash -c "$DELTACTL_CLIP" > /dev/null 2>&1 && DASH_SRV_COPIED=tool
   else
     for tool in "wl-copy" "xclip -selection clipboard" "xsel --clipboard --input" "pbcopy"; do
@@ -200,10 +200,19 @@ dash_srv_copy() { # text
   [ -n "$DASH_SRV_COPIED" ]
 }
 
+# Has this requirement no answer to act on yet? It is waiting for another one (the daemon of a Docker that is not installed: its command
+# would fail) or its check has not answered. There is nothing to copy or run for it.
+dash_srv_waiting() { # id
+  [ "$DASH_SRV_STATE" != "ready" ] && return 0
+  case "${PR_STATUS[$1]:-}" in na | "") return 0 ;; esac
+  return 1
+}
+
 # `c`: copies the install command of the selected requirement.
 dash_srv_copy_sel() {
   local id="${DASH_SRV_ORDER[$DASH_SRV_SEL]:-}"
   [ -n "$id" ] || return 0
+  if dash_srv_waiting "$id"; then dash_msg info "$(t tui.srv.nothing_wait)"; return 0; fi
   dash_srv_cmd "$id"
   if [ -z "$DASH_SRV_CMD" ]; then dash_msg warn "$(t tui.srv.nothing_cmd)"; return 0; fi
   if dash_srv_copy "$DASH_SRV_CMD"; then
@@ -214,15 +223,21 @@ dash_srv_copy_sel() {
 }
 
 # The command runs in the real terminal (the panel steps aside and comes back), so sudo can ask for the password. Only srvask.sh calls it,
-# after the person said yes. DELTACTL_PR_SHELL replaces bash (tests).
+# after the person said yes. DELTACTL_PR_SHELL replaces bash, only inside the tests.
+DASH_SRV_SHELL=bash
+dash_srv_shell() { # -> the program that runs a confirmed command
+  if host_test_hook && [ -n "${DELTACTL_PR_SHELL:-}" ]; then printf '%s' "$DELTACTL_PR_SHELL"; else printf bash; fi
+}
 dash_srv_terminal() { # command
-  local cmd="$1"
+  local cmd="$1" rc=0
   dash_msg info "$(t tui.srv.terminal "$cmd")"
   tui_leave
   printf '\n  %s%s %s%s\n\n' "$C_GRY" "$UI_S_ARROW" "$cmd" "$C_OFF"
   dash_prompt_name
   dash_con_add "${TH[accent]:-$C_CYN}$DASH_PN $(dash_prompt_glyph)$C_OFF $cmd"
-  "${DELTACTL_PR_SHELL:-bash}" -c "$cmd" || printf '\n  %s %s\n' "$(ui_sym err)" "$(t menu.cmd_failed "$?")"
+  DASH_SRV_SHELL="$(dash_srv_shell)"
+  "$DASH_SRV_SHELL" -c "$cmd" || rc=$?   # (the code is taken here: in the message it would be the one of the previous substitution)
+  if [ "$rc" -ne 0 ]; then printf '\n  %s %s\n' "$(ui_sym err)" "$(t menu.cmd_failed "$rc")"; fi
   menu_pause
   tui_enter
   DASH_SIGINT=0
@@ -234,7 +249,9 @@ dash_srv_terminal() { # command
 scr_server_bang() {
   local id="${DASH_SRV_ORDER[$DASH_SRV_SEL]:-}"
   [ "$DASH_VIEW" = "server" ] || return 1
+  [ "$DASH_SRV_ZOOM" -eq 0 ] || return 0   # only the metrics are on screen: the requirement that would run is not shown
   [ -n "$id" ] || return 0
+  if dash_srv_waiting "$id"; then dash_msg info "$(t tui.srv.nothing_wait)"; return 0; fi
   if [ "${PR_STATUS[$id]:-}" = "ok" ]; then dash_msg info "$(t tui.srv.nothing)"; return 0; fi
   dash_srv_cmd "$id"
   if [ -z "$DASH_SRV_CMD" ]; then dash_msg warn "$(t tui.srv.nothing_cmd)"; return 0; fi
@@ -301,7 +318,7 @@ dash_srv_hint() { # id
   local -a recs
   DASH_SRV_HINT=""
   IFS="$PR_RS" read -ra recs <<< "${PR_RECORDS[$1]:-}"
-  for rec in "${recs[@]}"; do
+  for rec in ${recs[@]+"${recs[@]}"}; do   # (an empty array is an unbound variable under set -u in Bash 4.3)
     [ -n "$rec" ] || continue
     IFS="$PR_FS" read -r st msg hint <<< "$rec"
     if [ -n "$hint" ]; then DASH_SRV_HINT="$hint"; return 0; fi
@@ -355,7 +372,7 @@ dash_srv_detail() { # width lines
   kit_wrap "$lab: $why" $((w - 4))
   for l in "${KW_LINES[@]}"; do DASH_SRV_DET+=("  ${TH[dim]:-}$l$TH_RESET"); done
   IFS="$PR_RS" read -ra recs <<< "${PR_RECORDS[$id]:-}"
-  for rec in "${recs[@]}"; do
+  for rec in ${recs[@]+"${recs[@]}"}; do
     [ -n "$rec" ] || continue
     IFS="$PR_FS" read -r st msg hint <<< "$rec"
     case "$st" in ok) kit_state_icon ok ;; err) kit_state_icon err ;; warn) kit_state_icon warn ;; info) kit_state_icon info ;; *) kit_state_icon pend ;; esac
@@ -575,6 +592,7 @@ dash_srv_disks() { # width height
   for ((i = 0; i < n && shown < rows; i++)); do
     dash_srv_kb "${HOST_DISK_TOTAL[$i]:-}"
     pct="${HOST_DISK_PCT[$i]:-0}"
+    [[ "$pct" =~ ^[0-9]+$ ]] || pct=0
     printf -v pad '%3d' "$pct"
     if [ "$two" -eq 1 ]; then
       kit_leader "${HOST_DISK_MNT[$i]}" "$DASH_SZ" "$cw"; DASH_SRV_L+=("$KIT_OUT")
@@ -796,7 +814,11 @@ scr_server_enter() {
 # Every turn of the loop, whatever the view: the answer of the background check, and the figures of the server read only while this view
 # is the current one (the first sample after choosing it comes at once).
 scr_server_tick() {
-  if dash_async_take prereq; then dash_srv_apply "$DASH_AS_TEXT"; fi
+  if dash_async_take prereq; then
+    dash_srv_apply "$DASH_AS_TEXT"
+  elif [ "$DASH_SRV_BUSY" -eq 1 ] && [ -z "${DASH_AS_PID[prereq]:-}" ]; then
+    DASH_SRV_BUSY=0 DASH_DIRTY=1   # the check died or was cut after a minute: free the view, R and the periodic check ask again
+  fi
   if [ "$DASH_VIEW" = "server" ]; then
     if [ "$MT_HOST_DETAIL" -ne 1 ]; then MT_HOST_DETAIL=1 MT_LAST_US=0; fi
     if [ "$DASH_SRV_STATE" = "none" ]; then dash_srv_request; fi
