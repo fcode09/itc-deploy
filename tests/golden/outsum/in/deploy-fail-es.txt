@@ -1,0 +1,4 @@
+Validando compose...
+AVISO falta la imagen auth-backend:1.0 (s0) en este servidor
+AVISO falta la imagen gueo-back-end:1.0 (s1) en este servidor
+ERROR 2 imagen(es) sin cargar. Cárgalas con ./deltactl load <archivo> y revisa las disponibles con ./deltactl images (ayuda: ./deltactl help imagenes)

@@ -107,6 +107,27 @@ for size in 80x24 120x30 160x40; do
     ms "env: a character typed in a field" "$N" env_char
     kee_key esc
     DASH_VIEW=instances DASH_MODE=normal
+    # The Output view with a command that has a shape (the output of `doctor`, 37 lines, summarised: lib/core/outparse.sh + lib/ui/outsummary.sh). "hot":
+    # the frame of a summary that is already built (what a frame costs while the output does not change); "a key": the window moves (the frame is
+    # built again from the summary); "new output": the output is parsed and the summary built again (once per output and size, never per frame);
+    # "raw": the same lines drawn as the plain text (v), for comparison.
+    mapfile -t JOB_LINES < tests/golden/outsum/in/doctor-es.txt
+    JOB_PID=4242 JOB_TITLE="doctor" JOB_RC=0 JOB_SEQ=1 JOB_TOTAL="${#JOB_LINES[@]}" JOB_START_US=1000000 JOB_END_US=43000000
+    DASH_VIEW=output DASH_OUT_RAW=0 DASH_OUT_STOP=0
+    # shellcheck disable=SC2329,SC2034  # called through ms
+    out_key() { DASH_OUT_STOP=$(((DASH_OUT_STOP + 1) % 15)); dash_render; }
+    # shellcheck disable=SC2329,SC2034  # called through ms
+    out_cold() { OUTSUM_KEY=""; DASH_PC_SIG=(); dash_render; }
+    # shellcheck disable=SC2329,SC2034  # called through ms
+    out_parse_only() { OUTSUM_KEY=""; outsum_for JOB_LINES doctor 0 0 $((${size%x*} - 4)) k; }
+    dash_render > /dev/null
+    ms "output (summary): hot frame" "$N" dash_render
+    ms "output (summary): a key moves the window" "$N" out_key
+    ms "output (summary): new output, parse + build" "$N" out_parse_only
+    ms "output (summary): new output, whole frame" "$N" out_cold
+    DASH_OUT_RAW=1
+    ms "output (raw): hot frame" "$N" dash_render
+    DASH_OUT_RAW=0 DASH_VIEW=instances
     ms "mt_sample" "$N" mt_sample
     # shellcheck disable=SC2329,SC2034  # called through ms; MT_HOST_DETAIL is read by mt_sample
     mt_detail() { MT_HOST_DETAIL=1 mt_sample; MT_HOST_DETAIL=0; }

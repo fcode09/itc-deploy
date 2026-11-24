@@ -1,0 +1,1 @@
+ERROR 'sim-01' ya está inicializada (init, 2026-01-01T00:00:00Z). init no se vuelve a ejecutar: los seeds borran datos.

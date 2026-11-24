@@ -1,0 +1,54 @@
+
+Variables of sim-01
+─────────────────────
+FILE          VARIABLE                          VALUE                               STATE
+instance      INSTANCE                          sim-01                              ok
+instance      REGISTRY                          -                                   not set
+instance      COMPOSE_PROFILES                  s0,s1                               ok
+instance      S0_IMAGE                          auth-backend                        ok
+instance      S1_IMAGE                          gueo-back-end                       ok
+instance      S0_TAG                            1.0                                 ok
+instance      S1_TAG                            1.0                                 ok
+instance      S0_PORT                           4100                                ok
+instance      S1_PORT                           4101                                ok
+instance      S0_MEM_LIMIT                      512m                                ok
+instance      S1_MEM_LIMIT                      2g                                  ok
+instance      DATA_DIR                          -                                   not set
+s0            IP_SERVER                         http://h                            ok
+s0            JWT_SECRET                        ********                            ok
+s0            JWT_EXPIRES_IN                    8h                                  ok
+s0            MONGO_URI                         ********                            ok
+s0            IP_INTERNAL_CONNECTION            s1                                  ok
+s0            GOOGLE_KEY                        -                                   not set
+s0            PROFILE_PROPAGATION_ENABLED       true                                ok
+s0            PROFILE_SYNC_CONCURRENCY          4                                   ok
+s0            PROFILE_BACKUP_DIR                ./backups                           ok
+s1            IP_SERVER                         http://h                            ok
+s1            AUTH_URL                          http://s0:3200                      ok
+s1            JWT_SECRET                        ********                            ok
+s1            DELTA_UNIVERSITY_HANDOFF_SECRET   ********                            INVALID
+s1            MONGO_DELTA_DISPATCH_URI          ********                            ok
+s1            MONGO_AUTHSOFTWARE_URI            ********                            ok
+s1            MONGO_ROBIN_URI                   ********                            ok
+s1            IP_INTERNAL_CONNECTION            127.0.0.1                           ok
+s1            PORT_INTERNAL_CONNECTION          5020                                ok
+s1            TCP_LISTEN_HOST                   0.0.0.0                             ok
+s1            FCM_CERT                          /run/secrets/fcm.json               ok
+s1            KEEPER_FCM_CERT                   /run/secrets/keeper-fcm.json        ok
+s1            API_KEY_CLOUD_MESSAGING           -                                   not set
+s1            FEDERATION_ENCRYPTION_KEY         ********                            INVALID
+s1            FEDERATION_NODE_DISPLAY_NAME      Delta Federation Node               ok
+s1            SERVERS_CONFIG                    []                                  ok
+s1            VERIFY_TOKEN                      ********                            ok
+s1            GOOGLE_KEY                        -                                   not set
+s1            DEEPGRAM_API_KEY                  ********                            ok
+s1            TRANSCRIPTOR_URL                  -                                   not set
+s1            LIVEKIT_URL                       -                                   not set
+s1            LIVEKIT_API_KEY                   -                                   not set
+s1            LIVEKIT_API_SECRET                -                                   not set
+s1            LIVEKIT_TOKEN_TTL_SECONDS         600                                 ok
+s1            SHIFT_UPDATE_BASELINE_SECRET      (shift-update-baseline)             default
+s1            SUPERVISOR_REPORT_PARITY_CHECK    -                                   not set
+s1            SIPCOP_ALERT_RESYNC               -                                   not set
+
+Secret values are hidden; --reveal shows them. To change one: ./deltactl env sim-01 set <VARIABLE> <value>
