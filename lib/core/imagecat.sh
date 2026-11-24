@@ -298,3 +298,49 @@ ic_latest() { # service [repo]
   [ "$i" -ge 0 ] || return 1
   IC_LATEST="${IC_TAG[$i]}"
 }
+
+# --- For the version picker (lib/ui/kit/version_picker.sh) -------------------------------------------------------------------
+
+# The records of the picker for a group "<sN>|<image>", newest first, into the array named $2: tag, how long ago (words in the UI language, the
+# text of Docker when the date is not known), size, architecture, use ("colorado (current)" with the words in the UI language) and flags (star,
+# mutable, foreign). The fields are separated by the unit separator. IC_NOW (seconds since 1970) replaces the clock, for the tests.
+ic_picker_rows() { # group array-name
+  local -n _pr="$2"
+  local i use cur prev flags
+  _pr=()
+  t_r images.use_current; cur="$T_OUT"
+  t_r images.use_previous; prev="$T_OUT"
+  for i in ${IC_ORDER[$1]:-}; do
+    use="${IC_USE[$i]% }"
+    use="${use//(current)/($cur)}"
+    use="${use//(previous)/($prev)}"
+    if ic_ago_text "${IC_EPOCH[$i]}" "${IC_NOW:-}"; then :; else IC_AGO_T="${IC_SINCE[$i]}"; fi
+    flags=""
+    [ "${IC_STAR[$i]}" -ne 1 ] || flags+="star,"
+    [ "${IC_KIND[$i]}" = ver ] || flags+="mutable,"
+    [ "${IC_OK[$i]}" -eq 1 ] || flags+="foreign,"
+    _pr+=("${IC_TAG[$i]}"$'\x1f'"$IC_AGO_T"$'\x1f'"${IC_SIZE[$i]}"$'\x1f'"${IC_ARCH[$i]}"$'\x1f'"$use"$'\x1f'"${flags%,}")
+  done
+}
+
+# The texts of the picker in the UI language into the associative array named $1 (the keys of kit_vpick_text). The two placeholders of the
+# message about an architecture stay as {1} and {2}: the picker fills them.
+# shellcheck disable=SC2004,SC2154  # the keys of the array are plain words
+ic_picker_texts() { # assoc-array-name
+  local -n _pt="$1"
+  local k
+  for k in col_version col_created col_size col_arch col_use unused empty hint_star hint_mutable type_label type_ok type_missing type_bad; do
+    t_r "images.pick.$k"; _pt[$k]="$T_OUT"
+  done
+  t_r images.pick.why_arch "{1}" "{2}"; _pt[why_arch]="$T_OUT"
+  t_r images.pick.latest_hint "$UI_S_UP"; _pt[latest_hint]="$T_OUT"
+  t_r images.pick.other "$UI_S_ELL"; _pt[other]="$T_OUT"
+  t_r images.pick.load "$UI_S_ELL"; _pt[load]="$T_OUT"
+}
+
+# The warning of a group whose order by date and by version disagree, into IC_NOTE (empty when they agree).
+IC_NOTE=""
+ic_note() { # group
+  IC_NOTE=""
+  [ -z "${IC_DISC[$1]:-}" ] || { t_r images.disc "${IC_DISC[$1]%%|*}" "${IC_DISC[$1]#*|}"; IC_NOTE="$T_OUT"; }
+}
