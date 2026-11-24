@@ -19,7 +19,7 @@ DASH_SRV_STATE=none      # none (never asked) | loading (first answer pending) |
 DASH_SRV_BUSY=0          # 1 while a check runs (the previous answer stays on screen)
 DASH_SRV_N=0             # answers applied, for the frame signature
 DASH_SRV_AT=0            # SECONDS of the last request
-DASH_SRV_EVERY=30        # seconds between two checks while the view is on screen
+DASH_SRV_EVERY=120       # seconds between two checks while the view is on screen (a check starts a few dozen processes: ~0.35 s)
 DASH_SRV_STARTUP=0       # 1: the panel just started and the first answer decides whether to open this view
 DASH_SRV_SKIP=0          # 1: the person chose to create instances although something required is missing
 DASH_PREREQ=1            # TUI_PREREQ: warn about the missing requirements (Options)
@@ -384,8 +384,13 @@ dash_srv_detail() { # width lines
 
 # The box of the requirements, $1 cells wide and $2 high, into DASH_SRV_REQ_BOX.
 DASH_SRV_REQ_BOX=()
+DASH_SRV_REQ_KEY="" DASH_SRV_REQ_MEMO=()
 dash_srv_req_box() { # width height
-  local w="$1" h="$2" cw=$(($1 - 4)) inner=$(($2 - 2)) dh lh two=0 colw i n nrec rows foot chips status
+  local w="$1" h="$2" cw=$(($1 - 4)) inner=$(($2 - 2)) dh lh two=0 colw i n nrec rows foot chips status key
+  # Nothing here moves with the samples: the box is drawn again only when what it shows changes (its choice, the detail, an answer of the check,
+  # the language or the theme, the size).
+  key="$w|$h|$DASH_SRV_SEL|$DASH_SRV_OPEN|$DASH_SRV_STATE|$DASH_SRV_BUSY|$DASH_SRV_N|$DASH_LANG_N|${UI_UTF8:-0}"
+  if [ "$key" = "$DASH_SRV_REQ_KEY" ]; then DASH_SRV_REQ_BOX=("${DASH_SRV_REQ_MEMO[@]}"); return 0; fi
   local -a left=() right=() body=() lines=()
   [ "$cw" -lt 100 ] || two=1
   n="${#DASH_SRV_ORDER[@]}"
@@ -438,6 +443,7 @@ dash_srv_req_box() { # width height
   dt tui.srv.foot.req; foot="$DTV"
   kit_box "$w" "$h" body "chips=$chips" "status=$status" "footer=$foot" focus=1
   DASH_SRV_REQ_BOX=("${KIT_BOX[@]}")
+  DASH_SRV_REQ_KEY="$key" DASH_SRV_REQ_MEMO=("${KIT_BOX[@]}")
 }
 
 # --- Drawing: the figures -----------------------------------------------------------------------------------------------
@@ -476,7 +482,7 @@ dash_srv_cpu() { # width height
   n="${#MT_CORE_PCT[@]}"; n=$((n - 1))   # (index 0 is the whole CPU)
   if [ "$ch" -ge 6 ] && [ "$cw" -ge 56 ]; then
     # The graph takes the whole body; the box floats over its right side.
-    kit_graph "$MT_HH_CPU" 100 "$cw" "$ch" mag=cpu zero=1
+    kit_graph_cached srv_cpu "$MT_HH_CPU" 100 "$cw" "$ch" mag=cpu zero=1
     base=("${KG_LINES[@]}")
     iw=31
     cr=$(((n + 1) / 2))
@@ -514,7 +520,7 @@ dash_srv_cpu() { # width height
     dash_srv_t tui.srv.cores "$n"; row+="${row:+ $UI_S_DOT }$DASH_T"
     tui_fit "${TH[dim]:-}$row$TH_RESET" "$cw"; DASH_SRV_L+=("$TUI_OUT")
     if [ $((ch - 2)) -ge 2 ]; then
-      kit_graph "$MT_HH_CPU" 100 "$cw" $((ch - 2)) mag=cpu zero=1
+      kit_graph_cached srv_cpu "$MT_HH_CPU" 100 "$cw" $((ch - 2)) mag=cpu zero=1
       DASH_SRV_L+=("${KG_LINES[@]}")
     fi
   fi
@@ -548,7 +554,7 @@ dash_srv_mem() { # width height
     kit_meter "$sw" $((cw - 5)) mem; DASH_SRV_L+=("$KIT_OUT $pad%"); r=$((r - 2))
   fi
   if [ "$r" -ge 2 ]; then
-    kit_graph "$MT_HOST_HIST" 100 "$cw" "$r" mag=mem zero=1
+    kit_graph_cached srv_mem "$MT_HOST_HIST" 100 "$cw" "$r" mag=mem zero=1
     DASH_SRV_L+=("${KG_LINES[@]}")
   fi
   dash_srv_mbox mem "$w" "$h" "$pct%"
@@ -594,6 +600,25 @@ dash_srv_disks() { # width height
   dash_srv_mbox disks "$w" "$h"
 }
 
+# The mirrored graph of the network (download above, upload below, one scale) as kit_graph_mirror draws it, but from two cached graphs: a new
+# sample moves each of them one cell at most, which costs a tenth of drawing them again. Into KG_LINES.
+dash_srv_mirror() { # width rows-up rows-down
+  local w="$1" ru="$2" rd="$3" max lab rest last top
+  local -a up=()
+  kit_scale "$MT_HH_NETD $MT_HH_NETU"; max="$KG_MAX"
+  kit_graph_cached srv_netd "$MT_HH_NETD" "$max" "$w" "$ru" mag=net_down
+  up=("${KG_LINES[@]}")
+  kit_graph_cached srv_netu "$MT_HH_NETU" "$max" "$w" "$rd" mag=net_up invert=1
+  last=$((${#KG_LINES[@]} - 1))
+  kit_si "$max"; lab="${KIT_OUT}B"
+  if [ "$last" -ge 0 ] && [ "${#lab}" -lt "$w" ]; then
+    kit_slice "${KG_LINES[$last]}" "${#lab}" $((w - ${#lab})); rest="$KIT_OUT"
+    KG_LINES[last]="${TH[dim]:-}$lab$TH_RESET$rest"
+  fi
+  top=("${up[@]}")
+  KG_LINES=("${top[@]}" "${KG_LINES[@]}")
+}
+
 # Network: the main interface as a mirrored graph (download above, upload below) with the speeds and totals under it.
 dash_srv_net() { # width height
   local w="$1" h="$2" cw=$(($1 - 4)) ch=$(($2 - 2)) gr up dn lab
@@ -604,7 +629,7 @@ dash_srv_net() { # width height
   gr=$((ch - 2))
   if [ "$gr" -ge 2 ]; then
     dn=$((gr / 2)) up=$((gr - dn))
-    kit_graph_mirror "$MT_HH_NETD" "$MT_HH_NETU" auto "$cw" "$up" "$dn" axis=1 unit=B
+    dash_srv_mirror "$cw" "$up" "$dn"
     DASH_SRV_L+=("${KG_LINES[@]}")
   fi
   dt tui.srv.net.top; lab="$DTV"
@@ -622,12 +647,12 @@ dash_srv_net() { # width height
 
 # Containers: every service with its CPU trend, memory and state (the same figures as the Resources view).
 dash_srv_containers() { # width height
-  local w="$1" h="$2" cw=$(($1 - 4)) ch=$(($2 - 2)) name svc key mem lim st
+  local w="$1" h="$2" cw=$(($1 - 4)) ch=$(($2 - 2)) name svc key mem lim st cpu
   local -a cols=() rows=()
   DASH_SRV_L=()
   dt tui.res.col.svc; cols+=("$DTV|4|l")
   dt tui.res.col.instance; cols+=("$DTV|*|l")
-  dt tui.res.col.cpu; cols+=("$DTV|12|l|spark")
+  dt tui.res.col.cpu; cols+=("$DTV|12|l")
   dt tui.res.col.mem; cols+=("$DTV|16|r")
   dt tui.res.col.state; cols+=("$DTV|12|l")
   for name in "${DASH_NAMES[@]}"; do
@@ -641,7 +666,11 @@ dash_srv_containers() { # width height
       else
         mem="-"
       fi
-      rows+=("$svc$KIT_SEP$name$KIT_SEP${MT_HCPU[$key]:-}$KIT_SEP$mem$KIT_SEP$st")
+      # The trend of the CPU as the Resources view draws it (a line of blocks, coloured by the last figure): a graph cell per row costs a lot more.
+      mt_spark_v "${MT_HCPU[$key]:-}" 0 10 100
+      cpu="$MT_S"
+      if [ -n "${MT_CPU[$key]:-}" ]; then th_grad cpu $((MT_CPU[$key] / 10)); cpu="$TH_C$cpu$TH_RESET"; fi
+      rows+=("$svc$KIT_SEP$name$KIT_SEP$cpu$KIT_SEP$mem$KIT_SEP$st")
     done
   done
   dt tui.res.none
@@ -653,20 +682,43 @@ dash_srv_containers() { # width height
 
 # --- The view ---------------------------------------------------------------------------------------------------------
 
-# The boxes of one row side by side, $1 lines high, into TUI_FRAME. $2 is the array of their widths and $3.. the functions that draw
-# them (each one takes a width and a height and leaves its lines in DASH_SRV_BOX).
+# What each box draws, as one string: the same string means the same box, so a box whose figures did not move since the last frame (an idle
+# server: its graphs are lines of zeros, the disks hardly change) is not built again. Into DASH_SRV_KEYV.
+DASH_SRV_KEYV=""
+dash_srv_key_cpu() { DASH_SRV_KEYV="${MT_SRC[cpu]:-}|${MT_SRC[temp]:-}|${MT_SRC[load]:-}|$MT_CPU_ALL|${MT_CORE_PCT[*]}|$MT_HH_CPU|$HOST_TEMP_CPU_C|$HOST_LOAD1 $HOST_LOAD5 $HOST_LOAD15"; }
+dash_srv_key_mem() { DASH_SRV_KEYV="${MT_SRC[mem]:-}|$HOST_MEMD_TOTAL|$HOST_MEMD_USED|$HOST_MEMD_AVAIL|$HOST_MEMD_CACHED|$HOST_MEMD_FREE|$HOST_MEMD_SWAP_TOTAL|$HOST_MEMD_SWAP_USED|$MT_HOST_HIST"; }
+dash_srv_key_disks() { DASH_SRV_KEYV="${MT_SRC[disk]:-}|$HOST_DISK_N|${HOST_DISK_MNT[*]}|${HOST_DISK_TOTAL[*]}|${HOST_DISK_PCT[*]}|$HOST_DISKIO_READ_BPS|$HOST_DISKIO_WRITE_BPS"; }
+dash_srv_key_net() { dash_srv_uptime "$HOST_UPTIME_S"; DASH_SRV_KEYV="${MT_SRC[net]:-}|$HOST_NET_MAIN|$HOST_NET_DOWN_BPS|$HOST_NET_UP_BPS|$MT_NET_DOWN_MAX|$MT_NET_UP_MAX|$DASH_UPT|$MT_HH_NETD|$MT_HH_NETU"; }
+dash_srv_key_containers() { DASH_SRV_KEYV="${DASH_NAMES[*]}|${DASH_SVCS[*]}|${DSV_KIND[*]}|${DSV_TEXT[*]}|${MT_MEM[*]}|${MT_LIM[*]}|${MT_CPU[*]}|${MT_HCPU[*]}"; }
+
+# The boxes of one row side by side, $1 lines high, into TUI_FRAME. $2 is the array of their widths and $3.. the names of the boxes
+# (cpu, mem, disks, net, containers: dash_srv_<name> draws one, taking a width and a height and leaving its lines in DASH_SRV_BOX). A box
+# is built again only when its key (dash_srv_key_<name>, plus its size, the language and the theme) is not the one it was last built with.
 DASH_SRV_FLAT=()
-dash_srv_row_boxes() { # height widths-array fn...
-  local h="$1" i k line n
+declare -gA DASH_SRV_MEMO_KEY=()
+DASH_SRV_MEMO_cpu=() DASH_SRV_MEMO_mem=() DASH_SRV_MEMO_disks=() DASH_SRV_MEMO_net=() DASH_SRV_MEMO_containers=()
+dash_srv_row_boxes() { # height widths-array name...
+  local h="$1" i k line n nm key
   local -n _wd="$2"
-  local -a fns
+  local -a names
   shift 2
-  fns=("$@")
-  n="${#fns[@]}"
+  names=("$@")
+  n="${#names[@]}"
   DASH_SRV_FLAT=()
   for ((i = 0; i < n; i++)); do
-    "${fns[$i]}" "${_wd[$i]}" "$h"
+    nm="${names[$i]}"
+    local -n _memo="DASH_SRV_MEMO_$nm"
+    "dash_srv_key_$nm"
+    key="${_wd[$i]}|$h|$DASH_LANG_N|${UI_UTF8:-0}|$DASH_SRV_KEYV"
+    if [ "${DASH_SRV_MEMO_KEY[$nm]:-}" = "$key" ] && [ "${#_memo[@]}" -eq "$h" ]; then
+      DASH_SRV_BOX=("${_memo[@]}")
+    else
+      "dash_srv_$nm" "${_wd[$i]}" "$h"
+      _memo=("${DASH_SRV_BOX[@]}")
+      DASH_SRV_MEMO_KEY[$nm]="$key"
+    fi
     for ((k = 0; k < h; k++)); do DASH_SRV_FLAT[i * h + k]="${DASH_SRV_BOX[$k]:-}"; done
+    unset -n _memo
   done
   for ((k = 0; k < h; k++)); do
     line=""
@@ -693,12 +745,12 @@ scr_server_render() { # width height
   if [ "$ah" -gt 0 ]; then
     if [ "$wide" -eq 1 ]; then lay_split "$w" "48:34::3" "38:26::2" "40:30::2"; else lay_split "$w" "44:30::3" "36:26::2"; fi
     wa=("${LAY[@]}")
-    if [ "$wide" -eq 1 ]; then dash_srv_row_boxes "$ah" wa dash_srv_cpu dash_srv_mem dash_srv_disks; else dash_srv_row_boxes "$ah" wa dash_srv_cpu dash_srv_mem; fi
+    if [ "$wide" -eq 1 ]; then dash_srv_row_boxes "$ah" wa cpu mem disks; else dash_srv_row_boxes "$ah" wa cpu mem; fi
   fi
   if [ "$bh" -gt 0 ]; then
     if [ "$wide" -eq 1 ]; then lay_split "$w" "44:34::1" "0:50::2"; else lay_split "$w" "42:30::1" "38:28::1"; fi
     wb=("${LAY[@]}")
-    if [ "$wide" -eq 1 ]; then dash_srv_row_boxes "$bh" wb dash_srv_net dash_srv_containers; else dash_srv_row_boxes "$bh" wb dash_srv_disks dash_srv_net; fi
+    if [ "$wide" -eq 1 ]; then dash_srv_row_boxes "$bh" wb net containers; else dash_srv_row_boxes "$bh" wb disks net; fi
   fi
 }
 

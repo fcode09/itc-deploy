@@ -192,7 +192,7 @@ segunda fila primero).
 
 - **Requisitos**: `prereq_run_all` corre en un trabajo en segundo plano (`dash_async prereq`, como el estado de Docker y los logs: una comprobación
   puede preguntar a Docker o abrir un TCP) y el resultado vuelve como líneas `declare -p` de las variables `PR_*` (solo esas se cargan). En el modo
-  de prueba (`DELTACTL_TUI_KEYS`) es síncrono. Se repite cada 30 s mientras la vista está a la vista y con `R`.
+  de prueba (`DELTACTL_TUI_KEYS`) es síncrono. Se repite cada 2 minutos mientras la vista está a la vista (cuesta ~0,35 s de procesos) y con `R`.
 - **Cifras**: `MT_HOST_DETAIL=1` solo mientras la vista es la actual (`scr_server_tick`); elegir la vista pide la primera muestra al instante.
 - **Copiar y ejecutar**: `dash_srv_copy` (`wl-copy`, `xclip`, `xsel`, `pbcopy`, OSC 52) y `dash_srv_terminal`, que solo llama el modo `srvask` tras un
   `y`. Nada instala por su cuenta. Variables de prueba: `DELTACTL_CLIP` (un comando que lee el texto por su entrada, en vez de tocar el portapapeles) y
@@ -208,6 +208,16 @@ segunda fila primero).
 - **Capturas**: `tests/tools/pty_shot.py` (un PTY real; `DELTACTL_SHOT_ALL=1` copia todas las instancias de un servidor simulado) y
   `tests/tools/shot_png.py` (Pillow) dibujan el resultado como PNG; también acepta un fotograma con colores de una escena
   (`DELTACTL_COLOR=always COLORTERM=truecolor`) para ver el diseño sin esperar a que las gráficas se llenen.
+
+**Consumo de la vista Servidor** (simulado: `bench_frames.sh` y un PTY real contra Docker y host simulados, 12 instancias, máquina con poca carga; son cifras de
+esta máquina, no del WSL de las medidas anteriores). Fotograma con la firma sin cambios (solo se vuelve a pintar): 7, 12 y 16 ms a 80x24, 120x30 y
+160x40 (en el modo de prueba pinta todas las líneas; el panel real solo las que cambian). Con una muestra nueva: 5, 9 y 12 ms si las cifras no se
+movieron (cada recuadro se guarda mientras su clave —las cifras que dibuja, el tamaño, el idioma y el tema— no cambia) y 24, 38 y 55 ms **con la lectura
+del host incluida** si el servidor se mueve (todo se dibuja de nuevo). CPU en reposo durante 40 s a 160x40: Instancias 2,4 %, Servidor 3,7 % con el
+host moviéndose y 3,2 % con el host quieto (+1,2 y +0,8 puntos); a 120x30, 2,2 % y 2,7 % con el host moviéndose (+0,5). Lo que más costaba era la comprobación de requisitos (≈0,35 s de procesos: cada 30 s
+sumaba unos 2 puntos): por eso se repite cada 2 minutos. El presupuesto del diseño (≤ 1,5 % en cualquier vista, ≤ 45 ms sin caché a 160x40) **no se cumple
+del todo con un servidor que se mueve** (55 ms, +1,2 puntos); lo que queda es el coste de `kit_box` (≈ 2 ms por recuadro) y de pintar las gráficas por fila.
+`TUI_SAMPLE` en Opciones (5 s) lo reduce a la mitad.
 
 Límites: con siete vistas, a 80 columnas la línea de pestañas deja solo el número de las que no están activas; hasta 120 columnas la vista no
 dibuja la caja de contenedores (la vista Recursos sigue siendo la tabla completa).
