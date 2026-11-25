@@ -1,18 +1,18 @@
 === frame 1 ===
   ITC  testhost · Memoria ███░░░ 5.6/11.5 GB 48% ▄▃▂▅▃▂ · Carga 3.18 · Docker 27.0.0 · contenedores 1.5G
  [1 Instancias] 2 Recursos 3 Salida 4 Ejecuciones 5 Procesos 6 Consola 7 Servidor 8 Imágenes 9 Variables               
-╭─ ▸Instancias ──────────────────────╮╭─┐ix-lima · 1/2┌────────────────────────────────────────────────────┐▲ parcial┌─╮
-│   + Nueva instancia                ││ ▸ s0 auth-backend:2.14.1  ● healthy                                            │
-│               n/m      mem    cpu  ││     activo 6h12m  ·  :4110                                                     │
-│   ●● ix-colorado 2/2    1.3G  25.1%││     mem  ████░░░░░░░░ 180M/512M  35%  ▂▅▃▂▁▄▂▁▄▂▁▄▃▁                           │
-│ ▸ ●✖ ix-lima  1/2    180M   1.2%   ││     cpu  ░░░░░░░░░░░░ 1.2%  █▅▂▁▆▃▁▆▃▁▆▄▁▆                                     │
-│   ✖✖ ix-piura 0/2       -      -   ││                                                                                │
-╰────────────────────────────────────╯│ Para desplegar · 5                                                             │
-╭─ Servidor ─────────────────────────╮│   ▲ levantar de nuevo ix-lima/s1                                    ⏎ desplegar│
-│ Memoria █████░░░░░ 5.6/11.5 GB 48% ││   ✖ Faltan variables por rellenar  s1: 2                             ⏎ rellenar│
-│              ▃                     ││   ○ Variables cambiadas sin desplegar  s0, instance             ⏎ ver variables│
-│              █   ▄                 ││   ℹ s0: hay una versión más reciente ★  2.15.0 (ahora 2.14.1)   ⏎ ver versiones│
-│  ▁  ▄  ▄  █  ██  █     ▂  ▃  ▂  ▆  │╰─┘u desplegar└─┘c comprobar└─┘s estado└─┘l logs└─┘t pendientes└─┘Enter más└─────╯
+╭─ ▸Instancias ──────────────────────╮[Resumen] Acceso  Historial                                                       
+│   + Nueva instancia                │╭─┐ix-lima · 1/2┌────────────────────────────────────────────────────┐▲ parcial┌─╮
+│               n/m      mem    cpu  ││ ▸ s0 auth-backend:2.14.1  ● healthy                                            │
+│   ●● ix-colorado 2/2    1.3G  25.1%││     activo 6h12m  ·  :4110                                                     │
+│ ▸ ●✖ ix-lima  1/2    180M   1.2%   ││     mem  ████░░░░░░░░ 180M/512M  35%  ▂▅▃▂▁▄▂▁▄▂▁▄▃▁                           │
+│   ✖✖ ix-piura 0/2       -      -   ││     cpu  ░░░░░░░░░░░░ 1.2%  █▅▂▁▆▃▁▆▃▁▆▄▁▆                                     │
+╰────────────────────────────────────╯│                                                                                │
+╭─ Servidor ─────────────────────────╮│ Para desplegar · 5                                                             │
+│ Memoria █████░░░░░ 5.6/11.5 GB 48% ││   ▲ levantar de nuevo ix-lima/s1                                    ⏎ desplegar│
+│              ▃                     ││   ✖ Faltan variables por rellenar  s1: 2                             ⏎ rellenar│
+│              █   ▄                 ││   ○ Variables cambiadas sin desplegar  s0, instance             ⏎ ver variables│
+│  ▁  ▄  ▄  █  ██  █     ▂  ▃  ▂  ▆  │╰─┘u desplegar└─┘c comprobar└─┘s estado└─┘l logs└─┘< > pestaña└─┘Enter más└──────╯
 │  █▁ █▂ █▁ █▅ ██▆ █  █  █  █  █▃ █▂ │╭─ Logs · s0 · siguiendo ────────────────────────────────────────────────────────╮
 │  ██ ██ ██▁██▁███▅█▄ █▄ █▇ █▇ ██ ██ ││ Leyendo el log...                                                              │
 │ ▃██▆██▆████████████ ██▁██▅██▄█████▇││                                                                                │

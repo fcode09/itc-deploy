@@ -601,7 +601,7 @@ dash_mouse() {
         dash_con_clamp
         return 0
       fi
-      case "$DASH_MODE" in name | filter | lfilter | find | confirm | wizard) return 0 ;; help) [ "$DASH_HELP_MAX" -gt 0 ] || return 0 ;; esac
+      case "$DASH_MODE" in name | filter | lfilter | accdom | find | confirm | wizard) return 0 ;; help) [ "$DASH_HELP_MAX" -gt 0 ] || return 0 ;; esac
       if [ "$b" -eq 64 ]; then TUI_KEY=up; else TUI_KEY=down; fi
       dash_handle_key
       return 0

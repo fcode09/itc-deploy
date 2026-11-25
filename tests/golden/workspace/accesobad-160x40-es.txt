@@ -1,0 +1,41 @@
+=== frame 1 ===
+  ITC  testhost · Memoria ███░░░ 5.6/11.5 GB 48% ▄▃▂▅▃▂ · Carga 3.18 · Docker 27.0.0 · contenedores 1.5G
+ [1 Instancias]  2 Recursos   3 Salida   4 Ejecuciones   5 Procesos   6 Consola   7 Servidor   8 Imágenes   9 Variables                                        
+╭─ Instancias ───────────────────────────╮ Resumen [Acceso] Historial                                                       ╭─ Eventos ────────────────────────╮
+│   + Nueva instancia                    │╭─┐ ▸ix-colorado ┌─┐Acceso┌─────────────────────────────┐● nginx detectado aquí┌─╮│ Sin eventos todavía              │
+│                  n/m      mem    cpu   ││ Dominio   ● ejemplo.pe                                                         ││                                  │
+│ ▸ ●● ix-colorado 2/2    1.3G  25.1%    ││ Proxy     ● nginx   ○ caddy   nginx detectado aquí                             ││                                  │
+│   ●✖ ix-lima     1/2    180M   1.2%    ││ HTTPS     no   http por el puerto 80                                           ││                                  │
+│   ✖✖ ix-piura    0/2       -      -    ││                                                                                ││                                  │
+│   ○○ ix-sullana  0/2       -      -    ││   Servicio Puerto   En este servidor   Nombre público                          ││                                  │
+╰────────────────────────────────────────╯│ ▸ ● s0      :4100    responde           auth-backend.ejemplo.pe                ││                                  │
+╭─ Servidor ─────────────────────────────╮│   ▲ s1      -        sin puerto         gueo-back-end.ejemplo.pe               ││                                  │
+│ Memoria █████░░░░░ 5.6/11.5 GB 48%     ││                                                                                ││                                  │
+│                  ▃                     ││ Bloque de nginx                                                                ││                                  │
+│                  █   ▄                 ││   Falta el puerto de s1 en .env.instance: no se puede generar el bloque.       ││                                  │
+│   ▁  ▁  ▄  ▄  █  ██  █     ▂  ▃  ▂  ▆  ││                                                                                ││                                  │
+│   █  █▁ █▂ █▁ █▅ ██▆ █  █  █  █  █▃ █▂ ││                                                                                ││                                  │
+│ ▆ █▅ ██ ██ ██▁██▁███▅█▄ █▄ █▇ █▇ ██ ██ ││                                                                                ││                                  │
+│ █▃██▃██▆██▆████████████ ██▁██▅██▄█████▇││                                                                                ││                                  │
+│ Carga 3.18                             ││                                                                                ││                                  │
+│ contenedores 1.5G                      ││                                                                                ││                                  │
+│ Docker 27.0.0                          ││                                                                                ││                                  │
+│                                        ││                                                                                ││                                  │
+│                                        ││                                                                                ││                                  │
+│                                        ││                                                                                ││                                  │
+│                                        ││                                                                                ││                                  │
+│                                        ││                                                                                ││                                  │
+│                                        ││                                                                                ││                                  │
+│                                        ││                                                                                ││                                  │
+│                                        ││                                                                                ││                                  │
+╰────────────────────────────────────────╯╰─┘Enter dominio└─┘b bloque└─┘w https└─┘y copiar└─┘g guardar└─┘< > pestaña└──────╯╰──────────────────────────────────╯
+╭─ Consola ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│ ix-colorado ❯ : escribe un comando · ! en el terminal · Tab completa · ↑ historial · help                                                                    │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+ ↑↓ servicio · Enter dominio · b otro proxy · w https · y copiar · g guardar · z ampliar · RePág/AvPág desplaza · ← atrás · ? ayuda · q salir

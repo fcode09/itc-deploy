@@ -1,0 +1,41 @@
+=== frame 1 ===
+  ITC  testhost · Memoria ███░░░ 5.6/11.5 GB 48% ▄▃▂▅▃▂ · Carga 3.18 · Docker 27.0.0 · contenedores 1.5G
+ [1 Instancias]  2 Recursos   3 Salida   4 Ejecuciones   5 Procesos   6 Consola   7 Servidor   8 Imágenes   9 Variables                                        
+╭─ Instancias ───────────────────────────╮ Resumen  Acceso [Historial]                                                      ╭─ Eventos ────────────────────────╮
+│   + Nueva instancia                    │╭─┐ ▸ix-colorado ┌─┐Historial┌───────────────────────────────────┐3 operaciones┌─╮│ Sin eventos todavía              │
+│                  n/m      mem    cpu   ││ ▸ ● 11-01 10:00 deploy       41.2 s                                            ││                                  │
+│ ▸ ●● ix-colorado 2/2    1.3G  25.1%    ││   ✖ 11-01 09:00 check         2.1 s                                            ││                                  │
+│   ●✖ ix-lima     1/2    180M   1.2%    ││   ● 10-31 15:00 rollback      5.3 s                                            ││                                  │
+│   ✖✖ ix-piura    0/2       -      -    ││ ───────────────────────────────────────────────────────────────────────────────││                                  │
+│   ○○ ix-sullana  0/2       -      -    ││  comando        ./deltactl deploy ix-colorado                                  ││                                  │
+╰────────────────────────────────────────╯│  estado         ● correcta · código 0                                          ││                                  │
+╭─ Servidor ─────────────────────────────╮│  inicio (UTC)   2026-11-01 10:00:00Z                                           ││                                  │
+│ Memoria █████░░░░░ 5.6/11.5 GB 48%     ││  duración       41.2 s                                                         ││                                  │
+│                  ▃                     ││  quién          ana@testhost                                                   ││                                  │
+│                  █   ▄                 ││                                                                                ││                                  │
+│   ▁  ▁  ▄  ▄  █  ██  █     ▂  ▃  ▂  ▆  ││  Lo que imprimió (resumen)                                                     ││                                  │
+│   █  █▁ █▂ █▁ █▅ ██▆ █  █  █  █  █▃ █▂ ││  ● instancia 'sim-01' desplegada (s0 s1)                                       ││                                  │
+│ ▆ █▅ ██ ██ ██▁██▁███▅█▄ █▄ █▇ █▇ ██ ██ ││                                                                                ││                                  │
+│ █▃██▃██▆██▆████████████ ██▁██▅██▄█████▇││    ● Validando compose...                                                      ││                                  │
+│ Carga 3.18                             ││    ● Imágenes locales (REGISTRY vacío): no se descarga nada.                   ││                                  │
+│ contenedores 1.5G                      ││    ● Levantando servicios (espera a que estén healthy)...                      ││                                  │
+│ Docker 27.0.0                          ││                                                                                ││                                  │
+│                                        ││                                                                                ││                                  │
+│                                        ││                                                                                ││                                  │
+│                                        ││                                                                                ││                                  │
+│                                        ││                                                                                ││                                  │
+│                                        ││                                                                                ││                                  │
+│                                        ││                                                                                ││                                  │
+│                                        ││                                                                                ││                                  │
+│                                        ││                                                                                ││                                  │
+╰────────────────────────────────────────╯╰─┘Enter salida entera└─┘PgUp PgDn desplaza└─┘< > pestaña└───────────────────────╯╰──────────────────────────────────╯
+╭─ Consola ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│ ix-colorado ❯ : escribe un comando · ! en el terminal · Tab completa · ↑ historial · help                                                                    │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+ ↑↓ operación · Enter la salida entera · RePág/AvPág desplaza el detalle · z ampliar · ← atrás · ? ayuda · q salir

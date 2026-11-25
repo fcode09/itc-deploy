@@ -74,7 +74,7 @@ lib_eq() {
 
 section "1. the view is registered with one line and follows the contract"
 check "it is the ninth tab and its digit opens it" '[ "$(run_lib "dash_screen_by_number 9; echo \$DASH_SCR_ID")" = "env" ]'
-check "the mode that gives it the keyboard is registered, after the others" '[ "$(run_lib "printf \"%s \" \${DASH_MODES[@]}")" = "menu confirm name cmd filter lfilter find wizard newinst palette help options srvask imguse imgload envedit " ]'
+check "the mode that gives it the keyboard is registered, after the others" '[ "$(run_lib "printf \"%s \" \${DASH_MODES[@]}")" = "menu confirm name cmd filter lfilter find wizard newinst palette help options srvask imguse imgload envedit accdom " ]'
 check "every function of the contract it uses is defined" 'run_lib "for f in render key keys texts sig enter tick; do declare -F scr_env_\$f >/dev/null || exit 1; done; for f in key keys sig; do declare -F scr_envedit_\$f >/dev/null || exit 1; done"'
 check "its signature carries what it draws: the instance, the editor revision and the marks read" '[[ "$(run_lib "DASH_SIG=; scr_env_sig; echo \$DASH_SIG")" =~ ^\|\|[0-9]+\|0$ ]]'
 check "the tab has a name in both languages" '[ "$(run_lib "t tui.tab.env")" = "Variables" ] && [ "$(LANGX=en run_lib "t tui.tab.env")" = "Variables" ]'
