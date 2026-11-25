@@ -8,7 +8,7 @@
 │   ●✖ ix-lima     1/2    180M   1.2%                                          │
 │   ✖✖ ix-piura    0/2       -      -                                          │
 ╰──────────────────────────────────────────────────────────────────────────────╯
- Resumen  Logs  Acceso  Historial [Servicios]                                   
+ Resumen  Logs  Acceso  Historial [Servicios] Variables  Datos                  
 ╭─┐ ▸ix-colorado ┌───────────────────────────────────────────────┐● en marcha┌─╮
 │   ● s0 auth-backend  · 2.14.1  :4100  mem 512m  · healthy                    │
 │ ▸ ● s1 gueo-back-end  · 2.9.0  :4101  mem 2g  · healthy                      │

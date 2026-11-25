@@ -45,7 +45,7 @@ val() { run_lib "get_var_r instances/$1/$2 $3; printf %s \"\$GV\"" | tail -1; } 
 prof() { val "$1" .env.instance COMPOSE_PROFILES; }
 
 section "1. the tab and its prompt are registered with one line each"
-check "Servicios is the last tab of the workspace, with its file in lib/screens/ws" '[ "$(run_lib "echo \${DASH_WS_TABS[*]}")" = "resumen logs acceso historial servicios" ] && [ -f lib/screens/ws/servicios.sh ]'
+check "Servicios is the last tab of the workspace, with its file in lib/screens/ws" '[ "$(run_lib "echo \${DASH_WS_TABS[*]}")" = "resumen logs acceso historial servicios variables datos" ] && [ -f lib/screens/ws/servicios.sh ]'
 check "the prompt is a mode and follows the contract" '[ "$(run_lib "printf \"%s \" \${DASH_MODES[@]}")" != "" ] && run_lib "for f in render key keys sig; do declare -F scr_svcask_\$f >/dev/null || exit 1; done; for f in box key sig texts avail; do declare -F ws_servicios_\$f >/dev/null || exit 1; done"'
 check "the tab owns the keyboard: the focus goes to it when it is opened" '[ "$(run_lib "DASH_FOCUS=list; dash_ws_tab_go servicios; echo \$DASH_FOCUS")" = "tab" ] && [ "$(run_lib "DASH_FOCUS=list; dash_ws_tab_go logs; echo \$DASH_FOCUS")" = "logs" ]'
 check "its texts exist in both languages" 'for k in $(grep -o "MSG_es\[\"tui\.svc\.[a-z_.]*\"\]" lib/i18n/es/svcview.sh | sed "s/MSG_es/MSG_en/"); do grep -qF "$k" lib/i18n/en/svcview.sh || { echo "falta $k"; exit 1; }; done'

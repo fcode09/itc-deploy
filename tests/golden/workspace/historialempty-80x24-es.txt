@@ -8,7 +8,7 @@
 │   ●✖ ix-lima     1/2    180M   1.2%                                          │
 │ ▸ ✖✖ ix-piura    0/2       -      -                                          │
 ╰──────────────────────────────────────────────────────────────────────────────╯
- Resumen  Logs  Acceso [Historial] Servicios                                    
+ Resumen  Logs  Acceso [Historial] Servicios  Variables  Datos                  
 ╭─┐ ▸ix-piura ┌─┐Historial┌────────────────────────────────────┐0 operaciones┌─╮
 │   Esta instancia aún no tiene operaciones registradas. Las que cambian algo  │
 │   (desplegar, init, adopt, rollback, detener, bajar) quedan aquí con su      │

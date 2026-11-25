@@ -100,6 +100,8 @@ dash_ws_tab_go() { # id
     *) DASH_FOCUS=tab ;;
   esac
   DASH_LOG_SCROLL=0
+  # a tab whose keyboard is a mode (the Variables editor) takes it when it is opened: ws_<id>_enter <instance>
+  if [ "$DASH_FOCUS" = "tab" ] && declare -F "ws_${1}_enter" > /dev/null; then "ws_${1}_enter" "${DASH_NAMES[$DASH_SEL]:-}"; fi
 }
 
 # Is the tab that was chosen one of those that own a pane (neither the summary nor the logs) and visible for the instance on screen?
@@ -491,3 +493,5 @@ dash_ws_register logs tui.ws.tab.logs
 dash_ws_register acceso tui.ws.tab.acceso
 dash_ws_register historial tui.ws.tab.historial
 dash_ws_register servicios tui.ws.tab.servicios
+dash_ws_register variables tui.ws.tab.variables
+dash_ws_register datos tui.ws.tab.datos
