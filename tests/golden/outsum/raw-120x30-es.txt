@@ -1,6 +1,6 @@
 === frame 1 ===
 
-  1   2  [3 Salida]  4   5   6   7   8   9   0                                         ● ./deltactl doctor terminó bien
+  1   2   3  [4 Salida]  5   6   7   8   9   0                                         ● ./deltactl doctor terminó bien
 ╭─ ▸Salida · ./deltactl doctor · terminó bien 00:42 ───────────────────────────────────────────────────────────────────╮
 │   ● mongod permite 524288 archivos abiertos                                                                          │
 │                                                                                                                      │

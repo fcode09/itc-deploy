@@ -27,6 +27,8 @@ source "$ROOT/lib/ui/kit/kit.sh"
 # The interpreter of what a command printed and the summary the Output view draws with it.
 source "$ROOT/lib/core/outparse.sh"
 source "$ROOT/lib/ui/outsummary.sh"
+# The optional profile of the panel itself (DELTACTL_PROF=1): where its CPU goes. Off by default.
+source "$ROOT/lib/core/prof.sh"
 source "$ROOT/lib/cmd/dashboard_view.sh"
 # The screens and the router (lib/screens/registry.sh): the views and modes below are the ones it registers.
 source "$ROOT/lib/screens/registry.sh"
@@ -192,6 +194,7 @@ dash_async() {
   DASH_AS_SEQ=$((DASH_AS_SEQ + 1))
   DASH_AS_FILE[$slot]="$JOB_DIR/as.$slot.$DASH_AS_SEQ"
   DASH_AS_ARG[$slot]="$arg" DASH_AS_AT[$slot]="$SECONDS"
+  prof_count "spawn:$slot"
   ( "$@" > "${DASH_AS_FILE[$slot]}.tmp" 2> /dev/null && mv "${DASH_AS_FILE[$slot]}.tmp" "${DASH_AS_FILE[$slot]}" ) &
   DASH_AS_PID[$slot]=$!
 }
@@ -263,7 +266,7 @@ dash_async_tick() {
     DASH_REFRESH_WANT=0 DASH_EV_PENDING=0
     dash_async state "" dash_state_dump
   fi
-  if dash_async_take state; then dash_state_apply "$DASH_AS_TEXT"; changed=0; fi
+  if dash_async_take state; then prof_b state_apply; dash_state_apply "$DASH_AS_TEXT"; prof_e state_apply; changed=0; fi
   if dash_async_take errors; then dash_errors_apply "${DASH_AS_ARG[errors]}" "$DASH_AS_TEXT"; changed=0; fi
   if dash_async_take logs; then dash_logs_apply "${DASH_AS_ARG[logs]}" "$DASH_AS_TEXT"; changed=0; fi
   if dash_async_take rvidx; then dash_runs_log_index "${DASH_AS_ARG[rvidx]}" "$DASH_AS_TEXT"; changed=0; fi
@@ -396,6 +399,7 @@ dash_lock_release() {
 
 dash_shutdown() {
   tui_leave
+  prof_dump
   dash_lock_release
   theme_restore
   [ -z "$DASH_EV_PID" ] || kill "$DASH_EV_PID" 2>/dev/null || true
@@ -486,11 +490,17 @@ dash_job_tick() {
 
 dash_tick() {
   local interval
+  prof_b tick.job
   dash_job_tick
   if dash_events_drain; then DASH_EV_PENDING=1; fi
+  prof_e tick.job
   # What finished in the background is applied at once, even while paused (it was already asked for).
+  prof_b tick.async
   if dash_async_tick; then DASH_DIRTY=1; fi
+  prof_e tick.async
+  prof_b tick.screens
   dash_screen_tick
+  prof_e tick.screens
   if [ "$DASH_PAUSED" -eq 0 ]; then
     if [ -n "$DASH_EV_FD" ]; then interval="$DASH_SAFETY_SECONDS"; else interval="$DASH_REFRESH_SECONDS"; fi
     if [ "$DASH_EV_PENDING" -eq 1 ] || [ $((SECONDS - DASH_REFRESH_AT)) -ge "$interval" ]; then
@@ -504,12 +514,18 @@ dash_tick() {
       DASH_AWAY=0
     fi
     if mt_due; then
+      prof_b sample.host
       mt_sample
+      prof_e sample.host
+      prof_b sample.build
       dash_host_build
+      prof_e sample.build
       DASH_DIRTY=1
     fi
     # What the current view polls for (the instances: the log tail and the error counts of the selected one).
+    prof_b tick.poll
     dash_screen_poll
+    prof_e tick.poll
   fi
   if [ -n "$DASH_MSG" ] && [ "$SECONDS" -ge "$DASH_MSG_UNTIL" ]; then DASH_MSG=""; DASH_DIRTY=1; fi
 }
@@ -692,11 +708,17 @@ dash_loop() {
   DASH_DIRTY=1 DASH_KEY_AT="$SECONDS"
   while [ "$DASH_QUIT" -eq 0 ]; do
     if [ "$TUI_RESIZED" -eq 1 ]; then tui_size; dash_host_build; DASH_DIRTY=1; fi
+    prof_count loop.turns
+    prof_b dash_tick
     dash_tick
+    prof_e dash_tick
     if [ "$DASH_DIRTY" -eq 1 ]; then
       DASH_DIRTY=0
+      prof_b dash_render
       dash_render
+      prof_e dash_render
     fi
+    prof_tick
     # Waiting costs nothing: `read -t` sleeps. A running command makes the loop wake up more often.
     # A running command, a log that grows faster than one turn can read and a stream waiting to start all ask to be back soon.
     if job_running || [ "$DASH_LS_MORE" -eq 1 ]; then tick=0.2; elif [ "$DASH_LS_DEFER" -eq 1 ]; then tick=0.3; else tick=1; fi
@@ -704,7 +726,9 @@ dash_loop() {
     if [ "$DASH_SIGINT" -eq 1 ]; then DASH_SIGINT=0; dash_key_seen; dash_ctrl_c; DASH_DIRTY=1; fi
     DASH_IDLE=0
     if [ "$TUI_KEY" = "timeout" ]; then DASH_IDLE=1; else dash_key_seen; fi
+    prof_b handle_key
     dash_handle_key
+    prof_e handle_key
   done
 }
 
@@ -757,6 +781,7 @@ cmd_dashboard() {
   dash_host_build
   dash_events_start
   dash_srv_startup      # the server's requirements are checked in the background; with one missing the panel opens on the Server view
+  prof_init
   dash_loop
   dash_shutdown
   [ "$errexit" -eq 0 ] || set -e
