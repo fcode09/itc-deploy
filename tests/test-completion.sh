@@ -55,7 +55,7 @@ check "una instancia nueva aparece sin regenerar el script" \
   'bash ./deltactl new cp-tres >/dev/null 2>&1; has "$(comp deltactl deploy "")" cp-tres'
 
 section "4. opciones"
-check "new sugiere sus opciones" '[ "$(comp deltactl new --)" = "--existing --generate-secrets --ip --s0-image --s0-tag --s1-image --s1-tag --services --wizard " ]'
+check "new sugiere sus opciones" '[ "$(comp deltactl new --)" = "--domain --env-file --existing --generate-secrets --ip --proxy --s0-image --s0-tag --s1-image --s1-tag --secret-file --services --tls --wizard " ]'
 check "status sugiere sus opciones" '[ "$(comp deltactl status --)" = "--json --stats --strict --watch " ]'
 check "una opción parcial se completa" '[ "$(comp deltactl status --j)" = "--json " ]'
 check "check sugiere --mongo" '[ "$(comp deltactl check cp-uno --)" = "--mongo " ]'

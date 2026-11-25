@@ -1,0 +1,31 @@
+=== frame 1 ===
+
+ [1 Instances]  2 Resources   3 Output   4 Runs   5 Processes   6 Console   7 Server   8 Images   9 Variables          
+╭─┐new instance┌─────────────────────────────────────────────────────────────────────────────────────────┐instancia-1┌─╮
+│ ●━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━▲━━━━━━━━━━━━━━━▲━━━━━━━━━━━━━━━◉         Step 7 of 7│
+│ Name            Services        Versions        Data            Variables       Secrets         Access               │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭─┐ ▸7 · Access ┌──────────────────────────────────────────────────────╮╭─┐preview┌────────────────────────────────────╮
+│                                                                      ││ instances/instancia-1/                       │
+│ With what name is it reached from the internet? With a domain the    ││   .env.instance                              │
+│ nginx or Caddy block is prepared; it is text only: nothing is        ││     COMPOSE_PROFILES=s0,s1                   │
+│ installed or reloaded.                                               ││     S0_PORT=4100                             │
+│                                                                      ││     S0_TAG=2.14.1                            │
+│ Domain    ● muni.example.com                                         ││     S1_PORT=4101                             │
+│ Proxy     ( nginx)  ( Caddy)  ▸ (both)                               ││     S1_TAG=2.9.0                             │
+│ HTTPS     [x]                                                        ││   .env.s0 .env.s1                            │
+│                                                                      ││   secrets/  data/                            │
+│ ℹ Neither nginx nor Caddy was detected on this server (the block can ││     data/ empty: init seeds it               │
+│   be generated anyway).                                              ││   variables: 0 set · 4 generated             │
+│                                                                      ││   proxy/ nginx.conf Caddyfile                │
+│ nginx block → instances/instancia-1/proxy/nginx.conf                 ││                                              │
+│ map $http_upgrade $connection_upgrade { default upgrade; '' close; } ││ ≈ ./deltactl new instancia-1                 │
+│                                                                      ││     --services s0,s1 --s0-tag 2.14.1         │
+│ # s0                                                                 ││     --s1-tag 2.9.0 --env-file <answers>      │
+│ server {                                                             ││     --domain muni.example.com --tls          │
+│     listen 80;                                                       ││                                              │
+│ … and 43 more lines (the whole block is saved in the instance)       ││                                              │
+│                                                                      ││                                              │
+╰─┘Esc back└─┘Enter create└────────────────────────────────────────────╯╰──────────────────────────────────────────────╯
+
+ ↑↓ move · ←→ space changes · c copies the block · v nginx/Caddy · Enter creates · Esc back · Tab preview

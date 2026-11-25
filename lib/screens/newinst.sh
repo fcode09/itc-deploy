@@ -19,11 +19,22 @@
 #   dash_nzs_<i>_typing             return 0 while a text is being typed: the digits are text then, not jumps.
 #   dash_nzs_<i>_args               appends to DASH_NZ_ARGV the options this step adds to `new` (and so to the preview's command).
 #   dash_nzs_<i>_preview <iw>       appends lines to DASH_NZ_P (the preview) after the ones the engine draws.
+#   dash_nzs_<i>_reset              runs when the wizard opens: forget what the step kept from the last time.
+#   dash_nzs_<i>_sig                appends "|value" pieces to DASH_NZ_AS (what the bar and the preview are kept for): everything of the step
+#                                   that they show.
+#   dash_nzs_<i>_prepare            runs when the instance is about to be created, before the command is built: write what the step hands to
+#                                   `new` as a file (DASH_NZ_TMPS lists the files the panel deletes when the command ends). Return 1 (with the
+#                                   reason in DASH_NZ_ERR) to stop: the step opens and says why.
 # The text of the step is the messages tui.nz.step.<i> (its name in the bar), tui.nz.help.<i> (what it asks, one sentence) and
 # tui.nz.keys.<i> (the key bar); the texts of the footer and the common messages are tui.nz.*.
 #
+# THE ANSWERS THAT ARE NOT OPTIONS of `new` (the variables, the files of secrets/, the domain of the proxy) go to it as `--env-file`,
+# `--secret-file` and `--domain/--proxy/--tls` (see lib/cmd/new.sh): the steps that own them add them in their `args` hook. A secret is
+# written only in the temporary file of --env-file (mode 600, in a folder only the person can read), and the file is deleted when the command
+# ends, when the wizard is cancelled and when the panel leaves; it is never in a command line, in the preview or in the console.
+#
 # At the end of the last step Enter runs dash_nz_finish: today it creates the instance (dash_nz_create starts `./deltactl new <name> ...`
-# as a job of the panel, like the old form did), and the review step replaces that one function.
+# as a job of the panel, like the old form did), and the review step (N3) replaces that one function: THE HOOK for the end of the wizard.
 #
 # It opens in place of the old form when the setting TUI_WIZARD=2 (or DELTACTL_WIZARD=2) is on; the old form stays until the new one
 # creates, reviews and reports (the next tasks of the plan).
@@ -36,6 +47,9 @@ DASH_NZ_NAME="" DASH_NZ_PROPOSED="" DASH_NZ_DATA=0 DASH_NZ_GEN=1 DASH_NZ_SSL=0 D
 DASH_NZ_ST="" DASH_NZ_VAL="" DASH_NZ_T=""
 DASH_NZ_B=() DASH_NZ_P=() DASH_NZ_S=() DASH_NZ_SL=() DASH_NZ_ARGV=()
 DASH_NZ_KROW=0 DASH_NZ_KX=2                    # where the steps of the bar are on the screen (for a click)
+DASH_NZ_TMPS=() DASH_NZ_ENVFILE=""             # the temporary files of the answers (deleted when the command ends) and the one of --env-file
+DASH_NZ_REAL=0                                 # 1 while the command that will run is being built (the preview is built with 0)
+DASH_NZ_GENDONE=0                              # 1 when the step of the variables generated the secrets (then `new` is not asked to: --generate-secrets)
 declare -gA DASH_NZ_SEL=() DASH_NZ_TAG=() DASH_NZ_PORT=() DASH_NZ_PBUSY=() DASH_NZ_TX=() DASH_NZ_NOTE=()
 
 # Registers a step: its id (also the name of its file) in order. Loads its file.
@@ -124,6 +138,16 @@ dash_nz_images_load() {
 # Opens the wizard (dash_open_new has already refused while a command runs and asked about the requirements of the server).
 dash_nz_open() {
   local s n=1 base p
+  # The editor of variables is ONE model for the whole panel (lib/ui/kit/env_editor.sh): with changes staged in the Variables view the wizard
+  # does not open over them (it would take the model and the changes would be lost).
+  if declare -F kee_dirty > /dev/null && kee_dirty && [ -n "${DASH_ENV_INST:-}" ]; then
+    dash_msg warn "$(t tui.nz.env_dirty "$DASH_ENV_INST")"
+    return 0
+  fi
+  dash_nz_tmp_clean
+  for ((n = 0; n < ${#DASH_NZ_STEPS[@]}; n++)); do dash_nz_call "$n" reset || true; done
+  n=1
+  dash_nz_env_release
   if command -v openssl > /dev/null 2>&1; then DASH_NZ_SSL=1; else DASH_NZ_SSL=0; fi
   if inst_docker_names; then DASH_NZ_DOCKER=1; else DASH_NZ_DOCKER=0; fi
   # A name is proposed: the first instancia-N that is free (in the folder, in Compose and among the networks).
@@ -147,7 +171,30 @@ dash_nz_open() {
 
 dash_nz_cancel() {
   DASH_MODE=normal
+  dash_nz_tmp_clean
+  dash_nz_env_release
   dash_msg info "$(t tui.msg.cancelled)"
+}
+
+# The files of the answers (a secret may be in them) are deleted: when the command that read them ends, when the wizard is cancelled, when it
+# opens again and when the panel leaves.
+dash_nz_tmp_clean() {
+  local f
+  for f in "${DASH_NZ_TMPS[@]}"; do [ -z "$f" ] || rm -f -- "$f"; done
+  DASH_NZ_TMPS=() DASH_NZ_ENVFILE=""
+}
+
+# The model of the editor of variables was the wizard's: the Variables view opens the instance again (it must not show the wizard's), and
+# what was revealed is hidden.
+dash_nz_env_release() {
+  if declare -F kee_reset > /dev/null; then kee_reset; fi
+  if [ -n "${DASH_ENV_INST:-}" ]; then DASH_ENV_INST=""; fi
+}
+
+# Every turn of the loop: a secret that was shown for long enough is hidden again (the mode has no tick of its own: this one is the screen's).
+scr_newinst_tick() {
+  [ "$DASH_MODE" = newinst ] || return 0
+  if declare -F kee_tick > /dev/null && kee_tick; then DASH_DIRTY=1; fi
 }
 
 # --- Moving ------------------------------------------------------------------------------------------------------------------------
@@ -211,14 +258,34 @@ dash_nz_argv() { # name
     [ -z "${DASH_NZ_TAG[$s]:-}" ] || DASH_NZ_ARGV+=("--$s-tag" "${DASH_NZ_TAG[$s]}")
   done
   for ((s = 0; s < ${#DASH_NZ_STEPS[@]}; s++)); do dash_nz_call "$s" args || true; done
-  if dash_nz_gen_ok && [ "$DASH_NZ_GEN" -eq 1 ]; then DASH_NZ_ARGV+=(--generate-secrets); fi
+  # (the step of the variables generates the secrets itself when it is there: they are in its file of answers, and `new` is not asked to)
+  if dash_nz_gen_ok && [ "$DASH_NZ_GEN" -eq 1 ] && [ "$DASH_NZ_GENDONE" -eq 0 ]; then DASH_NZ_ARGV+=(--generate-secrets); fi
 }
 
-# Starts `new` with the answers as options, as a job of the panel (its output lands in the console like any other command).
+# Starts `new` with the answers as options, as a job of the panel (its output lands in the console like any other command). The steps first
+# write what they hand over as files (hook prepare); when one refuses, nothing starts and its step opens.
 dash_nz_create() {
+  local i why rc
+  dash_nz_tmp_clean
+  for ((i = 0; i < ${#DASH_NZ_STEPS[@]}; i++)); do
+    rc=0
+    dash_nz_call "$i" prepare || rc=$?
+    case "$rc" in 0 | 127) continue ;; esac
+    why="$DASH_NZ_ERR"
+    dash_nz_tmp_clean
+    dash_nz_goto "$i"
+    DASH_NZ_ERR="$why"
+    return 0
+  done
+  DASH_NZ_REAL=1   # (the command that runs has the real paths; the preview shows them short)
   dash_nz_argv "$DASH_NZ_NAME"
+  DASH_NZ_REAL=0
   DASH_MODE=normal
-  dash_start_job stay "${DASH_NZ_ARGV[@]}"
+  if dash_start_job stay "${DASH_NZ_ARGV[@]}"; then
+    dash_nz_env_release
+  else
+    dash_nz_tmp_clean
+  fi
 }
 
 # The end of the last step: creates when every step lets it; if one does not, opens it (its gate says why).
@@ -379,7 +446,8 @@ DASH_PC_nzbar=() DASH_PC_nzpv=() DASH_PC_nzst=()   # the boxes of the bar, the p
 dash_nz_asig() {
   local s
   DASH_NZ_AS="$DASH_NZ_I|$DASH_NZ_MAX|$DASH_NZ_NAME|$DASH_NZ_DATA|$DASH_NZ_GEN|$DASH_NZ_DOCKER"
-  for s in "${KNOWN_SERVICES[@]}"; do DASH_NZ_AS+="|${DASH_NZ_SEL[$s]:-0}:${DASH_NZ_TAG[$s]:-}"; done
+  for s in "${KNOWN_SERVICES[@]}"; do DASH_NZ_AS+="|${DASH_NZ_SEL[$s]:-0}:${DASH_NZ_TAG[$s]:-}:${DASH_NZ_PORT[$s]:-}"; done
+  for ((s = 0; s < ${#DASH_NZ_STEPS[@]}; s++)); do dash_nz_call "$s" sig || true; done
 }
 
 # The bar of steps (a box of 4 rows) into TUI_BOX: the states of the steps already visited, the open one and the ones to come.
@@ -468,7 +536,8 @@ scr_newinst_render() { # width height
   if [ "$wide" -eq 1 ] || [ "$DASH_NZ_PREVIEW" -eq 1 ]; then
     if [ "$wide" -eq 1 ]; then fw="$rw"; else fw="$w"; fi
     sbh=0 pbh="$hb"
-    if [ "$wide" -eq 1 ] && [ $((hb - n - 2)) -ge 8 ]; then sbh=$((n + 2)) pbh=$((hb - sbh)); fi
+    # (the list of the states takes room from the preview, which matters more: it is shown only when the preview keeps 14 rows)
+    if [ "$wide" -eq 1 ] && [ $((hb - n - 2)) -ge 14 ]; then sbh=$((n + 2)) pbh=$((hb - sbh)); fi
     if dash_pc_get nzpv "$bsig|$wide|$pbh|$fw"; then right=("${TUI_BOX[@]}")
     else
       dash_nz_preview $((fw - 3))
@@ -513,7 +582,7 @@ scr_newinst_keys() { # width
 }
 
 scr_newinst_sig() {
-  [ "$DASH_MODE" != "newinst" ] || DASH_SIG+="|$DASH_NZ_V|$DASH_NZ_I|$DASH_NZ_MAX|$DASH_NZ_PREVIEW|$DASH_NZ_ERR"
+  [ "$DASH_MODE" != "newinst" ] || DASH_SIG+="|$DASH_NZ_V|$DASH_NZ_I|$DASH_NZ_MAX|$DASH_NZ_PREVIEW|$DASH_NZ_ERR|${KEE_REV:-0}"
 }
 
 # --- The steps: ONE line each, in order ---------------------------------------------------------------------------------------------
@@ -521,3 +590,6 @@ dash_nz_step_register name
 dash_nz_step_register services
 dash_nz_step_register versions
 dash_nz_step_register data
+dash_nz_step_register variables
+dash_nz_step_register secrets
+dash_nz_step_register access

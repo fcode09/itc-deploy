@@ -1,0 +1,31 @@
+=== frame 1 ===
+
+ [1 Instances]  2 Resources   3 Output   4 Runs   5 Processes   6 Console   7 Server   8 Images   9 Variables          
+╭─┐new instance┌─────────────────────────────────────────────────────────────────────────────────────────┐instancia-1┌─╮
+│ ●━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━◉━━━━━━━━━━━━━━━○━━━━━━━━━━━━━━━○         Step 5 of 7│
+│ Name            Services        Versions        Data            Variables       Secrets         Access               │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭─┐ ▸5 · Variables ┌───────────────────────────────────────────────────╮╭─┐preview┌────────────────────────────────────╮
+│ 3 required to fill in · 0 set · 4 generated                          ││ instances/instancia-1/                       │
+│ What values do its files carry? The required ones come first; the    ││   .env.instance                              │
+│ unique secrets are already generated and are not shown. What you do  ││     COMPOSE_PROFILES=s0,s1                   │
+│ not change stays as the template.                                    ││     S0_PORT=4100                             │
+│ ▸ .env.instance                                          12 variables││     S0_TAG=2.14.1                            │
+│ ▾ .env.s0                                  9 variables · 1 to fill in││     S1_PORT=4101                             │
+│ ▲ IP_SERVER                    (empty)                       required││     S1_TAG=2.9.0                             │
+│ ● JWT_SECRET                   ⚿ ••••••••••                   changed││   .env.s0 .env.s1                            │
+│ ● MONGO_URI                    ⚿ ••••••••••                          ││   secrets/  data/                            │
+│ ● IP_INTERNAL_CONNECTION       s1                                    ││     data/ empty: init seeds it               │
+│ ▾ .env.s1                                 27 variables · 2 to fill in││   variables: 0 set · 4 generated             │
+│ ▲ IP_SERVER                    (empty)                       required││                                              │
+│ ● AUTH_URL                     http://s0:3200                        ││ ≈ ./deltactl new instancia-1                 │
+│ ● JWT_SECRET                   ⚿ ••••••••••                   changed││     --services s0,s1 --s0-tag 2.14.1         │
+│ ● DELTA_UNIVERSITY_HANDOFF_S…  ⚿ ••••••••••                   changed││     --s1-tag 2.9.0 --env-file <answers>      │
+│ ● MONGO_DELTA_DISPATCH_URI     ⚿ ••••••••••                          ││                                              │
+│ ─────────────────────────────────────────────────────────────────────││                                              │
+│ .env.instance  created with the instance                             ││                                              │
+│ This file does not exist yet: it is made from its template when the  ││                                              │
+│ instance is created, with what is set here.                          ││                                              │
+╰─┘Esc back└─┘Enter next└──────────────────────────────────────────────╯╰──────────────────────────────────────────────╯
+
+ ↑↓ move · Enter edits · g generates · r shows · d default · a advanced · s goes on · Esc back · Tab preview

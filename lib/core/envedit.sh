@@ -53,6 +53,8 @@ envedit_emit() { # file key value
 # once per file. It is ALWAYS readable only by its owner: what it holds is what the file held, secrets included, whatever its mode.
 envedit_backup() { # file
   [ -f "$1" ] || return 0
+  # (`new` writes the answers into files it has just made from the templates: there is nothing to go back to, so it asks for no copy)
+  [ "${ENVEDIT_NOBACKUP:-0}" != 1 ] || return 0
   [ -z "${ENVEDIT_BAKED[$1]:-}" ] || return 0
   ( umask 077; cp -f "$1" "$1.bak" ) 2> /dev/null || return 1
   chmod 600 "$1.bak" 2> /dev/null || return 1   # cp keeps the mode of an old .bak that was already there

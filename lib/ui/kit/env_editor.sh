@@ -731,6 +731,13 @@ kee_card() { # width
 
 kee_card_file() { # file width
   local f="$1" w="$2" l
+  # A model with no disk behind it (the wizard's): the file does not exist yet, so there is no deploy to compare with.
+  if [ "$KEE_DISK" -eq 0 ]; then
+    kee_t envview.card.state_new; tui_fit "${TH[dim]:-}$KEE_T$TH_RESET" "$w"; KEE_CARD+=("$TUI_OUT" "")
+    kee_t envview.card.file_new; kit_wrap "$KEE_T" "$w"
+    for l in "${KW_LINES[@]}"; do tui_fit "${TH[dim]:-}$l$TH_RESET" "$w"; KEE_CARD+=("$TUI_OUT"); done
+    return 0
+  fi
   # (the first line is short, like the one of a variable's card: the strip under the list of a narrow screen shows it next to the title)
   case "${KEE_DEPLOY[$f]:-}" in
     pending) kee_t envview.card.state_pending; tui_fit "${TH[info]:-}$UI_S_SYNC $KEE_T$TH_RESET" "$w" ;;

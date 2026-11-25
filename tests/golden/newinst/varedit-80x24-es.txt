@@ -1,0 +1,25 @@
+=== frame 1 ===
+
+ [1 Instancias]  2   3   4   5   6   7   8   9                                 
+╭─┐nueva instancia┌──────────────────────────────────────────────┐instancia-1┌─╮
+│ ●━━━━━━━━━━●━━━━━━━━━━●━━━━━━━━━━●━━━━━━━━━━◉━━━━━━━━━━○━━━━━━━━━━○          │
+│ Nombre     Servicios  Versiones  Datos      Variables  Secretos   Acceso     │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─┐ ▸5 · Variables ┌───────────────────────────────────────────────────────────╮
+│ 3 obligatorias por poner · 0 puestos · 4 generados                           │
+│ ▸ .env.instance                                                  12 variables│
+│ ▾ .env.s0                                       9 variables · 1 sin completar│
+│   IP_SERVER                     ● http://m.ex                                │
+│ ● JWT_SECRET                      ⚿ ••••••••••                     modificada│
+│ ● MONGO_URI                       ⚿ ••••••••••                               │
+│ ● IP_INTERNAL_CONNECTION          s1                                         │
+│ ▾ .env.s1                                      27 variables · 2 sin completar│
+│ ▲ IP_SERVER                       (vacía)                         obligatoria│
+│ ● AUTH_URL                        http://s0:3200                             │
+│ ─────────────────────────────────────────────────────────────────────────────│
+│ IP_SERVER  Obligatoria · .env.s0                                             │
+│ URL pública base del sistema, con esquema (`http://` o `https://`), sin      │
+│ puerto ni barra final. Los seeds la usan: `url_systems` la guarda como URL de│
+╰─┘Esc atrás└─┘Enter siguiente└─┘Tab vista previa└─────────────────────────────╯
+
+ ↑↓ mover · Enter edita · g genera · r muestra · Esc atrás · Tab vista previa

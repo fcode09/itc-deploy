@@ -263,22 +263,47 @@ decide.
   líneas sin marco.
 - **Teclas**: Enter sigue con lo propuesto y Esc vuelve (en el primer paso, con algo elegido, pide Esc otra vez); PgUp/PgDn van al paso anterior y siguiente;
   los dígitos y un clic en la barra saltan a un paso ya visitado (en un paso donde se escribe, como el nombre, los dígitos son texto).
-- **Los cuatro pasos de hoy**: *Nombre* (la primera `instancia-N` libre; libre = sin carpeta, sin proyecto de Compose con contenedores y sin red
+- **Los siete pasos de hoy**: *Nombre* (la primera `instancia-N` libre; libre = sin carpeta, sin proyecto de Compose con contenedores y sin red
   `<nombre>_…`: `lib/core/instname.sh` lee Docker una vez al abrir y compara sin lanzar procesos en cada tecla), *Servicios* (una tarjeta por servicio del
   catálogo con su descripción, puerto, memoria y dependencias), *Versiones* (el selector del kit con la ★ ya elegida; una por servicio, la que tiene el
-  cursor desplegada) y *Datos* (nueva o ya existente, con la consecuencia dicha). Las imágenes son las del catálogo: cambiar el nombre de la imagen es una
-  variable de la instancia (paso de variables, tarea N2).
+  cursor desplegada), *Datos* (nueva o ya existente, con la consecuencia dicha), *Variables*, *Secretos* y *Acceso* (más abajo). Las imágenes son las del
+  catálogo: cambiar el nombre de la imagen es una variable de la instancia (paso *Variables*).
+- **Paso 5, Variables** (`newinst/variables.sh`): el editor del kit (`lib/ui/kit/env_editor.sh`, el mismo de la vista Variables) sobre un modelo sin disco
+  (`kee_init`): los archivos que tendrá la instancia (`.env.instance` y el `.env.<servicio>` de cada servicio elegido), agrupados, con su descripción y su
+  validación en vivo. Ya sabe lo que decidieron los pasos anteriores (nombre, servicios, puertos y versiones; no cuentan como cambio) y el valor que cada
+  plantilla pondrá (`ENV_EXAMPLE`, con las bases de datos con el nombre de la instancia como las deja `new`); lo que sigue con un `CAMBIAR` es lo que falta.
+  **Los secretos únicos se generan aquí** (instancia nueva y openssl; uno solo para lo que comparten los servicios) y nunca se dibujan: puntos hasta que `r`
+  muestra uno diez segundos. El editor tiene Enter (edita), así que **`s` sigue al paso siguiente**; con obligatorias vacías lo dice la primera vez y sigue la
+  segunda (▲). La dirección del servidor que se escribe en un servicio pasa al otro si estaba vacío. Los puertos y las versiones que se editen aquí son
+  también las respuestas de los pasos (la vista previa y el bloque del proxy los siguen).
+- **Paso 6, Secretos** (`newinst/secrets.sh`): un archivo por cada variable que apunta a `/run/secrets/` (`CAT_SECRET_FILES` del catálogo: el JSON de Firebase de
+  las notificaciones). `b` recorre los archivos que parecen una cuenta de servicio en Descargas, la carpeta del usuario, la actual y la del repositorio (solo
+  los nombres: no se abre ninguno hasta elegirlo), `e` escribe la ruta, `x` la quita. Se comprueba al elegirlo (existe, se lee, hasta 128 KiB, objeto JSON:
+  `lib/core/secretfile.sh`; el contenido nunca se muestra). Un archivo que no se da es un aviso, no un error: se puede copiar después. Dice qué secretos se
+  generan (nombres, nunca valores).
+- **Paso 7, Acceso** (`newinst/access.sh`): el dominio (opcional), nginx / Caddy / los dos y HTTPS. Con un dominio muestra el bloque que se generará
+  (`lib/core/proxy.sh`): un servidor por servicio, `<nombre del servicio>.<dominio>` hacia su puerto. **Es solo texto**: `c` lo copia y `new` lo guarda dentro
+  de la instancia (`instances/<n>/proxy/`); no se escribe nada en `/etc` ni se recarga ni se instala nada. Es el último paso: Enter crea.
+- **Cómo llegan las respuestas a `new`**: las opciones de siempre más `--env-file` (variables, de un archivo), `--secret-file ORIGEN:NOMBRE` y
+  `--domain/--proxy/--tls` (ver `docs/new-answers.md`). El archivo de `--env-file` solo existe desde `Crear` hasta que el comando termina: modo 600 en la
+  carpeta temporal del usuario (`$TMPDIR`), y se borra al terminar el comando, al cancelar, al reabrir el asistente y al salir del panel. Un secreto no está nunca
+  en una línea de comandos, en la vista previa, en la consola ni en un fotograma. Como el modelo del editor es **uno solo** para todo el panel, el asistente no
+  se abre sobre cambios sin guardar de la vista Variables (lo dice) y al terminar o cancelar suelta el modelo para que la vista lo vuelva a leer.
 - **Al terminar** (Enter en el último paso) arranca `./deltactl new <nombre> …` como trabajo del panel, igual que el formulario antiguo, tras volver a
   comprobar todos los pasos: si un nombre dejó de estar libre mientras tanto, abre ese paso con el motivo y no crea nada. Nada se escribe antes.
 - **Para añadir un paso**: crear `lib/screens/newinst/<id>.sh` con `dash_nzs_<id>_render <ancho> <alto>` (añade líneas a `DASH_NZ_B`) y, si hace falta,
-  `_key`, `_enter`, `_state`, `_gate`, `_typing`, `_args` (opciones que añade a `new`) y `_preview`; añadir los textos `tui.nz.step.<id>`, `tui.nz.help.<id>`
+  `_key`, `_enter`, `_state`, `_gate`, `_typing`, `_args` (opciones que añade a `new`), `_preview`, `_reset` (al abrir el asistente), `_sig` (lo que la barra y la
+  vista previa dependen de ella) y `_prepare` (escribe lo que entrega a `new` como archivo, justo antes de crear; puede detener la creación); añadir los textos `tui.nz.step.<id>`, `tui.nz.help.<id>`
   y `tui.nz.keys.<id>` en los dos idiomas y **una línea** `dash_nz_step_register <id>` al final de `newinst.sh`. El motor no cambia. El contrato completo
   está en la cabecera de `lib/screens/newinst.sh`.
 - **Pruebas**: `tests/test-newinst.sh` (registro y apertura, nombres libres y tomados con el docker simulado, cada paso, el recorrido, la instancia creada
   de punta a punta, escenas de `tests/tools/newinst_scenes.sh` en `tests/golden/newinst/` a 80x24, 120x30 y 160x40 y su degradación). El docker simulado
   entiende `network ls` (`networks.txt`) y `ps -a --format` con el proyecto de cada contenedor (`containers.txt`).
-- **Límites de hoy**: no hay todavía el editor de variables, los secretos, el acceso ni la revisión (N2 y N3); el paso de versiones no carga archivos `.tar`
-  (se hace en la vista Imágenes, `l`); el ratón solo actúa en la barra de pasos.
+- **Dónde se engancha la revisión (N3)**: `dash_nz_finish` (Enter en el último paso) es la función que N3 sustituye por el paso de revisión y el progreso de
+  creación; hoy crea tras volver a comprobar todos los pasos. `dash_nz_create` ya llama al gancho `_prepare` de cada paso antes de armar el comando.
+- **Límites de hoy**: no hay todavía la revisión (N3), y se sigue pudiendo abrir el formulario antiguo (`TUI_WIZARD` distinto de 2); el paso de versiones no
+  carga archivos `.tar` (se hace en la vista Imágenes, `l`); el ratón solo actúa en la barra de pasos; la lista de estado de los pasos (a la derecha) solo
+  aparece cuando la vista previa conserva 14 filas (160x40 sí, 120x30 no); `new` no escribe `.bak` de los archivos que acaba de crear.
 
 ## La vista Variables
 

@@ -2,8 +2,8 @@
 
  [1 Instancias] 2 Recursos 3 Salida 4 Ejecuciones 5 Procesos 6 Consola 7 Servidor 8 Imágenes 9 Variables               
 ╭─┐nueva instancia┌─────────────────────────────────────────────────────────────────────────────────────────┐colorado┌─╮
-│ ◉━━━━━━━━━━━━━━━━━━━━━━━━━━━━○━━━━━━━━━━━━━━━━━━━━━━━━━━━━○━━━━━━━━━━━━━━━━━━━━━━━━━━━━○                  Paso 1 de 4│
-│ Nombre                       Servicios                    Versiones                    Datos                         │
+│ ◉━━━━━━━━━━━━━━━○━━━━━━━━━━━━━━━○━━━━━━━━━━━━━━━○━━━━━━━━━━━━━━━○━━━━━━━━━━━━━━━○━━━━━━━━━━━━━━━○         Paso 1 de 7│
+│ Nombre          Servicios       Versiones       Datos           Variables       Secretos        Acceso               │
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 ╭─┐ ▸1 · Nombre ┌──────────────────────────────────────────────────────╮╭─┐vista previa┌───────────────────────────────╮
 │                                                                      ││ instances/colorado/                          │
@@ -20,12 +20,12 @@
 │                                                                      ││ ≈ ./deltactl new colorado                    │
 │                                                                      ││     --services s0,s1 --generate-secrets      │
 │                                                                      ││                                              │
-│                                                                      │╰──────────────────────────────────────────────╯
-│                                                                      │╭─┐pasos┌──────────────────────────────────────╮
-│                                                                      ││ ◐ Nombre      colorado                       │
-│                                                                      ││ ○ Servicios                                  │
-│                                                                      ││ ○ Versiones                                  │
-│                                                                      ││ ○ Datos                                      │
+│                                                                      ││                                              │
+│                                                                      ││                                              │
+│                                                                      ││                                              │
+│                                                                      ││                                              │
+│                                                                      ││                                              │
+│                                                                      ││                                              │
 ╰─┘Esc atrás└─┘Enter siguiente└────────────────────────────────────────╯╰──────────────────────────────────────────────╯
 
  Enter siguiente · Esc atrás · Tab vista previa

@@ -16,7 +16,7 @@ _new_flags="--services --existing --wizard"
 for _s in "${KNOWN_SERVICES[@]}"; do _new_flags+=" --$_s-image"; done
 for _s in "${KNOWN_SERVICES[@]}"; do _new_flags+=" --$_s-tag"; done
 COMPLETION_FLAGS=(
-  "new:$_new_flags --ip --generate-secrets"
+  "new:$_new_flags --ip --generate-secrets --env-file --secret-file --domain --proxy --tls"
   "init:--yes"
   "doctor:--json"
   "rollback:--yes"

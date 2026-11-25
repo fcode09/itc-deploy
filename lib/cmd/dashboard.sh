@@ -352,6 +352,7 @@ dash_shutdown() {
   dash_async_stop
   DASH_EV_PID=""
   job_cleanup
+  if declare -F dash_nz_tmp_clean > /dev/null; then dash_nz_tmp_clean; fi   # (the answers of the wizard: a secret may be in them)
 }
 
 # --- Running commands ---------------------------------------------------------------------------------------
@@ -404,8 +405,9 @@ dash_job_tick() {
     if [ $((DASH_SPIN % 2)) -eq 0 ]; then DASH_DIRTY=1 DASH_JOB_PENDING=0; fi
     return 0
   fi
-  # The command ended (or was never started): whatever was waiting is drawn now.
+  # The command ended (or was never started): whatever was waiting is drawn now, and the files with the answers of the wizard are gone.
   if [ "$DASH_JOB_PENDING" -eq 1 ]; then DASH_DIRTY=1 DASH_JOB_PENDING=0; fi
+  if [ "${#DASH_NZ_TMPS[@]}" -gt 0 ]; then dash_nz_tmp_clean; fi
   if [ -n "$JOB_PID" ] && [ -n "$JOB_RC" ] && [ "$DASH_JOB_DONE" != "$JOB_SEQ" ]; then
     DASH_JOB_DONE="$JOB_SEQ"
     dash_job_secs; secs="$DASH_JS"

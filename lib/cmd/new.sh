@@ -3,12 +3,19 @@
 # Without a name and in a terminal (or with --wizard) it opens a wizard that asks the essentials.
 # The wizard's answers also exist as flags (--<sN>-image, --<sN>-tag for every service of the catalog, --ip, --generate-secrets): the panel's
 # form (lib/screens/wizard.sh) collects the answers itself and starts `new <name> ...` with them.
+# More answers, for the panel's wizard of steps (lib/screens/newinst.sh) and for scripts: --env-file F (variables of the files, from a file, so a secret
+# is never in a command line), --secret-file SRC[:NAME] (a file for secrets/), --domain D with --proxy nginx|caddy|both and --tls (the reverse-proxy
+# block, written inside the instance: lib/core/proxy.sh).
 
 # REQUIRED_* and check_required come from deploy.sh
 source "$ROOT/lib/cmd/deploy.sh"
 
 declare -gA W_IMG=() W_TAG=()   # image name and tag the wizard (or the flags) chose, by service
 W_IP="" W_GEN=0
+W_DOMAIN="" W_PROXY="" W_TLS=0
+W_ENVF=() W_ENVK=() W_ENVV=()   # --env-file: file word (instance | s0...), key and value of each line
+W_SECSRC=() W_SECNAME=()        # --secret-file: the source path and the name in secrets/
+declare -gA W_ENVPORT=()        # --env-file: the port it gives to a service (checked like the one that is proposed)
 
 # Asks with a default value. The result is in REPLY_VAL.
 new_ask() { # question [default]
@@ -190,6 +197,113 @@ new_pending_line() { # file "A, B, "
   printf '  %s %s%-16s%s %s\n' "$(ui_sym warn)" "$C_BLD" "$1" "$C_OFF" "${2%, }"
 }
 
+# --env-file F: lines `<file>:<KEY>=<value>` (file: instance, s0, s1...; blank lines and # comments are skipped). Nothing of what is in the file is
+# ever in a message: an error says the line number, not the line. It is read once, here; the file itself is the caller's (the panel deletes its own).
+new_read_envfile() { # path
+  local f="$1" line n=0 word key val
+  [ -f "$f" ] && [ -r "$f" ] || die "$(t new.envfile_unreadable "$f")"
+  while IFS= read -r line || [ -n "$line" ]; do
+    n=$((n + 1))
+    line="${line%$'\r'}"
+    [ -n "${line//[[:space:]]/}" ] || continue
+    [[ "$line" != \#* ]] || continue
+    [[ "$line" =~ ^([a-z0-9]+):([A-Za-z_][A-Za-z0-9_]*)=(.*)$ ]] || die "$(t new.envfile_line "$n")"
+    word="${BASH_REMATCH[1]}" key="${BASH_REMATCH[2]}" val="${BASH_REMATCH[3]}"
+    if [ "$word" != instance ] && ! valid_service "$word"; then die "$(t new.envfile_file "$n" "$word")"; fi
+    W_ENVF+=("$word") W_ENVK+=("$key") W_ENVV+=("$val")
+  done < "$f"
+}
+
+# The values of --env-file are checked BEFORE anything is created, with the rules of the variables (lib/core/envschema.sh): one that does not pass
+# stops `new` with the name of the variable, never its value. A port it gives to a service is the one that is checked and written.
+new_check_envfile() { # instance services-csv
+  local i word key file act s
+  local -a want=()
+  [ "${#W_ENVF[@]}" -gt 0 ] || return 0
+  if [ -n "$2" ]; then IFS=',' read -ra want <<< "${2// /}"; else want=("${KNOWN_SERVICES[@]}"); fi
+  envschema_load
+  for i in "${!W_ENVF[@]}"; do
+    word="${W_ENVF[$i]}" key="${W_ENVK[$i]}"
+    file="$(envschema_file_name "$word")" || die "$(t new.envfile_file "$((i + 1))" "$word")"
+    if [ "$word" != instance ]; then
+      act=0
+      for s in "${want[@]}"; do [ "$s" != "$word" ] || act=1; done
+      [ "$act" -eq 1 ] || die "$(t new.envfile_inactive "$word")"
+    fi
+    envschema_check_r "$file" "$key" "${W_ENVV[$i]}" "$1"
+    if [ "$EV_RC" = 1 ]; then die "$(t new.envfile_invalid "$word" "$key")"; fi
+    if [ "$word" = instance ] && [[ "$key" =~ ^S([0-9]+)_PORT$ ]]; then W_ENVPORT["s${BASH_REMATCH[1]}"]="${W_ENVV[$i]}"; fi
+  done
+}
+
+# --secret-file SRC[:NAME]: a file for secrets/. NAME is what is after the last ":" when it is a name for a file; else the name of the source.
+new_add_secretfile() { # spec
+  local spec="$1" src name tail
+  src="$spec" name="${spec##*/}"
+  tail="${spec##*:}"
+  if [[ "$spec" == *:* ]] && [[ "$tail" != */* ]] && [ -n "$tail" ]; then src="${spec%:*}" name="$tail"; fi
+  sf_valid_name "$name" || die "$(t new.secret_name "$name")"
+  W_SECSRC+=("$src") W_SECNAME+=("$name")
+}
+
+new_check_secretfiles() {
+  local i src
+  for i in "${!W_SECSRC[@]}"; do
+    src="${W_SECSRC[$i]}"
+    sf_check "$src" && continue
+    case "$SF_WHY" in
+      missing) die "$(t new.secret_missing "$src")" ;;
+      notfile) die "$(t new.secret_notfile "$src")" ;;
+      unreadable) die "$(t new.secret_unreadable "$src")" ;;
+      empty) die "$(t new.secret_empty "$src")" ;;
+      toobig) die "$(t new.secret_toobig "$src")" ;;
+      *) die "$(t new.secret_notjson "$src")" ;;
+    esac
+  done
+}
+
+# The proxy block(s) of the domain, inside instances/<name>/proxy/. The ports are the ones the instance ended with.
+new_write_proxy() { # instance services-csv
+  local name="$1" dir s fl rc
+  local -a act=() flavors=()
+  dir="$(instance_dir "$name")"
+  if [ -n "$2" ]; then IFS=',' read -ra act <<< "${2// /}"; else act=("${KNOWN_SERVICES[@]}"); fi
+  PROXY_PORTS=()
+  for s in "${act[@]}"; do
+    # shellcheck disable=SC2034  # (read by proxy_domain_names, in lib/core/proxy.sh)
+    PROXY_PORTS[$s]="$(get_var "$dir/.env.instance" "${s^^}_PORT")"
+  done
+  proxy_domain_names "$W_DOMAIN" "${act[@]}" || die "$(t new.domain_invalid "$W_DOMAIN")"
+  case "${W_PROXY:-both}" in both) flavors=(nginx caddy) ;; *) flavors=("$W_PROXY") ;; esac
+  for fl in "${flavors[@]}"; do
+    proxy_render "$fl" "$W_TLS" "${PROXY_ENTRIES[@]}" || die "$(t new.proxy_render "$fl" "$PROXY_ERR")"
+    rc=0
+    proxy_save "$name" "$fl" || rc=$?
+    [ "$rc" -eq 0 ] || die "$(t new.proxy_write "$fl")"
+    info "$(t new.proxy_written "proxy/$(proxy_file "$fl")" "$dir/proxy/$(proxy_file "$fl")")"
+  done
+}
+
+# Writes what the answers say once the instance exists: the variables, the files of secrets/ and the proxy block.
+new_apply_answers() { # instance services-csv
+  local name="$1" dir i rc word file
+  dir="$(instance_dir "$name")"
+  # shellcheck disable=SC2034  # (read by envedit_backup, in lib/core/envedit.sh)
+  ENVEDIT_NOBACKUP=1
+  for i in "${!W_ENVF[@]}"; do
+    word="${W_ENVF[$i]}"
+    file="$(envschema_file_name "$word")"
+    rc=0
+    envedit_save "$name" "$file" "${W_ENVK[$i]}" "${W_ENVV[$i]}" || rc=$?
+    [ "$rc" -eq 0 ] || die "$(t new.envfile_write "$word" "${W_ENVK[$i]}")"
+  done
+  for i in "${!W_SECSRC[@]}"; do
+    sf_install "${W_SECSRC[$i]}" "$dir" "${W_SECNAME[$i]}" || die "$(t new.secret_copy "${W_SECNAME[$i]}")"
+    info "$(t new.secret_copied "${W_SECNAME[$i]}")"
+  done
+  [ -z "$W_DOMAIN" ] || new_write_proxy "$name" "$2"
+}
+
 cmd_new() {
   local name="" services="" existing=0 wizard=0 a svc
   while [ "$#" -gt 0 ]; do
@@ -225,6 +339,30 @@ cmd_new() {
         ;;
       --generate-secrets)
         W_GEN=1
+        shift
+        ;;
+      --env-file)
+        [ "$#" -ge 2 ] || die "$(t new.opt_value "$a")"
+        new_read_envfile "$2"
+        shift 2
+        ;;
+      --secret-file)
+        [ "$#" -ge 2 ] || die "$(t new.opt_value "$a")"
+        new_add_secretfile "$2"
+        shift 2
+        ;;
+      --domain)
+        [ "$#" -ge 2 ] || die "$(t new.opt_value "$a")"
+        W_DOMAIN="${2,,}"
+        shift 2
+        ;;
+      --proxy)
+        [ "$#" -ge 2 ] || die "$(t new.opt_value "$a")"
+        case "$2" in nginx | caddy | both) W_PROXY="$2" ;; *) die "$(t new.proxy_opt "$2")" ;; esac
+        shift 2
+        ;;
+      --tls)
+        W_TLS=1
         shift
         ;;
       -*) die "$(t new.unknown_option "$a")" ;;
@@ -266,11 +404,17 @@ cmd_new() {
   dir="$(instance_dir "$name")"
   [ ! -e "$dir" ] || die "$(t new.err_exists "$name" "$dir")"
 
+  # What the extra answers say is checked before anything is created (a value, a file, a domain that is not valid stops here, with nothing left).
+  if [ -n "$W_DOMAIN" ]; then proxy_host_ok "$W_DOMAIN" || die "$(t new.domain_invalid "$W_DOMAIN")"; fi
+  if [ -z "$W_DOMAIN" ] && { [ -n "$W_PROXY" ] || [ "$W_TLS" -eq 1 ]; }; then die "$(t new.proxy_needs_domain)"; fi
+  new_check_secretfiles
+  new_check_envfile "$name" "$services"
+
   local base_port p d owner
   local -A port_of=()
   base_port="$(next_s0_port)"
   for svc in "${KNOWN_SERVICES[@]}"; do
-    p=$((base_port + ${CAT_OFFSET[$svc]}))
+    p="${W_ENVPORT[$svc]:-$((base_port + ${CAT_OFFSET[$svc]}))}"
     port_of[$svc]="$p"
     owner="$(port_owner "$p" "$name")"
     [ -z "$owner" ] || die "$(t new.port_used "$p" "$owner")$(see ports)"
@@ -299,6 +443,7 @@ cmd_new() {
   chmod 600 "$dir/.env.instance"
   chmod 700 "$dir/secrets"
   new_apply_wizard "$name" "$existing"
+  new_apply_answers "$name" "$services"
 
   # The containers run as uid 1000: data/ must belong to it so they can write.
   local me

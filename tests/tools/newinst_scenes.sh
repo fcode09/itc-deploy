@@ -6,9 +6,11 @@
 # tests/test-newinst.sh (tests/golden/newinst/) and the source of the PNG captures. Sourced, never executed: it needs lib/bootstrap.sh and
 # lib/cmd/dashboard.sh already loaded, the simulated docker first in the PATH and the environment of the panel (DELTACTL_UI=rich, DELTACTL_TUI_KEYS=...).
 #
-#   newinst_scene <name>     name: name | taken | services | versions | typing | data | preview | existing
+#   newinst_scene <name>     name: name | taken | services | versions | typing | data | preview | existing |
+#                                  variables | varedit | varskip | secrets | secretsfound | secretsbad | access | accessdomain
+# The steps 5 to 7 need DELTACTL_SECRET_DIRS (the folder of candidate files) and HOME (so that a path shows as ~/...) to be those of the test.
 
-NEWINST_SCENES=(name taken services versions typing data preview existing)
+NEWINST_SCENES=(name taken services versions typing data preview existing variables varedit varskip secrets secretsfound secretsbad access accessdomain)
 NEWINST_NOW=1795521600   # 2026-11-24 12:00:00 UTC
 
 newinst_scene() { # name
@@ -32,6 +34,14 @@ newinst_scene() { # name
     data) keys=(enter enter enter enter) ;;
     existing) keys=(enter enter enter enter down) ;;
     preview) keys=(tab) ;;
+    variables) keys=(enter enter enter enter enter) ;;                                     # step 5: the editor, secrets generated, 3 still to fill in
+    varedit) keys=(enter enter enter enter enter down down enter h t t p : / / m . e x) ;; # the address of the server being typed
+    varskip) keys=(enter enter enter enter enter s) ;;                                     # "s" with required variables empty: it says so first
+    secrets) keys=(enter enter enter enter enter s s) ;;                                   # step 6: nothing chosen yet
+    secretsfound) keys=(enter enter enter enter enter s s b b) ;;                          # b twice: the second file found is a service account
+    secretsbad) keys=(enter enter enter enter enter s s b) ;;                              # b once: the first one found is not JSON
+    access) keys=(enter enter enter enter enter s s enter) ;;                              # step 7 with no domain
+    accessdomain) keys=(enter enter enter enter enter s s enter m u n i . e x a m p l e . c o m) ;;   # a domain: the nginx and Caddy blocks
     *) echo "unknown scene $name" >&2; return 1 ;;
   esac
   dash_nz_open

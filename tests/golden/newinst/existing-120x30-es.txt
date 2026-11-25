@@ -2,8 +2,8 @@
 
  [1 Instancias] 2 Recursos 3 Salida 4 Ejecuciones 5 Procesos 6 Consola 7 Servidor 8 Imágenes 9 Variables               
 ╭─┐nueva instancia┌──────────────────────────────────────────────────────────────────────────────────────┐instancia-1┌─╮
-│ ●━━━━━━━━━━━━━━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━━━━━━━━━━━━━━◉                  Paso 4 de 4│
-│ Nombre                       Servicios                    Versiones                    Datos                         │
+│ ●━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━◉━━━━━━━━━━━━━━━○━━━━━━━━━━━━━━━○━━━━━━━━━━━━━━━○         Paso 4 de 7│
+│ Nombre          Servicios       Versiones       Datos           Variables       Secretos        Acceso               │
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 ╭─┐ ▸4 · Datos ┌───────────────────────────────────────────────────────╮╭─┐vista previa┌───────────────────────────────╮
 │                                                                      ││ instances/instancia-1/                       │
@@ -20,12 +20,12 @@
 │        como existente: init no podrá sembrarla.                      ││ ≈ ./deltactl new instancia-1                 │
 │                                                                      ││     --services s0,s1 --existing              │
 │ ▲ Se marca como existente al crearla; revertirlo es editar la        ││     --s0-tag 2.14.1 --s1-tag 2.9.0           │
-│   instancia a mano. Si no estás seguro, elige Nueva.                 │╰──────────────────────────────────────────────╯
-│                                                                      │╭─┐pasos┌──────────────────────────────────────╮
-│                                                                      ││ ● Nombre      instancia-1                    │
-│                                                                      ││ ● Servicios   s0 s1                          │
-│                                                                      ││ ● Versiones   2.14.1 2.9.0                   │
-│                                                                      ││ ◐ Datos       ya tiene datos                 │
-╰─┘Esc atrás└─┘Enter crear└────────────────────────────────────────────╯╰──────────────────────────────────────────────╯
+│   instancia a mano. Si no estás seguro, elige Nueva.                 ││                                              │
+│                                                                      ││                                              │
+│                                                                      ││                                              │
+│                                                                      ││                                              │
+│                                                                      ││                                              │
+│                                                                      ││                                              │
+╰─┘Esc atrás└─┘Enter siguiente└────────────────────────────────────────╯╰──────────────────────────────────────────────╯
 
- ↑↓ elegir · Enter crea · Espacio cambia · 1-9 paso · Esc atrás · Tab vista previa
+ ↑↓ elegir · Enter sigue · Espacio cambia · 1-9 paso · Esc atrás · Tab vista previa
