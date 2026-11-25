@@ -156,6 +156,15 @@ requisitos del servidor. Cada cambio
 se aplica al momento y se guarda en `~/.config/deltactl/config`. Las variables `DELTACTL_THEME`, `DELTACTL_LANG`,
 `DELTACTL_METRICS_INTERVAL` y `DELTACTL_REFRESH` mandan al arrancar (la pantalla lo indica).
 
+**Un solo panel por servidor, y por qué se cierra solo.** El primer panel guarda su PID y su terminal en `instances/.deltactl/panel.pid`;
+otro panel no arranca mientras ese proceso siga vivo (`DELTACTL_ALLOW_MULTI=1` lo permite). Si se pierde el terminal (una sesión SSH que se
+cae), el panel sale en vez de quedarse girando.
+
+**Medir el consumo del panel**: `DELTACTL_PROF=1 ./deltactl` escribe cada 30 s (y al salir) un informe en
+`${TMPDIR:-/tmp}/deltactl-prof-<pid>.txt` (o en `DELTACTL_PROF_FILE`): la CPU del propio panel y de los procesos que lanza, y para cada fase
+(muestra del host, dibujo de cada vista, tick, procesos en segundo plano) las llamadas, el total, la media y el porcentaje del tiempo. Está
+apagado por defecto y no cuesta nada mientras lo esté.
+
 - **Teclas vim** (activadas por defecto): `j k h g G` se mueven como las flechas, Inicio y Fin.
 - **Ratón** (desactivado por defecto): clic en una pestaña abre su vista; en una instancia la selecciona y un segundo clic abre sus
   acciones; la rueda desplaza. Mientras está activo, el texto se selecciona con Mayús.

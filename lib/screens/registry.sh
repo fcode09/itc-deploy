@@ -108,11 +108,13 @@ dash_screen_live() { [ "${DASH_SCREEN_LIVE[$DASH_VIEW]:-1}" -eq 1 ]; }
 
 # Appends the body of the current mode (or, when it draws nothing of its own, of the current view) to TUI_FRAME.
 dash_screen_render() { # height
+  prof_b "render.$DASH_VIEW"
   if [ "$DASH_MODE" != "normal" ] && declare -F "scr_${DASH_MODE}_render" > /dev/null; then
     "scr_${DASH_MODE}_render" "$TUI_COLS" "$1"
   else
     "scr_${DASH_VIEW}_render" "$TUI_COLS" "$1"
   fi
+  prof_e "render.$DASH_VIEW"
 }
 
 # Hands a key to the current mode, or to the current view.

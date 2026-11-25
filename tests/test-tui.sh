@@ -1171,9 +1171,9 @@ out="$(panel o down down down down down right q q)"
 check "Options turns the mouse on and remembers it" 'grep -qx "TUI_MOUSE=on" "$FIX/ms.cfg" && echo "$out" | frame_n 8 | grep -qE "> Rat.n +<s.>" && [ "$(run_lib "dash_opts_load; echo \$TUI_MOUSE")" = "1" ]'
 rm -f "$FIX/ms.cfg"
 export DELTACTL_CONFIG="$FIX/none.cfg"
-out="$(panel mouse:0:21:2 q)"
+out="$(panel mouse:0:26:2 q)"
 check "a click on a tab opens its view" 'echo "$out" | frame_n 2 | grep -q "\[4 Salida\]"'
-out="$(panel mouse:0:33:2 esc esc q)"
+out="$(panel mouse:0:36:2 esc esc q)"
 check "a click on the Console tab opens it ready to type, like 6" 'echo "$out" | frame_n 2 | grep -q "\[7 Consola\]" && echo "$out" | frame_n 2 | tail -1 | grep -q "Enter ejecuta"'
 check "when the line is tight and the other tabs lose their spacing, the clicks follow too" '[ "$(run_lib "DASH_TAB_SHORT=2; DASH_VIEW=instances; dash_tab_at 20; a=\$DASH_TAB_I; dash_tab_at 30; echo \$a-\$DASH_TAB_I")" = "2-3" ]'
 check "when the line shrinks the other tabs to their numbers, the clicks follow" '[ "$(run_lib "DASH_TAB_SHORT=1; DASH_VIEW=instances; dash_tab_at 17; a=\$DASH_TAB_I; dash_tab_at 20; echo \$a-\$DASH_TAB_I")" = "2-3" ]'
@@ -1302,5 +1302,9 @@ kill "$OTHER" 2> /dev/null; wait "$OTHER" 2> /dev/null
 printf '%s\t%s\n' "999999" "pts/9" > "$LK/.deltactl/panel.pid"
 check "a stale file (that process is gone) does not block: it is replaced" '[ "$(run_lib "unset DELTACTL_TUI_KEYS; INSTANCES_DIR=$LK; dash_lock_acquire; echo rc=\$?")" = "rc=0" ]'
 rm -rf "$LK"
+
+section "29. the optional profile of the panel (DELTACTL_PROF=1)"
+check "it is off by default: nothing is counted and no file is written" '[ "$(run_lib "DELTACTL_PROF_FILE=$FIX/prof-off.txt; prof_init; prof_b x; prof_e x; prof_count y; prof_dump; echo \${#PROF_N[@]}; [ -e $FIX/prof-off.txt ] && echo file")" = "0" ]'
+check "on, it counts the phases and writes the report with the biggest first" 'run_lib "DELTACTL_PROF=1; DELTACTL_PROF_FILE=$FIX/prof-on.txt; prof_init; prof_b slow; sleep 0.2; prof_e slow; prof_b fast; prof_e fast; prof_count spawn:ps; prof_dump" >/dev/null; f="$FIX/prof-on.txt"; grep -q "cpu of the panel itself" "$f" && grep -q "^spawn:ps  *1 calls" "$f" && [ "$(grep -n "^slow " "$f" | cut -d: -f1)" -lt "$(grep -n "^fast " "$f" | cut -d: -f1)" ]'
 
 finish
