@@ -2,8 +2,8 @@
 
  [1 Instancias]  2 Recursos   3 Salida   4 Ejecuciones   5 Procesos   6 Consola   7 Servidor   8 Imágenes   9 Variables                                        
 ╭─┐nueva instancia┌──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐instancia-1┌─╮
-│ ●━━━━━━━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━━━━━━━▲━━━━━━━━━━━━━━━━━━━━━▲━━━━━━━━━━━━━━━━━━━━━◉             Paso 7 de 7│
-│ Nombre                Servicios             Versiones             Datos                 Variables             Secretos              Acceso                   │
+│ ●━━━━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━━━━▲━━━━━━━━━━━━━━━━━━▲━━━━━━━━━━━━━━━━━━◉━━━━━━━━━━━━━━━━━━○            Paso 7 de 8│
+│ Nombre             Servicios          Versiones          Datos              Variables          Secretos           Acceso             Revisión                │
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 ╭─┐ ▸7 · Acceso ┌──────────────────────────────────────────────────────────────────────────────╮╭─┐vista previa┌───────────────────────────────────────────────╮
 │                                                                                              ││ instances/instancia-1/                                       │
@@ -26,16 +26,16 @@
 │     return 301 https://$host$request_uri;                                                    ││                                                              │
 │ }                                                                                            ││                                                              │
 │ server {                                                                                     ││                                                              │
-│     listen 443 ssl;                                                                          ││                                                              │
-│     server_name auth-backend.muni.example.com;                                               │╰──────────────────────────────────────────────────────────────╯
-│     # the certificate: certbot --nginx -d auth-backend.muni.example.com                      │╭─┐pasos┌──────────────────────────────────────────────────────╮
-│     ssl_certificate /etc/letsencrypt/live/auth-backend.muni.example.com/fullchain.pem;       ││ ● Nombre      instancia-1                                    │
-│     ssl_certificate_key /etc/letsencrypt/live/auth-backend.muni.example.com/privkey.pem;     ││ ● Servicios   s0 s1                                          │
-│     location / {                                                                             ││ ● Versiones   2.14.1 2.9.0                                   │
-│         proxy_pass http://127.0.0.1:4100;                                                    ││ ● Datos       nueva                                          │
-│         proxy_http_version 1.1;                                                              ││ ▲ Variables   faltan 3                                       │
-│ … y 31 líneas más (se guardan enteras en la instancia)                                       ││ ▲ Secretos    0 de 2                                         │
-│                                                                                              ││ ◐ Acceso      muni.example.com                               │
-╰─┘Esc atrás└─┘Enter crear└────────────────────────────────────────────────────────────────────╯╰──────────────────────────────────────────────────────────────╯
+│     listen 443 ssl;                                                                          │╰──────────────────────────────────────────────────────────────╯
+│     server_name auth-backend.muni.example.com;                                               │╭─┐pasos┌──────────────────────────────────────────────────────╮
+│     # the certificate: certbot --nginx -d auth-backend.muni.example.com                      ││ ● Nombre      instancia-1                                    │
+│     ssl_certificate /etc/letsencrypt/live/auth-backend.muni.example.com/fullchain.pem;       ││ ● Servicios   s0 s1                                          │
+│     ssl_certificate_key /etc/letsencrypt/live/auth-backend.muni.example.com/privkey.pem;     ││ ● Versiones   2.14.1 2.9.0                                   │
+│     location / {                                                                             ││ ● Datos       nueva                                          │
+│         proxy_pass http://127.0.0.1:4100;                                                    ││ ▲ Variables   faltan 3                                       │
+│         proxy_http_version 1.1;                                                              ││ ▲ Secretos    0 de 2                                         │
+│ … y 31 líneas más (se guardan enteras en la instancia)                                       ││ ◐ Acceso      muni.example.com                               │
+│                                                                                              ││ ○ Revisión                                                   │
+╰─┘Esc atrás└─┘Enter siguiente└────────────────────────────────────────────────────────────────╯╰──────────────────────────────────────────────────────────────╯
 
- ↑↓ mover · ←→ espacio cambia · c copia el bloque · v nginx/Caddy · Enter crea · Esc atrás · Tab vista previa
+ ↑↓ mover · ←→ espacio cambia · c copia el bloque · v nginx/Caddy · Enter revisa · Esc atrás · Tab vista previa

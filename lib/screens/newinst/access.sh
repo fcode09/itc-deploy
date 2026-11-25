@@ -7,7 +7,7 @@
 # optional; without one nothing is generated (the access tab of the instance will do it later).
 #
 # The focus moves with ↑↓ through three rows: the domain (a text field), the proxy (←→ or Space change it) and HTTPS (Space). `c` copies the
-# block shown, `v` shows the other one when both are chosen. Enter creates the instance: it is the last step until the review exists.
+# block shown, `v` shows the other one when both are chosen. Enter goes on to the review, which is where the instance is created.
 
 DASH_NZA_DOMAIN="" DASH_NZA_FLAVOR="" DASH_NZA_TLS=1 DASH_NZA_FOCUS=0 DASH_NZA_VIEW=0 DASH_NZA_DET=""
 DASH_NZA_OKD=0                      # 1 when the domain is valid (or empty)

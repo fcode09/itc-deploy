@@ -93,7 +93,7 @@ for size in 80x24 120x30 160x40; do
     nz_cold() { DASH_PC_SIG=(); scr_newinst_key down; scr_newinst_key up; dash_render; }
     ms "wizard: open (reads Docker once)" 10 nz_open
     dash_nz_open
-    for _s in 0 1 2 3 4 5 6; do
+    for _s in 0 1 2 3 4 5 6 7; do
       dash_nz_goto "$_s"
       ms "wizard: step $((_s + 1)), a key and a frame" "$N" nz_key
       ms "wizard: step $((_s + 1)), every box built again" "$N" nz_cold

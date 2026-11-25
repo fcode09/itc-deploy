@@ -2,8 +2,8 @@
 
  [1 Instances]  2 Resources   3 Output   4 Runs   5 Processes   6 Console   7 Server   8 Images   9 Variables          
 ╭─┐new instance┌─────────────────────────────────────────────────────────────────────────────────────────┐instancia-1┌─╮
-│ ●━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━◉━━━━━━━━━━━━━━━○━━━━━━━━━━━━━━━○         Step 5 of 7│
-│ Name            Services        Versions        Data            Variables       Secrets         Access               │
+│ ●━━━━━━━━━━━━━●━━━━━━━━━━━━━●━━━━━━━━━━━━━●━━━━━━━━━━━━━◉━━━━━━━━━━━━━○━━━━━━━━━━━━━○━━━━━━━━━━━━━○       Step 5 of 8│
+│ Name          Services      Versions      Data          Variables     Secrets       Access        Review             │
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 ╭─┐ ▸5 · Variables ┌───────────────────────────────────────────────────╮╭─┐preview┌────────────────────────────────────╮
 │ 3 required to fill in · 0 set · 4 generated                          ││ instances/instancia-1/                       │

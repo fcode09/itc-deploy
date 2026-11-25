@@ -2,8 +2,8 @@
 
  [1 Instancias] 2 Recursos 3 Salida 4 Ejecuciones 5 Procesos 6 Consola 7 Servidor 8 Imágenes 9 Variables               
 ╭─┐nueva instancia┌──────────────────────────────────────────────────────────────────────────────────────┐instancia-1┌─╮
-│ ●━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━◉━━━━━━━━━━━━━━━○━━━━━━━━━━━━━━━○━━━━━━━━━━━━━━━○━━━━━━━━━━━━━━━○         Paso 3 de 7│
-│ Nombre          Servicios       Versiones       Datos           Variables       Secretos        Acceso               │
+│ ●━━━━━━━━━━━━━●━━━━━━━━━━━━━◉━━━━━━━━━━━━━○━━━━━━━━━━━━━○━━━━━━━━━━━━━○━━━━━━━━━━━━━○━━━━━━━━━━━━━○       Paso 3 de 8│
+│ Nombre        Servicios     Versiones     Datos         Variables     Secretos      Acceso        Revisión           │
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 ╭─┐ ▸3 · Versiones ┌───────────────────────────────────────────────────╮╭─┐vista previa┌───────────────────────────────╮
 │                                                                      ││ instances/instancia-1/                       │

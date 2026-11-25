@@ -230,24 +230,24 @@ check "the other views open normally from the notice" 'echo "$out" | frame_n 3 |
 section "10. creating an instance with something required missing"
 rm -f "$CFG"
 out="$(DELTACTL_TUI_GATE=1 panel_bad n)"
-check "n does not open the form: it asks first, naming what is missing" 'echo "$out" | last_frame | grep -q "Faltan requisitos del servidor" && echo "$out" | last_frame | grep -q "Faltan 1 requisitos obligatorios: Docker Engine" && echo "$out" | last_frame | grep -q "puede fallar" && ! echo "$out" | last_frame | grep -q ">Nombre de la instancia"'
+check "n does not open the form: it asks first, naming what is missing" 'echo "$out" | last_frame | grep -q "Faltan requisitos del servidor" && echo "$out" | last_frame | grep -q "Faltan 1 requisitos obligatorios: Docker Engine" && echo "$out" | last_frame | grep -q "puede fallar" && ! echo "$out" | last_frame | grep -q "\[nueva instancia\]"'
 check "the key line offers the four answers" 'echo "$out" | last_frame | grep -q "y crear igualmente" && echo "$out" | last_frame | grep -q "v ver requisitos" && echo "$out" | last_frame | grep -q "n no volver a avisar"'
 out="$(DELTACTL_TUI_GATE=1 panel_bad n y)"
-check "y goes on: the form opens" 'echo "$out" | last_frame | grep -q ">Nombre de la instancia"'
+check "y goes on: the form opens" 'echo "$out" | last_frame | grep -q "\[nueva instancia\]"'
 out="$(DELTACTL_TUI_GATE=1 panel_bad n y esc n)"
-check "and the question is not asked again in the same session" 'echo "$out" | last_frame | grep -q ">Nombre de la instancia" || echo "$out" | last_frame | grep -q "Nueva instancia"'
+check "and the question is not asked again in the same session" 'echo "$out" | last_frame | grep -q "\[nueva instancia\]" || echo "$out" | last_frame | grep -q "Nueva instancia"'
 out="$(DELTACTL_TUI_GATE=1 panel_bad 1 n v)"
 check "v shows the requirements" 'echo "$out" | last_frame | grep -q "\[7 Servidor\]" && echo "$out" | last_frame | grep -q "OBLIGATORIOS"'
 out="$(DELTACTL_TUI_GATE=1 panel_bad 1 n esc)"
-check "Esc cancels: back to where it was, nothing created" 'echo "$out" | last_frame | grep -q "\[1 Instancias\]" && ! echo "$out" | last_frame | grep -q ">Nombre de la instancia" && echo "$out" | last_frame | grep -q "Cancelado"'
+check "Esc cancels: back to where it was, nothing created" 'echo "$out" | last_frame | grep -q "\[1 Instancias\]" && ! echo "$out" | last_frame | grep -q "\[nueva instancia\]" && echo "$out" | last_frame | grep -q "Cancelado"'
 check "nothing is written to the config file by any of those answers" '[ ! -s "$CFG" ] || ! grep -q "TUI_PREREQ" "$CFG"'
 out="$(DELTACTL_TUI_GATE=1 panel_bad 1 n n)"
-check "n (do not warn again) goes on to the form and says it will not warn again" 'echo "$out" | last_frame | grep -q ">Nombre de la instancia" && echo "$out" | grep -q "No se volverá a avisar"'
+check "n (do not warn again) goes on to the form and says it will not warn again" 'echo "$out" | last_frame | grep -q "\[nueva instancia\]" && echo "$out" | grep -q "No se volverá a avisar"'
 check "and it is remembered in the config file" 'grep -q "^TUI_PREREQ=off$" "$CFG"'
 out="$(DELTACTL_TUI_GATE=1 panel_bad q)"
 check "from then on the panel starts on the first view, with no notice" 'echo "$out" | frame_n 1 | grep -q "\[1 Instancias\]" && ! echo "$out" | frame_n 1 | grep -q "Faltan"'
 out="$(DELTACTL_TUI_GATE=1 panel_bad 1 n)"
-check "and n opens the form at once" 'echo "$out" | last_frame | grep -q ">Nombre de la instancia"'
+check "and n opens the form at once" 'echo "$out" | last_frame | grep -q "\[nueva instancia\]"'
 out="$(panel_bad o down down down down down down)"
 check "Options has the option, off, with what it does" 'echo "$out" | last_frame | grep -q "Aviso de requisitos" && echo "$out" | last_frame | grep -q "avisa si"'
 out="$(panel_bad o down down down down down down enter)"

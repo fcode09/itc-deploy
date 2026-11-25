@@ -7,10 +7,11 @@
 # lib/cmd/dashboard.sh already loaded, the simulated docker first in the PATH and the environment of the panel (DELTACTL_UI=rich, DELTACTL_TUI_KEYS=...).
 #
 #   newinst_scene <name>     name: name | taken | services | versions | typing | data | preview | existing |
-#                                  variables | varedit | varskip | secrets | secretsfound | secretsbad | access | accessdomain
+#                                  variables | varedit | varskip | secrets | secretsfound | secretsbad | access | accessdomain |
+#                                  review | reviewdeploy
 # The steps 5 to 7 need DELTACTL_SECRET_DIRS (the folder of candidate files) and HOME (so that a path shows as ~/...) to be those of the test.
 
-NEWINST_SCENES=(name taken services versions typing data preview existing variables varedit varskip secrets secretsfound secretsbad access accessdomain)
+NEWINST_SCENES=(name taken services versions typing data preview existing variables varedit varskip secrets secretsfound secretsbad access accessdomain review reviewdeploy)
 NEWINST_NOW=1795521600   # 2026-11-24 12:00:00 UTC
 
 newinst_scene() { # name
@@ -42,6 +43,8 @@ newinst_scene() { # name
     secretsbad) keys=(enter enter enter enter enter s s b) ;;                              # b once: the first one found is not JSON
     access) keys=(enter enter enter enter enter s s enter) ;;                              # step 7 with no domain
     accessdomain) keys=(enter enter enter enter enter s s enter m u n i . e x a m p l e . c o m) ;;   # a domain: the nginx and Caddy blocks
+    review) keys=(enter enter enter enter enter s s enter enter) ;;                                 # step 8: the readiness bar (variables still to fill in) and the three buttons
+    reviewdeploy) keys=(enter enter enter enter enter s s enter enter down down enter) ;;           # the third button, Enter once: it asks for a second one
     *) echo "unknown scene $name" >&2; return 1 ;;
   esac
   dash_nz_open

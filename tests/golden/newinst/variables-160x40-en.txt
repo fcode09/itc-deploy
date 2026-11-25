@@ -2,8 +2,8 @@
 
  [1 Instances]  2 Resources   3 Output   4 Runs   5 Processes   6 Console   7 Server   8 Images   9 Variables                                                  
 ╭─┐new instance┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐instancia-1┌─╮
-│ ●━━━━━━━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━━━━━━━◉━━━━━━━━━━━━━━━━━━━━━○━━━━━━━━━━━━━━━━━━━━━○             Step 5 of 7│
-│ Name                  Services              Versions              Data                  Variables             Secrets               Access                   │
+│ ●━━━━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━━━━◉━━━━━━━━━━━━━━━━━━○━━━━━━━━━━━━━━━━━━○━━━━━━━━━━━━━━━━━━○            Step 5 of 8│
+│ Name               Services           Versions           Data               Variables          Secrets            Access             Review                  │
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 ╭─┐ ▸5 · Variables ┌───────────────────────────────────────────────────────────────────────────╮╭─┐preview┌────────────────────────────────────────────────────╮
 │ 3 required to fill in · 0 set · 4 generated                                                  ││ instances/instancia-1/                                       │
@@ -26,16 +26,16 @@
 │ ● FCM_CERT                        /run/secrets/fcm.json                                      ││                                                              │
 │ ● KEEPER_FCM_CERT                 /run/secrets/keeper-fcm.json                               ││                                                              │
 │ ● FEDERATION_ENCRYPTION_KEY       ⚿ ••••••••••                                        changed││                                                              │
-│ ● SERVERS_CONFIG                  ⚿ ••••••••••                                               ││                                                              │
-│ ▲ DEEPGRAM_API_KEY                (empty)                                            required│╰──────────────────────────────────────────────────────────────╯
-│ ● SHIFT_UPDATE_BASELINE_SECRET    ⚿ ••••••••••                                        changed│╭─┐steps┌──────────────────────────────────────────────────────╮
-│                                                                                              ││ ● Name        instancia-1                                    │
+│ ● SERVERS_CONFIG                  ⚿ ••••••••••                                               │╰──────────────────────────────────────────────────────────────╯
+│ ▲ DEEPGRAM_API_KEY                (empty)                                            required│╭─┐steps┌──────────────────────────────────────────────────────╮
+│ ● SHIFT_UPDATE_BASELINE_SECRET    ⚿ ••••••••••                                        changed││ ● Name        instancia-1                                    │
 │                                                                                              ││ ● Services    s0 s1                                          │
 │                                                                                              ││ ● Versions    2.14.1 2.9.0                                   │
-│ ─────────────────────────────────────────────────────────────────────────────────────────────││ ● Data        new                                            │
-│ .env.instance  created with the instance                                                     ││ ◐ Variables   3 missing                                      │
-│ This file does not exist yet: it is made from its template when the instance is created, with││ ○ Secrets                                                    │
-│ what is set here.                                                                            ││ ○ Access                                                     │
+│                                                                                              ││ ● Data        new                                            │
+│ ─────────────────────────────────────────────────────────────────────────────────────────────││ ◐ Variables   3 missing                                      │
+│ .env.instance  created with the instance                                                     ││ ○ Secrets                                                    │
+│ This file does not exist yet: it is made from its template when the instance is created, with││ ○ Access                                                     │
+│ what is set here.                                                                            ││ ○ Review                                                     │
 ╰─┘Esc back└─┘Enter next└──────────────────────────────────────────────────────────────────────╯╰──────────────────────────────────────────────────────────────╯
 
  ↑↓ move · Enter edits · g generates · r shows · d default · a advanced · s goes on · Esc back · Tab preview
