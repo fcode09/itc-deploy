@@ -95,7 +95,7 @@ dash_nzs_review_render() { # width height
     if [ "$DASH_NZR_BAD" -gt 0 ]; then
       tui_fit "$dim$mark [ $lab ]$r" "$iw"
     elif [ "$DASH_NZR_ACT" -eq "$b" ]; then
-      tui_fit "$acc$mark$r $TUI_SEL$C_BLD[ $lab ]$r" "$iw"
+      tui_fit "$acc$mark$r $TUI_SEL${C_BLD}[ $lab ]$r" "$iw"
     else
       tui_fit "  [ $lab ]" "$iw"
     fi
