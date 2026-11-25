@@ -249,11 +249,19 @@ trabajo debajo). `z` da todo el cuerpo al panel con el foco.
     no corra. Sin nada pendiente (y con sitio) dice «Todo al día». Con poco sitio solo queda la cabecera con el recuento y la tecla `t`.
 - **Logs** (`lib/screens/ws/logs.sh`): el panel de logs de siempre (`lib/screens/instances_logs.sh`) con todo el espacio de trabajo. En pantalla ancha los logs ya están debajo
   del resumen y la pestaña no se ofrece; en las demás es la forma de llegar a ellos.
+- **Servicios** (`lib/screens/ws/servicios.sh`): una fila por servicio del catálogo (`catalog.data`, no solo s0 y s1): los que corren en la instancia con su estado,
+  versión, puerto y límite de memoria, y los que no, como «sin activar». Debajo de la lista, qué es el servicio que tiene el cursor y qué hacen las teclas con él.
+  La pestaña **es dueña del teclado** mientras está en pantalla (`DASH_FOCUS=ws`; lo que no usa, como `z` o `q`, sigue al panel). Cada cambio es una orden que corre en
+  segundo plano, como todas (se ve en Salida y queda en el historial): `a` (o Enter) activa el servicio con `service add --tag latest --generate-secrets` tras preguntar;
+  `X` pide escribir la clave del servicio y lo quita con `service remove` (se detiene, y se conservan sus variables, secretos y datos); `v`, `P` y `m` abren el modo
+  `svcask` (`lib/screens/svcask.sh`) para escribir la versión, el puerto o la memoria: se comprueba mientras se escribe con las mismas reglas de la orden
+  (`lib/core/svcmgmt.sh`), ↑ toma la versión cargada más reciente y Enter ejecuta `service set`; `u` despliega solo ese servicio, `s` lo detiene y `R` lo devuelve a la
+  versión anterior, los tres tras preguntar. Las teclas `x`, `p` y `r` son del panel (cancelar, pausar, releer), por eso aquí son `X`, `P` y `R`.
 
 **Pestañas.** Una pestaña es un archivo `lib/screens/ws/<id>.sh` con `ws_<id>_box <instancia> <ancho> <alto>` (la caja, en `TUI_BOX`; opcionales `ws_<id>_avail` para
-ocultarla y `ws_<id>_sig` para lo que añade a la firma) y **una línea** al final de `instances_ws.sh` (`dash_ws_register <id> <clave del título>`). La tira de pestañas solo
+ocultarla, `ws_<id>_sig` para lo que añade a la firma y, si la pestaña tiene teclas propias, `ws_<id>_key <tecla>` y `ws_<id>_texts`) y **una línea** al final de `instances_ws.sh` (`dash_ws_register <id> <clave del título>`). La tira de pestañas solo
 sale cuando hay dos o más visibles. La pestaña en pantalla la dice el foco (los servicios y las filas son del resumen; los logs, de los logs) y, con el foco en la lista,
-la elegida con `<` y `>` o con un clic. Las pestañas de las tareas siguientes (Servicios, Variables y datos, Acceso, Historial) se añaden así.
+la elegida con `<` y `>` o con un clic. Las pestañas de las tareas siguientes (Variables y datos, Acceso, Historial) se añaden así.
 
 **La lista.** `/` la filtra por nombre mientras se escribe (modo `lfilter`: la línea es la última de la caja de la lista; Enter la deja, Esc la deja como estaba, una línea
 vacía muestra todo); `S` la ordena por nombre, por estado (lo que necesita atención primero) o por memoria. Las flechas solo recorren lo que la lista enseña (`DASH_VIS`;
@@ -267,7 +275,8 @@ le da el cursor y otro la resuelve.
 elegir la instancia, al terminar un comando y cada 30 s) y el catálogo de imágenes (por la misma maquinaria que la vista Imágenes, cada 5 minutos). En el modo de prueba no
 se leen salvo que un caso lo pida con `DELTACTL_TUI_WSENV=1`.
 
-Pruebas: `tests/test-workspace.sh`; escenas con datos fijos en `tests/tools/ws_scenes.sh` (instantáneas en `tests/golden/workspace/`).
+Pruebas: `tests/test-workspace.sh`; escenas con datos fijos en `tests/tools/ws_scenes.sh` (instantáneas en `tests/golden/workspace/`); `tests/test-svcview.sh` (la pestaña
+Servicios y su modo, de punta a punta contra el docker simulado) y `tests/test-service.sh` (la orden y sus reglas).
 
 ## La vista Imágenes
 

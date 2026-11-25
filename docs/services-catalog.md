@@ -58,5 +58,6 @@ opciones `--<sN>-image` y `--<sN>-tag` y la lista de la guía `./deltactl help s
 
 Solo hace falta código si el servicio tiene una regla propia: una comprobación previa especial se define como
 `preflight_extra_sN` en `lib/cmd/deploy.sh` (como la de `s1`, que avisa si `TCP_LISTEN_HOST` solo escucha en el contenedor).
-Las instancias existentes no lo activan solas: hay que sumar `sN` a su `COMPOSE_PROFILES`.
+Las instancias existentes no lo activan solas: `./deltactl service add <instancia> sN` (o la pestaña Servicios del panel) crea su `.env.sN`, sus carpetas de `data/`,
+le busca un puerto libre y lo suma a `COMPOSE_PROFILES`; `service remove` lo quita conservando sus datos (`./deltactl help service`).
 Después, actualizar este catálogo y la tabla del README.
