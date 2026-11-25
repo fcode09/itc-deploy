@@ -201,8 +201,9 @@ lector es de orden de cientos de microsegundos y ninguno lanza un proceso.
 
 El panel se compone de **pantallas** con un contrato común (`lib/screens/registry.sh` lo documenta función por función). Hay dos clases:
 
-- **Vistas** (las pestañas, `1` a `7` o Tab): `instances`, `resources`, `output`, `runs`, `procs`, `console`, `server`. Una es la actual (`DASH_VIEW`).
-- **Modos** (toman el teclado sobre una vista): `menu`, `confirm`, `name`, `cmd`, `filter`, `find`, `wizard`, `newinst`, `palette`, `help`, `options`, `srvask`.
+- **Vistas** (las pestañas, `1` a `9` o Tab): `instances`, `resources`, `output`, `runs`, `procs`, `console`, `server`, `images`, `env`. Una es la actual (`DASH_VIEW`).
+- **Modos** (toman el teclado sobre una vista): `menu`, `confirm`, `name`, `cmd`, `filter`, `lfilter`, `find`, `wizard`, `newinst`, `palette`, `help`, `options`, `srvask`,
+  `imguse`, `imgload`, `envedit`.
   Uno es el actual (`DASH_MODE`); `normal` es ninguno.
 
 El resto del panel ya no nombra ninguna: la línea de pestañas, los dígitos, Tab, Esc, la barra de teclas, el cuerpo, la firma del fotograma,
@@ -219,6 +220,54 @@ un valor que falte es una pantalla desactualizada. Los textos que cambian con el
 Comprobación de refactores: `tests/tools/panel_scenarios.sh <carpeta>` ejecuta 30 secuencias de teclas (vistas, diálogos, asistente, opciones, ayuda,
 paleta, consola, ratón) a cinco tamaños y guarda **todos** los fotogramas; dos árboles de dos versiones del código se comparan con `diff -r`.
 `tests/tools/panel_frames.sh` hace lo mismo con la última imagen de cada vista.
+
+## El espacio de trabajo de la instancia (vista Instancias)
+
+Al elegir una instancia, su **espacio de trabajo** (`lib/screens/instances_ws.sh` y `lib/screens/ws/*.sh`) aparece a la derecha de la lista **sin pulsar nada
+más**: lo que hay que saber de ella y lo que se puede hacer con ella, en vez de un menú escondido detrás de Enter (que sigue ahí). La vista
+(`lib/screens/instances.sh`) tiene tres tamaños, como siempre: pantalla ancha (≥ 120×28: la lista con el servidor debajo, el espacio de trabajo con los logs
+debajo y los eventos a la derecha), mediana (≥ 100 columnas: lista y espacio de trabajo en dos columnas) y estrecha (una columna: la lista y el espacio de
+trabajo debajo). `z` da todo el cuerpo al panel con el foco.
+
+- **Resumen** (`lib/screens/ws/resumen.sh`), una sola caja (`kit_box`):
+  - *En el borde*: arriba, la instancia con su `n/m` (el chip del título) y su estado en palabras (`● en marcha`, `▲ parcial`, `✖ caída`, `○ parada`, `sin Docker`);
+    abajo, las acciones que hacen su trabajo con la tecla resaltada (`u desplegar · c comprobar · s estado · l logs · t pendientes · Enter más`; lo que no cabe se quita
+    entero, igual que en las demás cajas). Esas teclas funcionan con el foco en la lista o en el espacio de trabajo.
+  - *Una tarjeta por servicio* cuando hay sitio (≥ 34 celdas y ≥ 9 filas por fila de tarjetas): su imagen y su estado en el borde, sus datos (activo, puerto,
+    reinicios) y su memoria y su CPU como filas de métrica de btop (`kit_metric_row`: etiqueta ······ valor, el porcentaje y una gráfica braille propia con el
+    degradado de su magnitud). Hasta tres tarjetas por fila; con más servicios bajan a la fila siguiente. Debajo, los totales de la instancia y el estado de sus datos
+    y, cuando se han contado, los errores de cada servicio en los últimos 10 minutos.
+  - *Sin sitio para tarjetas* (pantallas pequeñas) los servicios son la lista de siempre (`dash_detail_lines`: un bloque por servicio con sus datos, su memoria y su CPU
+    con barra y tendencia, los totales y los errores), que se desplaza para dejar el servicio elegido a la vista. No se pierde nada de lo que enseñaba la vista;
+    solo es más densa.
+  - ***Para desplegar***: las filas de lo que falta antes de que la instancia esté desplegada y bien. Cada una dice qué es, y a la derecha (`⏎ …`) qué hace Enter:
+    ejecuta el comando que lo resuelve, o lleva a la vista donde se resuelve. Salen de lo que el panel ya sabe, sin lanzar un proceso en el dibujo
+    (`dash_todo_build`): *1)* lo que sugiere `status` para esa instancia (`./deltactl deploy X s1`, `init X`, `logs X s0`…: los comandos nuestros corren en la consola del
+    panel; `init` pide escribir el nombre y `stop` pregunta antes; lo que no es nuestro, `docker …`, solo informa); *2)* los archivos de variables que cambiaron desde el
+    último despliegue (`↻`, la misma marca que la vista Variables) y las variables que aún faltan por rellenar (llevan a la vista Variables, sobre esa instancia);
+    *3)* una versión más reciente (★) que la que usa cada servicio (lleva a la vista Imágenes); *4)* lo que falta en el servidor (la vista Servidor), mientras la instancia
+    no corra. Sin nada pendiente (y con sitio) dice «Todo al día». Con poco sitio solo queda la cabecera con el recuento y la tecla `t`.
+- **Logs** (`lib/screens/ws/logs.sh`): el panel de logs de siempre (`lib/screens/instances_logs.sh`) con todo el espacio de trabajo. En pantalla ancha los logs ya están debajo
+  del resumen y la pestaña no se ofrece; en las demás es la forma de llegar a ellos.
+
+**Pestañas.** Una pestaña es un archivo `lib/screens/ws/<id>.sh` con `ws_<id>_box <instancia> <ancho> <alto>` (la caja, en `TUI_BOX`; opcionales `ws_<id>_avail` para
+ocultarla y `ws_<id>_sig` para lo que añade a la firma) y **una línea** al final de `instances_ws.sh` (`dash_ws_register <id> <clave del título>`). La tira de pestañas solo
+sale cuando hay dos o más visibles. La pestaña en pantalla la dice el foco (los servicios y las filas son del resumen; los logs, de los logs) y, con el foco en la lista,
+la elegida con `<` y `>` o con un clic. Las pestañas de las tareas siguientes (Servicios, Variables y datos, Acceso, Historial) se añaden así.
+
+**La lista.** `/` la filtra por nombre mientras se escribe (modo `lfilter`: la línea es la última de la caja de la lista; Enter la deja, Esc la deja como estaba, una línea
+vacía muestra todo); `S` la ordena por nombre, por estado (lo que necesita atención primero) o por memoria. Las flechas solo recorren lo que la lista enseña (`DASH_VIS`;
+`DASH_SEL` sigue siendo un índice de `DASH_NAMES`, así que nada más cambió). La `s` sigue siendo «estado» de la instancia, por eso el orden es `S`.
+
+**Teclas.** Con el foco en la lista o en los servicios: `t` lleva el cursor a «Para desplegar» (si hay filas); Tab recorre lista → servicios → filas (si hay) → logs;
+con el cursor en las filas: ↑↓ eligen, Enter resuelve, ← vuelve a los servicios. `<` y `>` cambian de pestaña. **Ratón**: un clic en una pestaña la abre; un clic en una fila
+le da el cursor y otro la resuelve.
+
+**Lo que se lee en segundo plano** (el dibujo nunca espera): los archivos de la instancia (marcas de despliegue y variables por rellenar: `dash_ws_dump`, una vez al
+elegir la instancia, al terminar un comando y cada 30 s) y el catálogo de imágenes (por la misma maquinaria que la vista Imágenes, cada 5 minutos). En el modo de prueba no
+se leen salvo que un caso lo pida con `DELTACTL_TUI_WSENV=1`.
+
+Pruebas: `tests/test-workspace.sh`; escenas con datos fijos en `tests/tools/ws_scenes.sh` (instantáneas en `tests/golden/workspace/`).
 
 ## La vista Imágenes
 

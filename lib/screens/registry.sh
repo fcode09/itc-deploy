@@ -168,6 +168,7 @@ dash_mode_register confirm
 dash_mode_register name
 dash_mode_register cmd
 dash_mode_register filter
+dash_mode_register lfilter
 dash_mode_register find
 dash_mode_register wizard
 dash_mode_register newinst

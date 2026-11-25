@@ -54,6 +54,13 @@ for size in 80x24 120x30 160x40; do
     # shellcheck disable=SC2329  # called through ms
     cold() { DASH_PC_SIG=(); dash_render; }
     ms "dash_render instances, cold" 10 cold
+    # The workspace of an instance with rows to resolve (the cursor in "Para desplegar", the files of the instance read as the panel reads them in
+    # the background) and one key that moves its cursor (the box of the summary is built again, the list and the logs are not).
+    # shellcheck disable=SC2329,SC2034  # called through ms
+    ws_key() { DASH_TODO_SEL=$(((DASH_TODO_SEL + 1) % (DASH_TODO_N > 0 ? DASH_TODO_N : 1))); dash_render; }
+    DASH_SEL=1; dash_ws_apply "${DASH_NAMES[1]}" "$(dash_ws_dump "${DASH_NAMES[1]}")" > /dev/null 2>&1; DASH_FOCUS=todo
+    ms "instances, a key in the to-do rows" "$N" ws_key
+    DASH_FOCUS=list DASH_SEL=0
     # The Server view at every sample (what it costs every 2 s while it is on screen). "idle": the figures do not move (the boxes are reused);
     # "busy": the simulated host moves, so every box is built again (the sampling of the host is part of it).
     # shellcheck disable=SC2329  # called through ms
