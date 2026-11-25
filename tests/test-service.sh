@@ -20,6 +20,7 @@ cp tests/fake-docker.sh "$FIX/bin/docker"
 chmod +x "$FIX/bin/docker"
 export PATH="$FIX/bin:$PATH"
 printf 'auth-backend:1.0|sha256:aaaa1111|amd64\ngueo-back-end:2.0|sha256:bbbb2222|amd64\ngueo-back-end:2.1|sha256:bbbb2223|amd64\n' > "$FIX/images.txt"
+printf '%s\n' "auth-backend:1.0|2026-11-20 12:00:00 +0000 UTC" "gueo-back-end:2.0|2026-11-20 12:00:00 +0000 UTC" "gueo-back-end:2.1|2026-11-23 12:00:00 +0000 UTC" > "$FIX/image_dates.txt"
 
 D() { DELTACTL_NO_RUNS=1 bash ./deltactl "$@"; }
 run() { ROOT="$PWD" bash -c "source lib/bootstrap.sh; $1"; }
@@ -102,8 +103,8 @@ section "4. set: versión, puerto y memoria, validados antes de escribir"
 check "cambia la versión" 'D service set sv-a s1 tag 2.1 > /dev/null 2>&1 && [ "$(val sv-a .env.instance S1_TAG)" = "2.1" ]'
 check "cambia el puerto" 'D service set sv-a s1 port 4888 > /dev/null 2>&1 && [ "$(val sv-a .env.instance S1_PORT)" = "4888" ]'
 check "cambia el límite de memoria" 'D service set sv-a s1 memory 4g > /dev/null 2>&1 && [ "$(val sv-a .env.instance S1_MEM_LIMIT)" = "4g" ]'
-check "latest se resuelve a la versión más reciente cargada, nunca queda la palabra latest" '
-  D service set sv-a s1 tag latest > /dev/null 2>&1; v="$(val sv-a .env.instance S1_TAG)"; [ "$v" = "2.1" ] && [ "$v" != "latest" ]'
+check "latest se resuelve a la versión más reciente cargada (por fecha), nunca queda la palabra latest" '
+  D service set sv-a s1 tag 2.0 > /dev/null 2>&1 && [ "$(val sv-a .env.instance S1_TAG)" = "2.0" ] && D service set sv-a s1 tag latest > /dev/null 2>&1; v="$(val sv-a .env.instance S1_TAG)"; [ "$v" = "2.1" ] && [ "$v" != "latest" ]'
 check "un puerto que usa otro servicio de la instancia se rechaza" '
   p="$(val sv-a .env.instance S0_PORT)"; before="$(val sv-a .env.instance S1_PORT)"; ! D service set sv-a s1 port "$p" > /dev/null 2>&1 && [ "$(val sv-a .env.instance S1_PORT)" = "$before" ]'
 check "un puerto que usa otra instancia se rechaza" '! D service set sv-a s1 port "$(val sv-b .env.instance S0_PORT)" > /dev/null 2>&1'
