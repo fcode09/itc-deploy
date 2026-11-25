@@ -1,0 +1,31 @@
+=== frame 1 ===
+
+ 1 Instancias 2 Recursos 3 Salida 4 Ejecuciones 5 Procesos 6 Consola 7 Servidor 8 Imágenes [9 Variables] 0 Actividad   
+╭─┐⁹variables┌─────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│                                                                                                                      │
+│ No hay instancias: crea una con n y vuelve aquí.                                                                     │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+ ↑↓ mover · Enter edita · 1-9 vistas · : comando · ? ayuda · q salir

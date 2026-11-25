@@ -1,0 +1,31 @@
+=== frame 1 ===
+
+  1   2  [3 Salida]  4   5   6   7   8   9   0                                         ● ./deltactl doctor terminó bien
+╭─ ▸Salida · ./deltactl doctor · terminó bien 00:42 ───────────────────────────────────────────────────────────────────╮
+│   ● mongod permite 524288 archivos abiertos                                                                          │
+│                                                                                                                      │
+│ Instancias                                                                                                           │
+│   ● sim-01: permisos correctos                                                                                       │
+│   ● sim-02: permisos correctos                                                                                       │
+│   ● sim-03: permisos correctos                                                                                       │
+│                                                                                                                      │
+│ Herramientas                                                                                                         │
+│   ● ss disponible                                                                                                    │
+│   ● openssl disponible                                                                                               │
+│   ● gunzip disponible                                                                                                │
+│                                                                                                                      │
+│ Recomendado                                                                                                          │
+│   ℹ No se detectó nginx ni Caddy (recomendado)                                                                       │
+│       Sin un proxy no hay HTTPS ni nombres de dominio delante de las instancias                                      │
+│       Instalar (apt): sudo apt-get install -y nginx                                                                  │
+│   ℹ Falta 'certbot' (recomendado)                                                                                    │
+│       Sin él los certificados HTTPS se piden y renuevan a mano                                                       │
+│       Instalar (apt): sudo apt-get install -y certbot certbot-nginx                                                  │
+│   ● La hora del servidor está sincronizada (NTP)                                                                     │
+│   ● Cortafuegos activo: firewalld                                                                                    │
+│   ● curl disponible                                                                                                  │
+│                                                                                                                      │
+│   ▲ El servidor funciona, con 1 aviso(s)                                                                             │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+ ↑↓ desplazar · PgUp/PgDn · f seguir · v resumen/crudo · e errores · x cancelar · : comando · ? ayuda · q salir

@@ -7,8 +7,16 @@
 # --- Availability ------------------------------------------------------------------------------------
 dk_installed() { command -v docker >/dev/null 2>&1; }
 
+# The read-only questions of the server requirements (daemon, versions, network) go through dk_ask: with DK_TIMEOUT set (seconds) a docker
+# that does not answer is cut instead of waited for (the checks run in the background of the panel and would be abandoned after a minute,
+# leaving the program behind). Empty, as it is for everything else, it is a plain call.
+DK_TIMEOUT=""
+dk_ask() {
+  if [ -n "$DK_TIMEOUT" ] && command -v timeout >/dev/null 2>&1; then timeout -k 1 "$DK_TIMEOUT" docker "$@"; else docker "$@"; fi
+}
+
 # The Docker daemon answers.
-dk_daemon_ok() { docker info >/dev/null 2>&1; }
+dk_daemon_ok() { dk_ask info >/dev/null 2>&1; }
 
 # Docker is installed and its daemon answers.
 # The panel asks every few seconds: DK_READY_TTL > 0 lets it trust a recent positive answer instead of running `docker info` again.
@@ -23,11 +31,11 @@ dk_ready() {
 dk_compose_ok() { docker compose version >/dev/null 2>&1; }
 
 # Compose version without the leading "v" (empty when the plugin is missing).
-dk_compose_version() { docker compose version --short 2>/dev/null | sed 's/^v//'; }
+dk_compose_version() { dk_ask compose version --short 2>/dev/null | sed 's/^v//'; }
 
 # One field of `docker info` (ServerVersion, Architecture, DockerRootDir...). Empty on error.
 dk_info() { # Field
-  docker info --format "{{.$1}}" 2>/dev/null || true
+  dk_ask info --format "{{.$1}}" 2>/dev/null || true
 }
 
 # Architecture of this server in the images' vocabulary (amd64, arm64...).
@@ -43,7 +51,7 @@ server_arch() {
 
 # Gateway of the default bridge network (how containers reach services on the host).
 dk_network_gateway() {
-  docker network inspect bridge --format '{{(index .IPAM.Config 0).Gateway}}' 2>/dev/null || true
+  dk_ask network inspect bridge --format '{{(index .IPAM.Config 0).Gateway}}' 2>/dev/null || true
 }
 
 # --- Compose -----------------------------------------------------------------------------------------
@@ -117,6 +125,11 @@ dk_run_once() {
 
 # Ids of every container (running or not) that belongs to a Compose project.
 dk_project_container_ids() { docker ps -aq --filter label=com.docker.compose.project 2>/dev/null; }
+
+# Names of the Compose projects that have containers (running or not), one per line (repeated once per container), and the names of the
+# Docker networks, one per line. The new-instance wizard reads them once to know which names are taken outside the instances folder.
+dk_compose_projects() { docker ps -a --format '{{.Label "com.docker.compose.project"}}' 2>/dev/null; }
+dk_network_names() { docker network ls --format '{{.Name}}' 2>/dev/null; }
 
 # Ids of the containers (running or not) of one instance: its Compose project is named after it.
 dk_instance_container_ids() { # instance

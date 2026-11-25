@@ -1,0 +1,31 @@
+=== frame 1 ===
+  ITC  testhost · Memoria ███░░░ 5.6/11.5 GB 48% ▄▃▂▅▃▂ · Carga 3.18 · Docker 27.0.0 · contenedores 1.5G
+ [1 Instancias] 2 Recursos 3 Salida 4 Ejecuciones 5 Procesos 6 Consola 7 Servidor 8 Imágenes 9 Variables 0 Actividad   
+╭─ Instancias ───────────────────────╮[Resumen] Acceso  Historial  Servicios  Variables  Datos                          
+│   + Nueva instancia                │╭─┐ ▸ix-lima · 1/2 ┌─────────────────────────────────────────────────┐▲ parcial┌─╮
+│               n/m      mem    cpu  ││     activo 6h12m  ·  :4110                                                     │
+│   ●● ix-colorado 2/2    1.3G  25.1%││     mem  ████░░░░░░░░ 180M/512M  35%  ▂▅▃▂▁▄▂▁▄▂▁▄▃▁                           │
+│ ▸ ●✖ ix-lima  1/2    180M   1.2%   ││     cpu  ░░░░░░░░░░░░ 1.2%  █▅▂▁▆▃▁▆▃▁▆▄▁▆                                     │
+│   ✖✖ ix-piura 0/2       -      -   ││ Para desplegar · 5                                                             │
+╰────────────────────────────────────╯│   ▲ levantar de nuevo ix-lima/s1                                    ⏎ desplegar│
+╭─ Servidor ─────────────────────────╮│ ▸ ✖ Faltan variables por rellenar  s1: 2                             ⏎ rellenar│
+│ Memoria █████░░░░░ 5.6/11.5 GB 48% ││   ○ Variables cambiadas sin desplegar  s0, instance             ⏎ ver variables│
+│              ▃                     ││   ℹ s0: hay una versión más reciente ★  2.15.0 (ahora 2.14.1)   ⏎ ver versiones│
+│              █   ▄                 ││   ✖ Al servidor le falta: docker compose                         ⏎ ver servidor│
+│  ▁  ▄  ▄  █  ██  █     ▂  ▃  ▂  ▆  │╰─┘u desplegar└─┘c comprobar└─┘s estado└─┘l logs└─┘< > pestaña└─┘Enter más└──────╯
+│  █▁ █▂ █▁ █▅ ██▆ █  █  █  █  █▃ █▂ │╭─ Logs · s0 · siguiendo ────────────────────────────────────────────────────────╮
+│  ██ ██ ██▁██▁███▅█▄ █▄ █▇ █▇ ██ ██ ││ Leyendo el log...                                                              │
+│ ▃██▆██▆████████████ ██▁██▅██▄█████▇││                                                                                │
+│ Carga 3.18                         ││                                                                                │
+│ contenedores 1.5G                  ││                                                                                │
+╰────────────────────────────────────╯╰────────────────────────────────────────────────────────────────────────────────╯
+╭─ Consola ────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│ ix-lima ❯ : escribe un comando · ! en el terminal · Tab completa · ↑ historial · help                                │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+ ↑↓ fila · Enter resolver · Tab siguiente · ← volver · : comando · ? ayuda · q salir

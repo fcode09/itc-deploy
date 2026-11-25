@@ -77,6 +77,7 @@ de comandos; el menú y el asistente solo preguntan por ti y te muestran el coma
 ./deltactl check colorado         # comprueba todo lo que deploy exigiría, sin levantar nada (--mongo prueba las bases)
 ./deltactl doctor                 # diagnóstico del servidor: Docker, disco, memoria, Mongo, permisos y lo recomendado (nginx/Caddy, certbot...); --json para scripts y el panel
 ./deltactl new --wizard           # asistente: pregunta lo esencial y lista lo que falta completar
+./deltactl env colorado list      # variables de entorno con su estado (secretos ocultos); set, get, generate y pending: docs/env-variables.md
 ./deltactl completion bash        # autocompletado con Tab (source <(./deltactl completion bash))
 ```
 

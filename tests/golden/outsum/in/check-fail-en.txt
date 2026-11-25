@@ -1,0 +1,18 @@
+
+Check of 'sim-01'
+───────────────────
+  services     s0 s1
+
+  ● Complete configuration (required variables, image names and secrets)
+  ● The instance's compose is valid
+  ✖ s0: image auth-backend:1.0 is missing on this server
+      Load it with ./deltactl load <file>  ·  available tags: ./deltactl images
+  ✖ s1: image gueo-back-end:1.0 is missing on this server
+      Load it with ./deltactl load <file>  ·  available tags: ./deltactl images
+  ● s0: port 4100 is free
+  ● s1: port 4101 is free
+  ● Data: init (.initialized marker present)
+  ℹ Databases: not tested. Add --mongo to check the connection of each service
+
+  ✖ 2 error(s), 0 warning(s): fix the errors before ./deltactl deploy sim-01
+  → Help: ./deltactl help troubleshooting   ·   variables: ./deltactl help variable

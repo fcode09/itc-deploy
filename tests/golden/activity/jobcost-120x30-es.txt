@@ -1,0 +1,31 @@
+=== frame 1 ===
+  ITC  testhost · Docker 27.0.0
+  1   2   3   4   5   6   7   8   9  [0 Actividad]                                     ● ./deltactl images terminó bien
+╭─ ▸Actividad (6) ───────────────────────────╮ Resumen  Salida [Consumo] Procesos                                       
+│ ▸ ● este panel  images   -            00:07│╭─ ./deltactl images ────────────────────────────────────────────────────╮
+│   ● 11-01 10:00 deploy   ix-colora   41.2 s││  Este comando no se guarda en el historial, así que no tiene consumo   │
+│   ● 11-01 09:50 deploy   ix-lima     30.1 s││  registrado. Mientras corre, la pestaña Procesos muestra lo que lo     │
+│   ✖ 11-01 09:00 check    ix-colora    2.1 s││  forma y lo que usa.                                                   │
+│   ● 10-31 15:00 rollback ix-colora    5.3 s││                                                                        │
+│   ● 10-30 10:00 deploy   ix-colora   38.0 s││                                                                        │
+│                                            ││                                                                        │
+│                                            ││                                                                        │
+│                                            ││                                                                        │
+│                                            ││                                                                        │
+│                                            ││                                                                        │
+│                                            ││                                                                        │
+│                                            ││                                                                        │
+│                                            ││                                                                        │
+│                                            ││                                                                        │
+│                                            ││                                                                        │
+│                                            ││                                                                        │
+│                                            ││                                                                        │
+│                                            ││                                                                        │
+│                                            ││                                                                        │
+│                                            ││                                                                        │
+│                                            ││                                                                        │
+│                                            ││                                                                        │
+│                                            ││                                                                        │
+╰────────────────────────────────────────────╯╰────────────────────────────────────────────────────────────────────────╯
+
+ ↑↓ elegir · ← → pestaña · RePág/AvPág detalle · t estadísticas · : comando · ? ayuda · q salir

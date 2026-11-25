@@ -1,0 +1,41 @@
+=== frame 1 ===
+
+ 1 Instancias 2 Recursos [3 Salida] 4 Ejecuciones 5 Procesos 6 Consola 7 Servidor 8 Imágenes 9 Variables 0 Actividad           ● ./deltactl images terminó bien
+╭─ ▸Salida · ./deltactl images · terminó bien 00:42 · resumen · ● 2 ───────────────────────────────────────────────────────────────────────────────────────────╮
+│ Imágenes de este servidor                                                                                                                                    │
+│                                                                                                                                                              │
+│ Arquitectura de este servidor: amd64                                                                                                                         │
+│                                                                                                                                                              │
+│ ── s0 = auth-backend ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── │
+│   ○ 1.1  aaa112 · amd64 · 1 hour ago · 300MB                                                                                                                 │
+│       sin uso (candidata a borrar)                                                                                                                           │
+│   ● 1.0  aaa111 · amd64 · 1 hour ago · 300MB                                                                                                                 │
+│       sim-01(actual) sim-02(actual) sim-03(actual)                                                                                                           │
+│                                                                                                                                                              │
+│ ── s1 = gueo-back-end ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── │
+│   ● 1.0  bbb222 · amd64 · 1 hour ago · 300MB                                                                                                                 │
+│       sim-01(actual) sim-02(actual) sim-03(actual)                                                                                                           │
+│                                                                                                                                                              │
+│ Las versiones 'sin uso' no las usa ninguna instancia (ni como actual ni como previa).                                                                        │
+│ Este comando solo lista: borrar imágenes lo decides tú. Evita 'docker image prune -a'.                                                                       │
+│   → 1 de 3 imagen(es) sin uso. Para borrar una concreta: docker image rm <nombre>:<etiqueta>                                                                 │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+ ↑↓ desplazar · PgUp/PgDn · f seguir · v resumen/crudo · e errores · x cancelar · : comando · ? ayuda · q salir

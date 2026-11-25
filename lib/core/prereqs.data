@@ -19,3 +19,12 @@ certbot|recommended|recommended|https://certbot.eff.org/instructions|sudo apt-ge
 timesync|recommended|recommended|-|sudo timedatectl set-ntp true|sudo timedatectl set-ntp true|sudo timedatectl set-ntp true|sudo apk add chrony && sudo rc-update add chronyd default && sudo service chronyd start
 firewall|recommended|recommended|-|sudo apt-get install -y ufw|sudo dnf install -y firewalld|sudo pacman -S --needed ufw|sudo apk add awall
 curl|recommended|recommended|-|sudo apt-get install -y curl|sudo dnf install -y curl|sudo pacman -S --needed curl|sudo apk add curl
+# Exceptions by distribution (the same package manager, a different repository or different packages): @id|distros|command ("-" = none known).
+# distro<N = only the versions older than N. Where none is known the panel shows the documentation link instead of a command that fails.
+@docker|rocky,almalinux,centos|sudo dnf -y install dnf-plugins-core && sudo dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo && sudo dnf install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+@docker|rhel|sudo dnf -y install dnf-plugins-core && sudo dnf config-manager --add-repo https://download.docker.com/linux/rhel/docker-ce.repo && sudo dnf install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+@docker|amzn,ol|-
+@docker|debian<13|sudo apt-get update && sudo apt-get install -y docker.io
+@compose|rocky,almalinux,centos,rhel|sudo dnf install -y docker-compose-plugin
+@compose|amzn,ol|-
+@compose|debian<13|-

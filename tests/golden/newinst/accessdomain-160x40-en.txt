@@ -1,0 +1,41 @@
+=== frame 1 ===
+
+ [1 Instances]  2 Resources   3 Output   4 Runs   5 Processes   6 Console   7 Server   8 Images   9 Variables   0 Activity                                     
+╭─┐new instance┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐instancia-1┌─╮
+│ ●━━━━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━━━━▲━━━━━━━━━━━━━━━━━━▲━━━━━━━━━━━━━━━━━━◉━━━━━━━━━━━━━━━━━━○            Step 7 of 8│
+│ Name               Services           Versions           Data               Variables          Secrets            Access             Review                  │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭─┐ ▸7 · Access ┌──────────────────────────────────────────────────────────────────────────────╮╭─┐preview┌────────────────────────────────────────────────────╮
+│                                                                                              ││ instances/instancia-1/                                       │
+│ With what name is it reached from the internet? With a domain the nginx or Caddy block is    ││   .env.instance                                              │
+│ prepared; it is text only: nothing is installed or reloaded.                                 ││     COMPOSE_PROFILES=s0,s1                                   │
+│                                                                                              ││     S0_PORT=4100                                             │
+│ Domain    ● muni.example.com                                                                 ││     S0_TAG=2.14.1                                            │
+│ Proxy     ( nginx)  ( Caddy)  ▸ (both)                                                       ││     S1_PORT=4101                                             │
+│ HTTPS     [x]                                                                                ││     S1_TAG=2.9.0                                             │
+│                                                                                              ││   .env.s0 .env.s1                                            │
+│ ℹ Neither nginx nor Caddy was detected on this server (the block can be generated anyway).   ││   secrets/  data/                                            │
+│                                                                                              ││     data/ empty: init seeds it                               │
+│ nginx block → instances/instancia-1/proxy/nginx.conf                                         ││   variables: 0 set · 4 generated                             │
+│ map $http_upgrade $connection_upgrade { default upgrade; '' close; }                         ││   proxy/ nginx.conf Caddyfile                                │
+│                                                                                              ││                                                              │
+│ # s0                                                                                         ││ ≈ ./deltactl new instancia-1                                 │
+│ server {                                                                                     ││     --services s0,s1 --s0-tag 2.14.1 --s1-tag 2.9.0          │
+│     listen 80;                                                                               ││     --env-file <answers> --domain muni.example.com --tls     │
+│     server_name auth-backend.muni.example.com;                                               ││                                                              │
+│     return 301 https://$host$request_uri;                                                    ││                                                              │
+│ }                                                                                            ││                                                              │
+│ server {                                                                                     ││                                                              │
+│     listen 443 ssl;                                                                          │╰──────────────────────────────────────────────────────────────╯
+│     server_name auth-backend.muni.example.com;                                               │╭─┐steps┌──────────────────────────────────────────────────────╮
+│     # the certificate: certbot --nginx -d auth-backend.muni.example.com                      ││ ● Name        instancia-1                                    │
+│     ssl_certificate /etc/letsencrypt/live/auth-backend.muni.example.com/fullchain.pem;       ││ ● Services    s0 s1                                          │
+│     ssl_certificate_key /etc/letsencrypt/live/auth-backend.muni.example.com/privkey.pem;     ││ ● Versions    2.14.1 2.9.0                                   │
+│     location / {                                                                             ││ ● Data        new                                            │
+│         proxy_pass http://127.0.0.1:4100;                                                    ││ ▲ Variables   3 missing                                      │
+│         proxy_http_version 1.1;                                                              ││ ▲ Secrets     0 of 2                                         │
+│ … and 31 more lines (the whole block is saved in the instance)                               ││ ◐ Access      muni.example.com                               │
+│                                                                                              ││ ○ Review                                                     │
+╰─┘Esc back└─┘Enter next└──────────────────────────────────────────────────────────────────────╯╰──────────────────────────────────────────────────────────────╯
+
+ ↑↓ move · ←→ space changes · c copies the block · v nginx/Caddy · Enter reviews · Esc back · Tab preview

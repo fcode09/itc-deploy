@@ -16,7 +16,7 @@ _new_flags="--services --existing --wizard"
 for _s in "${KNOWN_SERVICES[@]}"; do _new_flags+=" --$_s-image"; done
 for _s in "${KNOWN_SERVICES[@]}"; do _new_flags+=" --$_s-tag"; done
 COMPLETION_FLAGS=(
-  "new:$_new_flags --ip --generate-secrets"
+  "new:$_new_flags --ip --generate-secrets --env-file --secret-file --domain --proxy --tls"
   "init:--yes"
   "doctor:--json"
   "rollback:--yes"
@@ -28,6 +28,8 @@ COMPLETION_FLAGS=(
   "logs:-f"
   "menu:--classic"
   "runs:--instance -n --json --tail --raw"
+  "env:--reveal --json --stdin --force --yes"
+  "service:--tag --port --generate-secrets --yes"
 )
 
 cmd_completion() {
@@ -78,6 +80,20 @@ _deltactl_complete() {
       [ "$COMP_CWORD" -eq 2 ] && COMPREPLY=($(compgen -W "$services" -- "$cur")) ;;
     load)
       COMPREPLY=($(compgen -f -- "$cur")) ;;
+    env)
+      if [ "$COMP_CWORD" -eq 2 ]; then COMPREPLY=($(compgen -W "$insts" -- "$cur"))
+      elif [ "$COMP_CWORD" -eq 3 ]; then COMPREPLY=($(compgen -W "list get set generate pending" -- "$cur"))
+      elif [ "$COMP_CWORD" -eq 4 ]; then
+        case "${COMP_WORDS[3]}" in
+          list) COMPREPLY=($(compgen -W "instance $services" -- "$cur")) ;;
+          get | set | generate) COMPREPLY=($(compgen -W "$vars" -- "$cur")) ;;
+        esac
+      fi ;;
+    service)
+      if [ "$COMP_CWORD" -eq 2 ]; then COMPREPLY=($(compgen -W "list add remove set" -- "$cur"))
+      elif [ "$COMP_CWORD" -eq 3 ]; then COMPREPLY=($(compgen -W "$insts" -- "$cur"))
+      elif [ "$COMP_CWORD" -eq 4 ]; then COMPREPLY=($(compgen -W "$services" -- "$cur"))
+      elif [ "$COMP_CWORD" -eq 5 ] && [ "${COMP_WORDS[2]}" = set ]; then COMPREPLY=($(compgen -W "tag port memory" -- "$cur")); fi ;;
     runs)
       if [ "$COMP_CWORD" -eq 2 ]; then COMPREPLY=($(compgen -W "list show logs stats resolve prune" -- "$cur")); fi ;;
     completion)

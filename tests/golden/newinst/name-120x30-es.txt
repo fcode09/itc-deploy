@@ -1,0 +1,31 @@
+=== frame 1 ===
+
+ [1 Instancias] 2 Recursos 3 Salida 4 Ejecuciones 5 Procesos 6 Consola 7 Servidor 8 Imágenes 9 Variables 0 Actividad   
+╭─┐nueva instancia┌──────────────────────────────────────────────────────────────────────────────────────┐instancia-1┌─╮
+│ ◉━━━━━━━━━━━━━○━━━━━━━━━━━━━○━━━━━━━━━━━━━○━━━━━━━━━━━━━○━━━━━━━━━━━━━○━━━━━━━━━━━━━○━━━━━━━━━━━━━○       Paso 1 de 8│
+│ Nombre        Servicios     Versiones     Datos         Variables     Secretos      Acceso        Revisión           │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭─┐ ▸1 · Nombre ┌──────────────────────────────────────────────────────╮╭─┐vista previa┌───────────────────────────────╮
+│                                                                      ││ instances/instancia-1/                       │
+│ ¿Cómo se llama la instancia? Es el nombre de su carpeta y de sus     ││   .env.instance                              │
+│ contenedores: minúsculas, números y guion; empieza con letra.        ││     COMPOSE_PROFILES=s0,s1                   │
+│                                                                      ││     S0_PORT=4100                             │
+│ Nombre   ● instancia-1                                               ││     S0_TAG=(la de la plantilla)              │
+│                                                                      ││     S1_PORT=4101                             │
+│ ● Disponible: no hay carpeta, proyecto ni red de Docker con ese      ││     S1_TAG=(la de la plantilla)              │
+│   nombre.                                                            ││   .env.s0 .env.s1                            │
+│                                                                      ││   secrets/  data/                            │
+│ Se creará en instances/instancia-1                                   ││     data/ vacía: init la siembra             │
+│                                                                      ││                                              │
+│ Propuesto: la primera libre. Escribe para cambiarlo.                 ││ ≈ ./deltactl new instancia-1                 │
+│                                                                      ││     --services s0,s1 --generate-secrets      │
+│                                                                      ││                                              │
+│                                                                      ││                                              │
+│                                                                      ││                                              │
+│                                                                      ││                                              │
+│                                                                      ││                                              │
+│                                                                      ││                                              │
+│                                                                      ││                                              │
+╰─┘Esc atrás└─┘Enter siguiente└────────────────────────────────────────╯╰──────────────────────────────────────────────╯
+
+ Enter siguiente · Esc atrás · Tab vista previa

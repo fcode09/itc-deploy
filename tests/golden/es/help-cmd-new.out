@@ -3,11 +3,15 @@ new · crear una instancia
 ---------------------------
 
 Crea la carpeta `instances/<instancia>/` con la configuración lista para completar.
-No toca Docker y no levanta nada.
+No levanta nada y no necesita Docker para crear la instancia. La única excepción es
+`--sN-tag latest`, que le pregunta a Docker qué versiones hay cargadas; si Docker no responde,
+la instancia se crea igual y la etiqueta se queda en `latest` (con un aviso).
 
 Uso
   $ ./deltactl new <instancia> [--services s0,s1] [--existing]
   $ ./deltactl new <instancia> [--s0-image X] [--s0-tag X] [--s1-image X] [--s1-tag X] [--ip URL] [--generate-secrets]
+  $ ./deltactl new <instancia> [--env-file ARCHIVO] [--secret-file ORIGEN[:NOMBRE]]
+  $ ./deltactl new <instancia> --domain DOMINIO [--proxy nginx|caddy|both] [--tls]
   $ ./deltactl new --wizard
 
 Asistente
@@ -28,10 +32,29 @@ Opciones
     etiqueta).
   . `--s0-tag <etiqueta>` y `--s1-tag <etiqueta>` versión a desplegar de cada servicio. Con `latest`
     se elige la versión **más reciente** que este servidor puede usar (la ★ de `./deltactl images`:
-    la más nueva por fecha de creación entre las etiquetas de versión y de su arquitectura), no una
-    etiqueta llamada `latest`; la instancia guarda la etiqueta que resultó.
+    la más nueva por fecha de creación entre las etiquetas de versión estable, sin sufijo como
+    `-rc1` o `-debug`, de su arquitectura), no una etiqueta llamada `latest`; la instancia guarda la
+    etiqueta que resultó. Solo se resuelven los servicios de la instancia (`--services`). Si no hay
+    una versión que elegir, falla y no crea nada.
   . `--ip <url>` URL pública del sistema, con esquema (se guarda como IP_SERVER en s0 y s1).
   . `--generate-secrets` genera los secretos únicos (JWT y claves de cifrado); necesita openssl.
+  . `--env-file <archivo>` pone variables en los archivos de la instancia, una por línea:
+    `<archivo>:<CLAVE>=<valor>` (el archivo es `instance`, `s0`, `s1`...; se saltan las líneas en
+    blanco y las que empiezan con `#`). Va en un archivo y no en la línea de comandos para que un
+    secreto no quede en `ps` ni en el historial. Todo se valida **antes** de crear nada (con las
+    reglas de `./deltactl help variable`) y un error dice la variable, nunca su valor. Si da
+    `S0_PORT` o `S1_PORT`, ese puerto es el que se comprueba y se escribe. Pesa más que
+    `--generate-secrets`. El archivo es tuyo: `new` lo lee y no lo borra.
+  . `--secret-file <origen>[:<nombre>]` copia un archivo a `secrets/<nombre>` con permisos 600; por
+    ejemplo el JSON de Firebase: `--secret-file ~/Descargas/firebase.json:fcm.json` (sin `:nombre`
+    se conserva el nombre del origen). Se comprueba antes de crear nada: que exista, se pueda leer,
+    no pase de 128 KiB y sea un objeto JSON. Su contenido no se muestra nunca. Se puede repetir.
+  . `--domain <nombre>` genera el bloque de proxy inverso de cada servicio
+    (`<nombre-del-servicio>.<dominio>` hacia el puerto de la instancia) y lo guarda **dentro de la
+    instancia**, en `instances/<instancia>/proxy/`. `--proxy nginx|caddy|both` elige cuál (por
+    defecto los dos) y `--tls` pone HTTPS (nginx: redirección del 80 y bloque 443 con las rutas de
+    certbot; Caddy lo hace solo). Es solo texto: `new` no escribe nada en `/etc` ni recarga nada; lo
+    copias tú donde tu proxy lo lea.
 
 Qué crea
   . `.env.instance`  variables de la instancia: versiones, puertos, servicios activos, memoria

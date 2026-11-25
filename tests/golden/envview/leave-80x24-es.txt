@@ -1,0 +1,25 @@
+=== frame 1 ===
+
+  1   2   3   4   5   6   7   8  [9 Variables]  0                              
+╭─┐ ▸⁹variables ┌─┐ix-lima┌────────────────────────────────────┐1 sin guardar┌─╮
+│ ▾ .env.instance                                                 12 variables │
+│ ● INSTANCE                   ix-lima                                         │
+│ ● COMPOSE_PROFILES           s0,s1                                           │
+│ ● S0_TAG                     2.14.1                                          │
+│ ● S1_TAG                     2.9.0                                           │
+│ ● S0_PORT                    4110                                            │
+│ ● S1_PORT                    4111                                            │
+│ ▾ .env.s0                                                        9 variables │
+│ ● IP_SERVER                  https://x.itc.pe                     modificada │
+│ ● JWT_SECRET                 ⚿ ••••••••••                                    │
+│ ● MONGO_URI                  ⚿ ••••••••••                                    │
+│ ● IP_INTERNAL_CONNECTION     s1                                              │
+│ ▾ .env.s1                                                       27 variables │
+│ ● IP_SERVER                  http://h                                        │
+│ ● AUTH_URL                   http://s0:3200                                  │
+│ ● JWT_SECRET                 ⚿ ••••••••••                                    │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ Hay cambios sin guardar (1). ¿Qué hago con ellos?                            │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+ s guardar y salir · d descartar y salir · otra tecla sigue editando

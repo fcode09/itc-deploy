@@ -9,7 +9,7 @@ Un panel de una sola pantalla (`./deltactl` en una terminal, o `./deltactl menu`
 - **Instancias**: lista con `n/m`, memoria y CPU; detalle de la seleccionada (por servicio: imagen, estado, tiempo activo, puerto,
   reinicios, memoria y CPU con barra y tendencia, errores de los últimos 10 min, siguientes pasos) y el panel de salida del último comando.
 - **Recursos**: todos los servicios de todas las instancias con memoria, CPU, tendencia, reinicios y tiempo activo; orden con `s`.
-- **Salida**: la salida completa del último comando, con desplazamiento (`↑↓`, PgUp/PgDn, Home/End), `f` para seguir y `e` solo errores.
+- **Salida**: el último comando. Los que tienen forma (`new`, `check`, `deploy`, `init`, `doctor`, `images`, `env`, `rollback`, `adopt`) se muestran como resumen (ver «El resumen de la Salida» abajo); `v` alterna con la salida cruda, que es la que se ve siempre para cualquier otro comando. Desplazamiento (`↑↓`, PgUp/PgDn, Home/End), `f` para seguir y `e` solo errores (siempre sobre la salida cruda).
 - **Ejecuciones** (`4`): el historial de las operaciones que cambian algo (`lib/core/runs.sh`). Lista (las que están en curso primero,
   luego las más nuevas), y de la seleccionada: estado y código, comparación con la anterior correcta de la misma operación y con la
   media de las cinco anteriores (duración, CPU, docker, memoria pico), consumo, contenedores antes y después y el final de su salida
@@ -120,7 +120,9 @@ con color) y en el muestreo (~10 ms). Los gráficos ya son incrementales (`gfx_a
 | `lib/cmd/dashboard_view.sh` | Dibujo compartido: cabecera, pestañas, marco de los diálogos, barra de teclas y el fotograma (`dash_render`). Solo construye `TUI_FRAME`, nunca ejecuta nada |
 | `lib/screens/registry.sh` | Registro de pantallas y router: una línea por pantalla y el contrato que cumple cada una (ver «Pantallas» abajo) |
 | `lib/screens/instances.sh` (+ `instances_logs.sh`) | Vista Instancias: lista, detalle, vista ancha, zoom, teclas y el panel de logs en vivo |
-| `lib/screens/resources.sh`, `output.sh` | Vistas Recursos y Salida |
+| `lib/screens/resources.sh`, `output.sh` | Vistas Recursos y Salida (esta dibuja el resumen o la salida cruda) |
+| `lib/core/outparse.sh` | Intérprete de lo que imprimió un comando: filas (titular, secciones, elementos con estado, fases, pasos numerados, veredicto). Solo lee y no dibuja |
+| `lib/ui/outsummary.sh` | Dibuja esas filas con el kit y guarda el resultado hasta que cambian la salida, el tamaño, el idioma o el tema |
 | `lib/screens/runs.sh` | Vista Ejecuciones: lectura del historial, detalle, comparación, estadísticas, visor de logs paginado, teclas |
 | `lib/screens/procs.sh` | Vista Procesos y tarjeta de la cabecera: árbol de `/proc` (`DELTACTL_PROC_ROOT` en los tests) y coste del panel |
 | `lib/screens/console.sh` (+ `console_alias.sh`) | Vista Consola y la consola de Instancias: historial, órdenes propias, completado y envío; alias (`alias`/`unalias`, archivo `aliases`) |
@@ -133,6 +135,41 @@ con color) y en el muestreo (~10 ms). Los gráficos ya son incrementales (`gfx_a
 | `lib/adapters/host.sh` | Lectores de `/proc`, `/sys` y cgroups (solo builtins de Bash): CPU por núcleo, memoria por tipo, carga, arranque, temperaturas, red, discos |
 | `lib/adapters/docker.sh` | `dk_container_rows` (con pid y reinicios), `dk_events_stream`, `dk_images_ids` |
 | `lib/i18n/{es,en}/dashboard.sh` | Textos del panel |
+
+## El resumen de la Salida
+
+La vista Salida no vuelca texto: cuando el comando tiene forma, `lib/core/outparse.sh` lo lee y `lib/ui/outsummary.sh` lo dibuja (la vista Actividad
+de la tarea A2 usará los mismos dos archivos). Los comandos **no cambian lo que imprimen** (los golden de la CLI no se tocaron) y la salida cruda
+sigue intacta en `JOB_LINES`: `v` alterna, `e` (solo errores) y la ayuda de la vista siguen trabajando sobre ella.
+
+**Qué se reconoce** (`out_parse <array> <línea de comando> [en curso] [código]`): `new`, `check`, `deploy`, `init`, `doctor`, `images`, `env`, `rollback` y
+`adopt`; el comando se toma de la primera palabra del título del trabajo. Se reconoce por la **forma** y por el **catálogo i18n**, nunca por texto suelto:
+
+| Forma | Cómo se lee |
+| --- | --- |
+| Título subrayado (`───`) | `OUT_TITLE` |
+| `OK …` / `ERROR …` / `AVISO …` en el margen (claves `label.*`) | el primer `OK`/`ERROR` es el titular (`OUT_HEAD_*`; un `ERROR` pesa más que un `OK`); los demás y los `AVISO` son elementos |
+| `●` `▲` `✖` `ℹ` `→` (modo rico) o `*` `!` `x` `i` `->` (llano), con 2 o más espacios de sangría | elemento con estado ok / warn / err / info, o la pista (`→`); `título  detalle` (dos espacios) separa el detalle de la misma línea |
+| Líneas con más sangría que el elemento | su explicación (`OUT_R_SUB`) |
+| `  1. texto` | paso numerado |
+| Títulos y fases de los catálogos (`new.pending_title`, `new.next_title`, `deploy.validating`, `init.step1`…) | secciones y fases (`step`); la última fase queda «en curso», fallida o hecha según el comando |
+| Cabecera de tabla en mayúsculas (3 o más columnas) | `env` (una sección por archivo, el estado se lee de `env.state.*`) e `images` (estado por `images.use_*`) |
+| Última línea con marcador tras un blanco, en `check` y `doctor` | el veredicto (`OUT_VER_*`) |
+
+Las **dos lenguas a la vez**: lo que imprimió un comando sigue leyéndose si el panel cambia de idioma después (`out_init` carga el catálogo que falte).
+Si una salida no se reconoce (otro comando, texto inesperado, un título sin nada debajo) `out_parse` devuelve 1 y la vista muestra la salida cruda, sin
+error. Lo que está en el medio y no se resume (el progreso de docker en un `deploy`) se cuenta en `OUT_IGNORED` y la vista lo dice en la última línea.
+El resumen **no añade palabras**: `tests/test-outsum.sh` comprueba que cada palabra del resumen salió del comando.
+
+**Añadir un comando**: poner su primera palabra en `out_kind_of`, y si tiene secciones, fases o tablas propias, sus claves i18n en `out_init` (o su
+cabecera, si la tabla es nueva, en la rama `case "$OUT_KIND"` de las filas de tabla). Un archivo de captura (`tests/tools/outsum_capture.sh`) y una
+escena (`tests/tools/outsum_scenes.sh`) para su golden.
+
+**Coste**: se lee una vez por salida y tamaño (el resultado se guarda en `OUTSUM_*`; el fotograma no vuelve a leer). Con la máquina a carga ≈ 2
+(`bench_frames.sh`): un fotograma con el resumen ya hecho 2,5–3,2 ms (igual que la salida cruda: 2,5–3,4 ms), una tecla de desplazamiento 8–10 ms, y
+leer y dibujar de nuevo la salida de `doctor` (37 líneas) 19–22 ms, una vez. Mientras el comando corre y llegan líneas, el resumen se rehace como mucho
+cada 300 ms, y de `deploy`/`init`/`rollback` solo se leen las 150 primeras y las 150 últimas líneas (el progreso de docker son miles): 3000 líneas
+cuestan unos 75 ms por rehacer, no por fotograma.
 
 ## El servidor entero: fuentes de métricas
 
@@ -150,7 +187,7 @@ un contenedor, un kernel sin sensores): `MT_SRC[<fuente>]` vale 0 y la pantalla 
 | `host_net_read` | `/proc/net/dev` | bytes por interfaz; la principal (la de más tráfico, o `DELTACTL_NET_IFACE`), su velocidad en B/s y sus totales. Sin `lo`, `veth*`, `br-*`, `docker*`, `virbr*`… |
 | `host_diskio_read` | `/proc/diskstats` | B/s leídos y escritos por los discos enteros (sin particiones, `dm-*` ni `loop*`, para no contar dos veces) |
 | `host_disks_read` | `/proc/mounts` | puntos de montaje que importan: sistemas de archivos reales, uno por dispositivo, sin rutas de Docker, snap ni `/boot/efi` |
-| `host_disk_usage_read` | `df -Pk` | total, usado y % de cada uno. **La única excepción a «sin procesos»**: el kernel no da un archivo para esto, así que corre **un** `df` como mucho cada `HOST_DISK_TTL` s (30) |
+| `host_disk_usage_read` | `df -Pk` | total, usado y % de cada uno. **La única excepción a «sin procesos»**: el kernel no da un archivo para esto, así que corre **un** `df` como mucho cada `HOST_DISK_TTL` s (30), con un límite de `HOST_DF_TIMEOUT` s (3) y sin reintento hasta que pase el TTL aunque falle (un montaje de red colgado no bloquea cada muestra) |
 
 `mt_host_sample` los llama y guarda los historiales (`MT_HH_CPU`, `MT_HH_NETD/NETU`, `MT_HH_DIOR/DIOW`, `MT_HH_TEMP`), el máximo reciente de la red
 (`MT_NET_DOWN_MAX/UP_MAX`, el mayor de la ventana) y el total de la sesión. Corre dentro de `mt_sample` **solo** con `MT_HOST_DETAIL=1` (la
@@ -164,8 +201,9 @@ lector es de orden de cientos de microsegundos y ninguno lanza un proceso.
 
 El panel se compone de **pantallas** con un contrato común (`lib/screens/registry.sh` lo documenta función por función). Hay dos clases:
 
-- **Vistas** (las pestañas, `1` a `7` o Tab): `instances`, `resources`, `output`, `runs`, `procs`, `console`, `server`. Una es la actual (`DASH_VIEW`).
-- **Modos** (toman el teclado sobre una vista): `menu`, `confirm`, `name`, `cmd`, `filter`, `find`, `wizard`, `palette`, `help`, `options`, `srvask`.
+- **Vistas** (las pestañas, `1` a `9` o Tab): `instances`, `resources`, `output`, `runs`, `procs`, `console`, `server`, `images`, `env`. Una es la actual (`DASH_VIEW`).
+- **Modos** (toman el teclado sobre una vista): `menu`, `confirm`, `name`, `cmd`, `filter`, `lfilter`, `find`, `wizard`, `newinst`, `palette`, `help`, `options`, `srvask`,
+  `imguse`, `imgload`, `envedit`.
   Uno es el actual (`DASH_MODE`); `normal` es ninguno.
 
 El resto del panel ya no nombra ninguna: la línea de pestañas, los dígitos, Tab, Esc, la barra de teclas, el cuerpo, la firma del fotograma,
@@ -183,6 +221,104 @@ Comprobación de refactores: `tests/tools/panel_scenarios.sh <carpeta>` ejecuta 
 paleta, consola, ratón) a cinco tamaños y guarda **todos** los fotogramas; dos árboles de dos versiones del código se comparan con `diff -r`.
 `tests/tools/panel_frames.sh` hace lo mismo con la última imagen de cada vista.
 
+## El espacio de trabajo de la instancia (vista Instancias)
+
+Al elegir una instancia, su **espacio de trabajo** (`lib/screens/instances_ws.sh` y `lib/screens/ws/*.sh`) aparece a la derecha de la lista **sin pulsar nada
+más**: lo que hay que saber de ella y lo que se puede hacer con ella, en vez de un menú escondido detrás de Enter (que sigue ahí). La vista
+(`lib/screens/instances.sh`) tiene tres tamaños, como siempre: pantalla ancha (≥ 120×28: la lista con el servidor debajo, el espacio de trabajo con los logs
+debajo y los eventos a la derecha), mediana (≥ 100 columnas: lista y espacio de trabajo en dos columnas) y estrecha (una columna: la lista y el espacio de
+trabajo debajo). `z` da todo el cuerpo al panel con el foco.
+
+- **Resumen** (`lib/screens/ws/resumen.sh`), una sola caja (`kit_box`):
+  - *En el borde*: arriba, la instancia con su `n/m` (el chip del título) y su estado en palabras (`● en marcha`, `▲ parcial`, `✖ caída`, `○ parada`, `sin Docker`);
+    abajo, las acciones que hacen su trabajo con la tecla resaltada (`u desplegar · c comprobar · s estado · l logs · t pendientes · Enter más`; lo que no cabe se quita
+    entero, igual que en las demás cajas). Esas teclas funcionan con el foco en la lista o en el espacio de trabajo.
+  - *Una tarjeta por servicio* cuando hay sitio (≥ 34 celdas y ≥ 9 filas por fila de tarjetas): su imagen y su estado en el borde, sus datos (activo, puerto,
+    reinicios) y su memoria y su CPU como filas de métrica de btop (`kit_metric_row`: etiqueta ······ valor, el porcentaje y una gráfica braille propia con el
+    degradado de su magnitud). Hasta tres tarjetas por fila; con más servicios bajan a la fila siguiente. Debajo, los totales de la instancia y el estado de sus datos
+    y, cuando se han contado, los errores de cada servicio en los últimos 10 minutos.
+  - *Sin sitio para tarjetas* (pantallas pequeñas) los servicios son la lista de siempre (`dash_detail_lines`: un bloque por servicio con sus datos, su memoria y su CPU
+    con barra y tendencia, los totales y los errores), que se desplaza para dejar el servicio elegido a la vista. No se pierde nada de lo que enseñaba la vista;
+    solo es más densa.
+  - ***Para desplegar***: las filas de lo que falta antes de que la instancia esté desplegada y bien. Cada una dice qué es, y a la derecha (`⏎ …`) qué hace Enter:
+    ejecuta el comando que lo resuelve, o lleva a la vista donde se resuelve. Salen de lo que el panel ya sabe, sin lanzar un proceso en el dibujo
+    (`dash_todo_build`): *1)* lo que sugiere `status` para esa instancia (`./deltactl deploy X s1`, `init X`, `logs X s0`…: los comandos nuestros corren en la consola del
+    panel; `init` pide escribir el nombre y `stop` pregunta antes; lo que no es nuestro, `docker …`, solo informa); *2)* los archivos de variables que cambiaron desde el
+    último despliegue (`↻`, la misma marca que la vista Variables) y las variables que aún faltan por rellenar (llevan a la vista Variables, sobre esa instancia);
+    *3)* una versión más reciente (★) que la que usa cada servicio (lleva a la vista Imágenes); *4)* lo que falta en el servidor (la vista Servidor), mientras la instancia
+    no corra. Sin nada pendiente (y con sitio) dice «Todo al día». Con poco sitio solo queda la cabecera con el recuento y la tecla `t`.
+- **Logs** (`lib/screens/ws/logs.sh`): el panel de logs de siempre (`lib/screens/instances_logs.sh`) con todo el espacio de trabajo. En pantalla ancha los logs ya están debajo
+  del resumen y la pestaña no se ofrece; en las demás es la forma de llegar a ellos.
+- **Servicios** (`lib/screens/ws/servicios.sh`): una fila por servicio del catálogo (`catalog.data`, no solo s0 y s1): los que corren en la instancia con su estado,
+  versión, puerto y límite de memoria, y los que no, como «sin activar». Debajo de la lista, qué es el servicio que tiene el cursor y qué hacen las teclas con él.
+  La pestaña **es dueña del teclado** mientras está en pantalla (`DASH_FOCUS=tab`; lo que no usa, como `z` o `q`, sigue al panel). Cada cambio es una orden que corre en
+  segundo plano, como todas (se ve en Salida y queda en el historial): `a` (o Enter) activa el servicio con `service add --tag latest --generate-secrets` tras preguntar;
+  `X` pide escribir la clave del servicio y lo quita con `service remove` (se detiene, y se conservan sus variables, secretos y datos); `v`, `P` y `m` abren el modo
+  `svcask` (`lib/screens/svcask.sh`) para escribir la versión, el puerto o la memoria: se comprueba mientras se escribe con las mismas reglas de la orden
+  (`lib/core/svcmgmt.sh`), ↑ toma la versión cargada más reciente y Enter ejecuta `service set`; `u` despliega solo ese servicio, `s` lo detiene y `R` lo devuelve a la
+  versión anterior, los tres tras preguntar. Las teclas `x`, `p` y `r` son del panel (cancelar, pausar, releer), por eso aquí son `X`, `P` y `R`.
+- **Variables** (`lib/screens/ws/variables.sh`): el editor de la vista Variables (`lib/ui/kit/env_editor.sh`) dentro del espacio de trabajo, para la instancia elegida. Es **el
+  mismo editor** (un solo modelo): lo que está sin guardar se conserva al cambiar de pestaña o de vista, y mientras haya cambios el editor no cambia de instancia: elegir otra
+  en la lista muestra un aviso en la pestaña en vez de perderlos (`dash_ws_vars_sync`). El teclado va por el modo `envedit`, como en la vista (las teclas de una letra son del
+  editor: `d` es «valor por defecto», `r` «revelar»…; las que no usa llegan al panel: los dígitos, Tab, `?`, `:` y `q`; `<` y `>` cambian de pestaña); abrir la pestaña le da
+  el teclado (`ws_variables_enter`, el gancho de una pestaña cuyo teclado es un modo) y Esc, sin cambios o tras decidir, vuelve a la lista. `[` y `]` no hacen nada aquí: la
+  instancia es la de la lista.
+- **Datos** (`lib/screens/ws/datos.sh`): el estado de los datos (`sembrados`, `existentes` o `sin sembrar`), el marcador `.initialized` (de dónde viene y cuándo), las carpetas
+  de `data/` de cada servicio que corre (presentes o no) y los registros de las siembras (`init-logs/`, el más nuevo primero). Todo se lee con el propio shell, sin procesos.
+  `I` siembra una instancia sin sembrar (pide escribir su nombre, igual que `init` desde el menú) y `A` la marca como existente (`adopt`, tras preguntar); con el marcador
+  ya puesto dicen que no hace falta.
+- **Acceso** (`lib/screens/ws/acceso.sh`, modo `lib/screens/accdom.sh`): cómo se llega a la instancia desde fuera. Una sola caja con el **dominio**
+  (el nombre público de cada servicio es `<nombre del servicio>.<dominio>`), el **proxy** (nginx o Caddy, y cuál hay instalado en este servidor) y **HTTPS**;
+  una tabla de los servicios (su puerto en `.env.instance`, si **responde en este servidor** y su nombre público) y el **bloque** del proxy: se ve, se copia
+  y se guarda. **Es solo texto** (`lib/core/proxy.sh`): se guarda dentro de la instancia (`instances/<n>/proxy/nginx.conf` o `Caddyfile`, más `access.conf` con
+  el dominio, el proxy y HTTPS que recuerda la pestaña); no se escribe nada en `/etc`, no se recarga ni se instala nada. La caja dice dónde va y con qué
+  comando se recarga; ponerlo ahí es cosa de quien administra el servidor. Junto al título del bloque dice si lo guardado es lo que se escribiría ahora
+  (`guardado`), si es otro (`distinto del guardado`) o si no hay nada (`sin guardar`). Sin `access.conf`, el dominio se adivina del bloque que dejó
+  `new --domain`.
+  - *Teclas* (con el foco en la pestaña; `<` y `>` la abren): `Enter` escribe el dominio (modo `accdom`: una línea vacía lo quita, un nombre que no lo es se
+    rechaza y la línea sigue abierta, Esc lo deja como estaba), `b` el bloque del otro proxy, `w` HTTPS, `y` copia el bloque entero (el mismo texto que se guarda),
+    `g` lo guarda, RePág/AvPág lo desplazan, `z` da a la pestaña todo el cuerpo y ↑↓ eligen el servicio (su fila va marcada). Las teclas de la instancia
+    (`u`, `c`, `s`, `l`) siguen valiendo.
+  - *Sin dominio* no se genera nada y la caja lo dice; *sin puerto* de un servicio no se genera el bloque con un hueco: lo dice. Con el dominio, el proxy y HTTPS
+    que se ven es el bloque que se guarda: ninguna tecla escribe en disco salvo `g`.
+  - *Lo que se lee en segundo plano*: el puerto de cada servicio y si algo escucha en `127.0.0.1:<puerto>` (una conexión que se cierra al instante, como mucho 2 s,
+    `proxy_reach`), cada 10 segundos y solo mientras la pestaña está a la vista. El dibujo no lanza ningún proceso: el modelo (la tabla y el bloque) se rehace
+    solo cuando cambia algo (`dash_acc_model`, por firma). En el modo de prueba no se sondea salvo que un caso lo pida con `DELTACTL_TUI_WSACC=1`.
+
+- **Historial** (`lib/screens/ws/historial.sh`): las operaciones que cambiaron algo en **esta** instancia (las de `lib/core/runs.sh`: desplegar, init, adopt, rollback,
+  detener…), la más nueva primero, y debajo el detalle de la elegida: cómo terminó, cuándo, cuánto tardó, cómo se compara con las anteriores del mismo comando
+  y **lo que imprimió**: el resumen de la vista Salida cuando el comando tiene forma (`outsum_for`, el intérprete de `lib/core/outparse.sh`) o el final de la
+  salida cuando no la tiene. Comparte el índice de ejecuciones con la vista Ejecuciones (`dash_runs_load`); lo relee cada 5 segundos **solo mientras la pestaña está a la
+  vista** y construye el detalle una vez por selección. Lo que dicen los archivos de una ejecución es dato: se limpia antes de dibujarlo (una secuencia de escape
+  en el usuario o en la salida no mueve el cursor ni borra la pantalla). La selección sigue a la ejecución, no a la fila.
+  - *Teclas* (con el foco en la pestaña): ↑↓ (o `k` `j`) eligen la operación, Inicio y Fin van a la primera y a la última, RePág/AvPág desplazan el detalle, `Enter` abre
+    **toda la salida guardada** en el visor de la vista Ejecuciones (paginado, con búsqueda), `z` da a la pestaña todo el cuerpo. Es solo lectura: la pestaña no escribe
+    nada de las ejecuciones.
+- **Logs** (cambio): `{` y `}` eligen el log del servicio anterior o del siguiente sin salir del panel (la pestaña no tenía forma de cambiar de servicio).
+
+**Pestañas.** Una pestaña es un archivo `lib/screens/ws/<id>.sh` con `ws_<id>_box <instancia> <ancho> <alto>` (la caja, en `TUI_BOX`; opcionales `ws_<id>_avail` para
+ocultarla y `ws_<id>_sig` para lo que añade a la firma) y **una línea** al final de `instances_ws.sh` (`dash_ws_register <id> <clave del título>`). La tira de pestañas solo
+sale cuando hay dos o más visibles. La pestaña en pantalla la dice el foco (los servicios y las filas son del resumen; los logs, de los logs; un panel propio, el foco
+`tab`) y, con el foco en la lista, la elegida con `<` y `>` o con un clic. Una pestaña con panel propio recibe además sus teclas (`ws_<id>_key <tecla>`: devuelve 0 si
+la tomó; ↑↓ eligen el servicio y ← vuelve a la lista salvo que las tome ella), los textos de su barra de teclas (`ws_<id>_texts`: `DASH_KEYS[ws_<id>]`) y un gancho
+de trabajo en cada vuelta del bucle (`ws_<id>_tick`, que no cuesta nada mientras no está a la vista). En pantalla ancha, donde los logs van bajo el resumen, una
+pestaña con panel propio se queda con toda la columna. Las pestañas de las tareas siguientes (Servicios, Variables y datos) se añaden así.
+
+**La lista.** `/` la filtra por nombre mientras se escribe (modo `lfilter`: la línea es la última de la caja de la lista; Enter la deja, Esc la deja como estaba, una línea
+vacía muestra todo); `S` la ordena por nombre, por estado (lo que necesita atención primero) o por memoria. Las flechas solo recorren lo que la lista enseña (`DASH_VIS`;
+`DASH_SEL` sigue siendo un índice de `DASH_NAMES`, así que nada más cambió). La `s` sigue siendo «estado» de la instancia, por eso el orden es `S`.
+
+**Teclas.** Con el foco en la lista o en los servicios: `t` lleva el cursor a «Para desplegar» (si hay filas); Tab recorre lista → servicios → filas (si hay) → logs;
+con el cursor en las filas: ↑↓ eligen, Enter resuelve, ← vuelve a los servicios. `<` y `>` cambian de pestaña. **Ratón**: un clic en una pestaña la abre; un clic en una fila
+le da el cursor y otro la resuelve.
+
+**Lo que se lee en segundo plano** (el dibujo nunca espera): los archivos de la instancia (marcas de despliegue y variables por rellenar: `dash_ws_dump`, una vez al
+elegir la instancia, al terminar un comando y cada 30 s) y el catálogo de imágenes (por la misma maquinaria que la vista Imágenes, cada 5 minutos). En el modo de prueba no
+se leen salvo que un caso lo pida con `DELTACTL_TUI_WSENV=1`.
+
+Pruebas: `tests/test-workspace.sh`; escenas con datos fijos en `tests/tools/ws_scenes.sh` (instantáneas en `tests/golden/workspace/`); `tests/test-svcview.sh` (la pestaña
+Servicios y su modo, de punta a punta contra el docker simulado), `tests/test-wstabs.sh` (las pestañas Variables y Datos) y `tests/test-service.sh` (la orden y sus reglas).
+
 ## La vista Imágenes
 
 `lib/screens/images.sh` (vista `images`, 8) y dos modos: `lib/screens/imguse.sh` (`imguse`, usar una versión en una instancia) y `lib/screens/imgload.sh`
@@ -193,18 +329,176 @@ selector de versión del kit (`kit_vpick`, una tabla por imagen, con `msg=0` y u
   `declare -p` de las tablas `IC_*` (solo esas se cargan; `DASH_IMG_NODOCKER=1` si Docker no responde). En el modo de prueba (`DELTACTL_TUI_KEYS`) es
   síncrono. Se vuelve a leer al elegir la vista, cuando termina un comando (`JOB_SEQ` nuevo con `JOB_RC`: `scr_images_tick`), cada `DASH_IMG_EVERY` (60) s
   mientras está a la vista (`scr_images_poll`) y con `R`. Al aplicar el resultado el cursor se queda en la misma versión (imagen y etiqueta); la primera vez
-  va a la ★ de la primera imagen.
+  va a la ★ de la primera imagen. Una lectura que muere o que lleva un minuto sin responder se olvida (`dash_async_take`) y `scr_images_tick` libera la
+  vista (`DASH_IMG_BUSY=0`; sin respuesta previa dice que Docker no responde, con una la deja). Una lectura lanzada antes de que acabe un comando no borra
+  la marca de «catálogo viejo»: `dash_img_stale` cuenta los comandos que acabaron (`DASH_IMG_GEN`) y la respuesta solo limpia `DASH_IMG_STALE` si se pidió
+  después (`DASH_IMG_REQ_GEN`).
 - **Dibujo**: `dash_img_build` arma las líneas (un título por imagen, su tabla, el aviso si el orden por fecha y por versión discrepan) y solo se repite
   cuando cambian la respuesta, el idioma, el tema o el ancho; el cursor solo cambia qué línea lleva la marca de selección, y la ventana sobre la lista lo
   mantiene a la vista. Las marcas (★ ▲ ✖) no dependen del color: en ASCII son `*`, `!` y `x`.
 - **Usar una versión**: `dash_img_use` abre `imguse` con las instancias de `DASH_NAMES` que tienen el servicio (`DASH_SVCS`); `dash_iu_write` escribe
   `<SN>_TAG` con `set_var` (sustituye el archivo de una vez) y `y` lanza `deploy <instancia> <sN>` con `dash_start_job`. Nada se escribe antes de la respuesta.
+  Antes de escribir, `dash_iu_blocked` mira sin tomarlo el candado de las mutaciones (`runs_busy`) y, para `y`, las ejecuciones interrumpidas sin revisar
+  (`runs_pending`); y al armar la lista `dash_iu_findable` descarta (con el motivo en la fila y entero al pulsar Enter) las instancias que no encontrarían la
+  imagen: una local necesita `<imagen>:<etiqueta>` cargada con ese nombre, una con `REGISTRY` necesita `<registry>/<imagen>:<etiqueta>` (`IC_FULL`).
 - **Cargar**: `dash_img_load_ask` abre `imgload` con el campo del kit (`KF_VALUE`, `KF_CUR`); Enter con un archivo que existe lanza
   `dash_start_job stay load <archivo>` y recuerda su `JOB_SEQ` (`DASH_IMG_JOB`) para mostrar el archivo que se carga y releer al terminar.
 - **Pruebas**: `tests/test-imgview.sh` (escenas de `tests/tools/images_scenes.sh` en `tests/golden/images/` a 80x24, 120x30 y 160x40, y las teclas de punta
   a punta contra el docker simulado: usar una versión con `g` y con `y`, copiar con `DELTACTL_CLIP`, cargar un archivo y ver la versión nueva). El docker
   simulado (`tests/fake-docker.sh`) entiende `docker load` (`load_result`, `load_date`, `load_arch`), las fechas de creación (`image_dates.txt`) y la
-  arquitectura del servidor (`server_arch`).
+  arquitectura del servidor (`server_arch`), un demonio que no responde (`daemon_down`) y anotar cada llamada (`log_all` → `all_calls.log`).
+
+## El asistente de nueva instancia por pasos (modo `newinst`)
+
+`lib/screens/newinst.sh` es el **motor** y `lib/screens/newinst/<paso>.sh` son los **pasos**. Es el asistente del panel: `n`, la paleta, la consola y el botón de
+la cabecera llaman a `dash_open_new`, que abre este. El formulario antiguo (`lib/screens/wizard.sh`) solo se abre con `TUI_WIZARD=1` en el archivo de
+configuración o `DELTACTL_WIZARD=1`: es el camino de vuelta; quitarlo es una tarea aparte (entonces `dash_open_new` pasa a `newinst.sh`, se borra `wizard.sh`
+y desaparece el modo `wizard`).
+
+- **Qué se ve**: una barra de progreso arriba (`kit_stepper`: ● hecho, ◉ abierto, ▲ con aviso, ✖ con error, ○ por venir), el formulario del paso a la izquierda
+  (`kit_box` con el número y el nombre del paso en el borde y `Esc atrás`/`Enter siguiente` en el pie) y, a la derecha desde 100 columnas, la **vista previa**
+  (los archivos que se crearán, las variables que fijan las respuestas y el comando `./deltactl new …` equivalente, partido por opciones) y la lista del
+  estado de cada paso. En una pantalla estrecha solo hay el formulario y **Tab** lo cambia por la vista previa. Por debajo de 14 filas la barra son dos
+  líneas sin marco.
+- **Teclas**: Enter sigue con lo propuesto y Esc vuelve (en el primer paso, con algo elegido, pide Esc otra vez); PgUp/PgDn van al paso anterior y siguiente;
+  los dígitos y un clic en la barra saltan a un paso ya visitado (en un paso donde se escribe, como el nombre, los dígitos son texto).
+- **Los ocho pasos**: *Nombre* (la primera `instancia-N` libre; libre = sin carpeta, sin proyecto de Compose con contenedores y sin red
+  `<nombre>_…`: `lib/core/instname.sh` lee Docker una vez al abrir y compara sin lanzar procesos en cada tecla), *Servicios* (una tarjeta por servicio del
+  catálogo con su descripción, puerto, memoria y dependencias), *Versiones* (el selector del kit con la ★ ya elegida; una por servicio, la que tiene el
+  cursor desplegada), *Datos* (nueva o ya existente, con la consecuencia dicha), *Variables*, *Secretos*, *Acceso* y *Revisión* (más abajo). Las imágenes son las del
+  catálogo: cambiar el nombre de la imagen es una variable de la instancia (paso *Variables*).
+- **Paso 5, Variables** (`newinst/variables.sh`): el editor del kit (`lib/ui/kit/env_editor.sh`, el mismo de la vista Variables) sobre un modelo sin disco
+  (`kee_init`): los archivos que tendrá la instancia (`.env.instance` y el `.env.<servicio>` de cada servicio elegido), agrupados, con su descripción y su
+  validación en vivo. Ya sabe lo que decidieron los pasos anteriores (nombre, servicios, puertos y versiones; no cuentan como cambio) y el valor que cada
+  plantilla pondrá (`ENV_EXAMPLE`, con las bases de datos con el nombre de la instancia como las deja `new`); lo que sigue con un `CAMBIAR` es lo que falta.
+  **Los secretos únicos se generan aquí** (instancia nueva y openssl; uno solo para lo que comparten los servicios) y nunca se dibujan: puntos hasta que `r`
+  muestra uno diez segundos. El editor tiene Enter (edita), así que **`s` sigue al paso siguiente**; con obligatorias vacías lo dice la primera vez y sigue la
+  segunda (▲). La dirección del servidor que se escribe en un servicio pasa al otro si estaba vacío. Los puertos y las versiones que se editen aquí son
+  también las respuestas de los pasos (la vista previa y el bloque del proxy los siguen).
+- **Paso 6, Secretos** (`newinst/secrets.sh`): un archivo por cada variable que apunta a `/run/secrets/` (`CAT_SECRET_FILES` del catálogo: el JSON de Firebase de
+  las notificaciones). `b` recorre los archivos que parecen una cuenta de servicio en Descargas, la carpeta del usuario, la actual y la del repositorio (solo
+  los nombres: no se abre ninguno hasta elegirlo), `e` escribe la ruta, `x` la quita. Se comprueba al elegirlo (existe, se lee, hasta 128 KiB, objeto JSON:
+  `lib/core/secretfile.sh`; el contenido nunca se muestra). Un archivo que no se da es un aviso, no un error: se puede copiar después. Dice qué secretos se
+  generan (nombres, nunca valores).
+- **Paso 7, Acceso** (`newinst/access.sh`): el dominio (opcional), nginx / Caddy / los dos y HTTPS. Con un dominio muestra el bloque que se generará
+  (`lib/core/proxy.sh`): un servidor por servicio, `<nombre del servicio>.<dominio>` hacia su puerto. **Es solo texto**: `c` lo copia y `new` lo guarda dentro
+  de la instancia (`instances/<n>/proxy/`); no se escribe nada en `/etc` ni se recarga ni se instala nada. Enter sigue a la Revisión: **este paso ya no crea**.
+- **Paso 8, Revisión** (`newinst/review.sh`): **el único sitio donde se crea la instancia**. Arriba un medidor dice cuántos de los siete pasos anteriores están
+  listos (`5 de 7 listos`), después una línea por paso con su respuesta (los que piden atención primero: ▲ aviso, ✖ no deja crear) y abajo tres botones que
+  eligen las flechas: *Crear* (solo crea; no arranca nada), *Crear y comprobar* (crea y corre `./deltactl check <nombre>`) y *Crear y desplegar* (crea y corre
+  `./deltactl deploy <nombre>`; **pide Enter otra vez** y cualquier otra tecla lo cancela, porque arranca contenedores en el servidor). `c` crea, `p` crea y
+  comprueba, `d` elige el despliegue. En una pantalla corta la lista solo enseña lo que pide atención. Si un paso ya no deja crear (un nombre que dejó de estar
+  libre mientras tanto, un valor que no pasa), abre ese paso con el motivo y no crea nada.
+- **Cómo llegan las respuestas a `new`**: las opciones de siempre más `--env-file` (variables, de un archivo), `--secret-file ORIGEN:NOMBRE` y
+  `--domain/--proxy/--tls` (ver `docs/new-answers.md`). El archivo de `--env-file` solo existe desde `Crear` hasta que el comando termina: modo 600 en la
+  carpeta temporal del usuario (`$TMPDIR`), y se borra al terminar el comando, al cancelar, al reabrir el asistente y al salir del panel. Un secreto no está nunca
+  en una línea de comandos, en la vista previa, en la consola ni en un fotograma. Como el modelo del editor es **uno solo** para todo el panel, el asistente no
+  se abre sobre cambios sin guardar de la vista Variables (lo dice) y al terminar o cancelar suelta el modelo para que la vista lo vuelva a leer.
+- **Al crear** (Enter en un botón de la Revisión) arranca `./deltactl new <nombre> …` como trabajo del panel y lleva a la vista Salida, que lo muestra como un
+  resumen de pasos con iconos (`lib/core/outparse.sh`), no como volcado de texto; la salida cruda sigue en `v`. Las respuestas se quedan en memoria mientras
+  corre. **Cuando termina** `dash_nz_after` decide: si fue bien, suelta el modelo del editor, selecciona la instancia nueva en cuanto el estado la tiene
+  (`DASH_GOTO_INST`, que lee `dash_after_collect`) y abre la vista Instancias (o arranca `check` o `deploy` si ese fue el botón); si falló o se canceló, el
+  asistente vuelve con **todas las respuestas**, en el primer paso que ahora no pasa y, si ninguno, en la Revisión con lo que pasó. Cancelar el asistente antes
+  de crear no deja carpetas ni archivos temporales. La instancia que crea el asistente tiene los mismos archivos y variables que `new` con las mismas opciones
+  (lo comprueba `tests/test-newinst.sh`).
+- **Para añadir un paso**: crear `lib/screens/newinst/<id>.sh` con `dash_nzs_<id>_render <ancho> <alto>` (añade líneas a `DASH_NZ_B`) y, si hace falta,
+  `_key`, `_enter`, `_state`, `_gate`, `_typing`, `_args` (opciones que añade a `new`), `_preview`, `_reset` (al abrir el asistente), `_sig` (lo que la barra y la
+  vista previa dependen de ella) y `_prepare` (escribe lo que entrega a `new` como archivo, justo antes de crear; puede detener la creación); añadir los textos `tui.nz.step.<id>`, `tui.nz.help.<id>`
+  y `tui.nz.keys.<id>` en los dos idiomas y **una línea** `dash_nz_step_register <id>` al final de `newinst.sh`. El motor no cambia. El contrato completo
+  está en la cabecera de `lib/screens/newinst.sh`.
+- **Pruebas**: `tests/test-newinst.sh` (registro y apertura, nombres libres y tomados con el docker simulado, cada paso, el recorrido, la instancia creada
+  de punta a punta, escenas de `tests/tools/newinst_scenes.sh` en `tests/golden/newinst/` a 80x24, 120x30 y 160x40 y su degradación). El docker simulado
+  entiende `network ls` (`networks.txt`) y `ps -a --format` con el proyecto de cada contenedor (`containers.txt`).
+- **Límites de hoy**: el formulario antiguo sigue en el código tras `TUI_WIZARD=1` (720 líneas de `wizard.sh`, con sus pruebas en `test-tui`); si falla la creación el
+  paso que se abre sale de volver a comprobar las respuestas, no de leer la salida de `new`; el paso de versiones no
+  carga archivos `.tar` (se hace en la vista Imágenes, `l`); el ratón solo actúa en la barra de pasos; la lista de estado de los pasos (a la derecha) solo
+  aparece cuando la vista previa conserva 14 filas (160x40 sí, 120x30 no); `new` no escribe `.bak` de los archivos que acaba de crear.
+
+## La vista Variables
+
+`lib/screens/env.sh` (vista `env`, 9) y `lib/screens/envedit.sh` (modo `envedit`, el editor tiene el teclado). El editor es el del kit
+(`lib/ui/kit/env_editor.sh`, ver [ui-kit.md](ui-kit.md)); la vista pone lo que es del panel: qué instancia, el teclado, los mensajes, el despliegue que
+sigue a un guardado y las marcas «sin desplegar».
+
+- **Qué instancia**: la elegida en Instancias (`dash_env_target`). Con cambios preparados la vista conserva la suya aunque se cambie la selección (caminar
+  a otra vista no pierde nada); `[` y `]` cambian de instancia solo cuando no hay cambios. Si se llega a la vista sin su dígito (paleta, `goto env`) el editor
+  se abre en el primer dibujo.
+- **El teclado es un modo**: con el dígito `9` el editor recibe el teclado (`DASH_MODE=envedit`): aquí `d` es «valor por defecto» (no «diagnóstico»), `r`
+  «revelar» y `g` «generar», así que las letras no llegan a las teclas globales. Lo que el editor no usa sí llega al panel (`scr_envedit_key` lo pasa a
+  `dash_key_global`): los dígitos cambian de vista, Tab sigue, `?` ayuda, `:` la línea de comandos, `q` sale (pregunta antes si hay cambios; como Esc).
+  Con la vista a la vista pero sin el teclado (se llegó con Tab) la primera tecla que el panel no toma se lo da y va al editor, de modo que Enter es «editar».
+- **Marcas «sin desplegar»**: se leen en segundo plano (`dash_async env`, `dash_env_dump`: sumar un archivo es un proceso) al abrir, al terminar un comando
+  y tras guardar; el resultado llega como líneas `archivo estado` (`synced`, `pending`, `unknown`) a `KEE_DEPLOY`. En el modo de prueba es síncrono. Si
+  una vista se abre antes de que llegue, simplemente no muestra ↻ todavía.
+- **Guardar y desplegar**: `u` pregunta («¿Guardar los cambios (n) y desplegar X?»); con `y` guarda y la vista lanza `dash_start_job stay deploy <instancia>`,
+  un comando como cualquiera (en segundo plano, en Salida, se cancela con `x`). Un guardado rechazado no despliega.
+- **Coste** (equipo con carga 3–4, simulado): una tecla que mueve el cursor 20–26 ms a 160x40 (el dibujo de una fila cuesta más que todo lo demás, así que las
+  filas dibujadas se guardan mientras nada de lo que enseñan cambie: `KEE_LC`, invalidada por `KEE_GEN`); abrir una instancia ~65 ms (cada archivo se lee una vez
+  y se evalúa cada variable, una sola vez por apertura); en reposo ~0,8 % de una CPU (el cuerpo se reutiliza entre muestras, no hay animación).
+- **Pestañas**: con nueve vistas, a 100 columnas la línea de pestañas enseña solo el número de las que no están abiertas (a 110 caben los nombres); los
+  clics siguen la forma que se dibuja. Una pantalla registrada con una línea en `test-tui` ocupa el sitio de la novena pestaña: un dígito no abre una décima.
+- **Pruebas**: `tests/test-envview.sh` (el modelo, cada tecla, que nada se escribe hasta `s`, el todo-o-nada del guardado, que un secreto no sale en ningún
+  fotograma, 48 instantáneas de `tests/tools/env_scenes.sh` en `tests/golden/envview/` a 80x24, 120x30 y 160x40 — 13 escenas en español y 3 en inglés —
+  y las teclas de punta a punta contra el docker simulado).
+
+## La vista Actividad
+
+`lib/screens/activity.sh` (vista `activity`, la décima: se abre con `0`) y los textos `lib/i18n/{es,en}/activity.sh`. Junta lo que hacían Salida (3), Ejecuciones (4) y
+Procesos (5): a la izquierda una lista de operaciones (el último comando de **este panel** primero, marcado «este panel», y con el cursor en él al abrir la vista mientras corre o si terminó hace menos de dos minutos; luego las que están en marcha en cualquier
+terminal y las recientes de todas las instancias, como las listaba Ejecuciones) y, a la derecha, un panel con cuatro pestañas para la operación elegida:
+
+| Pestaña | Qué enseña |
+| --- | --- |
+| Resumen | Qué fue (comando, estado y código, cuándo, cuánto tardó, quién, si quedó por revisar) y lo que imprimió: el resumen visual de A1 (`outsum_for`) si el comando tiene forma, y si no sus últimas líneas |
+| Salida | La salida entera. De una operación guardada, el visor paginado de Ejecuciones (índice de desplazamientos, nunca se carga el archivo); del comando de este panel, la caja de Salida (`v` resumen o crudo, `e` solo errores, `f` sigue el final) |
+| Consumo | Cómo se compara con las anteriores del mismo comando y lo que consumió (CPU, docker, memoria, salida, contenedores antes y después); con `t`, lo que cuesta de media cada tipo de operación (`s`: una instancia o todas) |
+| Procesos | El árbol de procesos de la operación elegida mientras corre y lo que cuesta el propio panel |
+
+**Teclas**: ↑↓ (`k` `j`) eligen la operación y `g` `G` la primera y la última; RePág AvPág Inicio Fin mueven el panel; ← → (o `<` `>`) cambian de pestaña; Enter o `l`
+van a la salida; `t` al consumo y las estadísticas; Esc cierra las estadísticas, vuelve a Resumen y, desde Resumen, sale de la vista. El ratón elige pestañas y filas
+(un segundo clic sobre la fila elegida abre su salida).
+
+**Cómo está hecha**: no copia nada; usa los constructores de las vistas que absorbe (`dash_out_box`, el visor y las estadísticas de `lib/screens/runs.sh`,
+`dash_procs_tree_box` de `lib/screens/procs.sh`). Los datos los lee el tick de Ejecuciones mientras la vista está a la vista (`dash_runs_tick`, cada 5 s) y los procesos
+el de Procesos (`dash_procs_shown`: su vista o la pestaña Procesos); la pestaña Procesos pide la operación elegida con `dash_act_proc_root`. El detalle de una operación
+se construye una vez por selección, tamaño y cambio de los datos (`DASH_ACT_DET_KEY`), no una vez por fotograma. El visor de la salida guardada solo existe mientras
+se ve su pestaña (`dash_act_sync` lo abre y lo cierra).
+
+**Qué pasó con las vistas 3, 4 y 5** (decisión D3 del plan de rediseño): siguen registradas y funcionan igual (teclas `3` `4` `5`, `goto output|runs|procs`, la paleta)
+hasta la numeración final. La primera vez que se elige una con su número el panel avisa de que viven en Actividad (`dash_act_moved_notice`, una vez por sesión).
+Renumerar ahora los dígitos de todas las vistas rompería los 600 casos de teclas de `test-tui` y de las suites de Servidor, Imágenes y Variables sin aportar nada hasta
+que exista Flota, así que se hace de una vez al final.
+
+**Plan de la numeración final** (Z1/P1): Flota 1 · Instancias 2 · Servidor 3 · Imágenes 4 · Actividad 5 · Consola 6. Pasos: P1 registra Flota; Recursos pasa a ser la tabla
+de Flota; Variables deja de ser una vista (es una pestaña de la instancia y la pantalla `env` queda como biblioteca del editor); Salida, Ejecuciones y Procesos dejan de
+registrarse como pestañas pero se siguen cargando como biblioteca (`lib/screens/runs.sh` y `procs.sh`, que Actividad usa); `dash_start_job output …` pasa a abrir Actividad en
+la pestaña Salida; `goto output|runs|procs` y los dígitos antiguos llevan a la pestaña que corresponde con el aviso; se renumeran las secuencias de teclas de las pruebas.
+
+**Qué se conserva de las tres vistas** (comprobado contra su código y sus pruebas):
+
+| Vista | Función | En Actividad |
+| --- | --- | --- |
+| Salida | La salida del último comando, con su estado y su reloj | Fila «este panel», pestaña Salida |
+| Salida | Resumen de A1 o texto crudo (`v`), solo errores (`e`), seguir el final (`f`) | Las mismas teclas, en la pestaña Salida de esa fila |
+| Salida | Desplazar con ↑↓ PgUp PgDn Inicio Fin | **PgUp PgDn Inicio Fin**; ↑↓ eligen la operación (cambio buscado: la lista manda) |
+| Salida | Cancelar con `x` | Igual (tecla global) |
+| Ejecuciones | Lista con las que están en marcha primero, el estado, la fecha y la duración | La lista de Actividad |
+| Ejecuciones | Marca de «interrumpida sin revisar» (`runs resolve`) | En la lista y en Resumen |
+| Ejecuciones | Detalle: estado, fechas, quién, revisión; comparación con las anteriores; consumo; contenedores antes y después; final de la salida | Resumen (qué fue y qué imprimió) y Consumo (comparación y cifras) |
+| Ejecuciones | Estadísticas por tipo de operación (`t`) y por instancia (`s`) | Pestaña Consumo, `t` y `s` |
+| Ejecuciones | Visor paginado de la salida guardada (Enter o `l`) | Pestaña Salida; RePág AvPág Inicio Fin; el archivo nunca se carga entero |
+| Ejecuciones | Esc cierra las estadísticas o el visor antes de salir | Esc: estadísticas, pestaña, vista |
+| Procesos | Árbol de procesos del comando y total sin el proceso que espera | Pestaña Procesos, de la operación elegida |
+| Procesos | Caja del propio panel (memoria, CPU, procesos que ha lanzado) | Debajo del árbol |
+| Procesos | Tarjeta de la cabecera mientras corre un comando | Sin cambios (no es de ninguna vista) |
+| Procesos | Desplazar el árbol | RePág AvPág Inicio |
+
+Una diferencia que no estaba antes: la pestaña Procesos enseña los procesos de la operación **elegida** (no de la que esté en marcha): una que ya terminó dice que no hay
+nada que mostrar. Las operaciones del historial no se mueven con las teclas de la vista antigua porque Ejecuciones las elegía con ↑↓ y ahí también las eligen.
+
+**Pruebas**: `tests/test-activity.sh` (registro y tecla 0, la lista y su orden, cada pestaña y cada tecla, el ratón, el aviso, que lo que dice un archivo es dato, que dibujar
+no lanza procesos, 42 instantáneas de `tests/tools/act_scenes.sh` en `tests/golden/activity/` a 80x24, 120x30 y 160x40 y la forma de cada fotograma). Con diez vistas, a 100
+columnas la línea de pestañas enseña solo el número de las que no están abiertas (a 150 caben los nombres).
 
 ## La vista Servidor y la barrera de primer arranque
 
@@ -218,8 +512,12 @@ segunda fila primero).
   de prueba (`DELTACTL_TUI_KEYS`) es síncrono. Se repite cada 2 minutos mientras la vista está a la vista (cuesta ~0,35 s de procesos) y con `R`.
 - **Cifras**: `MT_HOST_DETAIL=1` solo mientras la vista es la actual (`scr_server_tick`); elegir la vista pide la primera muestra al instante.
 - **Copiar y ejecutar**: `dash_srv_copy` (`wl-copy`, `xclip`, `xsel`, `pbcopy`, OSC 52) y `dash_srv_terminal`, que solo llama el modo `srvask` tras un
-  `y`. Nada instala por su cuenta. Variables de prueba: `DELTACTL_CLIP` (un comando que lee el texto por su entrada, en vez de tocar el portapapeles) y
-  `DELTACTL_PR_SHELL` (el intérprete del comando, en vez de `bash`: los tests ponen un script que solo anota qué se le pidió).
+  `y`. Nada instala por su cuenta. Variables de prueba: `DELTACTL_CLIP` (un comando que lee el texto por su entrada, en vez de tocar el portapapeles),
+  `DELTACTL_PR_SHELL` (el intérprete del comando, en vez de `bash`: los tests ponen un script que solo anota qué se le pidió) y `DELTACTL_DF`:
+  las tres solo se respetan dentro de los tests (`DELTACTL_TEST_ISOLATED=1`, que exporta `tests/run.sh`), para que una variable heredada por
+  casualidad no cambie qué programa ejecuta un comando confirmado. El comando se muestra entero o no se muestra: si no cabe en la ventana
+  (URL larga en una terminal estrecha, terminal baja), la ventana pide agrandarla y `y` no ejecuta nada. Un requisito que espera a otro (el
+  daemon de un Docker sin instalar) o que aún no tiene respuesta no ofrece comando para copiar ni ejecutar.
 - **Primer arranque**: `dash_srv_startup` pide la comprobación al arrancar; con un obligatorio en `err` abre la vista Servidor y avisa una vez
   (`dash_srv_after_apply`). `dash_open_new` (el único punto por el que se abre el formulario de nueva instancia) llama a `dash_srv_blocking` y, si
   falta algo y la persona no ha dicho que siga, abre `srvask` en vez del formulario. La opción `TUI_PREREQ=on|off` (Opciones) lo apaga y enciende.

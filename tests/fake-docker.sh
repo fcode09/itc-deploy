@@ -4,17 +4,24 @@
 #   info, network inspect, ps, image ls/inspect, load, run (prueba de Mongo) y compose (version, config, up/pull/...).
 # Estado simulado en $FIX: images.txt (ref|id|arquitectura), calls.log (lo que se intentó ejecutar),
 # y los archivos compose_invalid y mongo_fail que fuerzan errores. Opcionales: image_dates.txt (referencia|fecha de creación), server_arch (la
-# arquitectura del servidor) y load_result/load_date/load_arch (lo que `docker load` imprime y carga).
+# arquitectura del servidor), daemon_down (el demonio no responde), log_all (anota cada llamada en all_calls.log) y load_result/load_date/load_arch (lo que `docker load` imprime y carga).
+[ ! -f "$FIX/log_all" ] || echo "$*" >> "$FIX/all_calls.log"   # $FIX/log_all (optional): every call is noted in all_calls.log (what was asked of Docker)
 case "$1" in
   info)
+    [ ! -f "$FIX/daemon_down" ] || exit 1   # $FIX/daemon_down (optional): the daemon does not answer
     case "$*" in
       *Architecture*) cat "$FIX/server_arch" 2> /dev/null || echo x86_64 ;;   # $FIX/server_arch (optional): the architecture of the server
       *ServerVersion*) echo 27.0.0 ;;
       *DockerRootDir*) echo "" ;;
     esac
     exit 0 ;;
-  network) echo 127.0.0.1; exit 0 ;;
+  network)
+    # `network ls`: $FIX/networks.txt (optional), one name per line. Any other network command answers the gateway of the bridge.
+    if [ "${2:-}" = ls ]; then cat "$FIX/networks.txt" 2> /dev/null; exit 0; fi
+    echo 127.0.0.1; exit 0 ;;
   ps)
+    # `ps -a --format ...com.docker.compose.project...`: the project of every row of containers.txt, one per line.
+    case "$*" in *'--format'*'com.docker.compose.project'*) cut -d'|' -f1 "$FIX/containers.txt" 2> /dev/null; exit 0 ;; esac
     # $FIX/containers.txt (optional): project|service|state|health|image|started|name|pid|restarts, one per container.
     # `ps` prints the line numbers of the rows of the project named in the label filter; `inspect <ids>` prints those rows.
     [ -f "$FIX/containers.txt" ] || exit 0
@@ -108,6 +115,8 @@ case "$1" in
         --images) imgs=1; shift ;;
         up | pull | ps | stop | down | logs)
           echo "COMPOSE $1" >> "$FIX/calls.log"
+          # $FIX/hook_<command> is a script that runs while that command is running (to change a file in the middle of a deploy)
+          if [ -f "$FIX/hook_$1" ]; then bash "$FIX/hook_$1" > /dev/null 2>&1 || true; fi
           # $FIX/slow_<command> holds the seconds that command takes (to have a real operation to cancel or kill)
           if [ -f "$FIX/slow_$1" ]; then sleep "$(cat "$FIX/slow_$1")"; fi
           # $FIX/fail_<command> holds the exit code that command must return (for example fail_pull=23)

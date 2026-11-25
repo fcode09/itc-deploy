@@ -1,0 +1,25 @@
+=== frame 1 ===
+  ITC  testhost · Memoria ███░░░ 5.6/11.5 GB 48% ▄▃▂▅▃▂ · Carga 3.18
+ [1 Instancias]  2   3   4   5   6   7   8   9   0                             
+╭─ Instancias ─────────────────────────────────────────────────────────────────╮
+│   + Nueva instancia                                                          │
+│                  n/m      mem    cpu                                         │
+│ ▸ ●● ix-colorado 2/2    1.3G  25.1%                                          │
+│   ●✖ ix-lima     1/2    180M   1.2%                                          │
+│   ✖✖ ix-piura    0/2       -      -                                          │
+╰──────────────────────────────────────────────────────────────────────────────╯
+ Resumen  Logs  Acceso [Historial] Servicios  Variables  Datos                  
+╭─┐ ▸ix-colorado ┌─┐Historial┌─────────────────────────────────┐3 operaciones┌─╮
+│   ● 11-01 10:00 deploy       41.2 s                                          │
+│   ✖ 11-01 09:00 check         2.1 s                                          │
+│ ▸ ● 10-31 15:00 rollback      5.3 s                                          │
+│                                                                              │
+╰─┘Enter salida entera└─┘PgUp PgDn desplaza└─┘< > pestaña└─────────────────────╯
+╭─ Consola ────────────────────────────────────────────────────────────────────╮
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│ ix-colorado ❯ : escribe un comando · ! en el terminal · Tab completa · ↑ hist│
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+ ↑↓ operación · Enter la salida entera · ? ayuda · q salir

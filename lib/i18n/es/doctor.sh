@@ -38,6 +38,7 @@ MSG_es["doctor.mongo_gw_fail_hint"]="Mongo debe escuchar en {1} o en 0.0.0.0 (bi
 MSG_es["doctor.mongo_reach"]="{1} alcanzable"
 MSG_es["doctor.mongo_noresp"]="{1} no responde por TCP"
 MSG_es["doctor.mongo_noresp_hint"]="Revisa la URI en {1} y la red"
+MSG_es["doctor.mongo_srv"]="{1} usa mongodb+srv: el nombre se resuelve por DNS y no se prueba su puerto"
 MSG_es["doctor.mongo_none"]="Ninguna instancia define URI de Mongo todavía"
 MSG_es["doctor.nofile_warn"]="mongod permite {1} archivos abiertos (recomendado: 64000 o más)"
 MSG_es["doctor.nofile_warn_hint"]="Con muchas instancias Mongo puede caer con EMFILE. Sube LimitNOFILE en su servicio systemd."

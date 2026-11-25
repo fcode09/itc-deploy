@@ -37,8 +37,20 @@ source "$ROOT/lib/adapters/host.sh"
 source "$ROOT/lib/core/instance.sh"
 # shellcheck source=lib/core/services.sh
 source "$ROOT/lib/core/services.sh"
+# shellcheck source=lib/core/instname.sh
+source "$ROOT/lib/core/instname.sh"
 # shellcheck source=lib/core/imagecat.sh
 source "$ROOT/lib/core/imagecat.sh"
+# shellcheck source=lib/core/envschema.sh
+source "$ROOT/lib/core/envschema.sh"
+# shellcheck source=lib/core/envedit.sh
+source "$ROOT/lib/core/envedit.sh"
+# shellcheck source=lib/core/svcmgmt.sh
+source "$ROOT/lib/core/svcmgmt.sh"
+# shellcheck source=lib/core/secretfile.sh
+source "$ROOT/lib/core/secretfile.sh"
+# shellcheck source=lib/core/proxy.sh
+source "$ROOT/lib/core/proxy.sh"
 # shellcheck source=lib/core/ports.sh
 source "$ROOT/lib/core/ports.sh"
 # shellcheck source=lib/core/status.sh

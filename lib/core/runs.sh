@@ -43,6 +43,7 @@ runs_is_mutation() { # command [args...]
   shift
   case "$c" in
     deploy | rollback | load | init | adopt | stop | down) return 0 ;;
+    service) case "${1:-}" in add | remove | set) return 0 ;; esac; return 1 ;;
     new)
       [ "$#" -gt 0 ] || return 1
       case " $* " in *" --wizard "*) return 1 ;; esac
@@ -56,6 +57,7 @@ runs_is_mutation() { # command [args...]
 runs_instance_of() { # command [args...]
   local c="$1" a
   shift
+  if [ "$c" = "service" ]; then shift; fi   # (service <add|remove|set> <instance> ...)
   if [ "$c" != "load" ]; then
     for a in "$@"; do
       case "$a" in -*) ;; *) printf '%s' "$a"; return 0 ;; esac
@@ -138,6 +140,20 @@ runs_lock() { # run_id what
     rm -rf "$d"
   done
   return 1
+}
+
+# Is another operation holding the lock right now? Only looks, takes nothing (runs_lock is the one that takes it): 0 with RUNS_OWNER_* telling who,
+# 1 when there is no lock or its owner is gone. A lock with no PID yet (its owner is between creating it and writing it) counts as held.
+runs_busy() {
+  local d pid
+  d="$(runs_dir)/locks/mutation.lock"
+  [ -d "$d" ] || return 1
+  pid="$(cat "$d/pid" 2> /dev/null || true)"
+  if [ -n "$pid" ] && ! runs_pid_alive "$pid"; then return 1; fi
+  RUNS_OWNER_PID="${pid:-?}"
+  RUNS_OWNER_RUN="$(cat "$d/run" 2> /dev/null || true)"
+  RUNS_OWNER_WHAT="$(cat "$d/what" 2> /dev/null || true)"
+  return 0
 }
 
 runs_unlock() {

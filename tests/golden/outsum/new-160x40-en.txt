@@ -1,0 +1,41 @@
+=== frame 1 ===
+
+ 1 Instances 2 Resources [3 Output] 4 Runs 5 Processes 6 Console 7 Server 8 Images 9 Variables 0 Activity                 ● ./deltactl new colorado finished OK
+╭─ ▸Output · ./deltactl new colorado · finished OK 00:42 · summary · ● 0 ▲ 4 ──────────────────────────────────────────────────────────────────────────────────╮
+│ ● instance 'colorado' created in /srv/deltactl/instances/colorado (ports 4130/4131)                                                                          │
+│                                                                                                                                                              │
+│ ── Still to complete before ./deltactl deploy ────────────────────────────────────────────────────────────────────────────────────────────────────────────── │
+│   ▲ .env.instance  S0_TAG, S1_TAG                                                                                                                            │
+│   ▲ .env.s0        IP_SERVER, JWT_SECRET                                                                                                                     │
+│   ▲ .env.s1        IP_SERVER, JWT_SECRET, FEDERATION_ENCRYPTION_KEY, DEEPGRAM_API_KEY                                                                        │
+│   ▲ secrets/       fcm.json, keeper-fcm.json                                                                                                                 │
+│                                                                                                                                                              │
+│ ── Next steps ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── │
+│   1. Fill in /srv/deltactl/instances/colorado/.env.instance (S0_TAG, S1_TAG, REGISTRY)                                                                       │
+│   2. Fill in /srv/deltactl/instances/colorado/.env.s0 and /srv/deltactl/instances/colorado/.env.s1 (secrets, Mongo URIs, IP_SERVER)                          │
+│   3. Copy the Firebase JSON files to /srv/deltactl/instances/colorado/secrets/ (fcm.json and keeper-fcm.json)                                                │
+│   4. ./deltactl check colorado (checks everything without starting anything)                                                                                 │
+│   5. ./deltactl deploy colorado                                                                                                                              │
+│ Detail of each variable: ./deltactl help variable <NAME> · full guide: ./deltactl help new-instance                                                          │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+ ↑↓ scroll · PgUp/PgDn · f follow · v summary/raw · e errors · x cancel · : command · ? help · q quit

@@ -23,7 +23,7 @@ dash_pal_build() {
   fi
   dt tui.pal.go
   for i in "${!DASH_NAMES[@]}"; do dash_pal_add "${DTV//\{1\}/${DASH_NAMES[$i]}}" "inst:$i"; done
-  for v in instances resources output runs procs console server images; do dt "tui.tab.$v"; id="$DTV"; dt tui.pal.view; dash_pal_add "${DTV//\{1\}/$id}" "view:$v"; done
+  for v in instances resources output runs procs console server images env activity; do dt "tui.tab.$v"; id="$DTV"; dt tui.pal.view; dash_pal_add "${DTV//\{1\}/$id}" "view:$v"; done
   dt tui.pal.theme
   for th in "${TH_THEMES[@]}"; do dash_pal_add "${DTV//\{1\}/$th}" "theme:$th"; done
   dt tui.pal.new; dash_pal_add "$DTV" "new"

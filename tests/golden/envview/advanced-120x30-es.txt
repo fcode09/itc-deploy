@@ -1,0 +1,31 @@
+=== frame 1 ===
+
+ 1 Instancias 2 Recursos 3 Salida 4 Ejecuciones 5 Procesos 6 Consola 7 Servidor 8 Imágenes [9 Variables] 0 Actividad   
+╭─┐ ▸⁹variables ┌─┐ix-colorado┌────────────────────────────────────┐6 sin completar┌─╮╭─┐S0_MEM_LIMIT┌─────────────────╮
+│ ▾ .env.instance                                                       12 variables ││ Opcional · .env.instance       │
+│ ● INSTANCE                        ix-colorado                                      ││                                │
+│ ○ REGISTRY                        (vacía)                                 opcional ││ Límite de memoria del          │
+│ ● COMPOSE_PROFILES                s0,s1                                            ││ contenedor de s0. Ajústalo     │
+│ ● S0_IMAGE                        auth-backend                                     ││ según la carga real.           │
+│ ● S1_IMAGE                        gueo-back-end                                    ││                                │
+│ ● S0_TAG                          2.14.0                                           ││ Por defecto: 512m              │
+│ ● S1_TAG                          2.9.0                                            ││ Ejemplo: 512m                  │
+│ ● S0_PORT                         4100                                             ││                                │
+│ ● S1_PORT                         4101                                             ││                                │
+│ ● S0_MEM_LIMIT                    512m                                             ││                                │
+│ ● S1_MEM_LIMIT                    2g                                               ││                                │
+│ ○ DATA_DIR                        (vacía)                                 opcional ││                                │
+│ ▾ .env.s0                                            9 variables · 2 sin completar ││                                │
+│ ▲ IP_SERVER                       http://CAMBIAR-direccion-del-serv  por completar ││                                │
+│ ▲ JWT_SECRET                      (vacía)                              obligatoria ││                                │
+│ ● JWT_EXPIRES_IN                  8h                                               ││                                │
+│ ● MONGO_URI                       ⚿ ••••••••••                                     ││                                │
+│ ● IP_INTERNAL_CONNECTION          s1                                               ││                                │
+│ ○ GOOGLE_KEY                      (vacía)                                 opcional ││                                │
+│ ● PROFILE_PROPAGATION_ENABLED     true                                             ││                                │
+│ ● PROFILE_SYNC_CONCURRENCY        4                                                ││                                │
+│ ● PROFILE_BACKUP_DIR              ./backups                                        ││                                │
+│ ▾ .env.s1                                           27 variables · 4 sin completar ││                                │
+╰─┘Enter editar└─┘g generar└─┘r revelar└─┘d defecto└─┘s guardar└─┘u desplegar└───────╯╰────────────────────────────────╯
+
+ ↑↓ mover · Enter edita · g generar · r revelar · d defecto · a avanzadas · s guardar · [/] instancia · Esc sale

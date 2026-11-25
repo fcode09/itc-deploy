@@ -1,11 +1,15 @@
 # new · create an instance
 
 It creates the `instances/<instance>/` folder with the configuration ready to fill in.
-It does not touch Docker and does not start anything.
+It does not start anything and it does not need Docker to create the instance. The only
+exception is `--sN-tag latest`, which asks Docker which versions are loaded; if Docker does not
+answer, the instance is still created and the tag stays `latest` (with a warning).
 
 ## Usage
 $ ./deltactl new <instance> [--services s0,s1] [--existing]
 $ ./deltactl new <instance> [--s0-image X] [--s0-tag X] [--s1-image X] [--s1-tag X] [--ip URL] [--generate-secrets]
+$ ./deltactl new <instance> [--env-file FILE] [--secret-file SOURCE[:NAME]]
+$ ./deltactl new <instance> --domain DOMAIN [--proxy nginx|caddy|both] [--tls]
 $ ./deltactl new --wizard
 
 ## Wizard
@@ -21,10 +25,27 @@ terminal, and on confirmation it starts `new` with the answers as options.
 - `--existing` the municipality ALREADY has data: it is marked as initialized and `./deltactl init` can never run on it.
 - `--s0-image <name>` and `--s1-image <name>` image name of each service (without a tag).
 - `--s0-tag <tag>` and `--s1-tag <tag>` version to deploy of each service. With `latest` the **most recent** version
-  this server can use is chosen (the ★ of `./deltactl images`: the newest by creation date among the version tags of its
-  architecture), not a tag called `latest`; the instance stores the tag it resolved to.
+  this server can use is chosen (the ★ of `./deltactl images`: the newest by creation date among the
+  stable version tags, without a suffix such as `-rc1` or `-debug`, of its architecture), not a tag
+  called `latest`; the instance stores the tag it resolved to. Only the services of the instance
+  (`--services`) are resolved. If there is no version to choose, it fails and creates nothing.
 - `--ip <url>` public URL of the system, with its scheme (stored as IP_SERVER in s0 and s1).
 - `--generate-secrets` generates the unique secrets (JWT and encryption keys); needs openssl.
+- `--env-file <file>` sets variables in the instance's files, one per line: `<file>:<KEY>=<value>`
+  (the file is `instance`, `s0`, `s1`...; blank lines and lines that start with `#` are skipped).
+  It goes in a file and not in the command line so a secret is never in `ps` or in the shell history.
+  Everything is checked **before** anything is created (with the rules of `./deltactl help variable`) and an
+  error names the variable, never its value. If it gives `S0_PORT` or `S1_PORT`, that port is the one that is
+  checked and written. It wins over `--generate-secrets`. The file is yours: `new` reads it and does not delete it.
+- `--secret-file <source>[:<name>]` copies a file to `secrets/<name>` with mode 600; the Firebase JSON, for
+  example: `--secret-file ~/Downloads/firebase.json:fcm.json` (without `:name` the source's name is kept).
+  It is checked before anything is created: it exists, can be read, is at most 128 KiB and is a JSON object.
+  Its content is never shown. It can be repeated.
+- `--domain <name>` generates the reverse-proxy block of each service (`<service name>.<domain>` to the
+  instance's port) and saves it **inside the instance**, in `instances/<instance>/proxy/`.
+  `--proxy nginx|caddy|both` chooses which one (both by default) and `--tls` turns on HTTPS (nginx: port 80
+  redirects and a 443 block with certbot's paths; Caddy does it by itself). It is text only: `new` writes
+  nothing under `/etc` and reloads nothing; you copy it where your proxy reads it.
 
 ## What it creates
 - `.env.instance`  variables of the instance: versions, ports, active services, memory

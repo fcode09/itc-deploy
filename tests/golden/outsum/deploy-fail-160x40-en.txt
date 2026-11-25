@@ -1,0 +1,41 @@
+=== frame 1 ===
+
+ 1 Instances 2 Resources [3 Output] 4 Runs 5 Processes 6 Console 7 Server 8 Images 9 Variables 0 Activity        ✖ ./deltactl deploy sim-01 failed with error 1
+╭─ ▸Output · ./deltactl deploy sim-01 · failed with error 1 00:42 · summary · ● 0 ▲ 2 ─────────────────────────────────────────────────────────────────────────╮
+│ ✖ 2 image(s) not loaded. Load them with ./deltactl load <file> and check the available ones with ./deltactl images (help: ./deltactl help local-images)      │
+│                                                                                                                                                              │
+│   ✖ Validating compose...                                                                                                                                    │
+│   ▲ image auth-backend:1.0 (s0) is missing on this server                                                                                                    │
+│   ▲ image gueo-back-end:1.0 (s1) is missing on this server                                                                                                   │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+ ↑↓ scroll · PgUp/PgDn · f follow · v summary/raw · e errors · x cancel · : command · ? help · q quit

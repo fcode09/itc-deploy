@@ -1,0 +1,41 @@
+=== frame 1 ===
+  ITC  testhost · Docker 27.0.0
+  1 Instancias   2 Recursos   3 Salida   4 Ejecuciones   5 Procesos   6 Consola   7 Servidor   8 Imágenes   9 Variables  [0 Actividad]                         
+╭─ ▸Actividad (5) ───────────────────────────────────╮ Resumen  Salida [Consumo] Procesos                                                                       
+│ ▸ ● 11-01 10:00 deploy   ix-colorado         41.2 s│╭─ Qué cuesta cada operación (últimas 5 ejecuciones) ────────────────────────────────────────────────────╮
+│   ● 11-01 09:50 deploy   ix-lima             30.1 s││  comando      veces   ok fallos  duración       CPU    docker mem. pico                                │
+│   ✖ 11-01 09:00 check    ix-colorado          2.1 s││  deploy           3    3      0    36.4 s     8.5 s    29.2 s   47.0 MB                                │
+│   ● 10-31 15:00 rollback ix-colorado          5.3 s││  rollback         1    1      0     5.3 s         -         -         -                                │
+│   ● 10-30 10:00 deploy   ix-colorado         38.0 s││  check            1    0      1     2.1 s         -         -         -                                │
+│                                                    ││                                                                                                        │
+│                                                    ││  CPU, memoria y docker son los de los procesos propios de la operación; lo que usan los contenedores   │
+│                                                    ││  está en "Contenedores".                                                                               │
+│                                                    ││                                                                                                        │
+│                                                    ││                                                                                                        │
+│                                                    ││                                                                                                        │
+│                                                    ││                                                                                                        │
+│                                                    ││                                                                                                        │
+│                                                    ││                                                                                                        │
+│                                                    ││                                                                                                        │
+│                                                    ││                                                                                                        │
+│                                                    ││                                                                                                        │
+│                                                    ││                                                                                                        │
+│                                                    ││                                                                                                        │
+│                                                    ││                                                                                                        │
+│                                                    ││                                                                                                        │
+│                                                    ││                                                                                                        │
+│                                                    ││                                                                                                        │
+│                                                    ││                                                                                                        │
+│                                                    ││                                                                                                        │
+│                                                    ││                                                                                                        │
+│                                                    ││                                                                                                        │
+│                                                    ││                                                                                                        │
+│                                                    ││                                                                                                        │
+│                                                    ││                                                                                                        │
+│                                                    ││                                                                                                        │
+│                                                    ││                                                                                                        │
+│                                                    ││                                                                                                        │
+│                                                    ││                                                                                                        │
+╰────────────────────────────────────────────────────╯╰────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+ s una instancia / todas · t o Esc vuelven · : comando · ? ayuda · q salir

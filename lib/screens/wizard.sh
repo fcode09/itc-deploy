@@ -33,6 +33,8 @@ dash_open_new() {
   if job_running; then dash_msg warn "$(t tui.msg.busy)"; return 0; fi
   # With something required missing on the server the form does not open until the person says to go on (or looks at the requirements).
   if dash_srv_blocking; then dash_srv_ask_gate; return 0; fi
+  # The wizard of steps (lib/screens/newinst.sh) opens instead of this form when TUI_WIZARD=2.
+  if [ "$DASH_WIZARD" = 2 ]; then dash_nz_open; return 0; fi
   if command -v openssl > /dev/null 2>&1; then DASH_NW_SSL=1; else DASH_NW_SSL=0; fi
   # A name is proposed: the first instancia-N that is free (the first key typed replaces it).
   while [ -e "$INSTANCES_DIR/instancia-$n" ]; do n=$((n + 1)); done

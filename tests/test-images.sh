@@ -122,6 +122,26 @@ check "1.2.10 is higher than 1.2.9 (numbers, not text)" '[ "$(lib2 t_vcmp 1.2.10
 check "1.2 equals 1.2.0, and 2026.11.3 is higher than 2026.9.30" '[ "$(lib2 t_vcmp 1.2 "" 1.2.0 "")" = 0 ] && [ "$(lib2 t_vcmp 2026.11.3 "" 2026.9.30 "")" = 1 ]'
 check "a pre-release is lower than its release; two pre-releases compare as text" '[ "$(lib2 t_vcmp 1.2.3 rc1 1.2.3 "")" = -1 ] && [ "$(lib2 t_vcmp 1.2.3 rc2 1.2.3 rc1)" = 1 ]'
 
+t_vorder() { # versions from the lowest to the highest, as the spec of semver lists them: each one must be lower than the next
+  local -a v=("$@"); local i a b
+  for ((i = 0; i + 1 < ${#v[@]}; i++)); do
+    a="${v[i]}" b="${v[i + 1]}"
+    ic_vcmp "${a%%-*}" "$([[ "$a" == *-* ]] && echo "${a#*-}")" "${b%%-*}" "$([[ "$b" == *-* ]] && echo "${b#*-}")"
+    [ "$IC_CMP" = -1 ] || { echo "not lower: $a < $b gave $IC_CMP"; return; }
+  done
+  echo ordered
+}
+check "the pre-releases of the semver spec are in its order (alpha < alpha.1 < alpha.beta < beta < beta.2 < beta.11 < rc.1 < the release)" \
+  '[ "$(lib2 t_vorder 1.0.0-alpha 1.0.0-alpha.1 1.0.0-alpha.beta 1.0.0-beta 1.0.0-beta.2 1.0.0-beta.11 1.0.0-rc.1 1.0.0)" = ordered ]'
+check "rc.10 is higher than rc.9 (the numbers of a pre-release are numbers, not text)" '[ "$(lib2 t_vcmp 1.2.3 rc.10 1.2.3 rc.9)" = 1 ] && [ "$(lib2 t_vcmp 1.2.3 rc.9 1.2.3 rc.10)" = -1 ]'
+check "a number is lower than a word, and a longer list of fields is higher when the first ones are equal" '[ "$(lib2 t_vcmp 1.2.3 rc.1 1.2.3 rc.x)" = -1 ] && [ "$(lib2 t_vcmp 1.2.3 rc.1.1 1.2.3 rc.1)" = 1 ]'
+check "equal pre-releases are equal, and a very long number does not overflow" '[ "$(lib2 t_vcmp 1.2.3 rc.1 1.2.3 rc.1)" = 0 ] && [ "$(lib2 t_vcmp 1.2.3 rc.99999999999999999999999 1.2.3 rc.9)" = 1 ]'
+check "the text of a pre-release compares by bytes whatever the locale of the user is (RC2 < rc1 in the C order)" \
+  '[ "$(LC_ALL=en_US.utf8 lib2 t_vcmp 1.2.3 RC2 1.2.3 rc1)" = -1 ] && [ "$(LC_ALL=C.UTF-8 lib2 t_vcmp 1.2.3 RC2 1.2.3 rc1)" = -1 ] && [ "$(LC_ALL=en_US.utf8 lib2 t_vcmp 1.2.3 rc1 1.2.3 RC2)" = 1 ]'
+
+check "tags made of a date (2026-11-24) are versions with a suffix: they compare as dates and are never the star" \
+  '[ "$(lib2 t_vcmp 2026 11-24 2026 11-09)" = 1 ] && [ "$(lib2 t_vcmp 2026 11-24 2026 12-01)" = -1 ]'
+
 section "6. the catalog: order, the star and what never is one"
 images_are \
   "auth-backend:v1.2.10|sha256:a10aaaaaaaaaaaaaaaa|amd64" "auth-backend:v1.2.9|sha256:a09aaaaaaaaaaaaaaaa|amd64" \
@@ -172,6 +192,39 @@ images_are "auth-backend:1.0|sha256:b1|amd64"
 # shellcheck disable=SC2329  # the inner function replaces dk_ready in the library
 t_nodocker() { dk_ready() { return 1; }; ic_load; echo "$? $IC_N"; }
 check "without Docker the load fails and leaves the catalog empty" '[ "$(lib2 t_nodocker)" = "1 0" ]'
+
+section "6b. the star is a stable version: never a pre-release, a debug build or a variant"
+# The newest image by date is a release candidate, then a debug build, then an alpine variant: none of them may be what "the most recent version" is.
+images_are \
+  "auth-backend:1.9.0|sha256:p1|amd64" "auth-backend:2.0.0-rc1|sha256:p2|amd64" "auth-backend:2.14.0-debug|sha256:p3|amd64" \
+  "auth-backend:2.0.0-alpine|sha256:p4|amd64" "auth-backend:1.8.0|sha256:p5|amd64"
+dates \
+  "auth-backend:1.9.0|2026-11-10 00:00:00 +0000 UTC" "auth-backend:2.0.0-rc1|2026-11-20 00:00:00 +0000 UTC" \
+  "auth-backend:2.14.0-debug|2026-11-21 00:00:00 +0000 UTC" "auth-backend:2.0.0-alpine|2026-11-22 00:00:00 +0000 UTC" \
+  "auth-backend:1.8.0|2026-11-01 00:00:00 +0000 UTC"
+t_stable_star() { ic_load; ic_latest s0; echo "$IC_LATEST ${IC_DISC["s0|auth-backend"]:-none}"; }
+check "the star is the newest STABLE version; the pre-release, the debug build and the variant are newer and are not" '[ "$(lib2 t_stable_star)" = "1.9.0 none" ]'
+check "they are still listed, newest first, as versions that can be chosen by hand" '[ "$(lib2 t_order)" = "2.0.0-alpine 2.14.0-debug 2.0.0-rc1 1.9.0 1.8.0 " ]'
+o="$(img2 new im-stable --s0-tag latest)"
+check "new --s0-tag latest keeps the stable version, not the newest tag" 'grep -q "^S0_TAG=1.9.0$" instances/im-stable/.env.instance'
+rm -rf instances/im-stable
+images_are "auth-backend:2.0.0-rc1|sha256:p2|amd64" "auth-backend:2.0.0-debug|sha256:p3|amd64"
+dates "auth-backend:2.0.0-rc1|2026-11-20 00:00:00 +0000 UTC" "auth-backend:2.0.0-debug|2026-11-21 00:00:00 +0000 UTC"
+check "only pre-releases and variants: there is no star and nothing to resolve (nothing is guessed for a municipality)" '[ "$(lib2 t_onlylatest)" = "1 []" ]'
+check "and new --s0-tag latest says there is no version to choose and creates nothing" 'o="$(img2 new im-prerel --s0-tag latest)"; rc=$?; [ "$rc" -ne 0 ] && [ ! -e instances/im-prerel ] && echo "$o" | grep -q "no version to choose for s0"'
+
+section "6c. the same image under the name of a registry: what an instance can find"
+# A local instance (empty REGISTRY) runs auth-backend:<tag> and never pulls; one with a REGISTRY runs <registry>/auth-backend:<tag>. The tags
+# loaded as reg.io/auth-backend are in the group of auth-backend, and their name is kept (IC_FULL): the star is a tag a local instance can run.
+images_are "auth-backend:1.0|sha256:r1|amd64" "reg.io/auth-backend:2.0|sha256:r2|amd64" "reg.io/auth-backend:1.0|sha256:r1|amd64"
+dates "auth-backend:1.0|2026-11-01 00:00:00 +0000 UTC" "reg.io/auth-backend:2.0|2026-11-20 00:00:00 +0000 UTC" "reg.io/auth-backend:1.0|2026-11-01 00:00:00 +0000 UTC"
+t_full() { ic_load; local i; for ((i = 0; i < IC_N; i++)); do printf '%s=%s ' "${IC_TAG[$i]}" "${IC_FULL[$i]}"; done; }
+check "the name Docker gives each image is kept, with its registry" '[ "$(lib2 t_full)" = "1.0=auth-backend 2.0=reg.io/auth-backend 1.0=reg.io/auth-backend " ]'
+check "the star is a version loaded under the bare name when there is one (the newest by date is only loaded as reg.io/auth-backend)" '[ "$(lib2 t_latest)" = "1.0 " ]'
+images_are "reg.io/auth-backend:2.0|sha256:r2|amd64" "reg.io/auth-backend:1.0|sha256:r1|amd64"
+check "when every one has the name of a registry, the star is the newest of them (an instance with that REGISTRY can use it)" '[ "$(lib2 t_latest)" = "2.0 " ]'
+t_latest_s0() { ic_load; ic_latest s0; echo "$IC_LATEST"; }
+check "...and new --s0-tag latest keeps it" 'img2 new im-reg --s0-tag latest > /dev/null; grep -q "^S0_TAG=2.0$" instances/im-reg/.env.instance; rm -rf instances/im-reg'
 
 section "7. use by instances and image names that are not the default one"
 rm -rf instances/im-one   # (the instance of the sections above)
@@ -242,6 +295,24 @@ check "a tag that is a version is kept as it is" 'img2 new im-fix --s0-tag v1.2.
 images_are "auth-backend:1.0|sha256:f0|amd64" "otro/auth:5.0|sha256:f1|amd64"
 dates "otro/auth:5.0|2026-11-24 00:00:00 +0000 UTC" "auth-backend:1.0|2026-11-01 00:00:00 +0000 UTC"
 check "with another image name it looks among the versions of that one" 'img2 new im-otro --s0-image otro/auth --s0-tag latest > /dev/null; grep -q "^S0_TAG=5.0$" instances/im-otro/.env.instance'
+dates \
+  "auth-backend:v1.2.10|2026-11-20 10:00:00 +0000 UTC" "auth-backend:v1.2.9|2026-11-22 08:30:00 +0000 UTC" \
+  "auth-backend:latest|2026-11-23 09:00:00 +0000 UTC" "auth-backend:2.0.0|2026-11-23 10:00:00 -0500 EST" \
+  "gueo-back-end:3.1|2026-10-01 00:00:00 +0000 UTC"
+images_are "auth-backend:v1.2.10|sha256:a10aaaaaaaaaaaaaaaa|amd64" "auth-backend:v1.2.9|sha256:a09aaaaaaaaaaaaaaaa|amd64" "auth-backend:latest|sha256:a99aaaaaaaaaaaaaaaa|amd64"
+o="$(img2 new im-svc --services s0 --s0-tag latest --s1-tag latest)"; rc=$?
+check "only the services of the instance are resolved: a service that is not active (and has no version loaded) does not stop it" '[ "$rc" -eq 0 ] && grep -q "^S0_TAG=v1.2.9$" instances/im-svc/.env.instance && ! echo "$o" | grep -q "s1: using"'
+check "and what it does not resolve keeps what was asked, so nothing is made up" 'grep -q "^S1_TAG=latest$" instances/im-svc/.env.instance'
+rm -rf instances/im-svc
+check "an invalid service in --services is reported as before, without asking Docker for anything" 'o="$(img2 new im-bad --services s9 --s0-tag latest)"; rc=$?; [ "$rc" -ne 0 ] && [ ! -e instances/im-bad ] && echo "$o" | grep -q "s9"'
+touch "$F2/daemon_down"
+o="$(img2 new im-down --s0-tag latest)"; rc=$?
+check "when Docker does not answer, new still creates the instance (it never needed Docker) and says the version could not be looked up" '[ "$rc" -eq 0 ] && [ -d instances/im-down ] && echo "$o" | grep -q "s0: Docker does not answer"'
+check "...and the tag stays latest, to be set before deploying" 'grep -q "^S0_TAG=latest$" instances/im-down/.env.instance && echo "$o" | grep -q "S0_TAG"'
+check "a tag that is a version needs no Docker at all" 'o="$(img2 new im-down2 --s0-tag 1.4.0)"; rc=$?; [ "$rc" -eq 0 ] && ! echo "$o" | grep -q "Docker does not answer" && grep -q "^S0_TAG=1.4.0$" instances/im-down2/.env.instance'
+check "the same in Spanish" 'LIB2_LANG=es img2 new im-down3 --s0-tag latest | grep -q "s0: Docker no responde"'
+rm -f "$F2/daemon_down"
+rm -rf instances/im-down instances/im-down2 instances/im-down3
 images_are "auth-backend:latest|sha256:g1|amd64"
 check "no version to choose: it fails, says why and creates nothing" 'o="$(img2 new im-nada --s0-tag latest)"; rc=$?; [ "$rc" -ne 0 ] && [ ! -e instances/im-nada ] && echo "$o" | grep -q "no version to choose for s0 (auth-backend)"'
 images_are "auth-backend:2.0.0|sha256:g2|arm64"

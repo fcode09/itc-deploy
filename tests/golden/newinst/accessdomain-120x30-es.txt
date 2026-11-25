@@ -1,0 +1,31 @@
+=== frame 1 ===
+
+ [1 Instancias] 2 Recursos 3 Salida 4 Ejecuciones 5 Procesos 6 Consola 7 Servidor 8 Imágenes 9 Variables 0 Actividad   
+╭─┐nueva instancia┌──────────────────────────────────────────────────────────────────────────────────────┐instancia-1┌─╮
+│ ●━━━━━━━━━━━━━●━━━━━━━━━━━━━●━━━━━━━━━━━━━●━━━━━━━━━━━━━▲━━━━━━━━━━━━━▲━━━━━━━━━━━━━◉━━━━━━━━━━━━━○       Paso 7 de 8│
+│ Nombre        Servicios     Versiones     Datos         Variables     Secretos      Acceso        Revisión           │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭─┐ ▸7 · Acceso ┌──────────────────────────────────────────────────────╮╭─┐vista previa┌───────────────────────────────╮
+│                                                                      ││ instances/instancia-1/                       │
+│ ¿Con qué nombre se entra desde internet? Con un dominio se prepara el││   .env.instance                              │
+│ bloque de nginx o Caddy; es solo texto: no se instala ni se recarga  ││     COMPOSE_PROFILES=s0,s1                   │
+│ nada.                                                                ││     S0_PORT=4100                             │
+│                                                                      ││     S0_TAG=2.14.1                            │
+│ Dominio   ● muni.example.com                                         ││     S1_PORT=4101                             │
+│ Proxy     ( nginx)  ( Caddy)  ▸ (los dos)                            ││     S1_TAG=2.9.0                             │
+│ HTTPS     [x]                                                        ││   .env.s0 .env.s1                            │
+│                                                                      ││   secrets/  data/                            │
+│ ℹ No se detectó nginx ni Caddy en este servidor (el bloque se puede  ││     data/ vacía: init la siembra             │
+│   generar igual).                                                    ││   variables: 0 puestas · 4 generadas         │
+│                                                                      ││   proxy/ nginx.conf Caddyfile                │
+│ Bloque de nginx → instances/instancia-1/proxy/nginx.conf             ││                                              │
+│ map $http_upgrade $connection_upgrade { default upgrade; '' close; } ││ ≈ ./deltactl new instancia-1                 │
+│                                                                      ││     --services s0,s1 --s0-tag 2.14.1         │
+│ # s0                                                                 ││     --s1-tag 2.9.0 --env-file <respuestas>   │
+│ server {                                                             ││     --domain muni.example.com --tls          │
+│     listen 80;                                                       ││                                              │
+│ … y 43 líneas más (se guardan enteras en la instancia)               ││                                              │
+│                                                                      ││                                              │
+╰─┘Esc atrás└─┘Enter siguiente└────────────────────────────────────────╯╰──────────────────────────────────────────────╯
+
+ ↑↓ mover · ←→ espacio cambia · c copia el bloque · v nginx/Caddy · Enter revisa · Esc atrás · Tab vista previa

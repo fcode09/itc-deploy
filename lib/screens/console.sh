@@ -173,7 +173,7 @@ dash_complete() {
     1)
       case "${toks[0]:-}" in
         theme) pool=("${TH_THEMES[@]}") ;;
-        goto | view) pool=(instances resources output runs procs console server images) ;;
+        goto | view) pool=(instances resources output runs procs console server images env activity) ;;
         alias | unalias) pool=(${DASH_ALIAS_NAMES[@]+"${DASH_ALIAS_NAMES[@]}"}) ;;
         *) pool=("${DASH_NAMES[@]}") ;;
       esac
@@ -197,15 +197,31 @@ dash_complete() {
   DASH_BUF="$bang$head$common"
 }
 
+# Does a line write an environment value (`env <instance> set|generate …`, also behind `!`, `./deltactl` or an alias)? Its value would
+# be a secret in a file that lasts: such a line is neither kept in the history nor run as a job (a job has no keyboard, so the hidden
+# prompt of a secret and the confirmation of `generate` could not be answered): it runs in the terminal.
+dash_line_writes_env() { # line
+  local line="$1"
+  local -a words
+  line="${line#"${line%%[![:space:]]*}"}"
+  line="${line#!}"
+  line="${line#"${line%%[![:space:]]*}"}"
+  dash_alias_expand "$line"
+  read -ra words <<< "$DASH_ALIAS_LINE"
+  case "${words[0]:-}" in ./deltactl | deltactl) words=("${words[@]:1}") ;; esac
+  [ "${words[0]:-}" = env ] && { [ "${words[2]:-}" = set ] || [ "${words[2]:-}" = generate ]; }
+}
+
 dash_submit_cmd() {
-  local buf="$DASH_BUF" term=0 view=output
+  local buf="$DASH_BUF" term=0 view=output wenv=0
   local -a args
   DASH_MODE=normal DASH_CUR=0
   buf="${buf#"${buf%%[![:space:]]*}"}"
   buf="${buf%"${buf##*[![:space:]]}"}"
   [ -n "$buf" ] || return 0
   DASH_CON_SCROLL=0   # what a new command prints is read from its start
-  if [ "${#DASH_HIST[@]}" -eq 0 ] || [ "${DASH_HIST[-1]}" != "$buf" ]; then DASH_HIST+=("$buf"); dash_hist_save "$buf"; fi
+  ! dash_line_writes_env "$buf" || wenv=1
+  if [ "$wenv" -eq 0 ] && { [ "${#DASH_HIST[@]}" -eq 0 ] || [ "${DASH_HIST[-1]}" != "$buf" ]; }; then DASH_HIST+=("$buf"); dash_hist_save "$buf"; fi
   DASH_HIDX="${#DASH_HIST[@]}"
   case "$buf" in '!'*) term=1; buf="${buf#!}"; buf="${buf#"${buf%%[![:space:]]*}"}" ;; esac
   # A lone `!` is a real shell.
@@ -232,6 +248,7 @@ dash_submit_cmd() {
   # The other wizards and the menu ask questions: they need the terminal.
   case " ${args[*]} " in *" --wizard "*) term=1 ;; esac
   case "${args[0]}" in menu) term=1 ;; new) [ "${#args[@]}" -gt 1 ] || term=1 ;; esac
+  [ "$wenv" -eq 0 ] || term=1
   # On the Overview and in the Console view the answer stays in the console; in the other views it opens the Output view, as before.
   case "$DASH_VIEW" in instances | console) view=stay ;; esac
   if [ "$term" -eq 1 ]; then dash_terminal "${args[@]}"; else dash_start_job "$view" "${args[@]}"; fi

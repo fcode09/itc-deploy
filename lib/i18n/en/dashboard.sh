@@ -55,6 +55,9 @@ MSG_en["tui.out.scrolled"]="scrolled"
 MSG_en["tui.out.errors_only"]="errors only"
 MSG_en["tui.out.lines"]="{1} lines"
 MSG_en["tui.out.no_match"]="(no lines with errors)"
+MSG_en["tui.out.summary"]="summary"
+MSG_en["tui.out.raw"]="raw output"
+MSG_en["tui.out.unsummarised"]="+{1} lines not summarised: v shows the raw output"
 
 # Messages of the status line
 MSG_en["tui.msg.busy"]="A command is running: wait for it to finish or cancel it with x"
@@ -173,12 +176,12 @@ MSG_en["tui.con.hint"]=": type a command · ! in the terminal · Tab completes �
 MSG_en["tui.con.keys"]="Enter runs · Tab completes · {1} history · Ctrl+U/K/W delete · Ctrl+L clears · Ctrl+C cancels · Esc goes back"
 MSG_en["tui.con.theme_now"]="Current theme: {1}  (theme <name> changes it)"
 MSG_en["tui.con.bad_theme"]="There is no theme '{1}'. Available: {2}"
-MSG_en["tui.con.bad_view"]="Views: instances · resources · output · runs · procs · console · server · images"
+MSG_en["tui.con.bad_view"]="Views: instances · resources · output · runs · procs · console · server · images · env · activity"
 MSG_en["tui.con.history_empty"]="The history is empty."
 MSG_en["tui.con.shell_hint"]="You are in a normal shell inside the installation. Type exit to come back to the panel."
-MSG_en["tui.con.help"]="CONSOLE: type any deltactl command, without the prefix\n  status colorado · deploy colorado s1 · logs colorado s0 -f · check colorado\n\nPANEL COMMANDS\n  help               this help\n  clear  (Ctrl+L)    clear the console\n  theme [name]       show or change the theme (matrix cyber amber nord dracula mono)\n  history            the last commands\n  goto <view>        instances · resources · output · runs · procs · console · server · images\n  alias n=command    a short name for a command (alias lists · unalias n removes)\n  refresh · quit     refresh · leave\n\nKEYS\n  Enter runs · Tab completes · ↑↓ history · ←→ Home End move the cursor\n  Ctrl+U/K/W delete to the start / the end / the word · PgUp PgDn scroll\n  Ctrl+C cancels the command · a leading ! runs it in the terminal · a lone ! opens a shell"
+MSG_en["tui.con.help"]="CONSOLE: type any deltactl command, without the prefix\n  status colorado · deploy colorado s1 · logs colorado s0 -f · check colorado\n\nPANEL COMMANDS\n  help               this help\n  clear  (Ctrl+L)    clear the console\n  theme [name]       show or change the theme (matrix cyber amber nord dracula mono)\n  history            the last commands\n  goto <view>        instances · resources · output · runs · procs · console · server · images · env · activity\n  alias n=command    a short name for a command (alias lists · unalias n removes)\n  refresh · quit     refresh · leave\n\nKEYS\n  Enter runs · Tab completes · ↑↓ history · ←→ Home End move the cursor\n  Ctrl+U/K/W delete to the start / the end / the word · PgUp PgDn scroll\n  Ctrl+C cancels the command · a leading ! runs it in the terminal · a lone ! opens a shell"
 MSG_en["tui.msg.ctrl_c_again"]="Nothing to cancel: press Ctrl+C again (or q) to leave"
-MSG_en["tui.keys.logs"]="{1} move · Space pause · f follow · e errors · / filter · s search ([ ]) · z zoom · Tab pane · {2} back · q quit"
+MSG_en["tui.keys.logs"]="{1} move · Space pause · f follow · e errors · / filter · s search ([ ]) · { } service · z zoom · Tab pane · {2} back · q quit"
 MSG_en["tui.keys.zoom"]="z or Esc leave · Tab changes pane · {1} move · Space pause · f follow · e errors · / filter · s search · q quit"
 MSG_en["tui.keys.filter"]="Enter applies the filter · Esc cancels · an empty line removes it"
 MSG_en["tui.logs.follow"]="following"
@@ -197,7 +200,7 @@ MSG_en["tui.pal.options"]="Panel options"
 MSG_en["tui.pal.clear"]="Clear the console"
 MSG_en["tui.pal.quit"]="Quit"
 MSG_en["tui.keys.resources"]="{1} move · s sort · Enter open the instance · : command · ? help · q quit"
-MSG_en["tui.keys.output"]="{1} scroll · PgUp/PgDn · f follow · e errors · x cancel · : command · ? help · q quit"
+MSG_en["tui.keys.output"]="{1} scroll · PgUp/PgDn · f follow · v summary/raw · e errors · x cancel · : command · ? help · q quit"
 MSG_en["tui.keys.running"]="x cancel"
 
 # Actions of an instance
@@ -217,7 +220,7 @@ MSG_en["tui.confirm_stop"]="Stops {1} of '{2}' without removing it (./deltactl d
 
 # Help overlay
 MSG_en["tui.help_title"]="Keys"
-MSG_en["tui.help"]="VIEWS    1-8  Instances · Resources · Output · Runs · Processes · Console · Server · Images\n\nINSTANCES\n  ↑ ↓  (k j)          instance (the first row is + New) · → services · ← or Esc goes back\n  Tab  Shift+Tab      next / previous pane (instances · services · logs)\n  z                   zoom the focused pane (Esc closes it)\n  Logs (focused)      ↑ ↓ PgUp PgDn Home End scroll · / filters by text · Space pause · f follow · e errors · s search ([ ] jump)\n  Enter · l u c s     actions · logs · deploy · check · status\n  Ctrl+P              action palette (search: depl, logs, theme...)\n\nRUN\n  :  !                command (status colorado, logs x -f ...) · the same, in the terminal\n  x · n d i           cancel · new instance · diagnosis · images\n\nRESOURCES ↑ ↓ choose · s sorts (name, memory, CPU) · Enter opens the instance of the service\nOUTPUT   ↑ ↓ PgUp PgDn scroll · f follows the end · e only errors\nRUNS     ↑ ↓ choose · PgUp PgDn detail · t statistics (s: instance) · Enter output\nPROCESS  ↑ ↓ PgUp PgDn scroll the process tree\nCONSOLE  6 full screen · Esc lets go of the keyboard · Enter or : type again\nIMAGES   ↑ ↓ choose a version · Enter use in an instance · Space detail · l load a file · c copy · R read again\nSERVER   ↑ ↓ choose a requirement · Enter details · c copies the command · ! runs it (asks first) · m metrics · R checks again\nMOUSE    (in Options) click a tab or an instance (a second click: actions) · wheel\nGENERAL  r refresh · p pause · L language · T theme · o options · ? help · q or Esc quit"
+MSG_en["tui.help"]="VIEWS    1-9 0  Instances · Resources · Output · Runs · Processes · Console · Server · Images · Variables · Activity\n\nINSTANCES\n  ↑ ↓  (k j)          instance (the first row is + New) · → services · ← or Esc goes back\n  Tab  Shift+Tab      next / previous pane (instances · services · logs)\n  z                   zoom the focused pane (Esc closes it)\n  Logs (focused)      ↑ ↓ PgUp PgDn Home End scroll · / filters by text · Space pause · f follow · e errors · s search ([ ] jump)\n  Enter · l u c s     actions · logs · deploy · check · status\n  t · < >             the to-do rows of To deploy (Tab goes through them, Enter resolves them) · previous / next tab\n  / · S               filter the list by name · sort it (name, state, memory)\n  Ctrl+P              action palette (search: depl, logs, theme...)\n\nRUN\n  :  !                command (status colorado, logs x -f ...) · the same, in the terminal\n  x · n d i           cancel · new instance · diagnosis · images\n\nRESOURCES ↑ ↓ choose · s sorts (name, memory, CPU) · Enter opens the instance of the service\nOUTPUT   ↑ ↓ PgUp PgDn scroll · f follows the end · v summary or raw output · e only errors\nRUNS     ↑ ↓ choose · PgUp PgDn detail · t statistics (s: instance) · Enter output\nPROCESS  ↑ ↓ PgUp PgDn scroll the process tree\nCONSOLE  6 full screen · Esc lets go of the keyboard · Enter or : type again\nVARIABLES ↑ ↓ choose · Enter edits · g generates a secret · r shows it for a moment · d default value · a advanced · s saves · u saves and deploys\nACTIVITY ↑ ↓ choose an operation · ← → tab (summary, output, usage, processes) · PgUp PgDn Home End move the pane · Enter output · t usage (statistics) · v e f in the output · Output, Runs and Processes live here\nIMAGES   ↑ ↓ choose a version · Enter use in an instance · Space detail · l load a file · c copy · R read again\nSERVER   ↑ ↓ choose a requirement · Enter details · c copies the command · ! runs it (asks first) · m metrics · R checks again\nMOUSE    (in Options) click a tab or an instance (a second click: actions) · wheel\nGENERAL  r refresh · p pause · L language · T theme · o options · ? help · q or Esc quit"
 MSG_en["tui.help_close"]="Press any key to go back"
 MSG_en["tui.help_scroll"]="{1} PgUp PgDn scroll · another key goes back"
 MSG_en["tui.help.head.instances"]="INSTANCES"

@@ -1,0 +1,25 @@
+=== frame 1 ===
+
+ [1 Instancias]  2   3   4   5   6   7   8   9   0                             
+╭─┐nueva instancia┌──────────────────────────────────────────────┐instancia-1┌─╮
+│ ●━━━━━━━━●━━━━━━━━●━━━━━━━━●━━━━━━━━▲━━━━━━━━▲━━━━━━━━●━━━━━━━━◉  Paso 8 de 8│
+│ Nombre   Servicio Versione Datos    Variable Secretos Acceso   Revisión      │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─┐ ▸8 · Revisión ┌────────────────────────────────────────────────────────────╮
+│ ████████████████████████████▍░░░░░░░░░░░ 5 de 7 listos                       │
+│ ▲ Variables   faltan 3                                                       │
+│ ▲ Secretos    0 de 2                                                         │
+│                                                                              │
+│   [ Crear ]                                                                  │
+│   [ Crear y comprobar ]                                                      │
+│ ▸ [ Crear y desplegar ]                                                     │
+│ ▲ Esto arranca contenedores en este servidor. Pulsa Enter otra vez para crear│
+│   y desplegar; cualquier otra tecla lo cancela.                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+╰─┘Esc atrás└─┘Enter ejecutar└─┘Tab vista previa└──────────────────────────────╯
+
+ ↑↓ elegir botón · Enter lo ejecuta · c crea · Esc atrás · Tab vista previa

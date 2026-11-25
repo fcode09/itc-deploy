@@ -7,10 +7,10 @@
 # service), the commands that run inside the panel (lib/core/jobs.sh), the global keys, the mouse and the main loop.
 # Drawing the shared parts (header, tabs, dialog frame, key bar, the frame itself) is lib/cmd/dashboard_view.sh. Everything
 # else is a SCREEN in lib/screens/, registered in lib/screens/registry.sh (read its header for the contract, and to add one):
-#   views (tabs 1 to 8)  instances, resources, output, runs, procs, console, server, images
+#   views (tabs 1 to 9)  instances, resources, output, runs, procs, console, server, images, env (the variables of an instance)
 #   modes (they take the keyboard over a view)  menu, confirm, name, cmd, filter, find, wizard (the new-instance form),
 #                        palette, help, options, srvask (a question about the server's requirements), imguse (use a version in an instance),
-#                        imgload (load an image archive)
+#                        imgload (load an image archive), envedit (the variables editor has the keyboard)
 # The other interactive commands (the menu, a leading `!`) run in the terminal and come back.
 #
 # What keeps it light: it sleeps in `read -t` between keys; the figures come from the kernel through Bash builtins
@@ -24,6 +24,9 @@ source "$ROOT/lib/cmd/help.sh"
 source "$ROOT/lib/ui/tui.sh"
 source "$ROOT/lib/ui/layout.sh"
 source "$ROOT/lib/ui/kit/kit.sh"
+# The interpreter of what a command printed and the summary the Output view draws with it.
+source "$ROOT/lib/core/outparse.sh"
+source "$ROOT/lib/ui/outsummary.sh"
 source "$ROOT/lib/cmd/dashboard_view.sh"
 # The screens and the router (lib/screens/registry.sh): the views and modes below are the ones it registers.
 source "$ROOT/lib/screens/registry.sh"
@@ -34,6 +37,7 @@ DASH_SEL=0 DASH_SVC=0 DASH_RES_SEL=0 DASH_RES_SORT=name DASH_FOCUS=list DASH_ON_
 DASH_ZOOM=0 DASH_LOG_SCROLL=0 DASH_LOG_FILTER="" DASH_PAL_Q="" DASH_PAL_SEL=0
 DASH_PAL_ALL_L=() DASH_PAL_ALL_A=() DASH_PAL_LABELS=() DASH_PAL_ACTS=() DASH_PAL_RECENT=() PAL_SCORE=0
 DASH_OUT_SCROLL=0 DASH_OUT_ERRORS=0
+DASH_OUT_RAW=0 DASH_OUT_STOP=0 DASH_OUT_SUM=0   # the Output view: 1 = the raw text, the lines hidden above the summary, 1 while the summary is on screen
 DASH_PAUSED=0 DASH_DIRTY=1 DASH_QUIT=0 DASH_IDLE=0 DASH_SPIN=0 DASH_JOB_PENDING=0
 DASH_MSG="" DASH_MSG_KIND=info DASH_MSG_UNTIL=0
 DASH_HOST="" DASH_DOCKER_VER=""
@@ -104,6 +108,7 @@ dash_collect() {
 dash_after_collect() {
   [ "$DASH_SEL" -lt "${#DASH_NAMES[@]}" ] || DASH_SEL=$((${#DASH_NAMES[@]} - 1))
   [ "$DASH_SEL" -ge 0 ] || DASH_SEL=0
+  dash_nz_goto_inst   # (the instance that the wizard created is the one selected)
   # With no instance the only thing to select is the New button; the services have no focus when there are none.
   if [ "${#DASH_NAMES[@]}" -eq 0 ]; then DASH_ON_NEW=1 DASH_FOCUS=list; fi
   [ "$ST_DOCKER" -ne 1 ] || DK_READY_AT="$SECONDS"
@@ -348,6 +353,7 @@ dash_shutdown() {
   dash_async_stop
   DASH_EV_PID=""
   job_cleanup
+  if declare -F dash_nz_tmp_clean > /dev/null; then dash_nz_tmp_clean; fi   # (the answers of the wizard: a secret may be in them)
 }
 
 # --- Running commands ---------------------------------------------------------------------------------------
@@ -365,12 +371,15 @@ dash_start_job() { # view args...
   [ "$UI_COLOR" -ne 1 ] || color=always
   job_start "$*" env COLUMNS=$((TUI_COLS - 4)) DELTACTL_UI=rich DELTACTL_COLOR="$color" \
     DELTACTL_LANG="${DELTACTL_LANG_ACTIVE:-es}" "$ROOT/deltactl" "$@"
-  DASH_OUT_SCROLL=0 DASH_JOB_DONE=0
+  DASH_OUT_SCROLL=0 DASH_OUT_STOP=0 DASH_JOB_DONE=0
   # The console keeps what was run and what it printed (dash_con_mirror copies the output as it arrives).
   dash_prompt_name
   dash_con_add "${TH[accent]:-$C_CYN}$DASH_PN $(dash_prompt_glyph)$C_OFF ./deltactl $*"
   DASH_CON_SEQ="$JOB_SEQ" DASH_CON_COPIED=0
-  [ "$view" != "output" ] || DASH_VIEW=output
+  # The output of a command is shown in the Output view; from the Activity view it is that view's own tab Salida, on the new command.
+  if [ "$view" = "output" ]; then
+    if [ "$DASH_VIEW" = "activity" ]; then dash_act_follow_job; else DASH_VIEW=output; fi
+  fi
   dash_msg info "$(t tui.msg.started "$*")"
 }
 
@@ -400,8 +409,9 @@ dash_job_tick() {
     if [ $((DASH_SPIN % 2)) -eq 0 ]; then DASH_DIRTY=1 DASH_JOB_PENDING=0; fi
     return 0
   fi
-  # The command ended (or was never started): whatever was waiting is drawn now.
+  # The command ended (or was never started): whatever was waiting is drawn now, and the files with the answers of the wizard are gone.
   if [ "$DASH_JOB_PENDING" -eq 1 ]; then DASH_DIRTY=1 DASH_JOB_PENDING=0; fi
+  if [ "${#DASH_NZ_TMPS[@]}" -gt 0 ]; then dash_nz_tmp_clean; fi
   if [ -n "$JOB_PID" ] && [ -n "$JOB_RC" ] && [ "$DASH_JOB_DONE" != "$JOB_SEQ" ]; then
     DASH_JOB_DONE="$JOB_SEQ"
     dash_job_secs; secs="$DASH_JS"
@@ -416,6 +426,8 @@ dash_job_tick() {
     fi
     dash_refresh_request
     DASH_RUNS_AT=-1000   # the command left a run: the Runs view reads the history again
+    # The command that created an instance (the wizard's) ended: the wizard decides what comes next (open it, check it, deploy it, or open again).
+    if [ -n "$DASH_NZ_AFTER_SEQ" ] && [ "$DASH_NZ_AFTER_SEQ" = "$JOB_SEQ" ]; then dash_nz_after "$JOB_RC" "$JOB_CANCELLED"; fi
   fi
 }
 
@@ -491,7 +503,7 @@ dash_key_global() { # key ; returns 0 when handled
   case "$1" in
     q) DASH_QUIT=1 ;;
     esc) dash_screen_back ;;   # a step back inside the view (the statistics, the zoom, the pane), else the first view, else quit
-    [1-9]) dash_screen_by_number "$1" || return 1; dash_screen_goto "$DASH_SCR_ID" ;;   # the view of that tab
+    [0-9]) dash_screen_by_number "$1" || return 1; dash_screen_goto "$DASH_SCR_ID" ;;   # the view of that tab
     tab) dash_screen_tab 1 ;;
     btab) dash_screen_tab -1 ;;
     $'\020') dash_open_palette ;;                                    # Ctrl+P
@@ -592,7 +604,9 @@ dash_mouse() {
         dash_con_clamp
         return 0
       fi
-      case "$DASH_MODE" in name | filter | find | confirm | wizard) return 0 ;; help) [ "$DASH_HELP_MAX" -gt 0 ] || return 0 ;; esac
+      case "$DASH_MODE" in name | filter | lfilter | accdom | find | confirm | wizard) return 0 ;; help) [ "$DASH_HELP_MAX" -gt 0 ] || return 0 ;; esac
+      # A view can take the wheel for itself (Activity: the list under the pointer moves the cursor, the pane scrolls).
+      if [ "$DASH_MODE" = "normal" ] && declare -F "scr_${DASH_VIEW}_wheel" > /dev/null; then "scr_${DASH_VIEW}_wheel" "$b" "$x" "$y"; return 0; fi
       if [ "$b" -eq 64 ]; then TUI_KEY=up; else TUI_KEY=down; fi
       dash_handle_key
       return 0
@@ -600,7 +614,11 @@ dash_mouse() {
     0) ;;
     *) return 0 ;;
   esac
-  [ "$DASH_MODE" = "normal" ] || return 0
+  if [ "$DASH_MODE" != "normal" ]; then
+    # A mode that has a click hook (the bar of steps of the new-instance wizard) takes the click; the others ignore the mouse.
+    if declare -F "scr_${DASH_MODE}_click" > /dev/null; then "scr_${DASH_MODE}_click" "$x" "$y"; fi
+    return 0
+  fi
   if [ "$y" -eq 2 ]; then
     if dash_tab_at "$x"; then dash_key_global "$DASH_TAB_I"; fi
     return 0

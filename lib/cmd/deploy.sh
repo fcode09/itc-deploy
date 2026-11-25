@@ -185,6 +185,9 @@ deploy_up() { # explicit instance service...
   fi
 
   info "$(t deploy.starting)"
+  # The sums of the environment files, before compose reads them: `up --wait` can take minutes, and what is changed meanwhile is not
+  # in the containers, so it has to show as pending afterwards.
+  envedit_snapshot "$name" "$((1 - explicit))" "$@"
   if ! dk_compose "$name" ${pargs[@]+"${pargs[@]}"} up -d ${upflags[@]+"${upflags[@]}"} \
       --wait --wait-timeout "${WAIT_TIMEOUT:-300}" ${svcs[@]+"${svcs[@]}"}; then
     warn "$(t deploy.not_healthy)"
@@ -197,6 +200,9 @@ deploy_up() { # explicit instance service...
     set_var "$dir/.deployed" "$(tag_var "$svc")" "$(get_var "$dir/.env.instance" "$(tag_var "$svc")")"
     set_var "$dir/.deployed" "${svc^^}_IMAGE_ID" "$(dk_image_id "$(service_image_ref "$name" "$svc")")"
   done
+  # What the environment files were when this deploy ended well: `env pending` compares against it. The .env.instance belongs to the
+  # whole instance, so only a deploy of all of it marks it.
+  envedit_mark_snapshot "$name" || true
   dk_compose "$name" --profile '*' ps
 }
 

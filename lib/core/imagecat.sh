@@ -8,9 +8,10 @@
 #
 # The rules (the same ones `images`, `new --sN-tag latest` and the panel's version picker use):
 #   1. The versions of an image are ordered by CREATION DATE of the image, the newest first. That is a fact Docker knows; a tag is only a name.
-#   2. The star (★) is the newest one that (a) is a version (its tag looks like 1.2.3, v1.2.3, 2026.11.3 or 1.2.3-rc1) and (b) can run on this
-#      server (its architecture is the server's, or one of the two is not known). `latest` and tags that are not versions are NEVER the star:
-#      they move, and going back to them is not possible (kind "latest" and "other": ▲ in the screens).
+#   2. The star (★) is the newest one that (a) is a STABLE version (its tag looks like 1.2.3, v1.2.3, 2026.11.3 or 1.2; one with a suffix such as
+#      1.2.3-rc1, 1.2.3-debug or 1.2.3-alpine is a version too, and is listed, but never the star) and (b) can run on this server (its
+#      architecture is the server's, or one of the two is not known). `latest` and tags that are not versions are NEVER the star: they move,
+#      and going back to them is not possible (kind "latest" and "other": ▲ in the screens). With only suffixed tags there is no star.
 #   3. If the tags are versions and the order by version disagrees with the order by date (2.13.2 was built after 2.14.0), the star is still
 #      the newest by date and the group says so (IC_DISC): usually the old one was rebuilt, and the person should look.
 #   4. An image built for another architecture is not an option (IC_OK=0).
@@ -18,6 +19,8 @@
 # What loading leaves (index i is one tag of one image; the groups are service + image name):
 #   IC_N                     how many tags
 #   IC_SVC IC_REPO IC_TAG IC_ID IC_ARCH IC_SINCE IC_SIZE      as Docker said them (IC_ARCH is ? when it is not known)
+#   IC_FULL[i]               the name Docker gives the image, with its registry if it has one ("reg.io/auth-backend"); IC_REPO is the name of
+#                            the group ("auth-backend"), which also holds the tags loaded as "<registry>/auth-backend"
 #   IC_EPOCH[i]              creation date in seconds since 1970 (0 when Docker gave none)
 #   IC_KIND[i]               ver | latest | other
 #   IC_VNUM[i] IC_VPRE[i]    the version of a "ver" tag: its dotted numbers and its pre-release ("rc1"), both without the leading v
@@ -31,7 +34,7 @@
 #   IC_SERVER_ARCH           the server's architecture
 
 IC_N=0 IC_SERVER_ARCH=""
-IC_SVC=() IC_REPO=() IC_TAG=() IC_ID=() IC_ARCH=() IC_SINCE=() IC_SIZE=() IC_EPOCH=() IC_KIND=() IC_VNUM=() IC_VPRE=() IC_OK=() IC_STAR=() IC_USE=()
+IC_SVC=() IC_REPO=() IC_FULL=() IC_TAG=() IC_ID=() IC_ARCH=() IC_SINCE=() IC_SIZE=() IC_EPOCH=() IC_KIND=() IC_VNUM=() IC_VPRE=() IC_OK=() IC_STAR=() IC_USE=()
 IC_GROUPS=()
 declare -gA IC_ORDER=() IC_STARIDX=() IC_DISC=() IC_USED=() IC_REPOS=()
 
@@ -126,9 +129,38 @@ ic_version() { # tag
   IC_VN="${BASH_REMATCH[1]}" IC_VP="${BASH_REMATCH[4]}"
 }
 
+# Compares two pre-releases the way semver does, into IC_CMP: field by field (they are separated by dots); two numbers compare as numbers
+# (rc.10 > rc.9), two words by their bytes (never by the collation of the language of the user: RC2 < rc1), a number is lower than a word, and
+# when the first fields are the same the one with more fields is higher (rc.1 < rc.1.1).
+ic_precmp() { # pre_a pre_b
+  local LC_ALL=C
+  local -a a b
+  local n i x y
+  IC_CMP=0
+  IFS=. read -ra a <<< "$1"
+  IFS=. read -ra b <<< "$2"
+  n="${#a[@]}"
+  [ "${#b[@]}" -ge "$n" ] || n="${#b[@]}"   # the fields both have
+  for ((i = 0; i < n; i++)); do
+    x="${a[$i]}" y="${b[$i]}"
+    [ "$x" != "$y" ] || continue
+    if [[ "$x" =~ ^[0-9]+$ ]] && [[ "$y" =~ ^[0-9]+$ ]]; then
+      while [[ "$x" == 0?* ]]; do x="${x#0}"; done
+      while [[ "$y" == 0?* ]]; do y="${y#0}"; done
+      if [ "${#x}" -ne "${#y}" ]; then [ "${#x}" -gt "${#y}" ] && IC_CMP=1 || IC_CMP=-1; return 0; fi
+      [ "$x" != "$y" ] || continue
+    elif [[ "$x" =~ ^[0-9]+$ ]]; then IC_CMP=-1; return 0
+    elif [[ "$y" =~ ^[0-9]+$ ]]; then IC_CMP=1; return 0; fi
+    if [[ "$x" > "$y" ]]; then IC_CMP=1; else IC_CMP=-1; fi
+    return 0
+  done
+  if [ "${#a[@]}" -gt "${#b[@]}" ]; then IC_CMP=1; elif [ "${#a[@]}" -lt "${#b[@]}" ]; then IC_CMP=-1; fi
+  return 0
+}
+
 # Compares two versions (dotted numbers, then pre-release) into IC_CMP: 1 when the first is higher, -1 when lower, 0 when they are the same.
 # Numbers are compared as numbers (1.2.10 > 1.2.9), a missing number is 0 (1.2 = 1.2.0) and a pre-release is lower than the release (1.2.3-rc1 <
-# 1.2.3); two pre-releases compare as text.
+# 1.2.3); two pre-releases compare as ic_precmp says.
 IC_CMP=0
 ic_vcmp() { # numbers_a pre_a numbers_b pre_b
   local -a a b
@@ -145,8 +177,8 @@ ic_vcmp() { # numbers_a pre_a numbers_b pre_b
   done
   if [ -z "$2" ] && [ -n "$4" ]; then IC_CMP=1
   elif [ -n "$2" ] && [ -z "$4" ]; then IC_CMP=-1
-  elif [[ "$2" > "$4" ]]; then IC_CMP=1
-  elif [[ "$2" < "$4" ]]; then IC_CMP=-1; fi
+  elif [ -n "$2" ]; then ic_precmp "$2" "$4"; fi
+  return 0
 }
 
 # --- Use by instances ------------------------------------------------------------------------------------------------
@@ -202,9 +234,9 @@ ic_arch_fetch() { # id...
 # do not use yet (the one a person is typing in the wizard) to the groups.
 ic_load() {
   local extra full tag id since size created svc repo i g j line sid arch star found nxt_done
-  local -a raw=() ids=() order=() cand=() nxt=()
+  local -a raw=() ids=() order=() cand=() bare=() nxt=()
   local -A seen=()
-  IC_N=0 IC_SVC=() IC_REPO=() IC_TAG=() IC_ID=() IC_ARCH=() IC_SINCE=() IC_SIZE=() IC_EPOCH=() IC_KIND=() IC_VNUM=() IC_VPRE=() IC_OK=() IC_STAR=() IC_USE=()
+  IC_N=0 IC_SVC=() IC_REPO=() IC_FULL=() IC_TAG=() IC_ID=() IC_ARCH=() IC_SINCE=() IC_SIZE=() IC_EPOCH=() IC_KIND=() IC_VNUM=() IC_VPRE=() IC_OK=() IC_STAR=() IC_USE=()
   IC_GROUPS=() IC_ORDER=() IC_STARIDX=() IC_DISC=()
   dk_ready || return 1
   IC_SERVER_ARCH="$(server_arch)"
@@ -224,7 +256,7 @@ ic_load() {
         [ -n "$tag" ] && [ "$tag" != "<none>" ] || continue
         case "$full" in "$repo" | */"$repo") ;; *) continue ;; esac
         i="$IC_N"
-        IC_SVC[i]="$svc" IC_REPO[i]="$repo" IC_TAG[i]="$tag" IC_ID[i]="$id" IC_SINCE[i]="$since" IC_SIZE[i]="$size"
+        IC_SVC[i]="$svc" IC_REPO[i]="$repo" IC_FULL[i]="$full" IC_TAG[i]="$tag" IC_ID[i]="$id" IC_SINCE[i]="$since" IC_SIZE[i]="$size"
         if ic_epoch "$created"; then IC_EPOCH[i]="$IC_E"; else IC_EPOCH[i]=0; fi
         if [ "$tag" = latest ]; then IC_KIND[i]=latest IC_VNUM[i]="" IC_VPRE[i]=""
         elif ic_version "$tag"; then IC_KIND[i]=ver IC_VNUM[i]="$IC_VN" IC_VPRE[i]="$IC_VP"
@@ -264,11 +296,17 @@ ic_load() {
     done
     IC_ORDER[$g]="${order[*]-}"
     star=-1
-    cand=()
+    cand=() bare=()
     for i in ${order[@]+"${order[@]}"}; do
-      [ "${IC_KIND[$i]}" = ver ] && [ "${IC_OK[$i]}" -eq 1 ] && [ "${IC_EPOCH[$i]}" -gt 0 ] || continue
+      # A stable version only: 2.0.0-rc1, 2.14.0-debug or 2.0.0-alpine are listed and can be chosen by hand, but "the most recent version" is
+      # never one of them (an instance of a municipality must not be moved to a release candidate or a variant by a date).
+      [ "${IC_KIND[$i]}" = ver ] && [ -z "${IC_VPRE[$i]}" ] && [ "${IC_OK[$i]}" -eq 1 ] && [ "${IC_EPOCH[$i]}" -gt 0 ] || continue
       cand+=("$i")
+      [ "${IC_FULL[$i]}" != "$repo" ] || bare+=("$i")
     done
+    # An instance with local images (the default, and the only ones `new` makes) runs <image>:<tag> and never pulls: a tag that is only loaded
+    # under the name of a registry is not one it can run. The star is chosen among the tags loaded under the bare name when there are any.
+    if [ "${#bare[@]}" -gt 0 ]; then cand=("${bare[@]}"); fi
     if [ "${#cand[@]}" -gt 0 ]; then
       star="${cand[0]}"
       IC_STAR[star]=1

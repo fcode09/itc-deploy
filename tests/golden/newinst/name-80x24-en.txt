@@ -1,0 +1,25 @@
+=== frame 1 ===
+
+ [1 Instances]  2   3   4   5   6   7   8   9   0                              
+╭─┐new instance┌─────────────────────────────────────────────────┐instancia-1┌─╮
+│ ◉━━━━━━━━○━━━━━━━━○━━━━━━━━○━━━━━━━━○━━━━━━━━○━━━━━━━━○━━━━━━━━○  Step 1 of 8│
+│ Name     Services Versions Data     Variable Secrets  Access   Review        │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─┐ ▸1 · Name ┌────────────────────────────────────────────────────────────────╮
+│                                                                              │
+│ What is the instance called? It is the name of its folder and its containers:│
+│ lowercase letters, digits and hyphen; it starts with a letter.               │
+│                                                                              │
+│ Name     ● instancia-1                                                       │
+│                                                                              │
+│ ● Available: no folder, project or Docker network has that name.             │
+│                                                                              │
+│ It will be created in instances/instancia-1                                  │
+│                                                                              │
+│ Proposed: the first free one. Type to change it.                             │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+╰─┘Esc back└─┘Enter next└─┘Tab preview└────────────────────────────────────────╯
+
+ Enter next · Esc back · Tab preview

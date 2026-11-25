@@ -1,0 +1,31 @@
+=== frame 1 ===
+  ITC  testhost · Memoria ███░░░ 5.6/11.5 GB 48% ▄▃▂▅▃▂ · Carga 3.18 · Docker 27.0.0 · contenedores 1.5G
+ [1 Instancias] 2 Recursos 3 Salida 4 Ejecuciones 5 Procesos 6 Consola 7 Servidor 8 Imágenes 9 Variables 0 Actividad   
+╭─ Instancias ───────────────────────╮ Resumen [Acceso] Historial  Servicios  Variables  Datos                          
+│   + Nueva instancia                │╭─┐ ▸ix-colorado ┌─┐Acceso┌─────────────────────────────┐● nginx detectado aquí┌─╮
+│               n/m      mem    cpu  ││ Dominio   ● ejemplo.pe                                                         │
+│ ▸ ●● ix-colorado 2/2    1.3G  25.1%││ Proxy     ○ nginx   ● caddy   nginx detectado aquí                             │
+│   ●✖ ix-lima  1/2    180M   1.2%   ││ HTTPS     sí   Caddy lo pide y lo renueva solo                                 │
+│   ✖✖ ix-piura 0/2       -      -   ││                                                                                │
+╰────────────────────────────────────╯│   Servicio Puerto   En este servidor   Nombre público                          │
+╭─ Servidor ─────────────────────────╮│ ▸ ● s0      :4100    responde           auth-backend.ejemplo.pe                │
+│ Memoria █████░░░░░ 5.6/11.5 GB 48% ││   ✖ s1      :4101    sin respuesta      gueo-back-end.ejemplo.pe               │
+│              ▃                     ││                                                                                │
+│              █   ▄                 ││ Bloque de caddy  ○ sin guardar  proxy/Caddyfile                                │
+│  ▁  ▄  ▄  █  ██  █     ▂  ▃  ▂  ▆  ││ Va en tu Caddyfile · caddy reload --config /etc/caddy/Caddyfile · aquí no se es│
+│  █▁ █▂ █▁ █▅ ██▆ █  █  █  █  █▃ █▂ ││                                                                                │
+│  ██ ██ ██▁██▁███▅█▄ █▄ █▇ █▇ ██ ██ ││ # s0                                                                           │
+│ ▃██▆██▆████████████ ██▁██▅██▄█████▇││ auth-backend.ejemplo.pe {                                                      │
+│ Carga 3.18                         ││     reverse_proxy 127.0.0.1:4100                                               │
+│ contenedores 1.5G                  ││ }                                                                              │
+╰────────────────────────────────────╯╰─┘Enter dominio└─┘b bloque└─┘w https└─┘y copiar└─┘g guardar└─┘< > pestaña└──────╯
+╭─ Consola ────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│ ix-colorado ❯ : escribe un comando · ! en el terminal · Tab completa · ↑ historial · help                            │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+ ↑↓ servicio · Enter dominio · b otro proxy · w https · y copiar · g guardar · z ampliar · ? ayuda · q salir

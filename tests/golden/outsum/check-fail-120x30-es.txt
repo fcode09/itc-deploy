@@ -1,0 +1,31 @@
+=== frame 1 ===
+
+  1   2  [3 Salida]  4   5   6   7   8   9   0                            ✖ ./deltactl check sim-01 terminó con error 1
+╭─ ▸Salida · ./deltactl check sim-01 · terminó con error 1 00:42 · resumen · ● 5 ✖ 2 ──────────────────────────────────╮
+│ Comprobación de 'sim-01'                                                                                             │
+│                                                                                                                      │
+│   servicios  s0 s1                                                                                                   │
+│                                                                                                                      │
+│   ● Configuración completa (variables obligatorias, nombres de imagen y secretos)                                    │
+│   ● El compose de la instancia es válido                                                                             │
+│   ✖ s0: falta la imagen auth-backend:1.0 en este servidor                                                            │
+│       Cárgala con ./deltactl load <archivo> · etiquetas disponibles: ./deltactl images                               │
+│   ✖ s1: falta la imagen gueo-back-end:1.0 en este servidor                                                           │
+│       Cárgala con ./deltactl load <archivo> · etiquetas disponibles: ./deltactl images                               │
+│   ● s0: puerto 4100 libre                                                                                            │
+│   ● s1: puerto 4101 libre                                                                                            │
+│   ● Datos: init (marcador .initialized presente)                                                                     │
+│   ℹ Bases de datos: no probadas. Añade --mongo para comprobar la conexión de cada servicio                           │
+│   → Ayuda: ./deltactl help solucion-problemas · variables: ./deltactl help variable                                  │
+│                                                                                                                      │
+│ ✖ 2 error(es), 0 aviso(s): corrige los errores antes de ./deltactl deploy sim-01                                     │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+ ↑↓ desplazar · PgUp/PgDn · f seguir · v resumen/crudo · e errores · x cancelar · : comando · ? ayuda · q salir

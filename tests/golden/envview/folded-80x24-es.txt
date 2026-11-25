@@ -1,0 +1,25 @@
+=== frame 1 ===
+
+  1   2   3   4   5   6   7   8  [9 Variables]  0                              
+╭─┐ ▸⁹variables ┌─┐ix-colorado┌──────────────────────────────┐6 sin completar┌─╮
+│ ▸ .env.instance                                                 12 variables │
+│ ▸ .env.s0                                      9 variables · 2 sin completar │
+│ ▾ .env.s1                                     27 variables · 4 sin completar │
+│ ▲ IP_SERVER                  http://CAMBIAR-direccion-del-ser  por completar │
+│ ● AUTH_URL                   http://s0:3200                                  │
+│ ▲ JWT_SECRET                 (vacía)                             obligatoria │
+│ ● MONGO_DELTA_DISPATCH_URI   ⚿ ••••••••••                                    │
+│ ● MONGO_AUTHSOFTWARE_URI     ⚿ ••••••••••                                    │
+│ ● MONGO_ROBIN_URI            ⚿ ••••••••••                                    │
+│ ● FCM_CERT                   /run/secrets/fcm.json                           │
+│ ● KEEPER_FCM_CERT            /run/secrets/keeper-fcm.json                    │
+│ ▲ FEDERATION_ENCRYPTION_KEY  (vacía)                             obligatoria │
+│ ● SERVERS_CONFIG             ⚿ ••••••••••                                    │
+│ ▲ DEEPGRAM_API_KEY           (vacía)                             obligatoria │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ .env.s0  sin marca de despliegue                                             │
+│ La marca se crea al terminar el próximo deploy; hasta entonces no se sabe    │
+│ qué cambió.                                                                  │
+╰─┘Enter editar└─┘g generar└─┘r revelar└─┘d defecto└─┘s guardar└─┘u desplegar└─╯
+
+ ↑↓ mover · Enter pliega · a avanzadas · s guardar · [/] instancia · Esc sale

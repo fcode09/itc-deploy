@@ -167,6 +167,11 @@ host_now_us() {
   fi
 }
 
+# The hooks that run a program in place of the real one (DELTACTL_DF, DELTACTL_CLIP, DELTACTL_PR_SHELL) only work inside the tests
+# (tests/run.sh exports DELTACTL_TEST_ISOLATED=1). A variable inherited by chance from an environment must never change which program
+# runs: the command the person confirmed has to be the one that runs.
+host_test_hook() { [ -n "${DELTACTL_TEST_ISOLATED:-}" ]; }
+
 # --- Live figures of the whole server (the Server screen) -----------------------------------------------
 # Same rules as above: only Bash builtins, no process per reading, every function returns 1 and leaves its results empty when its
 # source does not exist (WSL, a container, a kernel without sensors), so the screen can say "not available" instead of failing.
@@ -177,40 +182,39 @@ host_now_us() {
 # HOST_CPU_PCT[1..N] each core. The first reading only stores the counters (it returns 0 with HOST_CPU_READY=0).
 HOST_CPU_N=0 HOST_CPU_READY=0
 declare -ga HOST_CPU_PCT=()
-declare -ga HOST_CPU_PREV_TOTAL=() HOST_CPU_PREV_IDLE=()
+declare -gA HOST_CPU_PREV_TOTAL=() HOST_CPU_PREV_IDLE=()   # by name (cpu, cpu0, cpu2...): a core that is offline leaves a gap in /proc/stat
 host_cpu_read() {
   local f="${DELTACTL_PROC_ROOT:-/proc}/stat" name u n s idle iow irq sirq steal rest total i dt di
-  local -a cur_t=() cur_i=()
+  local -a names=() cur_t=() cur_i=()   # in the order of the file: the whole processor first, then each core that is there
   [ -r "$f" ] || { HOST_CPU_N=0 HOST_CPU_READY=0; HOST_CPU_PCT=(); return 1; }
   # (the cpu lines come first: the first line that is not one ends the loop, which spares reading the long "intr" line again)
   while read -r name u n s idle iow irq sirq steal rest; do
     case "$name" in
-      cpu) i=0 ;;
-      cpu[0-9]*) i=$((${name#cpu} + 1)) ;;
+      cpu | cpu[0-9]*) ;;
       *) break ;;
     esac
     case "$u" in '' | *[!0-9]*) continue ;; esac
     total=$((u + n + s + idle + ${iow:-0} + ${irq:-0} + ${sirq:-0} + ${steal:-0}))
-    cur_t[i]="$total"
-    cur_i[i]=$((idle + ${iow:-0}))
+    names+=("$name") cur_t+=("$total") cur_i+=("$((idle + ${iow:-0}))")
   done < "$f"
-  [ "${#cur_t[@]}" -gt 0 ] || { HOST_CPU_N=0 HOST_CPU_READY=0; HOST_CPU_PCT=(); return 1; }
-  HOST_CPU_N=$((${#cur_t[@]} - 1))
+  [ "${#names[@]}" -gt 0 ] || { HOST_CPU_N=0 HOST_CPU_READY=0; HOST_CPU_PCT=(); return 1; }
+  HOST_CPU_N=$((${#names[@]} - 1))
   HOST_CPU_READY=0
-  if [ "${#HOST_CPU_PREV_TOTAL[@]}" -eq "${#cur_t[@]}" ]; then
+  HOST_CPU_PCT=()
+  if [ "${#HOST_CPU_PREV_TOTAL[@]}" -gt 0 ]; then
     HOST_CPU_READY=1
-    for i in "${!cur_t[@]}"; do
-      dt=$((cur_t[i] - HOST_CPU_PREV_TOTAL[i])) di=$((cur_i[i] - HOST_CPU_PREV_IDLE[i]))
+    for i in "${!names[@]}"; do
+      if [ -z "${HOST_CPU_PREV_TOTAL[${names[i]}]+x}" ]; then HOST_CPU_PCT[i]=0; continue; fi   # a core that just appeared
+      dt=$((cur_t[i] - HOST_CPU_PREV_TOTAL[${names[i]}])) di=$((cur_i[i] - HOST_CPU_PREV_IDLE[${names[i]}]))
       if [ "$dt" -gt 0 ] && [ "$di" -ge 0 ] && [ "$di" -le "$dt" ]; then
         HOST_CPU_PCT[i]=$((((dt - di) * 100 + dt / 2) / dt))
       else
         HOST_CPU_PCT[i]=0
       fi
     done
-  else
-    HOST_CPU_PCT=()
   fi
-  HOST_CPU_PREV_TOTAL=("${cur_t[@]}") HOST_CPU_PREV_IDLE=("${cur_i[@]}")
+  HOST_CPU_PREV_TOTAL=() HOST_CPU_PREV_IDLE=()
+  for i in "${!names[@]}"; do HOST_CPU_PREV_TOTAL[${names[i]}]="${cur_t[i]}" HOST_CPU_PREV_IDLE[${names[i]}]="${cur_i[i]}"; done
   return 0
 }
 
@@ -451,29 +455,41 @@ host_disks_read() {
 
 # Use of those filesystems, in KB: HOST_DISK_TOTAL[i], HOST_DISK_USED[i], HOST_DISK_PCT[i]. The kernel gives no file for this, so it runs
 # ONE `df` for all the mount points and keeps the answer for HOST_DISK_TTL seconds (30 by default), whatever the panel's rate of
-# frames. Call host_disks_read first. DELTACTL_DF replaces the program (tests).
-HOST_DISK_TTL=30 HOST_DISK_USAGE_AT=0
+# frames. Call host_disks_read first. DELTACTL_DF replaces the program (only inside the tests).
+HOST_DISK_TTL=30 HOST_DISK_USAGE_AT=0 HOST_DISK_USAGE_N=-1 HOST_DF_TIMEOUT=3
 declare -ga HOST_DISK_TOTAL=() HOST_DISK_USED=() HOST_DISK_PCT=()
 host_disk_usage_read() {
-  local now dev total used avail pct mnt i out line
+  local now dev total used avail pct mnt i out="" line dfp=df
   [ "$HOST_DISK_N" -gt 0 ] || return 1
-  now="${EPOCHSECONDS:-0}"
-  if [ "${HOST_FAKE_NOW_US:-}" != "" ]; then now=$((HOST_FAKE_NOW_US / 1000000)); fi
-  if [ "${#HOST_DISK_TOTAL[@]}" -eq "$HOST_DISK_N" ] && [ $((now - HOST_DISK_USAGE_AT)) -lt "$HOST_DISK_TTL" ]; then return 0; fi
-  # (a network mount that hangs would hang df, and the panel with it: a 3 s limit when `timeout` exists)
-  if [ -z "${DELTACTL_DF:-}" ] && host_has timeout; then
-    out="$(timeout 3 df -Pk "${HOST_DISK_MNT[@]}" 2>/dev/null)" || [ -n "$out" ] || return 1
-  else
-    out="$("${DELTACTL_DF:-df}" -Pk "${HOST_DISK_MNT[@]}" 2>/dev/null)" || [ -n "$out" ] || return 1
+  if host_test_hook && [ -n "${DELTACTL_DF:-}" ]; then dfp="$DELTACTL_DF"; fi
+  if [ -n "${HOST_FAKE_NOW_US:-}" ]; then now=$((HOST_FAKE_NOW_US / 1000000))
+  elif [ -n "${EPOCHSECONDS:-}" ]; then now="$EPOCHSECONDS"            # (Bash 5.0 and later)
+  else printf -v now '%(%s)T' -1; fi                                    # (Bash 4.x: a builtin too, no process)
+  # Asked once per TTL for the same list of mounts, whether df answered or not: a df that fails (a hung network mount) is not retried on
+  # every sample, which would freeze the panel for HOST_DF_TIMEOUT seconds over and over.
+  if [ "$HOST_DISK_USAGE_N" = "$HOST_DISK_N" ] && [ $((now - HOST_DISK_USAGE_AT)) -lt "$HOST_DISK_TTL" ]; then
+    [ "${#HOST_DISK_TOTAL[@]}" -gt 0 ]
+    return
   fi
+  HOST_DISK_USAGE_N="$HOST_DISK_N" HOST_DISK_USAGE_AT="$now"
   HOST_DISK_TOTAL=() HOST_DISK_USED=() HOST_DISK_PCT=()
+  # (a network mount that hangs would hang df, and the panel with it: a limit when `timeout` exists, and a kill if it ignores the first signal)
+  if host_has timeout; then
+    out="$(timeout -k 1 "$HOST_DF_TIMEOUT" "$dfp" -Pk "${HOST_DISK_MNT[@]}" 2>/dev/null)" || [ -n "$out" ] || return 1
+  else
+    out="$("$dfp" -Pk "${HOST_DISK_MNT[@]}" 2>/dev/null)" || [ -n "$out" ] || return 1
+  fi
   while read -r dev total used avail pct mnt; do
     [[ "$total" =~ ^[0-9]+$ ]] || continue
+    [[ "$used" =~ ^[0-9]+$ ]] || used=0
+    pct="${pct%\%}"
+    if ! [[ "$pct" =~ ^[0-9]+$ ]]; then   # a filesystem with 0 blocks says "-": always a number, the panel formats it with %d
+      if [ "$total" -gt 0 ]; then pct=$(((used * 100 + total / 2) / total)); else pct=0; fi
+    fi
     for i in "${!HOST_DISK_MNT[@]}"; do
       [ "${HOST_DISK_MNT[i]}" = "$mnt" ] || continue
-      HOST_DISK_TOTAL[i]="$total" HOST_DISK_USED[i]="$used" HOST_DISK_PCT[i]="${pct%\%}"
+      HOST_DISK_TOTAL[i]="$total" HOST_DISK_USED[i]="$used" HOST_DISK_PCT[i]="$pct"
     done
   done <<< "$out"
-  HOST_DISK_USAGE_AT="$now"
   [ "${#HOST_DISK_TOTAL[@]}" -gt 0 ]
 }

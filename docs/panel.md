@@ -11,9 +11,10 @@ se está ejecutando, actualizado solo. Fuera de una terminal (una tubería, `TER
 | --- | --- | --- |
 | `1` | Instancias | La lista de instancias, el detalle de la seleccionada (servicios, memoria, CPU, errores), sus gráficos y sus logs en vivo, y la consola debajo |
 | `2` | Recursos | Todos los servicios de todas las instancias en una tabla; `s` ordena por nombre, memoria o CPU |
-| `3` | Salida | La salida completa del último comando |
+| `3` | Salida | El resultado del último comando: de `new`, `check`, `deploy`, `init`, `doctor`, `images` y `env` un resumen con iconos, secciones y veredicto (`v` pasa a la salida cruda); de cualquier otro, la salida completa |
 | `4` | Ejecuciones | El historial de operaciones (deploy, init, rollback...) con su consumo, la comparación con las anteriores y sus logs guardados |
 | `5` | Procesos | De qué está hecho el comando que se está ejecutando y cuánto cuesta el propio panel |
+| `0` | Actividad | Todo lo que se ha ejecutado en una lista (el comando de este panel, lo que está en marcha en cualquier terminal y lo reciente de todas las instancias) y, de la elegida, cuatro pestañas: Resumen, Salida, Consumo y Procesos. Junta las vistas 3, 4 y 5, que siguen un tiempo |
 | `6` | Consola | La consola a pantalla completa, lista para escribir |
 | `7` | Servidor | Qué necesita el servidor para funcionar (con el comando para instalarlo) y cómo va: CPU, memoria, discos, red y contenedores |
 | `8` | Imágenes | Qué versiones de cada servicio hay cargadas en este Docker, cuál es la más reciente, quién usa cuál; usar una versión en una instancia y cargar un archivo |
@@ -126,6 +127,14 @@ se aplica al momento y se guarda en `~/.config/deltactl/config`. Las variables `
   acciones; la rueda desplaza. Mientras está activo, el texto se selecciona con Mayús.
 - **Aviso de requisitos** (activado por defecto, `TUI_PREREQ`): avisa al abrir el panel y al crear una instancia si falta algo obligatorio
   del servidor (ver «Servidor y requisitos»).
+
+- **Asistente de nueva instancia por pasos**: `n` abre un asistente de ocho pasos con una barra de progreso (Nombre, Servicios, Versiones, Datos,
+  Variables, Secretos, Acceso y Revisión), una vista previa de lo que se creará y el comando `./deltactl new …` equivalente. Enter sigue con lo propuesto,
+  Esc vuelve, los dígitos y el clic saltan a un paso ya visitado y Tab muestra la vista previa en una pantalla estrecha. Comprueba que el nombre esté libre
+  también en Docker (proyectos y redes), no solo en la carpeta `instances/`. **Nada se escribe hasta la Revisión**, que dice cuántos pasos están listos y
+  tiene tres botones: *Crear*, *Crear y comprobar* (después corre `check`) y *Crear y desplegar* (pide Enter otra vez, porque arranca contenedores). Al
+  terminar abre la instancia en la vista Instancias; si falla, el asistente vuelve con todas las respuestas, en el primer paso que no pasa. El formulario
+  antiguo vuelve con `TUI_WIZARD=1` en el archivo de configuración (o `DELTACTL_WIZARD=1`).
 
 También: `T` cambia de tema, `L` de idioma, `p` pausa la actualización, `r` refresca, `n` crea una instancia, `d` diagnóstico,
 `i` imágenes.

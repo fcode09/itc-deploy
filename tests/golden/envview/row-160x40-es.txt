@@ -1,0 +1,41 @@
+=== frame 1 ===
+
+  1 Instancias   2 Recursos   3 Salida   4 Ejecuciones   5 Procesos   6 Consola   7 Servidor   8 Imágenes  [9 Variables]  0 Actividad                          
+╭─┐ ▸⁹variables ┌─┐ix-colorado┌────────────────────────────────────────────────────────────────────┐6 sin completar┌─╮╭─┐IP_SERVER┌────────────────────────────╮
+│ ▸ .env.instance                                                                                       12 variables ││ Obligatoria · .env.s0                  │
+│ ▾ .env.s0                                                                            9 variables · 2 sin completar ││                                        │
+│ ▲ IP_SERVER                  http://CAMBIAR-direccion-del-servidor                                   por completar ││ URL pública base del sistema, con      │
+│ ▲ JWT_SECRET                 (vacía)                                                                   obligatoria ││ esquema (`http://` o `https://`), sin  │
+│ ● MONGO_URI                  ⚿ ••••••••••                                                                          ││ puerto ni barra final. Los seeds la    │
+│ ● IP_INTERNAL_CONNECTION     s1                                                                                    ││ usan: `url_systems` la guarda como URL │
+│ ▾ .env.s1                                                                           27 variables · 4 sin completar ││ de cada sistema (se ve en Auth,        │
+│ ▲ IP_SERVER                  http://CAMBIAR-direccion-del-servidor                                   por completar ││ Configuración, Sistemas) y como base   │
+│ ● AUTH_URL                   http://s0:3200                                                                        ││ de las URLs de backend                 │
+│ ▲ JWT_SECRET                 (vacía)                                                                   obligatoria ││ (`<IP_SERVER>:3000/3100/3200`). Tras   │
+│ ● MONGO_DELTA_DISPATCH_URI   ⚿ ••••••••••                                                                          ││ `init`, revisa esas URLs: todas llevan │
+│ ● MONGO_AUTHSOFTWARE_URI     ⚿ ••••••••••                                                                          ││ el mismo valor.                        │
+│ ● MONGO_ROBIN_URI            ⚿ ••••••••••                                                                          ││                                        │
+│ ● FCM_CERT                   /run/secrets/fcm.json                                                                 ││ Por defecto: http://localhost          │
+│ ● KEEPER_FCM_CERT            /run/secrets/keeper-fcm.json                                                          ││                                        │
+│ ▲ FEDERATION_ENCRYPTION_KEY  (vacía)                                                                   obligatoria ││ ▲ Todavía tiene el valor de ejemplo de │
+│ ● SERVERS_CONFIG             ⚿ ••••••••••                                                                          ││   la plantilla: cámbialo.              │
+│ ▲ DEEPGRAM_API_KEY           (vacía)                                                                   obligatoria ││                                        │
+│                                                                                                                    ││                                        │
+│                                                                                                                    ││                                        │
+│                                                                                                                    ││                                        │
+│                                                                                                                    ││                                        │
+│                                                                                                                    ││                                        │
+│                                                                                                                    ││                                        │
+│                                                                                                                    ││                                        │
+│                                                                                                                    ││                                        │
+│                                                                                                                    ││                                        │
+│                                                                                                                    ││                                        │
+│                                                                                                                    ││                                        │
+│                                                                                                                    ││                                        │
+│                                                                                                                    ││                                        │
+│                                                                                                                    ││                                        │
+│                                                                                                                    ││                                        │
+│                                                                                                                    ││                                        │
+╰─┘Enter editar└─┘g generar└─┘r revelar└─┘d defecto└─┘a avanzadas└─┘s guardar└─┘u desplegar└─────────────────────────╯╰────────────────────────────────────────╯
+
+ ↑↓ mover · Enter edita · g generar · r revelar · d defecto · a avanzadas · s guardar · u desplegar · [/] instancia · Esc sale

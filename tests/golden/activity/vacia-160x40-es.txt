@@ -1,0 +1,41 @@
+=== frame 1 ===
+  ITC  testhost · Docker 27.0.0
+  1 Instancias   2 Recursos   3 Salida   4 Ejecuciones   5 Procesos   6 Consola   7 Servidor   8 Imágenes   9 Variables  [0 Actividad]                         
+╭─ ▸Actividad ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│  Todavía no hay actividad. Cuando lances algo (desplegar, comprobar, bajar…), o lo haga otra terminal, verás aquí qué fue, cómo terminó, su salida, lo que   │
+│  consumió y los procesos que lo forman.                                                                                                                      │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+ ↑↓ elegir · ← → pestaña · RePág/AvPág detalle · Enter salida · t consumo · : comando · ? ayuda · q salir

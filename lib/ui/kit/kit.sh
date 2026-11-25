@@ -29,3 +29,5 @@ source "$ROOT/lib/ui/kit/toast.sh"
 source "$ROOT/lib/ui/kit/modal.sh"
 # shellcheck source=lib/ui/kit/version_picker.sh
 source "$ROOT/lib/ui/kit/version_picker.sh"
+# shellcheck source=lib/ui/kit/env_editor.sh
+source "$ROOT/lib/ui/kit/env_editor.sh"

@@ -19,9 +19,26 @@ run() { ROOT="$PWD" PATH="$FIX/bin:$PATH" bash -c "source lib/bootstrap.sh; $1";
 os() { printf '%s\n' "$2" > "$FIX/os/$1"; }
 os debian 'PRETTY_NAME="Debian GNU/Linux 12 (bookworm)"
 NAME="Debian GNU/Linux"
+VERSION_ID="12"
 ID=debian'
+os debian13 'PRETTY_NAME="Debian GNU/Linux 13 (trixie)"
+NAME="Debian GNU/Linux"
+VERSION_ID="13"
+ID=debian'
+os debiansid 'PRETTY_NAME="Debian GNU/Linux forky/sid"
+NAME="Debian GNU/Linux"
+ID=debian'
+os rhel 'NAME="Red Hat Enterprise Linux"
+VERSION_ID="9.4"
+ID="rhel"
+ID_LIKE="fedora"'
+os amzn 'NAME="Amazon Linux"
+VERSION_ID="2023"
+ID="amzn"
+ID_LIKE="fedora"'
 os ubuntu 'NAME="Ubuntu"
 PRETTY_NAME="Ubuntu 24.04 LTS"
+VERSION_ID="24.04"
 ID=ubuntu
 ID_LIKE=debian'
 os mint 'NAME="Linux Mint"
@@ -30,6 +47,7 @@ ID_LIKE="ubuntu debian"'
 os fedora 'NAME="Fedora Linux"
 ID=fedora'
 os rocky 'NAME="Rocky Linux"
+VERSION_ID="9.4"
 ID="rocky"
 ID_LIKE="rhel centos fedora"'
 os arch 'NAME="Arch Linux"
@@ -57,8 +75,9 @@ check "los que se instalan con paquete traen comando para apt, dnf, pacman y apk
   'run "for i in docker daemon compose ss openssl gunzip proxy certbot timesync firewall curl; do for m in apt dnf pacman apk; do [ -n \"\${PR_CMD[\"\$i|\$m\"]:-}\" ] || { echo falta \$i \$m; exit 1; }; done; done"'
 check "cada requisito tiene nombre y para-qué en español y en inglés" \
   'for l in es en; do DELTACTL_LANG=$l run "for i in \${PR_IDS[@]}; do n=\$(prereq_name \$i); w=\$(prereq_why \$i); case \"\$n\$w\" in *\\?\\?*|\"\") exit 1;; esac; done" || exit 1; done'
-check "cada requisito dice para qué sirve (frase de al menos 20 caracteres)" 'run "for i in \${PR_IDS[@]}; do [ \${#PR_CMD_X} -ge 0 ] && [ \$(prereq_why \$i | wc -c) -ge 20 ] || exit 1; done"'
-check "el archivo de datos tiene 8 campos por fila" '! grep -vE "^(#|$)" lib/core/prereqs.data | awk -F"|" "NF != 8" | grep -q .'
+check "cada requisito dice para qué sirve (frase de al menos 20 caracteres)" 'run "for i in \${PR_IDS[@]}; do [ \$(prereq_why \$i | wc -c) -ge 20 ] || exit 1; done"'
+check "el archivo de datos tiene 8 campos por requisito y 3 por excepción de distribución (@)" \
+  '! grep -vE "^(#|@|$)" lib/core/prereqs.data | awk -F"|" "NF != 8" | grep -q . && ! grep -E "^@" lib/core/prereqs.data | awk -F"|" "NF != 3" | grep -q .'
 check "leer el catálogo no lanza procesos" '! sed -n "/^prereq_load()/,/^}/p" lib/core/prereqs.sh | grep -qE "\\$\\(|\\| *(grep|awk|sed|cut|tr)"'
 
 section "2. detección de la distribución"
@@ -75,6 +94,22 @@ check "sin os-release no falla (usa el gestor instalado, si hay)" 'run "DELTACTL
 check "el nombre sale entre comillas ya limpio" '[ "$(mgr ubuntu | cut -d"|" -f3)" = "Ubuntu 24.04 LTS" ]'
 check "el comando de instalación depende del gestor" \
   '[ "$(run "prereq_install_r openssl apt; echo \$PR_INSTALL")" = "sudo apt-get install -y openssl" ] && [ "$(run "prereq_install_r openssl dnf; echo \$PR_INSTALL")" = "sudo dnf install -y openssl" ] && [ "$(run "prereq_install_r ss pacman; echo \$PR_INSTALL")" = "sudo pacman -S --needed iproute2" ] && [ "$(run "prereq_install_r gunzip apk; echo \$PR_INSTALL")" = "sudo apk add gzip" ]'
+# El mismo gestor no implica el mismo repositorio: dnf es Fedora, RHEL, Rocky, Amazon Linux... y apt es Debian y Ubuntu, con versiones distintas.
+inst() { run "DELTACTL_OS_RELEASE=$FIX/os/$1 prereq_distro; prereq_install_r $2 && echo \"\$PR_INSTALL\" || echo NONE"; }
+check "Fedora: Docker sale del repositorio de Fedora con la sintaxis de dnf5" \
+  '[[ "$(inst fedora docker)" == *"config-manager addrepo"*"/linux/fedora/docker-ce.repo"* ]]'
+check "Rocky: Docker sale del repositorio de CentOS, no del de Fedora" \
+  '[[ "$(inst rocky docker)" == *"/linux/centos/docker-ce.repo"* ]] && [[ "$(inst rocky docker)" != *fedora* ]]'
+check "RHEL: Docker sale del repositorio de RHEL" '[[ "$(inst rhel docker)" == *"/linux/rhel/docker-ce.repo"* ]]'
+check "Amazon Linux: no hay comando de Docker (se remite a la documentación)" '[ "$(inst amzn docker)" = NONE ] && [ "$(inst amzn compose)" = NONE ]'
+check "Debian 12: docker.io solo, sin docker-compose-v2 (no está en sus repositorios)" \
+  '[[ "$(inst debian docker)" == *"docker.io"* ]] && [[ "$(inst debian docker)" != *docker-compose-v2* ]]'
+check "Debian 12: no hay comando de Compose" '[ "$(inst debian compose)" = NONE ]'
+check "Debian 13 y Ubuntu 24.04: Compose v2 por apt" \
+  '[ "$(inst debian13 compose)" = "sudo apt-get install -y docker-compose-v2" ] && [ "$(inst ubuntu compose)" = "sudo apt-get install -y docker-compose-v2" ]'
+check "Debian de versión desconocida (sid): el comando general" '[[ "$(inst debiansid docker)" == *docker-compose-v2* ]]'
+check "lo que no depende de la distribución no cambia (openssl en Rocky y en Debian 12)" \
+  '[ "$(inst rocky openssl)" = "sudo dnf install -y openssl" ] && [ "$(inst debian openssl)" = "sudo apt-get install -y openssl" ]'
 check "un requisito sin paquete (Mongo) no tiene comando" '! run "prereq_install_r mongo apt"'
 check "sin gestor conocido no hay comando" '! run "prereq_install_r openssl \"\""'
 
@@ -131,6 +166,47 @@ check "host.docker.internal se prueba contra la puerta de enlace" \
   'printf "MONGO_URI=mongodb://host.docker.internal:27017/x\n" > instances/pr-uno/.env.s0; rm instances/pr-uno/.env.s1; run "dr_tcp() { [ \"\$1\" = 127.0.0.1 ]; }; prereq_run mongo; echo \"\${PR_RES_MSG[0]}\"" | grep -q "alcanzable desde los contenedores (por 127.0.0.1)"'
 rm -rf instances/pr-uno
 check "sin instancias solo informa" '[ "$(st ":" mongo)" = info ]'
+
+section "4b. dr_tcp y dr_mongo_hostport con datos del operador (sin ejecutar nada)"
+# El host sale de MONGO_URI (un .env que puede editar cualquiera con acceso a la carpeta): no debe llegar a un shell como código.
+# ra llama a una función de lib pasando los argumentos por argv, sin pasar por ninguna cita ni expansión de este script.
+ra() { ROOT="$PWD" PATH="$FIX/bin:$PATH" bash -c 'source lib/bootstrap.sh; "$@"' _ "$@"; }
+check "dr_tcp: un host con \$(...) no ejecuta nada y falla" \
+  'rm -f "$FIX/pwned"; ! ra dr_tcp "127.0.0.1\$(touch\${IFS}$FIX/pwned)" 27017; [ ! -e "$FIX/pwned" ]'
+check "dr_tcp: un host con ; o comillas invertidas no ejecuta nada" \
+  'rm -f "$FIX/pwned2"; ! ra dr_tcp "x;touch $FIX/pwned2" 27017; ! ra dr_tcp "x\`touch $FIX/pwned2\`" 27017; [ ! -e "$FIX/pwned2" ]'
+check "dr_tcp: un puerto que no es número no ejecuta nada y falla" \
+  'rm -f "$FIX/pwned3"; ! ra dr_tcp 127.0.0.1 "1;touch $FIX/pwned3"; [ ! -e "$FIX/pwned3" ]'
+check "dr_tcp: un host o un puerto vacío falla" '! ra dr_tcp "" 27017 && ! ra dr_tcp 127.0.0.1 ""'
+if command -v python3 >/dev/null 2>&1; then
+  python3 - "$FIX/port" <<'PY' &
+import socket, sys, time
+s = socket.socket(); s.bind(("127.0.0.1", 0)); s.listen(5)
+open(sys.argv[1], "w").write(str(s.getsockname()[1]))
+time.sleep(30)
+PY
+  LISTENER=$!
+  for _ in 1 2 3 4 5 6 7 8 9 10; do [ -s "$FIX/port" ] && break; sleep 0.2; done
+  check "dr_tcp: un host y un puerto válidos conectan de verdad" 'ra dr_tcp 127.0.0.1 "$(cat "$FIX/port")"'
+  kill "$LISTENER" 2>/dev/null; wait "$LISTENER" 2>/dev/null
+  check "dr_tcp: un puerto cerrado falla" '! ra dr_tcp 127.0.0.1 "$(cat "$FIX/port")"'
+fi
+hp() { ra dr_mongo_hostport "$1"; }
+check "hostport: URI simple" '[ "$(hp mongodb://u:p@db1:27018/x)" = "db1 27018" ]'
+check "hostport: sin puerto usa 27017" '[ "$(hp mongodb://db1/x)" = "db1 27017" ]'
+check "hostport: una contraseña con @ no se mezcla con el host" '[ "$(hp mongodb://adm:p@ssw0rd@db1:27017/x)" = "db1 27017" ]'
+check "hostport: un @ en la query no es un usuario" '[ "$(hp "mongodb://db1:27017/x?authSource=a@b")" = "db1 27017" ]'
+check "hostport: sin base de datos y con query" '[ "$(hp "mongodb://db1?replicaSet=r")" = "db1 27017" ]'
+check "hostport: IPv6 entre corchetes con y sin puerto" \
+  '[ "$(hp "mongodb://[::1]:27018/x")" = "::1 27018" ] && [ "$(hp "mongodb://[::1]/x")" = "::1 27017" ]'
+check "hostport: una lista de hosts usa el primero" '[ "$(hp mongodb://a:1,b:2/x)" = "a 1" ]'
+check "hostport: mongodb+srv no tiene puerto que probar" '[ "$(hp mongodb+srv://u:p@c0.ab.mongodb.net/db)" = "c0.ab.mongodb.net srv" ]'
+check "hostport: los caracteres raros del host salen sustituidos (no llegan a la terminal)" \
+  '[ "$(hp "$(printf "mongodb://a\033[31mb:1/x")")" = "a??31mb 1" ]'
+mkdir -p instances/pr-srv
+printf 'MONGO_URI=mongodb+srv://u:p@c0.ab.mongodb.net/db\n' > instances/pr-srv/.env.s0
+check "mongo+srv: no da un falso error de TCP al 27017, informa" '[ "$(st "dr_tcp() { return 1; }" mongo)" = info ]'
+rm -rf instances/pr-srv
 
 section "5. solo lectura"
 check "ninguna comprobación escribe, instala ni borra (el código no usa esas órdenes)" \

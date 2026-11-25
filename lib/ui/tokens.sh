@@ -123,12 +123,12 @@ th_tokens_build() {
 # Symbols the design uses everywhere, with their ASCII fallback (decided by ui_init: UTF-8 and rich mode).
 ui_tokens_symbols() {
   if [ "${UI_UTF8:-0}" -eq 1 ] && [ "${UI_RICH:-0}" -eq 1 ]; then
-    UI_S_PEND='○' UI_S_RUN='◐' UI_S_STAR='★' UI_S_UP='↑' UI_S_SECRET='⚿' UI_S_CHECK='✔' UI_S_LEAD='·' UI_S_ENTER='⏎'
+    UI_S_PEND='○' UI_S_RUN='◐' UI_S_STAR='★' UI_S_UP='↑' UI_S_SECRET='⚿' UI_S_CHECK='✔' UI_S_LEAD='·' UI_S_ENTER='⏎' UI_S_SYNC='↻'
     UI_S_CHIP_L='┐' UI_S_CHIP_R='┌' UI_S_FCHIP_L='┘' UI_S_FCHIP_R='└' UI_S_STEP_ON='━' UI_S_STEP_OFF='─' UI_S_MASK='•'
     UI_SUP=(⁰ ¹ ² ³ ⁴ ⁵ ⁶ ⁷ ⁸ ⁹)
     UI_EIGHTHS=('' ▏ ▎ ▍ ▌ ▋ ▊ ▉)
   else
-    UI_S_PEND='.' UI_S_RUN='~' UI_S_STAR='*' UI_S_UP='^' UI_S_SECRET='#' UI_S_CHECK='v' UI_S_LEAD='.' UI_S_ENTER='Enter'
+    UI_S_PEND='.' UI_S_RUN='~' UI_S_STAR='*' UI_S_UP='^' UI_S_SECRET='#' UI_S_CHECK='v' UI_S_LEAD='.' UI_S_ENTER='Enter' UI_S_SYNC='@'
     UI_S_CHIP_L='[' UI_S_CHIP_R=']' UI_S_FCHIP_L='[' UI_S_FCHIP_R=']' UI_S_STEP_ON='=' UI_S_STEP_OFF='-' UI_S_MASK='*'
     UI_SUP=(0 1 2 3 4 5 6 7 8 9)
     UI_EIGHTHS=('' '' '' '' '' '' '' '')

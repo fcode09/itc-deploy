@@ -223,7 +223,8 @@ section "9. cost: no process per reading and a bounded time per source"
 fnbody() { sed -n "/^$1() {/,/^}/p" lib/adapters/host.sh; }
 check "the readers of the server start no process (no \$( ), no pipes, no external program)" \
   'for f in host_cpu_read host_load_full_read host_uptime_read host_mem_detail_read host_temp_read host_net_read host_diskio_read host_disks_read; do ! fnbody $f | grep -vE "^\s*#" | grep -qE "\\$\\([^(]|\b(awk|sed|grep|cut|tr|cat|df|date)\b"; done'
-check "the only process of the use of the disks is one df (with a 3 s limit), behind its cache" '[ "$(fnbody host_disk_usage_read | grep -cE "\\$\\([^(]")" = "2" ] && fnbody host_disk_usage_read | grep -q "timeout 3 df"'
+# (the behaviour of the limit and of the cache is checked with a df that really hangs, in section 10)
+check "the only process of the use of the disks is one df, behind its cache and its time limit" '[ "$(fnbody host_disk_usage_read | grep -cE "\\$\\([^(]")" = "2" ] && fnbody host_disk_usage_read | grep -q "timeout -k 1 \"\$HOST_DF_TIMEOUT\""'
 bench() { # snippet -> best average microseconds per call over three batches of 200
   lib "$1
 best=999999999
@@ -237,5 +238,39 @@ for src in "host_cpu_read" "host_net_read" "host_diskio_read" "host_temp_read" "
   check "$src: under 5 ms per reading even on a loaded machine" '[ "$(bench "" "'"$src"'")" -lt 5000 ]'
 done
 rm -rf "$FIX/sys/class"
+
+section "10. robustness of the server readers (found by the independent review)"
+# A core that is offline is missing from /proc/stat: cpu0, cpu2 and cpu3 here. cpu2 is the one that works at full speed.
+printf 'cpu  0 0 0 300 0 0 0 0\ncpu0 0 0 0 100 0 0 0 0\ncpu2 0 0 0 100 0 0 0 0\ncpu3 0 0 0 100 0 0 0 0\n' > "$FIX/stat.off1"
+printf 'cpu  100 0 0 500 0 0 0 0\ncpu0 0 0 0 200 0 0 0 0\ncpu2 100 0 0 100 0 0 0 0\ncpu3 0 0 0 200 0 0 0 0\n' > "$FIX/stat.off2"
+check "CPU: with a core offline every percent belongs to its own core (cpu2 at 100 %, not shown as another one)" \
+  '[ "$(lib "cp $FIX/stat.off1 $FIX/proc/stat; host_cpu_read; cp $FIX/stat.off2 $FIX/proc/stat; host_cpu_read; echo \$HOST_CPU_N \${HOST_CPU_PCT[1]} \${HOST_CPU_PCT[2]} \${HOST_CPU_PCT[3]}")" = "3 0 100 0" ]'
+check "CPU: a core that comes back (hotplug) starts at 0, it does not take another core's counters" \
+  '[ "$(lib "cp $FIX/stat.off1 $FIX/proc/stat; host_cpu_read; cp $FIX/stat.A $FIX/proc/stat; host_cpu_read; echo \$HOST_CPU_N \${#HOST_CPU_PCT[@]}")" = "2 3" ]'
+# df that hangs (an NFS mount that does not answer): it is cut at HOST_DF_TIMEOUT and not asked again until the TTL has passed.
+cat > "$FIX/fake-df-hang" <<'EOF'
+#!/bin/sh
+echo x >> "$FIX/df.calls"
+sleep 4
+EOF
+chmod +x "$FIX/fake-df-hang"
+check "use of the disks: a df that hangs is cut by the limit and fails" \
+  'rm -f $FIX/df.calls; s=$SECONDS; r="$(DELTACTL_DF=$FIX/fake-df-hang lib "HOST_DF_TIMEOUT=1; host_disks_read; host_disk_usage_read || echo failed")"; [ "$r" = failed ] && [ $((SECONDS - s)) -le 3 ]'
+check "use of the disks: after a failure df is not run again on every sample, only after the TTL" \
+  'rm -f $FIX/df.calls; s=$SECONDS; DELTACTL_DF=$FIX/fake-df-hang lib "HOST_DF_TIMEOUT=1; HOST_FAKE_NOW_US=1000000000000; host_disks_read; for i in 1 2 3 4 5; do host_disk_usage_read || true; done; HOST_FAKE_NOW_US=1000031000000; host_disk_usage_read || true" > /dev/null; [ "$(wc -l < $FIX/df.calls)" = "2" ] && [ $((SECONDS - s)) -le 6 ]'
+check "use of the disks: a failed df marks the disk source as unavailable in the sampler" \
+  '[ "$(DELTACTL_DF=$FIX/fake-df-hang lib "HOST_DF_TIMEOUT=1; HOST_FAKE_NOW_US=1000000; MT_HOST_DETAIL=1; mt_host_sample; echo \${MT_SRC[disk]}")" = "0" ]'
+check "use of the disks: without EPOCHSECONDS (Bash before 5.0) the figures are still refreshed after the TTL" \
+  'rm -f $FIX/df.calls; DELTACTL_DF=$FIX/fake-df lib "unset EPOCHSECONDS; HOST_DISK_TTL=1; host_disks_read; host_disk_usage_read; host_disk_usage_read; sleep 1.2; host_disk_usage_read" > /dev/null; [ "$(wc -l < $FIX/df.calls)" = "2" ]'
+# A filesystem with 0 blocks shows "-" as its capacity: the percent must still be a number (the panel formats it with printf %d).
+cat > "$FIX/fake-df-dash" <<'EOF'
+#!/bin/sh
+echo "Filesystem 1024-blocks Used Available Capacity Mounted on"
+echo "/dev/sda2 100000000 40000000 60000000 40% /"
+echo "/dev/sdb1 0 0 0 - /mnt/my data"
+EOF
+chmod +x "$FIX/fake-df-dash"
+check "use of the disks: a capacity of - (0 blocks) is 0 %, a number, and nothing is written to stderr" \
+  '[ "$(DELTACTL_DF=$FIX/fake-df-dash lib "host_disks_read; host_disk_usage_read; echo \${HOST_DISK_PCT[0]} \${HOST_DISK_PCT[1]}")" = "40 0" ]'
 
 finish

@@ -1,0 +1,13 @@
+# Caddy: one block for each service. Put it in your Caddyfile and run: caddy reload --config /etc/caddy/Caddyfile
+# (deltactl only generates this text: it never writes under /etc and never reloads Caddy)
+# Caddy gets and renews the certificates by itself.
+
+# s0
+auth-backend.ejemplo.pe {
+    reverse_proxy 127.0.0.1:4100
+}
+
+# s1
+gueo-back-end.ejemplo.pe {
+    reverse_proxy 127.0.0.1:4101
+}

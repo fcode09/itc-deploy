@@ -1,0 +1,25 @@
+=== frame 1 ===
+  ITC  testhost · Memoria ███░░░ 5.6/11.5 GB 48% ▄▃▂▅▃▂ · Carga 3.18
+ [1 Instancias]  2   3   4   5   6   7   8   9   0                             
+╭─ ▸Instancias · /ix-s ────────────────────────────────────────────────────────╮
+│   + Nueva instancia                                                          │
+│                  n/m      mem    cpu                                         │
+│ ▸ ○○ ix-sullana  0/2       -      -                                          │
+│                                                                              │
+│                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+[Resumen] Logs  Acceso  Historial  Servicios  Variables  Datos                  
+╭─┐ix-sullana · 0/2┌────────────────────────────────────────────────┐○ parada┌─╮
+│ ▸ s0 auth-backend:2.14.1  ○ no creado                                        │
+│     :4130                                                                    │
+│                                                                              │
+│   s1 gueo-back-end:2.9.0  ○ no creado                                        │
+╰─┘u desplegar└─┘c comprobar└─┘s estado└─┘l logs└─┘< > pestaña└─┘Enter más└────╯
+╭─ Consola ────────────────────────────────────────────────────────────────────╮
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│ ix-sullana ❯ : escribe un comando · ! en el terminal · Tab completa · ↑ histo│
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+ ↑↓ instancia · → servicios · Enter acciones · u desplegar · ? ayuda · q salir
