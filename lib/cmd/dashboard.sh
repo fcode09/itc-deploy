@@ -376,7 +376,10 @@ dash_start_job() { # view args...
   dash_prompt_name
   dash_con_add "${TH[accent]:-$C_CYN}$DASH_PN $(dash_prompt_glyph)$C_OFF ./deltactl $*"
   DASH_CON_SEQ="$JOB_SEQ" DASH_CON_COPIED=0
-  [ "$view" != "output" ] || DASH_VIEW=output
+  # The output of a command is shown in the Output view; from the Activity view it is that view's own tab Salida, on the new command.
+  if [ "$view" = "output" ]; then
+    if [ "$DASH_VIEW" = "activity" ]; then dash_act_follow_job; else DASH_VIEW=output; fi
+  fi
   dash_msg info "$(t tui.msg.started "$*")"
 }
 
@@ -500,7 +503,7 @@ dash_key_global() { # key ; returns 0 when handled
   case "$1" in
     q) DASH_QUIT=1 ;;
     esc) dash_screen_back ;;   # a step back inside the view (the statistics, the zoom, the pane), else the first view, else quit
-    [1-9]) dash_screen_by_number "$1" || return 1; dash_screen_goto "$DASH_SCR_ID" ;;   # the view of that tab
+    [0-9]) dash_screen_by_number "$1" || return 1; dash_screen_goto "$DASH_SCR_ID" ;;   # the view of that tab
     tab) dash_screen_tab 1 ;;
     btab) dash_screen_tab -1 ;;
     $'\020') dash_open_palette ;;                                    # Ctrl+P
@@ -602,6 +605,8 @@ dash_mouse() {
         return 0
       fi
       case "$DASH_MODE" in name | filter | lfilter | accdom | find | confirm | wizard) return 0 ;; help) [ "$DASH_HELP_MAX" -gt 0 ] || return 0 ;; esac
+      # A view can take the wheel for itself (Activity: the list under the pointer moves the cursor, the pane scrolls).
+      if [ "$DASH_MODE" = "normal" ] && declare -F "scr_${DASH_VIEW}_wheel" > /dev/null; then "scr_${DASH_VIEW}_wheel" "$b" "$x" "$y"; return 0; fi
       if [ "$b" -eq 64 ]; then TUI_KEY=up; else TUI_KEY=down; fi
       dash_handle_key
       return 0

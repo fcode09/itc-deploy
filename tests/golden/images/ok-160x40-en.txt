@@ -1,6 +1,6 @@
 === frame 1 ===
 
-  1 Instances   2 Resources   3 Output   4 Runs   5 Processes   6 Console   7 Server  [8 Images]  9 Variables                                                  
+  1 Instances   2 Resources   3 Output   4 Runs   5 Processes   6 Console   7 Server  [8 Images]  9 Variables   0 Activity                                     
 ╭─┐ ▸⁸images ┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐server amd64 · 6 versions┌─╮
 │ ▾ s0 · auth-backend                                                                                                                    5 versions · ★ 2.14.1 │
 │   VERSION       CREATED           SIZE ARCH      USE                                                                                                         │

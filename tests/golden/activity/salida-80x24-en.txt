@@ -1,0 +1,25 @@
+=== frame 1 ===
+  ITC  testhost · Docker 27.0.0
+  1   2   3   4   5   6   7   8   9  [0 Activity]                              
+╭─ ▸Activity (5) ──────────────────────────────────────────────────────────────╮
+│ ▸ ● 11-01 10:00 deploy   ix-colorado                                   41.2 s│
+│   ● 11-01 09:50 deploy   ix-lima                                       30.1 s│
+│   ✖ 11-01 09:00 check    ix-colorado                                    2.1 s│
+│   ● 10-31 15:00 rollback ix-colorado                                    5.3 s│
+│   ● 10-30 10:00 deploy   ix-colorado                                   38.0 s│
+╰──────────────────────────────────────────────────────────────────────────────╯
+ Summary [Output] Usage  Processes                                              
+╭─ ▸Output of 20261101T100000Z-1 · lines 1-4 of 4 ─────────────────────────────╮
+│   1 Validating compose...                                                    │
+│   2 Local images (empty REGISTRY): nothing is pulled.                        │
+│   3 Starting services (waiting for them to be healthy)...                    │
+│   4 OK instance 'sim-01' deployed (s0 s1)                                    │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+ ↑↓ choose · ← → tab · PgUp/PgDn Home/End scroll · f follow · ? help · q quit

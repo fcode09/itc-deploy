@@ -120,3 +120,4 @@ scr_output_key() { dash_key_output "$1"; }
 scr_output_keys() { dash_keys_view output "$1"; } # width
 scr_output_texts() { DASH_KEYS[output]="$(t tui.keys.output "$DASH_UD" "$DASH_LR")"; }
 scr_output_sig() { DASH_SIG+="|$DASH_OUT_SCROLL|$DASH_OUT_ERRORS|$DASH_OUT_RAW|$DASH_OUT_STOP"; }
+scr_output_enter() { dash_act_moved_notice; }

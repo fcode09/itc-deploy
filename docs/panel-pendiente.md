@@ -441,6 +441,65 @@ sigue a un guardado y las marcas «sin desplegar».
   fotograma, 48 instantáneas de `tests/tools/env_scenes.sh` en `tests/golden/envview/` a 80x24, 120x30 y 160x40 — 13 escenas en español y 3 en inglés —
   y las teclas de punta a punta contra el docker simulado).
 
+## La vista Actividad
+
+`lib/screens/activity.sh` (vista `activity`, la décima: se abre con `0`) y los textos `lib/i18n/{es,en}/activity.sh`. Junta lo que hacían Salida (3), Ejecuciones (4) y
+Procesos (5): a la izquierda una lista de operaciones (el último comando de **este panel** primero, marcado «este panel», y con el cursor en él al abrir la vista mientras corre o si terminó hace menos de dos minutos; luego las que están en marcha en cualquier
+terminal y las recientes de todas las instancias, como las listaba Ejecuciones) y, a la derecha, un panel con cuatro pestañas para la operación elegida:
+
+| Pestaña | Qué enseña |
+| --- | --- |
+| Resumen | Qué fue (comando, estado y código, cuándo, cuánto tardó, quién, si quedó por revisar) y lo que imprimió: el resumen visual de A1 (`outsum_for`) si el comando tiene forma, y si no sus últimas líneas |
+| Salida | La salida entera. De una operación guardada, el visor paginado de Ejecuciones (índice de desplazamientos, nunca se carga el archivo); del comando de este panel, la caja de Salida (`v` resumen o crudo, `e` solo errores, `f` sigue el final) |
+| Consumo | Cómo se compara con las anteriores del mismo comando y lo que consumió (CPU, docker, memoria, salida, contenedores antes y después); con `t`, lo que cuesta de media cada tipo de operación (`s`: una instancia o todas) |
+| Procesos | El árbol de procesos de la operación elegida mientras corre y lo que cuesta el propio panel |
+
+**Teclas**: ↑↓ (`k` `j`) eligen la operación y `g` `G` la primera y la última; RePág AvPág Inicio Fin mueven el panel; ← → (o `<` `>`) cambian de pestaña; Enter o `l`
+van a la salida; `t` al consumo y las estadísticas; Esc cierra las estadísticas, vuelve a Resumen y, desde Resumen, sale de la vista. El ratón elige pestañas y filas
+(un segundo clic sobre la fila elegida abre su salida).
+
+**Cómo está hecha**: no copia nada; usa los constructores de las vistas que absorbe (`dash_out_box`, el visor y las estadísticas de `lib/screens/runs.sh`,
+`dash_procs_tree_box` de `lib/screens/procs.sh`). Los datos los lee el tick de Ejecuciones mientras la vista está a la vista (`dash_runs_tick`, cada 5 s) y los procesos
+el de Procesos (`dash_procs_shown`: su vista o la pestaña Procesos); la pestaña Procesos pide la operación elegida con `dash_act_proc_root`. El detalle de una operación
+se construye una vez por selección, tamaño y cambio de los datos (`DASH_ACT_DET_KEY`), no una vez por fotograma. El visor de la salida guardada solo existe mientras
+se ve su pestaña (`dash_act_sync` lo abre y lo cierra).
+
+**Qué pasó con las vistas 3, 4 y 5** (decisión D3 del plan de rediseño): siguen registradas y funcionan igual (teclas `3` `4` `5`, `goto output|runs|procs`, la paleta)
+hasta la numeración final. La primera vez que se elige una con su número el panel avisa de que viven en Actividad (`dash_act_moved_notice`, una vez por sesión).
+Renumerar ahora los dígitos de todas las vistas rompería los 600 casos de teclas de `test-tui` y de las suites de Servidor, Imágenes y Variables sin aportar nada hasta
+que exista Flota, así que se hace de una vez al final.
+
+**Plan de la numeración final** (Z1/P1): Flota 1 · Instancias 2 · Servidor 3 · Imágenes 4 · Actividad 5 · Consola 6. Pasos: P1 registra Flota; Recursos pasa a ser la tabla
+de Flota; Variables deja de ser una vista (es una pestaña de la instancia y la pantalla `env` queda como biblioteca del editor); Salida, Ejecuciones y Procesos dejan de
+registrarse como pestañas pero se siguen cargando como biblioteca (`lib/screens/runs.sh` y `procs.sh`, que Actividad usa); `dash_start_job output …` pasa a abrir Actividad en
+la pestaña Salida; `goto output|runs|procs` y los dígitos antiguos llevan a la pestaña que corresponde con el aviso; se renumeran las secuencias de teclas de las pruebas.
+
+**Qué se conserva de las tres vistas** (comprobado contra su código y sus pruebas):
+
+| Vista | Función | En Actividad |
+| --- | --- | --- |
+| Salida | La salida del último comando, con su estado y su reloj | Fila «este panel», pestaña Salida |
+| Salida | Resumen de A1 o texto crudo (`v`), solo errores (`e`), seguir el final (`f`) | Las mismas teclas, en la pestaña Salida de esa fila |
+| Salida | Desplazar con ↑↓ PgUp PgDn Inicio Fin | **PgUp PgDn Inicio Fin**; ↑↓ eligen la operación (cambio buscado: la lista manda) |
+| Salida | Cancelar con `x` | Igual (tecla global) |
+| Ejecuciones | Lista con las que están en marcha primero, el estado, la fecha y la duración | La lista de Actividad |
+| Ejecuciones | Marca de «interrumpida sin revisar» (`runs resolve`) | En la lista y en Resumen |
+| Ejecuciones | Detalle: estado, fechas, quién, revisión; comparación con las anteriores; consumo; contenedores antes y después; final de la salida | Resumen (qué fue y qué imprimió) y Consumo (comparación y cifras) |
+| Ejecuciones | Estadísticas por tipo de operación (`t`) y por instancia (`s`) | Pestaña Consumo, `t` y `s` |
+| Ejecuciones | Visor paginado de la salida guardada (Enter o `l`) | Pestaña Salida; RePág AvPág Inicio Fin; el archivo nunca se carga entero |
+| Ejecuciones | Esc cierra las estadísticas o el visor antes de salir | Esc: estadísticas, pestaña, vista |
+| Procesos | Árbol de procesos del comando y total sin el proceso que espera | Pestaña Procesos, de la operación elegida |
+| Procesos | Caja del propio panel (memoria, CPU, procesos que ha lanzado) | Debajo del árbol |
+| Procesos | Tarjeta de la cabecera mientras corre un comando | Sin cambios (no es de ninguna vista) |
+| Procesos | Desplazar el árbol | RePág AvPág Inicio |
+
+Una diferencia que no estaba antes: la pestaña Procesos enseña los procesos de la operación **elegida** (no de la que esté en marcha): una que ya terminó dice que no hay
+nada que mostrar. Las operaciones del historial no se mueven con las teclas de la vista antigua porque Ejecuciones las elegía con ↑↓ y ahí también las eligen.
+
+**Pruebas**: `tests/test-activity.sh` (registro y tecla 0, la lista y su orden, cada pestaña y cada tecla, el ratón, el aviso, que lo que dice un archivo es dato, que dibujar
+no lanza procesos, 42 instantáneas de `tests/tools/act_scenes.sh` en `tests/golden/activity/` a 80x24, 120x30 y 160x40 y la forma de cada fotograma). Con diez vistas, a 100
+columnas la línea de pestañas enseña solo el número de las que no están abiertas (a 150 caben los nombres).
+
 ## La vista Servidor y la barrera de primer arranque
 
 `lib/screens/server.sh` (vista `server`, 7) y `lib/screens/srvask.sh` (modo `srvask`, la pregunta). Se construyen con el kit (`kit_box` con chips y

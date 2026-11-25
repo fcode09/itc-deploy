@@ -3,7 +3,7 @@
 # Screen registry and router of the interactive panel. Sourced by lib/cmd/dashboard.sh.
 #
 # The panel is made of SCREENS. There are two kinds:
-#   views   the tabs (1-9 or Tab): instances, resources, output, runs, procs, console, server, images, env. One is current (DASH_VIEW).
+#   views   the tabs (1-9, 0 for the tenth, or Tab): instances, resources, output, runs, procs, console, server, images, env, activity. One is current (DASH_VIEW).
 #   modes   what takes the keyboard over a view: dialogs (menu, confirm, name, palette, help, options, wizard) and lines being typed
 #           (cmd, filter, find). One is current (DASH_MODE); `normal` means none.
 # To add a screen: write lib/screens/<id>.sh with the functions of the contract below and add ONE line to the registry at the end of
@@ -24,6 +24,7 @@
 #   scr_<id>_poll                      (views) runs at every turn only while the view is current and the panel is not paused.
 #   scr_<id>_click <column> <row>      (views, and modes that define it) a left click (rows and columns of the screen, starting at 1). A mode
 #                                      with no click hook ignores the mouse, as it always did.
+#   scr_<id>_wheel <button> <column> <row>  (views) the mouse wheel in normal mode (64 up, 65 down); without it the wheel is the key up or down.
 #   scr_<id>_bang                      (views) the key `!` while the view is current; return 0 when it took the key (otherwise the global
 #                                      `!`, a command line that runs in the terminal, opens).
 
@@ -71,13 +72,15 @@ dash_screen_valid() { # id
   return 1
 }
 
-# The id of the view whose tab number is $1 (1 = the first registered), into DASH_SCR_ID. 1 when there is none.
+# The id of the view whose tab number is $1 (1 = the first registered; 0 is the tenth), into DASH_SCR_ID. 1 when there is none.
 DASH_SCR_ID=""
 dash_screen_by_number() { # number
+  local n="$1"
   DASH_SCR_ID=""
-  [[ "$1" =~ ^[1-9]$ ]] || return 1
-  [ "$1" -le "${#DASH_SCREENS[@]}" ] || return 1
-  DASH_SCR_ID="${DASH_SCREENS[$(($1 - 1))]}"
+  [[ "$n" =~ ^[0-9]$ ]] || return 1
+  [ "$n" -ne 0 ] || n=10
+  [ "$n" -le "${#DASH_SCREENS[@]}" ] || return 1
+  DASH_SCR_ID="${DASH_SCREENS[$((n - 1))]}"
 }
 
 # Chooses a view with its number or a click: it becomes current and its enter hook runs.
@@ -162,6 +165,7 @@ dash_screen_register console tui.tab.console 0
 dash_screen_register server tui.tab.server 1
 dash_screen_register images tui.tab.images 0
 dash_screen_register env tui.tab.env 0
+dash_screen_register activity tui.tab.activity 0
 # Modes.
 dash_mode_register menu
 dash_mode_register confirm

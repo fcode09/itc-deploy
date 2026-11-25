@@ -1,0 +1,25 @@
+=== frame 1 ===
+  ITC  testhost · Docker 27.0.0
+  1   2   3   4   5   6   7   8   9  [0 Actividad]                             
+╭─ ▸Actividad (5) ─────────────────────────────────────────────────────────────╮
+│ ▸ ● 11-01 10:00 deploy   ix-colorado                                   41.2 s│
+│   ● 11-01 09:50 deploy   ix-lima                                       30.1 s│
+│   ✖ 11-01 09:00 check    ix-colorado                                    2.1 s│
+│   ● 10-31 15:00 rollback ix-colorado                                    5.3 s│
+│   ● 10-30 10:00 deploy   ix-colorado                                   38.0 s│
+╰──────────────────────────────────────────────────────────────────────────────╯
+ Resumen  Salida [Consumo] Procesos                                             
+╭─ deploy · ix-colorado ───────────────────────────────────────────────────────╮
+│  Frente a las anteriores (deploy de ix-colorado)                             │
+│                     ahora   vs ant.  vs media 1                              │
+│  duración          41.2 s       +8%           -                              │
+│  CPU                9.1 s      +13%           -                              │
+│  docker            30.5 s       +8%           -                              │
+│  memoria pico     47.0 MB      +20%           -                              │
+│                                                                              │
+│  Consumo de la operación                                                     │
+│  CPU            9.1 s (22% de un núcleo)                                     │
+│  docker         14 llamadas · 30.5 s (74%)                                   │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+ ↑↓ elegir · ← → pestaña · RePág/AvPág detalle · ? ayuda · q salir

@@ -173,7 +173,7 @@ dash_complete() {
     1)
       case "${toks[0]:-}" in
         theme) pool=("${TH_THEMES[@]}") ;;
-        goto | view) pool=(instances resources output runs procs console server images env) ;;
+        goto | view) pool=(instances resources output runs procs console server images env activity) ;;
         alias | unalias) pool=(${DASH_ALIAS_NAMES[@]+"${DASH_ALIAS_NAMES[@]}"}) ;;
         *) pool=("${DASH_NAMES[@]}") ;;
       esac

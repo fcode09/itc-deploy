@@ -1,6 +1,6 @@
 === frame 1 ===
 
-  1 Instancias   2 Recursos  [3 Salida]  4 Ejecuciones   5 Procesos   6 Consola   7 Servidor   8 Imágenes   9 Variables  ● ./deltactl check sim-01 terminó bien
+ 1 Instancias 2 Recursos [3 Salida] 4 Ejecuciones 5 Procesos 6 Consola 7 Servidor 8 Imágenes 9 Variables 0 Actividad     ● ./deltactl check sim-01 terminó bien
 ╭─ ▸Salida · ./deltactl check sim-01 · terminó bien 00:42 · resumen · ● 7 ─────────────────────────────────────────────────────────────────────────────────────╮
 │ Comprobación de 'sim-01'                                                                                                                                     │
 │                                                                                                                                                              │

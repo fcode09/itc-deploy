@@ -1,6 +1,6 @@
 === frame 1 ===
 
-  1   2   3   4   5   6   7  [8 Imágenes]  9                                   
+  1   2   3   4   5   6   7  [8 Imágenes]  9   0                               
 ╭─┐ ▸⁸imágenes ┌────────────────────────────────┐servidor amd64 · 0 versiones┌─╮
 │ ▾ s0 · auth-backend                                             sin imágenes │
 │   No hay versiones cargadas de esta imagen. Pulsa l para cargar un archivo ( │

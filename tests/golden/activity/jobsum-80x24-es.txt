@@ -1,0 +1,25 @@
+=== frame 1 ===
+  ITC  testhost · Docker 27.0.0
+  1   2   3   4   5   6   7   8   9  [0 Actividad] ● ./deltactl images terminó 
+╭─ ▸Actividad (6) ─────────────────────────────────────────────────────────────╮
+│ ▸ ● este panel  images   -                                              00:07│
+│   ● 11-01 10:00 deploy   ix-colorado                                   41.2 s│
+│   ● 11-01 09:50 deploy   ix-lima                                       30.1 s│
+│   ✖ 11-01 09:00 check    ix-colorado                                    2.1 s│
+│   ● 10-31 15:00 rollback ix-colorado                                    5.3 s│
+│   ● 10-30 10:00 deploy   ix-colorado                                   38.0 s│
+╰──────────────────────────────────────────────────────────────────────────────╯
+[Resumen] Salida  Consumo  Procesos                                             
+╭─ ./deltactl images ──────────────────────────────────────────────────────────╮
+│  comando        ./deltactl images                                            │
+│  estado         ● correcto                                                   │
+│  duración       00:07                                                        │
+│  El último comando de este panel. Los comandos que solo leen no se guardan en│
+│  el historial: aquí es donde se ven.                                         │
+│                                                                              │
+│  Lo que imprimió (resumen)                                                   │
+│  Imágenes de este servidor                                                   │
+│                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+ ↑↓ elegir · ← → pestaña · RePág/AvPág detalle · ? ayuda · q salir

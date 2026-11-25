@@ -1,0 +1,25 @@
+=== frame 1 ===
+  ITC  testhost · Docker 27.0.0
+  1   2   3   4   5   6   7   8   9  [0 Actividad]                             
+╭─ ▸Actividad (5) ─────────────────────────────────────────────────────────────╮
+│   ● 11-01 10:00 deploy   ix-colorado                                   41.2 s│
+│   ● 11-01 09:50 deploy   ix-lima                                       30.1 s│
+│ ▸ ✖ 11-01 09:00 check    ix-colorado                                    2.1 s│
+│   ● 10-31 15:00 rollback ix-colorado                                    5.3 s│
+│   ● 10-30 10:00 deploy   ix-colorado                                   38.0 s│
+╰──────────────────────────────────────────────────────────────────────────────╯
+[Resumen] Salida  Consumo  Procesos                                             
+╭─ check · ix-colorado ────────────────────────────────────────────────────────╮
+│  comando        ./deltactl check ix-colorado                                 │
+│  estado         ✖ fallida · código 1                                         │
+│  inicio (UTC)   2026-11-01 09:00:00Z                                         │
+│  fin (UTC)      2026-11-01 09:00:00Z                                         │
+│  duración       2.1 s                                                        │
+│  quién          ana@testhost                                                 │
+│                                                                              │
+│  Lo que imprimió (resumen)                                                   │
+│  Comprobación de 'sim-01'                                                    │
+│                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+ ↑↓ elegir · ← → pestaña · RePág/AvPág detalle · ? ayuda · q salir

@@ -173,18 +173,19 @@ DASH_JL=""
 
 # The tab line: the views and, at the right, the state of the current command.
 dash_tabs_line() {
-  local v i=0 left="" mid="" short="" right="" pad lw rw piece
+  local v i=0 k left="" mid="" short="" right="" pad lw rw piece
   for v in "${DASH_SCREENS[@]}"; do
     i=$((i + 1))
+    k=$((i % 10))   # (the tenth view is the key 0)
     dt "${DASH_SCREEN_TITLE[$v]}"
     if [ "$DASH_VIEW" = "$v" ]; then
       # The active view is a filled pill; without colours it keeps the bracketed form.
-      if [ -n "${TH[sel]:-}" ]; then piece=" ${TH[sel]}$C_BLD $i $DTV $C_OFF"; else piece=" $DASH_REV$C_BLD$C_CYN[$i $DTV]$C_OFF"; fi
+      if [ -n "${TH[sel]:-}" ]; then piece=" ${TH[sel]}$C_BLD $k $DTV $C_OFF"; else piece=" $DASH_REV$C_BLD$C_CYN[$k $DTV]$C_OFF"; fi
       left+="$piece" mid+="$piece" short+="$piece"
     else
-      left+="  ${TH[key]:-}$i$C_OFF $C_GRY$DTV$C_OFF "
-      mid+=" ${TH[key]:-}$i$C_OFF $C_GRY$DTV$C_OFF"
-      short+="  ${TH[key]:-}$i$C_OFF "
+      left+="  ${TH[key]:-}$k$C_OFF $C_GRY$DTV$C_OFF "
+      mid+=" ${TH[key]:-}$k$C_OFF $C_GRY$DTV$C_OFF"
+      short+="  ${TH[key]:-}$k$C_OFF "
     fi
   done
   dash_job_label
@@ -222,7 +223,7 @@ dash_tab_at() { # column
     if [ "$DASH_VIEW" != "$v" ]; then
       case "$DASH_TAB_SHORT" in 1) w=4 ;; 2) w=$((${#DTV} + 3)) ;; esac
     fi
-    if [ "$1" -gt "$start" ] && [ "$1" -le $((start + w)) ]; then DASH_TAB_I="$i"; return 0; fi
+    if [ "$1" -gt "$start" ] && [ "$1" -le $((start + w)) ]; then DASH_TAB_I=$((i % 10)); return 0; fi
     start=$((start + w))
   done
   return 1

@@ -1,6 +1,6 @@
 === frame 1 ===
   ITC  testhost · Memory ███░░░ 5.6/11.5 GB 48% ▄▃▂▅▃▂ · Load 3.18 · Docker 27.0.0 · containers 1.5G
- [1 Instances]  2 Resources   3 Output   4 Runs   5 Processes   6 Console   7 Server   8 Images   9 Variables          
+ [1 Instances] 2 Resources 3 Output 4 Runs 5 Processes 6 Console 7 Server 8 Images 9 Variables 0 Activity              
 ╭─ Instances ────────────────────────╮[Summary] Access  History  Services  Variables  Data                              
 │   + New instance                   │╭─┐ ▸ix-lima · 1/2 ┌─────────────────────────────────────────────────┐▲ partial┌─╮
 │               n/m      mem    cpu  ││     up 6h12m  ·  :4110                                                         │

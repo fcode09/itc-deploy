@@ -1,0 +1,41 @@
+=== frame 1 ===
+  ITC  testhost · Docker 27.0.0
+ 1 Instancias 2 Recursos 3 Salida 4 Ejecuciones 5 Procesos 6 Consola 7 Servidor 8 Imágenes 9 Variables [0 Actividad]           ● ./deltactl images terminó bien
+╭─ ▸Actividad (6) ───────────────────────────────────╮ Resumen [Salida] Consumo  Procesos                                                                       
+│ ▸ ● este panel  images   -                    00:07│╭─ Salida · ./deltactl images · terminó bien 00:07 · resumen · ● 2 ──────────────────────────────────────╮
+│   ● 11-01 10:00 deploy   ix-colorado         41.2 s││ Imágenes de este servidor                                                                              │
+│   ● 11-01 09:50 deploy   ix-lima             30.1 s││                                                                                                        │
+│   ✖ 11-01 09:00 check    ix-colorado          2.1 s││ Arquitectura de este servidor: amd64                                                                   │
+│   ● 10-31 15:00 rollback ix-colorado          5.3 s││                                                                                                        │
+│   ● 10-30 10:00 deploy   ix-colorado         38.0 s││ ── s0 = auth-backend ───────────────────────────────────────────────────────────────────────────────── │
+│                                                    ││   ○ 1.1  aaa112 · amd64 · 1 hour ago · 300MB                                                           │
+│                                                    ││       sin uso (candidata a borrar)                                                                     │
+│                                                    ││   ● 1.0  aaa111 · amd64 · 1 hour ago · 300MB                                                           │
+│                                                    ││       sim-01(actual) sim-02(actual) sim-03(actual)                                                     │
+│                                                    ││                                                                                                        │
+│                                                    ││ ── s1 = gueo-back-end ──────────────────────────────────────────────────────────────────────────────── │
+│                                                    ││   ● 1.0  bbb222 · amd64 · 1 hour ago · 300MB                                                           │
+│                                                    ││       sim-01(actual) sim-02(actual) sim-03(actual)                                                     │
+│                                                    ││                                                                                                        │
+│                                                    ││ Las versiones 'sin uso' no las usa ninguna instancia (ni como actual ni como previa).                  │
+│                                                    ││ Este comando solo lista: borrar imágenes lo decides tú. Evita 'docker image prune -a'.                 │
+│                                                    ││   → 1 de 3 imagen(es) sin uso. Para borrar una concreta: docker image rm <nombre>:<etiqueta>           │
+│                                                    ││                                                                                                        │
+│                                                    ││                                                                                                        │
+│                                                    ││                                                                                                        │
+│                                                    ││                                                                                                        │
+│                                                    ││                                                                                                        │
+│                                                    ││                                                                                                        │
+│                                                    ││                                                                                                        │
+│                                                    ││                                                                                                        │
+│                                                    ││                                                                                                        │
+│                                                    ││                                                                                                        │
+│                                                    ││                                                                                                        │
+│                                                    ││                                                                                                        │
+│                                                    ││                                                                                                        │
+│                                                    ││                                                                                                        │
+│                                                    ││                                                                                                        │
+│                                                    ││                                                                                                        │
+╰────────────────────────────────────────────────────╯╰────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+ ↑↓ elegir · ← → pestaña · RePág/AvPág Inicio/Fin desplazan · f sigue · v resumen/crudo · e errores · x cancela · ? ayuda · q salir
