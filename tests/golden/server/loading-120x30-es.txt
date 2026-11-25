@@ -1,18 +1,9 @@
 === frame 1 ===
   ITC  testhost · Memoria ███░░░ 5.6/11.5 GB 48% · Carga 3.18 · Docker 27.0.0 · contenedores 3.3G
- 1 Instancias 2 Recursos 3 Salida 4 Ejecuciones 5 Procesos 6 Consola [7 Servidor] 8 Imágenes 9 Variables 0 Actividad   
-╭─┐ ▸requisitos ┌───────────────────────────────────────────────────────────────────────────────────────┐comprobando…┌─╮
-│   OBLIGATORIOS                                           │   RECOMENDADOS                                            │
-│ ▸ ◐ Docker Engine                                        │   ◐ Límite de archivos de mongod                          │
-│   ◐ Acceso al daemon de Docker                           │   ◐ Proxy inverso (nginx o Caddy                          │
-│   ◐ Docker Compose 2.20 o superi                         │   ◐ certbot                                               │
-│   ◐ Disco libre                                          │   ◐ Hora sincronizada                                     │
-│   ◐ Memoria                                              │   ◐ Cortafuegos                                           │
-│   ◐ MongoDB alcanzable                                   │   ◐ curl                                                  │
-│   ◐ ss (iproute2)                                        │                                                           │
-│   └ Para qué: Ejecuta los servicios de cada instancia en contenedores.                                               │
-│                                                                                                                      │
-╰─┘Enter detalle└─┘c copiar└─┘! ejecutar└─┘m métricas└─────────────────────────────────────────────────────────────────╯
+ [1 Servidor] 2 Instancias 3 Recursos 4 Salida 5 Ejecuciones 6 Procesos 7 Consola 8 Imágenes 9 Variables 0 Actividad   
+╭─┐ ▸requisitos ┌─────────────────────────────────────────────────────────────────────────────────────┐◐ comprobando…┌─╮
+│  ▲ contenedor piura/s1: unhealthy                                                                                    │
+╰─┘Enter ampliar└─┘R comprobar└─┘m métricas└───────────────────────────────────────────────────────────────────────────╯
 ╭─┐cpu┌────────────────────────────────────────╮╭─┐memoria┌──────────────────────────╮╭─┐discos┌───────────────────────╮
 │ no disponible en este sistema                ││ no disponible en este sistema      ││ no disponible en este sistema  │
 │                                              ││                                    ││                                │
@@ -20,12 +11,21 @@
 │                                              ││                                    ││                                │
 │                                              ││                                    ││                                │
 │                                              ││                                    ││                                │
+│                                              ││                                    ││                                │
+│                                              ││                                    ││                                │
+│                                              ││                                    ││                                │
+│                                              ││                                    ││                                │
+│                                              ││                                    ││                                │
+│                                              ││                                    ││                                │
 ╰──────────────────────────────────────────────╯╰────────────────────────────────────╯╰────────────────────────────────╯
-╭─┐red┌─────────────────────────────────────────────╮╭─┐contenedores┌────────────────────────────────────────────┐0/0┌─╮
-│ no disponible en este sistema                     ││ SVC  INSTANCIA       CPU                   MEMORIA ESTADO       │
-│                                                   ││ No hay contenedores en marcha.                                  │
-│                                                   ││                                                                 │
-│                                                   ││                                                                 │
-╰───────────────────────────────────────────────────╯╰─────────────────────────────────────────────────────────────────╯
+╭─┐red┌─────────────────────────────────────╮╭─┐contenedores┌────────────────────────────────────────────────────┐0/0┌─╮
+│ no disponible en este sistema             ││ SVC    INSTANCIA          ESTADO          CPU MEMORIA                   │
+│                                           ││ No hay contenedores en marcha.                                          │
+│                                           ││                                                                         │
+│                                           ││                                                                         │
+│                                           ││                                                                         │
+│                                           ││                                                                         │
+│                                           ││                                                                         │
+╰───────────────────────────────────────────╯╰─────────────────────────────────────────────────────────────────────────╯
 
- ↑↓ elegir · Enter detalle · m métricas · c copiar · ! ejecutar · R comprobar · : comando · ? ayuda · q salir
+ Enter ampliar · Tab otro panel · z zoom · m métricas · R comprobar · : comando · ? ayuda · q salir

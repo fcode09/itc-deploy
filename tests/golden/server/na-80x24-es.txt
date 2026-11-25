@@ -1,16 +1,9 @@
 === frame 1 ===
   ITC  testhost · Memoria ███░░░ 5.6/11.5 GB 48% · Carga 3.18 · Docker 27.0.0
-  1   2   3   4   5   6  [7 Servidor]  8   9   0                               
+ [1 Servidor]  2   3   4   5   6   7   8   9   0                               
 ╭─┐ ▸requisitos ┌─────────────────────────────────────────────────┐9/9 listos┌─╮
-│   OBLIGATORIOS                                                               │
-│ ▸ ● Docker Engine                   Docker 27.0.0 (arquitectura amd64)       │
-│   ● Acceso al daemon de Docker      El daemon de Docker responde             │
-│   ● Docker Compose 2.20 o superior  Docker Compose 2.30.0                    │
-│   ● Disco libre                     Disco libre en /var/lib/docker: 171.1 GB │
-│   ● Memoria                         Memoria: 11776 MB en total, 6022 MB disp │
-│   └ Para qué: Ejecuta los servicios de cada instancia en contenedores.       │
-│   └ Más información: https://docs.docker.com/engine/install/                 │
-╰─┘Enter detalle└─┘c copiar└─┘! ejecutar└─┘m métricas└─────────────────────────╯
+│  ▲ contenedor piura/s1: unhealthy                                            │
+╰─┘Enter ampliar└─┘R comprobar└─┘m métricas└───────────────────────────────────╯
 ╭─┐cpu┌────────────────────────────────────╮╭─┐memoria┌────────────────────────╮
 │ no disponible en este sistema            ││ no disponible en este sistema    │
 │                                          ││                                  │
@@ -20,6 +13,13 @@
 │                                          ││                                  │
 │                                          ││                                  │
 │                                          ││                                  │
+│                                          ││                                  │
 ╰──────────────────────────────────────────╯╰──────────────────────────────────╯
+╭─┐contenedores┌─────────────────────────────────────────────────────────┐0/0┌─╮
+│ SVC    INSTANCIA          ESTADO          CPU MEMORIA                        │
+│ No hay contenedores en marcha.                                               │
+│                                                                              │
+│                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
 
- ↑↓ elegir · Enter detalle · m métricas · c copiar · ? ayuda · q salir
+ Enter ampliar · Tab otro panel · z zoom · m métricas · ? ayuda · q salir

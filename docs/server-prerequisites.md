@@ -9,9 +9,9 @@ distribución (se detecta con `/etc/os-release`: apt, dnf, pacman o apk) para qu
 
 ## En el panel
 
-La vista **Servidor** (`7`) muestra esta misma lista con un icono por requisito, para qué sirve, qué dijo la comprobación y el comando para tu
-distribución; `c` lo copia y `!` lo ejecuta en la terminal **después de preguntar** (el panel nunca instala nada por su cuenta). Si al abrir el
-panel falta un obligatorio, abre en esa vista; y crear una instancia pregunta antes mientras falte algo obligatorio (en Opciones, «Aviso de
+La vista **Servidor** (`1`, con la que se abre el panel) muestra esta misma lista con un icono por requisito, para qué sirve, qué dijo la comprobación y el comando para tu
+distribución; `c` lo copia y `!` lo ejecuta en la terminal **después de preguntar** (el panel nunca instala nada por su cuenta). Con todo
+obligatorio en su sitio es una tira de tres filas (`9/9 listos`); si al abrir el panel falta un obligatorio, la lista se abre sola; y crear una instancia pregunta antes mientras falte algo obligatorio (en Opciones, «Aviso de
 requisitos» lo apaga). Detalle en [panel.md](panel.md).
 
 ## Qué se comprueba
