@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC2034  # the DASH_* and DSV_* variables are shared with lib/cmd/dashboard_view.sh
-# The interactive panel: one screen, seven views, live figures. It is what ./deltactl and ./deltactl menu open in a
+# The interactive panel: one screen, ten views, live figures. It is what ./deltactl and ./deltactl menu open in a
 # real terminal; without one (a pipe, a script, TERM=dumb) they keep showing the static home screen and the numbered menu.
 #
 # This file is the controller: the state every screen shares, the background work (Docker state, errors, events, logs of a
 # service), the commands that run inside the panel (lib/core/jobs.sh), the global keys, the mouse and the main loop.
 # Drawing the shared parts (header, tabs, dialog frame, key bar, the frame itself) is lib/cmd/dashboard_view.sh. Everything
 # else is a SCREEN in lib/screens/, registered in lib/screens/registry.sh (read its header for the contract, and to add one):
-#   views (tabs 1 to 9)  instances, resources, output, runs, procs, console, server, images, env (the variables of an instance)
+#   views (tabs 1 to 9, 0)  server (the one it opens on), instances, resources, output, runs, procs, console, images, env (the variables of an instance), activity
 #   modes (they take the keyboard over a view)  menu, confirm, name, cmd, filter, find, wizard (the new-instance form),
 #                        palette, help, options, srvask (a question about the server's requirements), imguse (use a version in an instance),
 #                        imgload (load an image archive), envedit (the variables editor has the keyboard)
@@ -31,7 +31,8 @@ source "$ROOT/lib/cmd/dashboard_view.sh"
 # The screens and the router (lib/screens/registry.sh): the views and modes below are the ones it registers.
 source "$ROOT/lib/screens/registry.sh"
 
-DASH_VIEW=instances       # instances | resources | output | runs | procs | console
+DASH_VIEW=instances       # the view that is on screen (the registry's ids); the panel starts on the first one (see dash_start_view)
+DASH_START_VIEW=instances # the view the panel started on
 DASH_MODE=normal          # normal | menu | confirm | name | cmd | help | wizard (and others: filter find palette options)
 DASH_SEL=0 DASH_SVC=0 DASH_RES_SEL=0 DASH_RES_SORT=name DASH_FOCUS=list DASH_ON_NEW=0
 DASH_ZOOM=0 DASH_LOG_SCROLL=0 DASH_LOG_FILTER="" DASH_PAL_Q="" DASH_PAL_SEL=0
@@ -669,6 +670,13 @@ dash_init() {
   DASH_LANG_N=$((DASH_LANG_N + 1))
 }
 
+# The view the panel opens on: the first one (Servidor), or the one DELTACTL_TUI_START names (a view id such as instances).
+dash_start_view() {
+  local v="${DELTACTL_TUI_START:-}"
+  if [ -n "$v" ] && dash_screen_valid "$v"; then DASH_VIEW="$v"; else DASH_VIEW="${DASH_SCREENS[0]}"; fi
+  DASH_START_VIEW="$DASH_VIEW"
+}
+
 cmd_dashboard() {
   if ! tui_interactive; then
     cmd_home
@@ -680,6 +688,7 @@ cmd_dashboard() {
   case "$-" in *e*) errexit=1 ;; esac
   set +e
   dash_init
+  dash_start_view
   dash_hist_load
   dash_alias_load
   trap 'dash_shutdown' EXIT

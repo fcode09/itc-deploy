@@ -9,17 +9,18 @@ se está ejecutando, actualizado solo. Fuera de una terminal (una tubería, `TER
 
 | Tecla | Vista | Para qué |
 | --- | --- | --- |
-| `1` | Instancias | La lista de instancias, el detalle de la seleccionada (servicios, memoria, CPU, errores), sus gráficos y sus logs en vivo, y la consola debajo |
-| `2` | Recursos | Todos los servicios de todas las instancias en una tabla; `s` ordena por nombre, memoria o CPU |
-| `3` | Salida | El resultado del último comando: de `new`, `check`, `deploy`, `init`, `doctor`, `images` y `env` un resumen con iconos, secciones y veredicto (`v` pasa a la salida cruda); de cualquier otro, la salida completa |
-| `4` | Ejecuciones | El historial de operaciones (deploy, init, rollback...) con su consumo, la comparación con las anteriores y sus logs guardados |
-| `5` | Procesos | De qué está hecho el comando que se está ejecutando y cuánto cuesta el propio panel |
-| `0` | Actividad | Todo lo que se ha ejecutado en una lista (el comando de este panel, lo que está en marcha en cualquier terminal y lo reciente de todas las instancias) y, de la elegida, cuatro pestañas: Resumen, Salida, Consumo y Procesos. Junta las vistas 3, 4 y 5, que siguen un tiempo |
-| `6` | Consola | La consola a pantalla completa, lista para escribir |
-| `7` | Servidor | Qué necesita el servidor para funcionar (con el comando para instalarlo) y cómo va: CPU, memoria, discos, red y contenedores |
+| `1` | Servidor | Qué necesita el servidor para funcionar (con el comando para instalarlo) y cómo va: una tira con las constantes vitales y los avisos, y cajas de CPU, memoria, discos, red, contenedores (y, en pantallas muy altas, procesos y puertos) |
+| `2` | Instancias | La lista de instancias, el detalle de la seleccionada (servicios, memoria, CPU, errores), sus gráficos y sus logs en vivo, y la consola debajo |
+| `3` | Recursos | Todos los servicios de todas las instancias en una tabla; `s` ordena por nombre, memoria o CPU |
+| `4` | Salida | El resultado del último comando: de `new`, `check`, `deploy`, `init`, `doctor`, `images` y `env` un resumen con iconos, secciones y veredicto (`v` pasa a la salida cruda); de cualquier otro, la salida completa |
+| `5` | Ejecuciones | El historial de operaciones (deploy, init, rollback...) con su consumo, la comparación con las anteriores y sus logs guardados |
+| `6` | Procesos | De qué está hecho el comando que se está ejecutando y cuánto cuesta el propio panel |
+| `7` | Consola | La consola a pantalla completa, lista para escribir |
 | `8` | Imágenes | Qué versiones de cada servicio hay cargadas en este Docker, cuál es la más reciente, quién usa cuál; usar una versión en una instancia y cargar un archivo |
+| `9` | Variables | Las variables de una instancia, con su esquema (ver [env-variables.md](env-variables.md)) |
+| `0` | Actividad | Todo lo que se ha ejecutado en una lista (el comando de este panel, lo que está en marcha en cualquier terminal y lo reciente de todas las instancias) y, de la elegida, cuatro pestañas: Resumen, Salida, Consumo y Procesos. Junta las vistas 3, 4 y 5, que siguen un tiempo |
 
-Tab y Mayús+Tab recorren las vistas (en Instancias, los paneles: lista, servicios y logs). Esc vuelve un paso atrás.
+Tab y Mayús+Tab recorren las vistas (en Instancias, los paneles: lista, servicios y logs; en Servidor, las cajas). Esc vuelve un paso atrás; desde otra vista vuelve a Servidor, y desde Servidor sale del panel.
 
 ## Lo más habitual
 
@@ -39,36 +40,69 @@ Tab y Mayús+Tab recorren las vistas (en Instancias, los paneles: lista, servici
   opciones y la salida queda en la consola; si falta algo obligatorio (nombre, servicios o imagen válida), te lleva a esa sección.
   Con `!` delante (`!new --wizard`) el asistente sigue disponible en el terminal.
 - **Escribir un comando**: `:` da el teclado a la consola; escribe cualquier comando de deltactl sin el prefijo
-  (`status colorado`, `logs colorado s0 -f`). `!` delante lo ejecuta en la terminal; `!` solo abre una shell. En la vista `6` la
+  (`status colorado`, `logs colorado s0 -f`). `!` delante lo ejecuta en la terminal; `!` solo abre una shell. En la vista `7` la
   línea siempre está lista.
 - **Cancelar**: `x` (o Ctrl+C) para el comando en curso.
 - **Logs de un servicio**: con el foco en ellos, Espacio pausa, `f` vuelve a seguir el final, `e` deja solo errores y avisos, `/`
   filtra, `s` busca (`[` y `]` saltan entre coincidencias).
 
-## Servidor y requisitos (`7`)
+## Servidor y requisitos (`1`)
 
-Arriba está la lista de lo que necesita el servidor, con un icono por requisito (● listo, ▲ falta algo recomendado o con aviso, ✖ error,
-○ espera a otro, ◐ comprobando) y, en dos columnas desde 120 columnas, **obligatorios** (Docker, acceso al daemon, Compose 2.20, disco,
-memoria, MongoDB, `ss`, `openssl`, `gunzip`) y **recomendados** (límite de archivos de `mongod`, nginx o Caddy, `certbot`, hora sincronizada,
-cortafuegos, `curl`). Es la misma lista que usa `./deltactl doctor` ([server-prerequisites.md](server-prerequisites.md)). Debajo, en cajas como
-las de btop: CPU (gráfica braille del total y, encima, una caja con cada núcleo y la carga), memoria por tipo (usada, disponible, total, caché,
-libre y swap), discos con su barra de uso, red con la gráfica espejo (bajada arriba, subida abajo) y, desde 120 columnas, los contenedores.
-Lo que el sistema no da (WSL, un contenedor) se ve como «no disponible en este sistema».
+Es la vista con la que se abre el panel. Arriba hay una **tira** de tres filas: a la izquierda el chip de los requisitos (`9/9 listos · 2 recomendados
+pendientes`), y en la fila de dentro las constantes vitales del servidor (disco de `/`, carga con su tendencia ↗ → ↘ y los núcleos, tiempo
+encendido, red ▼▲) y el aviso que hay: «sin avisos», o el primero y cuántos son (`✖ 3 avisos: disco / al 96%`). Mientras todo lo obligatorio está en
+orden, los requisitos son solo esa tira; si algo obligatorio falla o avisa, la tira **se abre sola** en la lista de requisitos, y `Enter` la abre a mano
+(`Esc` la repliega). Debajo, el resto de la pantalla son cajas como las de btop (CPU, memoria, discos, red, contenedores), y en pantallas muy altas los
+procesos y los puertos.
 
-- **↑ ↓** eligen un requisito; debajo de la lista se ve para qué sirve, qué dijo la comprobación y cómo arreglarlo (el comando de tu
-  distribución: apt, dnf, pacman o apk, según `/etc/os-release`; si el requisito no se instala con un paquete, lo que aconseja la comprobación).
-- **Enter** abre el detalle completo (cada resultado con su consejo, el comando de cada gestor si la distribución no se reconoce y la página
-  de la guía); Enter o Esc lo cierran.
-- **c** copia el comando (al portapapeles del escritorio con `wl-copy`, `xclip`, `xsel` o `pbcopy`; si no hay, al del terminal con OSC 52; si
-  tampoco, lo muestra para que lo selecciones).
-- **!** lo ejecuta en la terminal, **después de preguntar**: la ventana muestra el comando entero y solo `y` lo lanza (ahí `sudo` pide la
-  contraseña). El panel **nunca instala nada por su cuenta**. Al volver se comprueban de nuevo los requisitos.
-- **m** deja solo las cifras del servidor (los requisitos ceden su sitio; a 80x24 es la forma de ver los discos y la red); **R** vuelve a
-  comprobar. Los requisitos se comprueban solos cada 2 minutos mientras la vista está a la vista (una comprobación lanza unas decenas de procesos).
-- Las cifras del servidor (CPU por núcleo, temperatura, red, discos) solo se leen mientras esta vista es la actual.
+**La lista de requisitos** (la que se abre): un requisito por fila, `● nombre  resultado resumido`, en dos grupos, **obligatorios** (Docker, acceso al
+daemon, Compose 2.20, disco, memoria, MongoDB, `ss`, `openssl`, `gunzip`) y **recomendados** (límite de archivos de `mongod`, nginx o Caddy, `certbot`,
+hora sincronizada, cortafuegos, `curl`), con cuántos están listos en el título de cada grupo. Dentro de cada grupo va primero lo que falla (✖), luego lo
+que avisa (▲), luego lo que espera o está sin comprobar (○ ◐) y al final lo que está bien (●). Es la misma lista que usa `./deltactl doctor`
+([server-prerequisites.md](server-prerequisites.md)). En dos columnas desde 110 columnas; el resultado de una fila que no cabe acaba en `…` (el
+resultado entero está en el detalle). Bajo la lista, separado por una línea con el estado y el nombre del requisito elegido, está su **detalle**, en una
+zona aparte: *Para qué* sirve, *Resultado* completo, *Cómo* arreglarlo (el comando de tu distribución: apt, dnf, pacman o apk, según `/etc/os-release`; si
+no se instala con un paquete, lo que aconseja la comprobación) y *Más información* (la guía).
 
-**Aviso al abrir el panel**: si falta algo obligatorio (error de Docker, del daemon, de Compose, de disco o de MongoDB), el panel abre en
-esta vista y lo dice en la línea de mensajes; las demás vistas siguen disponibles. Con todo en su sitio no dice nada. **Crear una instancia**
+- **↑ ↓** eligen un requisito (con la lista abierta); **Enter** abre el detalle completo (cada resultado con su consejo y, si la distribución no se
+  reconoce, el comando de cada gestor); Enter o Esc lo cierran.
+- **c** copia el comando (portapapeles del escritorio con `wl-copy`, `xclip`, `xsel` o `pbcopy`; si no hay, el del terminal con OSC 52; si tampoco,
+  lo muestra para que lo selecciones). **!** lo ejecuta en la terminal **después de preguntar**: la ventana muestra el comando entero y solo `y` lo lanza
+  (ahí `sudo` pide la contraseña). El panel **nunca instala nada por su cuenta**; al volver se comprueban de nuevo los requisitos. Los requisitos se
+  comprueban solos cada 2 minutos mientras la vista está a la vista (una comprobación lanza unas decenas de procesos) y con **R**.
+
+**Avisos** (la tira y el borde de la caja afectada toman el color): disco al 85 % (aviso) o 95 % (error), memoria **disponible** por debajo del 10 % (aviso)
+o del 5 % (error; la caché no cuenta), swap al 50 %, carga de un minuto mayor que los núcleos, temperatura de la CPU a menos de 10 grados de su límite,
+un contenedor con error o aviso (uno que nunca se creó no es un problema) y la hora sin sincronizar. Los umbrales se mueven con variables de entorno:
+`DELTACTL_ALERT_DISK_WARN`, `DELTACTL_ALERT_DISK_ERR`, `DELTACTL_ALERT_MEM_AVAIL`, `DELTACTL_ALERT_SWAP`, `DELTACTL_ALERT_LOAD_PCT` (la carga como
+porcentaje de los núcleos, 100) y `DELTACTL_ALERT_TEMP_MARGIN`.
+
+**Las cajas.** Cada una tiene su gráfica con un eje de tiempo (`-4 min ──── ahora`) y el mínimo, la media y el máximo de lo que dibuja; el historial del
+servidor guarda 240 muestras. Lo que el sistema no da (WSL, un contenedor) se ve como «no disponible en este sistema».
+
+| Ancho | Filas de cajas |
+| --- | --- |
+| 200 columnas o más | cpu · memoria · discos · red, y los contenedores a todo el ancho |
+| 120 a 199 | cpu · memoria · discos, y red · contenedores |
+| menos de 120 | cpu · memoria, y los contenedores (con 44 filas o más, disco · red) |
+
+Desde 55 filas de terminal se añade una fila con los **procesos** que más CPU usan (`ps`) y los **puertos** que escuchan (`ss`, con el servicio de la
+instancia cuando es el puerto de uno). Son las únicas cajas que lanzan un programa: en segundo plano, solo mientras están a la vista, cada 5 y 15
+segundos (`DELTACTL_PS_TTL` y `DELTACTL_SS_TTL`, entre 5 y 60), con un límite de tiempo, y si falta el programa la caja lo dice.
+
+- **Tab** y **Mayús+Tab** mueven el foco entre las cajas que hay en pantalla (la que lo tiene lleva el chip marcado); **z** amplía la caja con foco a todo
+  el cuerpo y enseña lo que no cabía (todos los núcleos y la historia de la carga; cada montaje y cada disco con su ocupación; todas las interfaces y los
+  sockets; todas las columnas de los contenedores con sus procesos), **Esc** o **z** la reducen; **m** deja solo las cifras (la tira cede su sitio).
+- En los **contenedores**: **↑ ↓** mueven el cursor, **Enter** abre la instancia con el cursor en ese servicio, **l** sigue sus logs, **s** ordena (nombre,
+  memoria, CPU, como en Recursos) y **h** enseña u oculta los servicios que nunca se crearon (por defecto son una línea, `+3 no creados`). En los
+  procesos y los puertos, ↑ ↓ mueven el cursor.
+- Con el ratón activado (Opciones): un clic da el foco a una caja o abre la lista de requisitos si es la tira, un clic en una fila del recuadro con foco
+  pone el cursor ahí y un segundo clic hace lo que Enter; la rueda mueve el cursor de la caja con foco.
+- Las cifras del servidor (CPU por núcleo, temperatura, presión del kernel, sockets, memoria virtual, red, discos) se leen mientras esta vista es la
+  actual (ver «Consumo» en [panel-pendiente.md](panel-pendiente.md)).
+
+**Aviso al abrir el panel**: si falta algo obligatorio (error de Docker, del daemon, de Compose, de disco o de MongoDB), la lista de requisitos se abre
+sola y el panel lo dice en la línea de mensajes; las demás vistas siguen disponibles. Con todo en su sitio no dice nada. **Crear una instancia**
 (`n`, el botón o `new`) pregunta antes mientras falte algo obligatorio: `y` crea igualmente, `v` muestra los requisitos, `n` no vuelve a
 avisar (se guarda `TUI_PREREQ=off`; en Opciones, «Aviso de requisitos» lo vuelve a activar) y Esc cancela.
 

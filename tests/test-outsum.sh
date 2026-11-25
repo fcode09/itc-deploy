@@ -119,15 +119,15 @@ mkdir -p instances
 bash ./deltactl new os-demo > /dev/null 2>&1
 fill_instance instances/os-demo 1.0 1.0
 printf 'SOURCE=init\nINITIALIZED_AT=2026-01-01T00:00:00Z\n' > instances/os-demo/.initialized
-out="$(panel : $(typed check) space $(typed os-demo) enter wait 3)"
+out="$(panel : $(typed check) space $(typed os-demo) enter wait 4)"
 f="$(echo "$out" | last_frame)"
-check "check run from the console is summarised in the Output view" 'echo "$f" | grep -q "\[3 Salida\]" && echo "$f" | grep -q " · resumen" && echo "$f" | grep -q "Comprobación de .os-demo."'
-out="$(panel : $(typed check) space $(typed os-demo) enter wait 3 v)"
+check "check run from the console is summarised in the Output view" 'echo "$f" | grep -q "\[4 Salida\]" && echo "$f" | grep -q " · resumen" && echo "$f" | grep -q "Comprobación de .os-demo."'
+out="$(panel : $(typed check) space $(typed os-demo) enter wait 4 v)"
 f="$(echo "$out" | last_frame)"
 check "v shows what the command printed, as it did before, and not the summary" '! echo "$f" | grep -q " · resumen" && echo "$f" | grep -q "servicios *s0 s1" && echo "$f" | grep -q "Configuración completa"'
-out="$(panel : $(typed doctor) enter wait 3)"
+out="$(panel : $(typed doctor) enter wait 4)"
 check "doctor is summarised too, and its raw output has the headings of its sections" 'echo "$out" | last_frame | grep -q "Diagnóstico del servidor" && echo "$out" | last_frame | grep -q " · resumen"'
-out="$(panel : $(typed logs) space $(typed os-demo) enter wait 3)"
+out="$(panel : $(typed logs) space $(typed os-demo) enter wait 4)"
 check "a command with no shape (logs) is shown raw" '! echo "$out" | last_frame | grep -q " · resumen"'
 rm -rf instances/os-demo
 

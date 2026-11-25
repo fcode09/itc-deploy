@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC2016,SC2034  # the cases go in single quotes and are evaluated with eval
-# The Server view of the panel (lib/screens/server.sh, lib/screens/srvask.sh) and the first-run gate: the figures in human units, the golden
-# snapshots of its scenes (tests/tools/server_scenes.sh) at 80x24, 120x30 and 160x40, how it degrades (small screens, ASCII, no colour,
+# The Server view of the panel (lib/screens/server*.sh, lib/screens/srvask.sh) and the first-run gate: the figures in human units, the golden
+# snapshots of its scenes (tests/tools/server_scenes.sh) from 80x24 to 250x70, the strip and the list of requirements, the warnings, the focus,
+# the zoom, the containers, the mouse, the processes and the ports, how it degrades (small screens, ASCII, no colour,
 # sources that are not there), its keys end to end against a simulated server, copying and running an install command (always asking
 # first), the notice when the panel starts and the question before creating an instance. No real Docker, no real host, nothing installed:
 # the panel runs in test mode (DELTACTL_TUI_KEYS) and the command that would install something is replaced by a script that notes it.
@@ -11,8 +12,9 @@ set -u
 # shellcheck source=tests/lib.sh
 source tests/lib.sh
 export LANG=C.UTF-8 LC_ALL=C.UTF-8
-unset NO_COLOR DELTACTL_COLOR DELTACTL_UI DELTACTL_ASCII COLUMNS DELTACTL_TUI_KEYS DELTACTL_TUI_EVENTS DELTACTL_TUI_ROWS DELTACTL_THEME
+unset NO_COLOR DELTACTL_COLOR DELTACTL_UI DELTACTL_ASCII COLUMNS DELTACTL_TUI_KEYS DELTACTL_TUI_EVENTS DELTACTL_TUI_ROWS DELTACTL_THEME DELTACTL_TUI_START
 unset DELTACTL_REFRESH DELTACTL_METRICS_INTERVAL DELTACTL_TUI_IDLE_AFTER DELTACTL_TUI_GATE DELTACTL_CLIP DELTACTL_PR_SHELL DELTACTL_GRAPH TUI_GRAPH
+unset DELTACTL_ALERT_DISK_WARN DELTACTL_ALERT_DISK_ERR DELTACTL_ALERT_MEM_AVAIL DELTACTL_ALERT_SWAP DELTACTL_ALERT_LOAD_PCT DELTACTL_ALERT_TEMP_MARGIN DELTACTL_PS DELTACTL_SS DELTACTL_PS_TTL DELTACTL_SS_TTL
 
 FIX="$(mktemp -d)"
 export FIX
@@ -53,7 +55,7 @@ chmod +x "$FIX/fakesh"
 
 KEYS="$FIX/keys.txt"
 # The panel with the keys given (one per line), a server that has Docker (ok) or one that has nothing (bad). ASCII, no colours, 100 x 30
-# (PANEL_COLS and PANEL_ROWS change the size). The panel starts on the first view unless DELTACTL_TUI_GATE=1 finds something missing.
+# (PANEL_COLS and PANEL_ROWS change the size). The panel starts on the first view, the Server view (DELTACTL_TUI_START is unset here).
 panel_ok() { printf '%s\n' "$@" > "$KEYS"; PATH="$FIX/bin:$PATH" DELTACTL_CONFIG="$CFG" DELTACTL_TUI_KEYS="$KEYS" DELTACTL_UI=rich DELTACTL_COLOR=never DELTACTL_ASCII=1 COLUMNS="${PANEL_COLS:-100}" DELTACTL_TUI_ROWS="${PANEL_ROWS:-30}" bash ./deltactl 2>&1; }
 panel_bad() { printf '%s\n' "$@" > "$KEYS"; PATH="$FIX/nopath" DELTACTL_PR_SBIN="" DELTACTL_CONFIG="$CFG" DELTACTL_TUI_KEYS="$KEYS" DELTACTL_UI=rich DELTACTL_COLOR=never DELTACTL_ASCII=1 COLUMNS="${PANEL_COLS:-100}" DELTACTL_TUI_ROWS="${PANEL_ROWS:-30}" bash ./deltactl 2>&1; }
 frame_n() { awk -v n="$1" '/^=== frame /{ f = ($3 == n) } f'; }
@@ -69,15 +71,15 @@ check "uptime: hours and minutes, with days from the first" '[ "$(run_lib "for s
 check "texts with arguments fill {1}, {2} and {3} without a process" '[ "$(run_lib "dash_srv_t tui.srv.status.req 7 9; echo \$DASH_T")" = "7/9 listos" ] && [ "$(DELTACTL_LANG=en run_lib "dash_srv_t tui.srv.status.req 7 9; echo \$DASH_T")" = "7/9 ready" ]'
 
 section "2. the view is registered with one line and follows the contract"
-check "it is the seventh tab and its digit opens it" '[ "$(run_lib "dash_screen_by_number 7; echo \$DASH_SCR_ID")" = "server" ]'
+check "it is the first tab and its digit opens it" '[ "$(run_lib "dash_screen_by_number 1; echo \$DASH_SCR_ID")" = "server" ]'
 check "the dialog that asks is a mode" '[ "$(run_lib "printf \"%s \" \${DASH_MODES[@]}")" = "menu confirm name cmd filter lfilter find wizard newinst palette help options srvask imguse imgload envedit svcask accdom " ]'
-check "every function of the contract it uses is defined" 'run_lib "for f in render key keys texts sig enter back tick poll bang; do declare -F scr_server_\$f >/dev/null || exit 1; done; for f in render key keys sig; do declare -F scr_srvask_\$f >/dev/null || exit 1; done"'
+check "every function of the contract it uses is defined" 'run_lib "for f in render key keys texts sig enter back tick poll bang tab click wheel; do declare -F scr_server_\$f >/dev/null || exit 1; done; for f in render key keys sig; do declare -F scr_srvask_\$f >/dev/null || exit 1; done"'
 check "the requirements are shown required first, then recommended, in the order of the catalog" '[ "$(run_lib "echo \${DASH_SRV_ORDER[*]} \$DASH_SRV_NREQ")" = "docker daemon compose disk ram mongo ss openssl gunzip nofile proxy certbot timesync firewall curl 9" ]'
-check "its signature carries the state it draws" '[ "$(run_lib "DASH_SIG=; scr_server_sig; echo \$DASH_SIG")" = "|0|0|0|none|0|0" ]'
-check "it is in the list of views of the console, the palette and the error message" 'grep -q "console server" lib/screens/console.sh && grep -q "console server images env activity; do" lib/screens/palette.sh && grep -q "console · server" lib/i18n/es/dashboard.sh && grep -q "console · server" lib/i18n/en/dashboard.sh'
+check "its signature carries the state it draws" '[ "$(run_lib "DASH_SIG=; scr_server_sig; echo \$DASH_SIG")" = "|0|0|auto|0||none|0|0|req|0|0|name|0|0|none|none" ]'
+check "it is first in the list of views of the console, the palette and the error message" 'grep -q "pool=(server instances resources" lib/screens/console.sh && grep -q "for v in server instances resources output runs procs console images env activity; do" lib/screens/palette.sh && grep -q "Vistas: server · instances" lib/i18n/es/dashboard.sh && grep -q "Views: server · instances" lib/i18n/en/dashboard.sh'
 check "the registry documents the hook of the key !" 'grep -q "scr_<id>_bang" lib/screens/registry.sh'
 
-section "3. snapshots of the scenes (80x24, 120x30 and 160x40)"
+section "3. snapshots of the scenes (from 80x24 to 250x70)"
 GOLD_DIR="${DELTACTL_GOLDEN_DIR:-tests/golden}/server"
 MODE="${DELTACTL_GOLDEN:-check}"
 mkdir -p "$GOLD_DIR" 2> /dev/null || true
@@ -90,9 +92,15 @@ scene() {
     bash -c 'source lib/bootstrap.sh; source lib/cmd/dashboard.sh; source tests/tools/server_scenes.sh; set +e; server_scene '"$name" 2>&1 \
     | awk '/^=== frame /{ buf = "" } { buf = buf $0 "\n" } END { printf "%s", buf }'
 }
-names="ok missing open zoom na loading"
+# The scenes and the sizes each one is kept at (the big ones where what they show needs them).
+declare -A SIZES=(
+  [ok]="80x24 120x30 160x40 200x55 250x70" [missing]="80x24 120x30 160x40 200x55" [open]="80x24 120x30 160x40" [zoom]="80x24 120x30 160x40"
+  [na]="80x24 120x30 160x40" [loading]="80x24 120x30 160x40" [alert]="120x30 160x40" [ok-open]="120x30 160x40" [focus-containers]="160x40"
+  [zoom-cpu]="120x30 160x40" [many-cores]="160x40 200x55" [many-containers]="120x30 160x40 250x70" [wide]="250x70"
+)
+names="ok missing open zoom na loading alert ok-open focus-containers zoom-cpu many-cores many-containers wide"
 for sc in $names; do
-  for sz in 80x24 120x30 160x40; do
+  for sz in ${SIZES[$sc]}; do
     g="$GOLD_DIR/$sc-$sz-es.txt"
     scene "$sc" "${sz%x*}" "${sz#*x}" es > "$FIX/frames/$sc-$sz-es.txt"
     if [ "$MODE" = record ]; then cp "$FIX/frames/$sc-$sz-es.txt" "$g"; echo "  REC  $sc @ $sz (es)"
@@ -109,19 +117,36 @@ for sc in ok missing; do
 done
 
 section "4. the shape of every frame"
-for sz in 60x14 80x24 100x20 120x30 160x40; do
-  for sc in $names; do
+for sz in 60x14 100x20; do
+  for sc in ok missing open zoom na loading; do
     [ -f "$FIX/frames/$sc-$sz-es.txt" ] || scene "$sc" "${sz%x*}" "${sz#*x}" es > "$FIX/frames/$sc-$sz-es.txt"
   done
 done
-check "no line is wider than the screen, in any scene and size" 'for f in "$FIX"/frames/*-es.txt; do sz="${f##*-}"; sz="${f%-es.txt}"; sz="${sz##*-}"; c="${sz%x*}"; awk -v c="$c" "{ if (length(\$0) > c) bad = 1 } END { exit bad }" "$f" || { echo "$f"; exit 1; }; done'
+check "no line is wider than the screen, in any scene and size" 'for f in "$FIX"/frames/*-es.txt; do sz="${f%-es.txt}"; sz="${sz##*-}"; c="${sz%x*}"; awk -v c="$c" "{ if (length(\$0) > c) bad = 1 } END { exit bad }" "$f" || { echo "$f"; exit 1; }; done'
 check "a frame has exactly the rows of the screen (the header, the tabs, the body, the message and the keys)" 'for f in "$FIX"/frames/*-es.txt; do sz="${f%-es.txt}"; sz="${sz##*-}"; r="${sz#*x}"; c="${sz%x*}"; [ "$c" -ge 60 ] && [ "$r" -ge 14 ] || continue; [ "$(grep -c "" "$f")" -eq "$((r + 1))" ] || { echo "$f $(grep -c "" "$f") $r"; exit 1; }; done'
-check "the requirements are always in the first rows of the body: the box with its chip and the ready count" 'for sc in ok missing; do for sz in 80x24 120x30 160x40; do sed -n 4p "$FIX/frames/$sc-$sz-es.txt" | grep -q "requisitos" || exit 1; done; done'
-check "at 160 columns the requirements are two columns, required and recommended" 'sed -n 5p "$FIX/frames/ok-160x40-es.txt" | grep -q "OBLIGATORIOS.*RECOMENDADOS"'
-check "at 80 columns they are one column with both headings" 'grep -q "OBLIGATORIOS" "$FIX/frames/ok-80x24-es.txt" && ! grep -q "RECOMENDADOS.*OBLIGATORIOS\|OBLIGATORIOS.*RECOMENDADOS" "$FIX/frames/ok-80x24-es.txt"'
+check "the strip is always in the first rows of the body: the box with its chip and the ready count" 'for sc in ok missing; do for sz in 80x24 120x30 160x40; do sed -n 4p "$FIX/frames/$sc-$sz-es.txt" | grep -q "requisitos" || exit 1; done; done'
+check "with everything required fine the requirements are a strip of three rows: the count, the vital signs and the warnings, no list" 'f="$FIX/frames/ok-160x40-es.txt"; sed -n 4p "$f" | grep -q "9/9 listos" && sed -n 5p "$f" | grep -q "disco /.*carga.*núcleos.*activo.*▼.*▲" && sed -n 6p "$f" | grep -q "^╰.*Enter ampliar" && ! grep -q "OBLIGATORIOS" "$f"'
+check "when something required fails the list opens by itself: required and recommended side by side from 120 columns" 'grep -q "OBLIGATORIOS.*RECOMENDADOS" "$FIX/frames/missing-160x40-es.txt" && grep -q "OBLIGATORIOS.*RECOMENDADOS" "$FIX/frames/missing-120x30-es.txt"'
+scene missing 80 40 es > "$FIX/frames/missing-80x40-es.txt"
+check "at 80 columns they are one column: the two headings are on lines of their own" 'f="$FIX/frames/missing-80x40-es.txt"; grep -q "OBLIGATORIOS" "$f" && grep -q "RECOMENDADOS" "$f" && ! grep -q "RECOMENDADOS.*OBLIGATORIOS\|OBLIGATORIOS.*RECOMENDADOS" "$f"'
+check "the failing ones come first and the detail of the selected one has a zone of its own under a line that names it: what for, the result, how, where to read more" 'f="$FIX/frames/missing-160x40-es.txt"; grep -qE "^│ ▸ ✖ Disco libre" "$f" && grep -qE "^│ ─ ✖ Disco libre ─+ │$" "$f" && grep -qE "Para qué +Las imágenes" "$f" && grep -qE "Resultado +Poco disco libre" "$f" && grep -qE "Cómo +Las imágenes y los logs" "$f"'
+check "nothing is cut without saying so: a row that does not fit ends in … and its whole text is in the detail" 'f="$FIX/frames/missing-160x40-es.txt"; grep -q "Poco disco libre en /var/lib/docker: 1.…" "$f" && grep -qE "Resultado +Poco disco libre en /var/lib/docker: 1.9 GB" "$f"'
 check "the wide layout has the five boxes: cpu, memory, disks, network and containers" 'for b in cpu memoria discos red contenedores; do grep -q "┐$b┌" "$FIX/frames/ok-160x40-es.txt" || exit 1; done'
-check "the narrow layout has the cpu, memory, disks and network, and the containers wait for width" 'for b in cpu memoria discos red; do grep -q "┐$b┌" "$FIX/frames/ok-80x24-es.txt" "$FIX/frames/ok-120x30-es.txt" >/dev/null 2>&1 || true; done; grep -q "┐cpu┌" "$FIX/frames/ok-80x24-es.txt" && grep -q "┐memoria┌" "$FIX/frames/ok-80x24-es.txt" && ! grep -q "┐contenedores┌" "$FIX/frames/ok-80x24-es.txt"'
-check "the metrics view (m) has no requirements box and uses the room for the figures" '! grep -q "┐requisitos┌\|▸requisitos" "$FIX/frames/zoom-120x30-es.txt" && grep -q "┐cpu┌" "$FIX/frames/zoom-120x30-es.txt" && grep -q "m requisitos" "$FIX/frames/zoom-120x30-es.txt"'
+check "from 200 columns the cpu, the memory, the disks and the network are four boxes in one row and the containers take the whole width under them" 'f="$FIX/frames/ok-200x55-es.txt"; grep -q "┐cpu┌.*┐memoria┌.*┐discos┌.*┐red┌" "$f" && grep -q "^╭─┐contenedores┌.*┐4/4┌─╮$" "$f"'
+check "under 200 columns the network shares a row with the containers" 'grep -q "┐red┌.*┐contenedores┌" "$FIX/frames/ok-160x40-es.txt" && grep -q "┐red┌.*┐contenedores┌" "$FIX/frames/ok-120x30-es.txt"'
+check "the narrow layout is the strip, the cpu and the memory, and the containers: the network and the disks wait for a tall screen" 'f="$FIX/frames/ok-80x24-es.txt"; grep -q "┐cpu┌" "$f" && grep -q "┐memoria┌" "$f" && grep -q "┐contenedores┌" "$f" && ! grep -q "┐red┌" "$f" && ! grep -q "┐discos┌" "$f"'
+check "the containers table has the columns that fit: from 160 columns the port and the trend of the CPU, from 200 the uptime and the restarts too" 'grep -q "PUERTO .*CPU TENDENCIA" "$FIX/frames/ok-160x40-es.txt" && grep -q "ACTIVO .*REINIC.*PUERTO" "$FIX/frames/ok-200x55-es.txt" && ! grep -q "PUERTO" "$FIX/frames/ok-80x24-es.txt"'
+check "the services that were never created are one line (+N no creados), not N rows" 'f="$FIX/frames/many-containers-250x70-es.txt"; grep -q "┐39/40┌" "$f" && ! grep -q "not created" "$f" && ! grep -q "s3   inst09" "$f"'
+check "the table keeps the cursor in view: the 18th container of 40 is on screen" 'grep -q "s1   inst05" "$FIX/frames/many-containers-160x40-es.txt"'
+check "64 cores do not cover the graph: the grid says how many it leaves out (+N más) and the graph keeps its axis" 'f="$FIX/frames/many-cores-160x40-es.txt"; grep -qE "\+[0-9]+ más" "$f" && grep -q "mín .*media .*máx" "$f" && grep -q "ahora" "$f"'
+check "a wide screen draws the graphs with their time axis and their minimum, mean and maximum" 'f="$FIX/frames/ok-200x55-es.txt"; grep -q "─ ahora" "$f" && grep -q "mín 0% · media" "$f"'
+check "a very tall screen adds a row with the busiest processes and the ports that listen (the only boxes that start a program)" 'for f in "$FIX/frames/ok-200x55-es.txt" "$FIX/frames/wide-250x70-es.txt"; do grep -q "┐procesos┌" "$f" && grep -q "┐puertos┌" "$f" && grep -q "mongod" "$f" && grep -q "27017" "$f" || exit 1; done; ! grep -q "┐procesos┌" "$FIX/frames/ok-160x40-es.txt"'
+check "the ports of the instances say whose they are (4100 is colorado/s0)" 'grep -qE "4100 +0.0.0.0 +docker-proxy +colorado/s0" "$FIX/frames/wide-250x70-es.txt"'
+check "the warnings: the strip says how many there are and the first, and the boxes they are about carry them" 'f="$FIX/frames/alert-160x40-es.txt"; sed -n 5p "$f" | grep -qE "✖ [0-9]+ avisos: disco / al 96%" && grep -q "┐discos┌" "$f"'
+check "the list opened by hand with everything fine is the list, with the detail of the selected one" 'f="$FIX/frames/ok-open-160x40-es.txt"; grep -q "OBLIGATORIOS.*RECOMENDADOS" "$f" && grep -qE "Para qué +" "$f"'
+check "with the focus on the containers their box is the focused one (its chip is marked) and the cursor is on a row" 'f="$FIX/frames/focus-containers-160x40-es.txt"; grep -q "▸contenedores" "$f" && ! grep -q "▸requisitos" "$f" && grep -q "s0   piura" "$f"'
+check "zoomed (z) a box is the whole body: the cpu with all its cores, its load graph and no other box" 'f="$FIX/frames/zoom-cpu-160x40-es.txt"; grep -q "▸cpu" "$f" && ! grep -q "┐memoria┌" "$f" && ! grep -q "┐requisitos┌" "$f" && grep -q "C7" "$f" && grep -q "z/Esc reducir" "$f" && [ "$(grep -c "ahora" "$f")" -ge 2 ]'
+check "the metrics view (m) has no requirements box and uses the room for the figures" '! grep -q "┐requisitos┌\|▸requisitos" "$FIX/frames/zoom-120x30-es.txt" && grep -q "▸cpu" "$FIX/frames/zoom-120x30-es.txt" && grep -q "m requisitos" "$FIX/frames/zoom-120x30-es.txt"'
 check "with the figures not available every box says so instead of staying empty" '[ "$(grep -o "no disponible en este sistema" "$FIX/frames/na-160x40-es.txt" | wc -l)" -ge 4 ]'
 check "while the requirements are checked, the box says so and every state is the one of a pending check" 'grep -q "comprobando…" "$FIX/frames/loading-120x30-es.txt" && grep -q "◐" "$FIX/frames/loading-120x30-es.txt" && ! grep -q "listos" "$FIX/frames/loading-120x30-es.txt"'
 check "a requirement that fails shows what to do about it: the hint of the check" 'grep -q "Libera disco o mueve Docker" "$FIX/frames/missing-160x40-es.txt"'
@@ -131,101 +156,103 @@ check "a terminal smaller than 60x14 still says it is too small instead of drawi
 section "5. ASCII, colours and the language"
 scene ok 120 30 es DELTACTL_ASCII=1 > "$FIX/frames/ascii.txt"
 check "in ASCII (LANG=C or DELTACTL_ASCII) there is no character outside ASCII in the frame (what the panel prints itself; the words of the language keep their accents)" '! LC_ALL=C grep -v "^[ -~]*$" "$FIX/frames/ascii.txt" | grep -qP "[\x{2500}-\x{28FF}]"'
-check "in ASCII the state is still told by its symbol and the graph is drawn" 'grep -q "\* Docker Engine\|> \* Docker" "$FIX/frames/ascii.txt" && grep -q "cpu" "$FIX/frames/ascii.txt"'
+scene missing 120 30 es DELTACTL_ASCII=1 > "$FIX/frames/ascii-missing.txt"
+check "in ASCII the state is still told by its symbol and the graph is drawn" 'grep -q "x Disco libre" "$FIX/frames/ascii-missing.txt" && grep -q "! certbot" "$FIX/frames/ascii-missing.txt" && grep -q "cpu" "$FIX/frames/ascii.txt" && grep -qE "[#=.]{5}" "$FIX/frames/ascii.txt"'
 scene ok 120 30 es DELTACTL_COLOR=always COLORTERM=truecolor > "$FIX/frames/color.txt"
 check "with colours the frame has colour sequences, and the gradient meters use more than one colour" 'grep -q $'"'"'\033\[38;2;'"'"' "$FIX/frames/color.txt" && [ "$(grep -o $'"'"'\033\[38;2;[0-9;]*m'"'"' "$FIX/frames/color.txt" | sort -u | wc -l)" -gt 20 ]'
 scene ok 120 30 es DELTACTL_COLOR=never > "$FIX/frames/nocolor.txt"
 check "NO_COLOR draws no escape sequence at all" '! grep -q $'"'"'\033'"'"' "$FIX/frames/nocolor.txt"'
 scene ok 120 30 es DELTACTL_GRAPH=blocks > "$FIX/frames/blocks.txt"
 check "DELTACTL_GRAPH=blocks draws the graphs with block characters, not braille" '! grep -qP "[\x{2800}-\x{28FF}]" "$FIX/frames/blocks.txt" && grep -qP "[\x{2581}-\x{2588}]" "$FIX/frames/blocks.txt"'
-check "English: the titles, the chips and the groups are translated" 'grep -q "REQUIRED" "$FIX/frames/ok-160x40-en.txt" && grep -q "┐memory┌" "$FIX/frames/ok-160x40-en.txt" && grep -q "┐network┌" "$FIX/frames/ok-160x40-en.txt" && grep -q "What for" "$FIX/frames/ok-160x40-en.txt" && ! grep -q "??" "$FIX/frames/ok-160x40-en.txt"'
+check "English: the titles, the chips, the strip, the groups and the detail are translated" 'grep -q "9/9 ready" "$FIX/frames/ok-160x40-en.txt" && grep -q "┐memory┌" "$FIX/frames/ok-160x40-en.txt" && grep -q "┐network┌" "$FIX/frames/ok-160x40-en.txt" && grep -q "┐containers┌" "$FIX/frames/ok-160x40-en.txt" && grep -q "min .* avg .* max" "$FIX/frames/ok-160x40-en.txt" && grep -q "REQUIRED" "$FIX/frames/missing-160x40-en.txt" && grep -q "What for" "$FIX/frames/missing-160x40-en.txt" && ! grep -q "??" "$FIX/frames/ok-160x40-en.txt"'
 check "no frame leaves a missing translation (??key??) behind" '! grep -l "??" "$FIX"/frames/*.txt | grep -q .'
 
 section "6. the view in the panel: keys end to end (a server with nothing installed)"
-out="$(panel_bad 7 q)"
-check "7 opens the view: the tab is active and the requirements are listed" 'echo "$out" | last_frame | grep -q "\[7 Servidor\]" && echo "$out" | last_frame | grep -q "OBLIGATORIOS" && echo "$out" | last_frame | grep -q "Docker Engine"'
-check "Docker is missing: it says so, with a cross, and what it is for" 'echo "$out" | last_frame | grep -q "x Docker Engine" && echo "$out" | last_frame | grep -q "Docker no está instalado" && echo "$out" | last_frame | grep -q "Para qué: Ejecuta los servicios"'
-check "it says how to install it: the command of this distribution (apt on Debian)" 'echo "$out" | last_frame | grep -q "Cómo: sudo apt-get update && sudo apt-get install -y docker.io"'
-check "the first requirement is the selected one; down moves the mark" '[ "$(panel_bad 7 down q | last_frame | grep -c "^| > ")" -ge 1 ] && panel_bad 7 down q | last_frame | grep "^| > " | grep -q "Acceso al daemon"'
-check "the compact detail has no link; Enter opens the detail with every result, its hint and the link, and Enter again closes it" 'o="$(panel_bad 7 enter enter q)"; ! echo "$o" | frame_n 2 | grep -q "Más información" && echo "$o" | frame_n 3 | grep -q "Más información: https://docs.docker.com/engine/install/" && echo "$o" | frame_n 3 | grep -q "Docker no está instalado" && ! echo "$o" | frame_n 4 | grep -q "Más información"'
-check "Esc closes the detail without leaving the view" 'o="$(panel_bad 7 enter esc q)"; echo "$o" | frame_n 3 | grep -q "Más información" && ! echo "$o" | frame_n 4 | grep -q "Más información" && echo "$o" | frame_n 4 | grep -q "\[7 Servidor\]"'
-check "m shows only the figures and m again brings the requirements back" 'o="$(panel_bad 7 m m q)"; ! echo "$o" | frame_n 3 | grep -q "OBLIGATORIOS" && echo "$o" | frame_n 3 | grep -q "m requisitos" && echo "$o" | frame_n 4 | grep -q "OBLIGATORIOS"'
-check "Esc leaves the metrics view first, then the view" 'o="$(panel_bad 7 m esc esc q)"; echo "$o" | frame_n 4 | grep -q "OBLIGATORIOS" && echo "$o" | frame_n 4 | grep -q "\[7 Servidor\]" && echo "$o" | frame_n 5 | grep -q "\[1 Instancias\]"'
-check "R checks again: it says so and draws another frame with the answer" 'o="$(panel_bad 7 R q)"; echo "$o" | last_frame | grep -q "Comprobando los requisitos"'
-check "Up and Down stop at the ends of the list; PgDn and End go to the last one" 'panel_bad 7 up up q | last_frame | grep "^| > " | grep -q "Docker Engine" && panel_bad 7 end q | last_frame | grep "^| > " | grep -q "curl"'
-check "with a keyboard that moves with j and k they move too (the vim keys)" 'panel_bad 7 j j k q | last_frame | grep "^| > " | grep -q "Acceso al daemon"'
+out="$(panel_bad 1 q)"
+check "the panel starts on it (key 1 is the same view): the tab is active and the requirements are listed, required first" 'echo "$out" | frame_n 1 | grep -q "\[1 Servidor\]" && echo "$out" | last_frame | grep -q "\[1 Servidor\]" && echo "$out" | last_frame | grep -q "OBLIGATORIOS" && echo "$out" | last_frame | grep -q "Docker Engine"'
+check "Docker is missing: it says so, with a cross, and what it is for in the detail zone" 'echo "$out" | last_frame | grep -q "x Docker Engine" && echo "$out" | last_frame | grep -q "Docker no está instalado" && echo "$out" | last_frame | grep -qE "Para qué +Ejecuta los servicios"'
+check "it says how to install it: the command of this distribution (apt on Debian)" 'echo "$out" | last_frame | grep -qE "Cómo +sudo apt-get update && sudo apt-get install -y docker.io"'
+check "what fails comes first, then what warns, then what is pending: after Docker (fails) the first warning is ss, and the daemon that waits for Docker is below them" 'echo "$out" | last_frame | grep "^| > " | grep -q "Docker Engine" && panel_bad 1 down q | last_frame | grep "^| > " | grep -q "ss (iproute2)" && panel_bad 1 down down down down q | last_frame | grep "^| > " | grep -q "Acceso al daemon"'
+check "the compact detail has what it is for, the result, how to fix it and where to read more; Enter opens it with every result and its hint, and Enter again closes it" 'o="$(panel_bad 1 enter enter q)"; ! echo "$o" | frame_n 2 | grep -q "Instálalo: https" && echo "$o" | frame_n 2 | grep -qE "Más información +https://docs.docker.com/engine/install/" && echo "$o" | frame_n 3 | grep -q "Instálalo: https://docs.docker.com/engine/install/" && echo "$o" | frame_n 3 | grep -q "Docker no está instalado" && ! echo "$o" | frame_n 4 | grep -q "Instálalo: https"'
+check "Esc closes the detail without leaving the view" 'o="$(panel_bad 1 enter esc q)"; echo "$o" | frame_n 3 | grep -q "Instálalo: https" && ! echo "$o" | frame_n 4 | grep -q "Instálalo: https" && echo "$o" | frame_n 4 | grep -q "\[1 Servidor\]"'
+check "m shows only the figures and m again brings the requirements back" 'o="$(panel_bad 1 m m q)"; ! echo "$o" | frame_n 3 | grep -q "OBLIGATORIOS" && echo "$o" | frame_n 3 | grep -q "m requisitos" && echo "$o" | frame_n 4 | grep -q "OBLIGATORIOS"'
+check "Esc leaves the metrics view first; the next one leaves the panel (this is the first view: there is nowhere to go back to)" 'o="$(panel_bad 1 m esc esc)"; echo "$o" | frame_n 4 | grep -q "OBLIGATORIOS" && echo "$o" | frame_n 4 | grep -q "\[1 Servidor\]" && ! echo "$o" | grep -q "^=== frame 6 ==="'
+check "from another view Esc comes back to this one" 'panel_bad 2 esc q | frame_n 3 | grep -q "\[1 Servidor\]"'
+check "R checks again: it says so and draws another frame with the answer" 'o="$(panel_bad 1 R q)"; echo "$o" | last_frame | grep -q "Comprobando los requisitos"'
+check "Up and Down stop at the ends of the list; PgDn and End go to the last one" 'panel_bad 1 up up q | last_frame | grep "^| > " | grep -q "Docker Engine" && panel_bad 1 end q | last_frame | grep "^| > " | grep -q "curl"'
+check "with a keyboard that moves with j and k they move too (the vim keys)" 'panel_bad 1 j j k q | last_frame | grep "^| > " | grep -q "ss (iproute2)"'
 
 section "7. copying the command"
 rm -f "$FIX/clip.txt"
-panel_bad 7 c q > "$FIX/out.txt"
+panel_bad 1 c q > "$FIX/out.txt"
 check "without a clipboard tool or a terminal the command is shown to select" 'grep -q "No se pudo copiar; el comando es: sudo apt-get update" "$FIX/out.txt"'
-DELTACTL_CLIP="cat > $FIX/clip.txt" panel_bad 7 c q > "$FIX/out.txt"
+DELTACTL_CLIP="cat > $FIX/clip.txt" panel_bad 1 c q > "$FIX/out.txt"
 check "c copies the install command of the selected requirement, and says what" '[ "$(cat "$FIX/clip.txt")" = "sudo apt-get update && sudo apt-get install -y docker.io docker-compose-v2" ] && grep -q "Copiado: sudo apt-get update" "$FIX/out.txt"'
 rm -f "$FIX/clip.txt"
-DELTACTL_CLIP="cat > $FIX/clip.txt" panel_bad 7 down c q > "$FIX/out.txt"
+DELTACTL_CLIP="cat > $FIX/clip.txt" panel_bad 1 down down down down c q > "$FIX/out.txt"
 check "a requirement that waits for another (the daemon of an absent Docker is pending) copies nothing and says what it waits for" \
   '[ ! -e "$FIX/clip.txt" ] && grep -q "espera a otro" "$FIX/out.txt" && ! grep -q "Copiado" "$FIX/out.txt"'
 rm -f "$FIX/clip.txt"
-DELTACTL_CLIP="cat > $FIX/clip.txt" panel_bad 7 down down down c q > "$FIX/out.txt"
+DELTACTL_CLIP="cat > $FIX/clip.txt" panel_bad 1 down down down down down down down c q > "$FIX/out.txt"
 check "a requirement with no command at all (the disk) copies nothing and says there is no command" '[ ! -e "$FIX/clip.txt" ] && grep -q "No hay un comando" "$FIX/out.txt"'
 printf 'ID=plan9\nNAME="Plan 9"\n' > "$FIX/os/none"
 rm -f "$FIX/clip.txt"
-DELTACTL_OS_RELEASE="$FIX/os/none" DELTACTL_CLIP="cat > $FIX/clip.txt" panel_bad 7 c q > "$FIX/out.txt"
+DELTACTL_OS_RELEASE="$FIX/os/none" DELTACTL_CLIP="cat > $FIX/clip.txt" panel_bad 1 c q > "$FIX/out.txt"
 check "on a distribution that is not known there is no command to copy" '[ ! -s "$FIX/clip.txt" ] && grep -q "No hay un comando" "$FIX/out.txt"'
-check "and the detail says so and lists the command of each package manager" 'o="$(PANEL_ROWS=40 DELTACTL_OS_RELEASE="$FIX/os/none" panel_bad 7 enter q | last_frame)"; echo "$o" | grep -q "No se reconoce la distribución" && echo "$o" | grep -q "apt: sudo apt-get" && echo "$o" | grep -q "pacman: sudo pacman"'
+check "and the detail says so and lists the command of each package manager" 'o="$(PANEL_ROWS=40 DELTACTL_OS_RELEASE="$FIX/os/none" panel_bad 1 enter q | last_frame)"; echo "$o" | grep -q "No se reconoce la distribución" && echo "$o" | grep -q "apt: sudo apt-get" && echo "$o" | grep -q "pacman: sudo pacman"'
 printf 'ID=fedora\nNAME=Fedora\n' > "$FIX/os/fedora"
 rm -f "$FIX/clip.txt"
-DELTACTL_OS_RELEASE="$FIX/os/fedora" DELTACTL_CLIP="cat > $FIX/clip.txt" panel_bad 7 c q > /dev/null
+DELTACTL_OS_RELEASE="$FIX/os/fedora" DELTACTL_CLIP="cat > $FIX/clip.txt" panel_bad 1 c q > /dev/null
 check "on Fedora it is the dnf command" 'grep -q "^sudo dnf config-manager addrepo" "$FIX/clip.txt"'
 
 section "8. running the command: it asks first and only runs if you say yes"
 rm -f "$FIX/ran.txt"
-out="$(DELTACTL_PR_SHELL="$FIX/fakesh" panel_bad 7 '!')"
+out="$(DELTACTL_PR_SHELL="$FIX/fakesh" panel_bad 1 '!')"
 check "! opens a window with the command written out whole, what sudo will do and how to answer" 'echo "$out" | last_frame | grep -q "Ejecutar en la terminal" && echo "$out" | last_frame | grep -q "sudo apt-get update && sudo apt-get install -y docker.io" && echo "$out" | last_frame | grep -q "nunca instala nada por su" && echo "$out" | last_frame | grep -q "y ejecutar"'
 check "nothing has run while the window is open" '[ ! -e "$FIX/ran.txt" ]'
-DELTACTL_PR_SHELL="$FIX/fakesh" panel_bad 7 '!' x > "$FIX/out.txt"
+DELTACTL_PR_SHELL="$FIX/fakesh" panel_bad 1 '!' x > "$FIX/out.txt"
 check "any other key cancels: nothing runs and the panel says it was cancelled" '[ ! -e "$FIX/ran.txt" ] && grep -q "Cancelado" "$FIX/out.txt"'
-DELTACTL_PR_SHELL="$FIX/fakesh" panel_bad 7 '!' esc > /dev/null
+DELTACTL_PR_SHELL="$FIX/fakesh" panel_bad 1 '!' esc > /dev/null
 check "Esc cancels too" '[ ! -e "$FIX/ran.txt" ]'
-printf '\n' | DELTACTL_PR_SHELL="$FIX/fakesh" panel_bad 7 '!' y > "$FIX/out.txt"
+printf '\n' | DELTACTL_PR_SHELL="$FIX/fakesh" panel_bad 1 '!' y > "$FIX/out.txt"
 check "y runs it in the terminal: the shell gets exactly that command" '[ "$(cat "$FIX/ran.txt")" = "RAN: sudo apt-get update && sudo apt-get install -y docker.io docker-compose-v2" ]'
 check "and the requirements are checked again afterwards" '[ "$(grep -c "^=== frame" "$FIX/out.txt")" -ge 3 ]'
 rm -f "$FIX/ran.txt"
-DELTACTL_PR_SHELL="$FIX/fakesh" panel_bad 7 down '!' q > "$FIX/out.txt"
+DELTACTL_PR_SHELL="$FIX/fakesh" panel_bad 1 down down down down '!' q > "$FIX/out.txt"
 check "a requirement that is waiting for another (the daemon of an absent Docker) offers nothing to run: no window, says what it waits for" \
   '[ ! -e "$FIX/ran.txt" ] && ! grep -q "Ejecutar en la terminal" "$FIX/out.txt" && grep -q "espera a otro" "$FIX/out.txt"'
-DELTACTL_PR_SHELL="$FIX/fakesh" panel_bad 7 down down down '!' q > "$FIX/out.txt"
-check "a requirement with no command at all (the disk) opens no window and says there is no command" \
+DELTACTL_PR_SHELL="$FIX/fakesh" panel_bad 1 down down down down down down '!' q > "$FIX/out.txt"
+check "a requirement with no command at all (Mongo) opens no window and says there is no command" \
   '[ ! -e "$FIX/ran.txt" ] && ! grep -q "Ejecutar en la terminal" "$FIX/out.txt" && grep -q "No hay un comando" "$FIX/out.txt"'
-DELTACTL_PR_SHELL="$FIX/fakesh" panel_bad 7 m '!' q > "$FIX/out.txt"
+DELTACTL_PR_SHELL="$FIX/fakesh" panel_bad 1 m '!' q > "$FIX/out.txt"
 check "with only the metrics on screen ! does nothing: it must not run the command of a requirement that is not shown" \
   '[ ! -e "$FIX/ran.txt" ] && ! grep -q "Ejecutar en la terminal" "$FIX/out.txt"'
 # The command is shown whole or not at all: on a terminal where it does not fit y is not offered, it never runs what could not be read.
-printf '\n' | DELTACTL_PR_SHELL="$FIX/fakesh" PANEL_COLS=60 PANEL_ROWS=14 panel_bad 7 '!' y > "$FIX/out.txt"
+printf '\n' | DELTACTL_PR_SHELL="$FIX/fakesh" PANEL_COLS=60 PANEL_ROWS=14 panel_bad 1 '!' y > "$FIX/out.txt"
 check "on a small terminal (60x14) where the command does not fit, y runs nothing" '[ ! -e "$FIX/ran.txt" ]'
 check "and the window says to enlarge the terminal and does not show half a command" \
-  'o="$(DELTACTL_PR_SHELL="$FIX/fakesh" PANEL_COLS=60 PANEL_ROWS=14 panel_bad 7 "!" | last_frame)"; echo "$o" | grep -q "Agranda la terminal" && ! echo "$o" | grep -q "apt-get install"'
-printf '\n' | DELTACTL_OS_RELEASE="$FIX/os/fedora" DELTACTL_PR_SHELL="$FIX/fakesh" PANEL_COLS=60 PANEL_ROWS=14 panel_bad 7 '!' y > "$FIX/out.txt"
+  'o="$(DELTACTL_PR_SHELL="$FIX/fakesh" PANEL_COLS=60 PANEL_ROWS=14 panel_bad 1 "!" | last_frame)"; echo "$o" | grep -q "Agranda la terminal" && ! echo "$o" | grep -q "apt-get install"'
+printf '\n' | DELTACTL_OS_RELEASE="$FIX/os/fedora" DELTACTL_PR_SHELL="$FIX/fakesh" PANEL_COLS=60 PANEL_ROWS=14 panel_bad 1 '!' y > "$FIX/out.txt"
 check "a long command with a URL that does not fit in the width is not offered either (Fedora at 60 columns)" '[ ! -e "$FIX/ran.txt" ]'
-printf '\n' | DELTACTL_OS_RELEASE="$FIX/os/fedora" DELTACTL_PR_SHELL="$FIX/fakesh" PANEL_ROWS=40 panel_bad 7 '!' y > "$FIX/out.txt"
+printf '\n' | DELTACTL_OS_RELEASE="$FIX/os/fedora" DELTACTL_PR_SHELL="$FIX/fakesh" PANEL_ROWS=40 panel_bad 1 '!' y > "$FIX/out.txt"
 check "the same command on a terminal where it fits is offered and runs" 'grep -q "^RAN: sudo dnf config-manager addrepo" "$FIX/ran.txt"'
 rm -f "$FIX/ran.txt"
-DELTACTL_PR_SHELL="$FIX/fakesh" panel_ok 7 '!' q > "$FIX/out.txt"
-check "a requirement that is fine has nothing to run" '[ ! -e "$FIX/ran.txt" ] && grep -q "ya está listo: no hay nada que ejecutar" "$FIX/out.txt"'
-check "outside this view ! is still the command line that runs in the terminal" '[ "$(panel_ok "!" x | last_frame | grep -c "!x")" -ge 1 ]'
+DELTACTL_PR_SHELL="$FIX/fakesh" panel_ok 1 enter '!' q > "$FIX/out.txt"
+check "a requirement that is fine has nothing to run (the list is opened first: with the strip there is no requirement to run)" '[ ! -e "$FIX/ran.txt" ] && grep -q "ya está listo: no hay nada que ejecutar" "$FIX/out.txt"'
+check "outside this view ! is still the command line that runs in the terminal, and so it is here when the strip has the focus (no requirement is shown to run)" '[ "$(panel_ok 2 "!" x | last_frame | grep -c "!x")" -ge 1 ] && [ "$(panel_ok "!" x | last_frame | grep -c "!x")" -ge 1 ]'
 
 section "9. the notice when the panel starts (the first-run gate)"
 out="$(DELTACTL_TUI_GATE=1 panel_bad q)"
-check "with something required missing the panel opens on the Server view" 'echo "$out" | frame_n 1 | grep -q "\[7 Servidor\]"'
+check "with something required missing the panel is on the Server view" 'echo "$out" | frame_n 1 | grep -q "\[1 Servidor\]"'
 check "and says what is missing, once, in the message line" 'echo "$out" | frame_n 1 | grep -q "Faltan 1 requisitos obligatorios del servidor: Docker Engine"'
 out="$(DELTACTL_TUI_GATE=1 panel_ok q)"
-check "with everything in place it stays on the first view and says nothing" 'echo "$out" | frame_n 1 | grep -q "\[1 Instancias\]" && ! echo "$out" | frame_n 1 | grep -q "Faltan"'
+check "with everything in place it is on the Server view too and says nothing" 'echo "$out" | frame_n 1 | grep -q "\[1 Servidor\]" && ! echo "$out" | frame_n 1 | grep -q "Faltan"'
 out="$(panel_bad q)"
-check "in test mode, without DELTACTL_TUI_GATE, nothing is checked at start (the other tests open on the first view)" 'echo "$out" | frame_n 1 | grep -q "\[1 Instancias\]"'
-out="$(DELTACTL_TUI_GATE=1 panel_bad 7 esc q)"
-check "the view can be left: Esc goes to the first view, with nothing blocking the other views" 'echo "$out" | frame_n 3 | grep -q "\[1 Instancias\]"'
-out="$(DELTACTL_TUI_GATE=1 panel_bad 2 3 1 q)"
-check "the other views open normally from the notice" 'echo "$out" | frame_n 3 | grep -q "\[3 Salida\]"'
+check "in test mode, without DELTACTL_TUI_GATE, the panel starts on this view without a notice (the other suites start from Instancias with DELTACTL_TUI_START)" 'echo "$out" | frame_n 1 | grep -q "\[1 Servidor\]" && ! echo "$out" | frame_n 1 | grep -q "Faltan" && [ "$(DELTACTL_TUI_START=instances panel_bad q | frame_n 1 | grep -c "\[2 Instancias\]")" = 1 ]'
+out="$(DELTACTL_TUI_GATE=1 panel_bad 2 esc q)"
+check "the view can be left, with nothing blocking the other views, and Esc comes back to it" 'echo "$out" | frame_n 2 | grep -q "\[2 Instancias\]" && echo "$out" | frame_n 3 | grep -q "\[1 Servidor\]"'
+out="$(DELTACTL_TUI_GATE=1 panel_bad 3 4 1 q)"
+check "the other views open normally from the notice" 'echo "$out" | frame_n 3 | grep -q "\[4 Salida\]"'
 
 section "10. creating an instance with something required missing"
 rm -f "$CFG"
@@ -236,24 +263,24 @@ out="$(DELTACTL_TUI_GATE=1 panel_bad n y)"
 check "y goes on: the form opens" 'echo "$out" | last_frame | grep -q "\[nueva instancia\]"'
 out="$(DELTACTL_TUI_GATE=1 panel_bad n y esc n)"
 check "and the question is not asked again in the same session" 'echo "$out" | last_frame | grep -q "\[nueva instancia\]" || echo "$out" | last_frame | grep -q "Nueva instancia"'
-out="$(DELTACTL_TUI_GATE=1 panel_bad 1 n v)"
-check "v shows the requirements" 'echo "$out" | last_frame | grep -q "\[7 Servidor\]" && echo "$out" | last_frame | grep -q "OBLIGATORIOS"'
-out="$(DELTACTL_TUI_GATE=1 panel_bad 1 n esc)"
-check "Esc cancels: back to where it was, nothing created" 'echo "$out" | last_frame | grep -q "\[1 Instancias\]" && ! echo "$out" | last_frame | grep -q "\[nueva instancia\]" && echo "$out" | last_frame | grep -q "Cancelado"'
+out="$(DELTACTL_TUI_GATE=1 panel_bad 2 n v)"
+check "v shows the requirements" 'echo "$out" | last_frame | grep -q "\[1 Servidor\]" && echo "$out" | last_frame | grep -q "OBLIGATORIOS"'
+out="$(DELTACTL_TUI_GATE=1 panel_bad 2 n esc)"
+check "Esc cancels: back to where it was, nothing created" 'echo "$out" | last_frame | grep -q "\[2 Instancias\]" && ! echo "$out" | last_frame | grep -q "\[nueva instancia\]" && echo "$out" | last_frame | grep -q "Cancelado"'
 check "nothing is written to the config file by any of those answers" '[ ! -s "$CFG" ] || ! grep -q "TUI_PREREQ" "$CFG"'
-out="$(DELTACTL_TUI_GATE=1 panel_bad 1 n n)"
+out="$(DELTACTL_TUI_GATE=1 panel_bad 2 n n)"
 check "n (do not warn again) goes on to the form and says it will not warn again" 'echo "$out" | last_frame | grep -q "\[nueva instancia\]" && echo "$out" | grep -q "No se volverá a avisar"'
 check "and it is remembered in the config file" 'grep -q "^TUI_PREREQ=off$" "$CFG"'
 out="$(DELTACTL_TUI_GATE=1 panel_bad q)"
-check "from then on the panel starts on the first view, with no notice" 'echo "$out" | frame_n 1 | grep -q "\[1 Instancias\]" && ! echo "$out" | frame_n 1 | grep -q "Faltan"'
-out="$(DELTACTL_TUI_GATE=1 panel_bad 1 n)"
+check "from then on the panel starts with no notice" 'echo "$out" | frame_n 1 | grep -q "\[1 Servidor\]" && ! echo "$out" | frame_n 1 | grep -q "Faltan"'
+out="$(DELTACTL_TUI_GATE=1 panel_bad 2 n)"
 check "and n opens the form at once" 'echo "$out" | last_frame | grep -q "\[nueva instancia\]"'
 out="$(panel_bad o down down down down down down)"
 check "Options has the option, off, with what it does" 'echo "$out" | last_frame | grep -q "Aviso de requisitos" && echo "$out" | last_frame | grep -q "avisa si"'
 out="$(panel_bad o down down down down down down enter)"
 check "Options turns it back on (and remembers it)" 'echo "$out" | last_frame | grep -q "Aviso de requisitos: sí" || echo "$out" | grep -q "Aviso de requisitos: sí"; grep -q "^TUI_PREREQ=on$" "$CFG"'
 out="$(DELTACTL_TUI_GATE=1 panel_bad q)"
-check "and the notice is back" 'echo "$out" | frame_n 1 | grep -q "\[7 Servidor\]"'
+check "and the notice is back" 'echo "$out" | frame_n 1 | grep -q "Faltan 1 requisitos obligatorios"'
 rm -f "$CFG"
 
 section "11. the check runs in the background and the figures are read only here"
@@ -276,7 +303,7 @@ check "nothing blocks before the first check, with the option off, after going o
 
 section "13. fixes of the independent review"
 printf '#!/bin/sh\nexit 3\n' > "$FIX/failsh"; chmod +x "$FIX/failsh"
-printf '\n' | DELTACTL_PR_SHELL="$FIX/failsh" panel_bad 7 '!' y > "$FIX/out.txt"
+printf '\n' | DELTACTL_PR_SHELL="$FIX/failsh" panel_bad 1 '!' y > "$FIX/out.txt"
 check "when the command fails the message gives its real exit code (3), not 0" 'grep -q "terminó con errores (código 3)" "$FIX/out.txt"'
 check "a text with & in its argument keeps it (Bash 5.2 replaces & by the matched text unless the replacement is quoted)" \
   '[ "$(run_lib "dash_srv_t tui.srv.status.req \"a && b\" 2; echo \$DASH_T")" = "a && b/2 listos" ]'
@@ -304,5 +331,90 @@ mkdir -p "$FIX/hang"
 printf '#!/bin/sh\nsleep 20\n' > "$FIX/hang/docker"; chmod +x "$FIX/hang/docker"
 check "a docker that does not answer does not hang the checks: every call is cut by PR_DOCKER_TIMEOUT" \
   's=$SECONDS; PATH="$FIX/hang:$PATH" run_lib "PR_DOCKER_TIMEOUT=1; prereq_distro; prereq_run_all; echo \${PR_STATUS[daemon]}" | grep -q "^err$"; [ $((SECONDS - s)) -le 8 ]'
+
+section "14. the warnings: thresholds that an environment variable moves"
+# A fine server (the scene "ok" with its disk, a container and the temperature put right) to move one figure at a time.
+FINE='COLUMNS=160; DELTACTL_TUI_ROWS=40; source tests/tools/server_scenes.sh; server_scene ok >/dev/null; HOST_DISK_PCT=(50 22 25); DSV_KIND[piura/s1]=ok; '
+check "a fine server has no warnings, and says so (no warnings)" '[ "$(run_lib "$FINE dash_srv_alerts; echo \${#DASH_SRV_ALERTS[@]}")" = "0" ] && run_lib "$FINE dash_srv_alerts; dash_srv_vitals 140; echo \"\$DASH_SRV_VIT\"" | grep -q "sin avisos"'
+check "disk: 85 % warns and 95 % is an error, with the mount and the figure" '[ "$(run_lib "$FINE HOST_DISK_PCT=(85 22 25); dash_srv_alerts; echo \"\${DASH_SRV_ALERTS[*]}\"")" = "warn|disks|disco / al 85%" ] && [ "$(run_lib "$FINE HOST_DISK_PCT=(50 22 96); dash_srv_alerts; echo \"\${DASH_SRV_ALERTS[*]}\"")" = "err|disks|disco /var/backups al 96%" ]'
+check "disk: DELTACTL_ALERT_DISK_WARN and DELTACTL_ALERT_DISK_ERR move the thresholds" '[ "$(DELTACTL_ALERT_DISK_WARN=90 run_lib "$FINE HOST_DISK_PCT=(86 22 25); dash_srv_alerts; echo \${#DASH_SRV_ALERTS[@]}")" = "0" ] && [ "$(DELTACTL_ALERT_DISK_ERR=80 run_lib "$FINE HOST_DISK_PCT=(86 22 25); dash_srv_alerts; echo \"\${DASH_SRV_ALERTS[0]%%|*}\"")" = "err" ]'
+check "a threshold that is not a number is ignored (the default stays)" '[ "$(DELTACTL_ALERT_DISK_WARN=abc run_lib "$FINE HOST_DISK_PCT=(86 22 25); dash_srv_alerts; echo \${#DASH_SRV_ALERTS[@]}")" = "1" ]'
+check "memory: what is AVAILABLE under 10 % warns and under 5 % is an error (the cache is not a problem)" '[ "$(run_lib "$FINE HOST_MEMD_AVAIL=1000000; dash_srv_alerts; echo \"\${DASH_SRV_ALERTS[*]}\"")" = "warn|mem|memoria disponible 8%" ] && [ "$(run_lib "$FINE HOST_MEMD_AVAIL=400000; dash_srv_alerts; echo \"\${DASH_SRV_ALERTS[0]%%|*}\"")" = "err" ] && [ "$(DELTACTL_ALERT_MEM_AVAIL=60 run_lib "$FINE dash_srv_alerts; echo \${#DASH_SRV_ALERTS[@]}")" = "1" ]'
+check "swap: from 50 % in use it warns (DELTACTL_ALERT_SWAP)" '[ "$(run_lib "$FINE HOST_MEMD_SWAP_USED=2300000; dash_srv_alerts; echo \"\${DASH_SRV_ALERTS[*]}\"")" = "warn|mem|swap al 54%" ] && [ "$(DELTACTL_ALERT_SWAP=60 run_lib "$FINE HOST_MEMD_SWAP_USED=2300000; dash_srv_alerts; echo \${#DASH_SRV_ALERTS[@]}")" = "0" ]'
+check "load: the load of one minute over the cores warns (DELTACTL_ALERT_LOAD_PCT is a percent of the cores)" '[ "$(run_lib "$FINE HOST_LOAD1=9.50; dash_srv_alerts; echo \"\${DASH_SRV_ALERTS[*]}\"")" = "warn|cpu|carga 9.50 con 8 núcleos" ] && [ "$(run_lib "$FINE HOST_LOAD1=8.00; dash_srv_alerts; echo \${#DASH_SRV_ALERTS[@]}")" = "0" ] && [ "$(DELTACTL_ALERT_LOAD_PCT=30 run_lib "$FINE dash_srv_alerts; echo \${#DASH_SRV_ALERTS[@]}")" = "1" ]'
+check "temperature: near the limit its sensor reports warns, at the limit it is an error, and with no limit there is nothing to compare with" '[ "$(run_lib "$FINE HOST_TEMP_CPU_C=92 HOST_TEMP_CPU_CRIT=100; dash_srv_alerts; echo \"\${DASH_SRV_ALERTS[*]}\"")" = "warn|cpu|CPU a 92°C (límite 100°C)" ] && [ "$(run_lib "$FINE HOST_TEMP_CPU_C=100 HOST_TEMP_CPU_CRIT=100; dash_srv_alerts; echo \"\${DASH_SRV_ALERTS[0]%%|*}\"")" = "err" ] && [ "$(run_lib "$FINE HOST_TEMP_CPU_C=99 HOST_TEMP_CPU_CRIT=; dash_srv_alerts; echo \${#DASH_SRV_ALERTS[@]}")" = "0" ]'
+check "containers: one that fails or warns is a warning; one that was never created is not" '[ "$(run_lib "$FINE DSV_KIND[colorado/s1]=err DSV_TEXT[colorado/s1]=exited; dash_srv_alerts; echo \"\${DASH_SRV_ALERTS[*]}\"")" = "err|containers|contenedor colorado/s1: exited" ] && [ "$(run_lib "$FINE DSV_KIND[colorado/s1]=dim DSV_CODES[colorado/s1]=not-created; dash_srv_alerts; echo \${#DASH_SRV_ALERTS[@]}")" = "0" ]'
+check "requirements: a required one that fails or warns is a warning, and so is a clock that is not synchronised" '[ "$(run_lib "$FINE DASH_SRV_BAD=2; dash_srv_alerts; echo \"\${DASH_SRV_ALERTS[*]}\"")" = "err|req|2 requisitos obligatorios fallan" ] && [ "$(run_lib "$FINE PR_STATUS[timesync]=info PR_SUMMARY[timesync]=\"\$(t prereq.time_off)\"; dash_srv_alerts; echo \"\${DASH_SRV_ALERTS[*]}\"")" = "warn|req|la hora no está sincronizada" ]'
+check "the errors come first, the border of each box takes the worst colour of its warnings, and the vital signs line shows the first one and how many there are" '[ "$(run_lib "$FINE HOST_DISK_PCT=(86 22 97); HOST_LOAD1=9.5; dash_srv_alerts; echo \"\${DASH_SRV_ALERTS[0]%%|*} \${DASH_SRV_AL[disks]} \${DASH_SRV_AL[cpu]}\"")" = "err 2 1" ] && run_lib "$FINE HOST_DISK_PCT=(86 22 97); dash_srv_alerts; dash_srv_vitals 150; echo \"\$DASH_SRV_VIT\"" | grep -q "2 avisos: disco /var/backups al 97%"'
+check "the vital signs line is never wider than its box: what does not fit is dropped from the right and the warnings are cut with …" 'for w in 40 60 80 120; do [ "$(run_lib "$FINE HOST_DISK_PCT=(86 22 97); dash_srv_alerts; dash_srv_vitals $w; tui_vlen \"\$DASH_SRV_VIT\"; echo \$TUI_VL")" = "$w" ] || exit 1; done'
+
+section "15. the strip and the list of requirements"
+check "with everything required fine the list is closed (a strip); Enter opens it, Esc closes it" '[ "$(run_lib "$FINE dash_srv_expanded && echo open0; scr_server_key enter; dash_srv_expanded && echo open1; scr_server_back && echo back; dash_srv_expanded && echo open2" | tr "\n" " ")" = "open1 back " ]'
+check "it opens by itself when something required fails or warns, and not for a recommended one" '[ "$(run_lib "$FINE DASH_SRV_BAD=1; dash_srv_expanded && echo a; DASH_SRV_BAD=0 DASH_SRV_RWARN=1; dash_srv_expanded && echo b; DASH_SRV_RWARN=0 DASH_SRV_REC_PEND=3; dash_srv_expanded && echo c; true" | tr "\n" " ")" = "a b " ]'
+check "with the strip, up and down do nothing (no requirement is shown) and ! is the command line; with the list open they move and ! asks first" '[ "$(run_lib "$FINE scr_server_key down; echo \$DASH_SRV_SEL; scr_server_bang; echo \$?; scr_server_key enter; scr_server_key down; echo \$DASH_SRV_SEL" | tr "\n" " ")" = "0 1 1 " ]'
+check "Esc steps back one thing at a time: the zoom, the detail, the list opened by hand, the metrics view, and then it is not taken (the panel leaves)" '[ "$(run_lib "$FINE DASH_SRV_PZ=cpu DASH_SRV_OPEN=1 DASH_SRV_REQ=open DASH_SRV_ZOOM=1; for i in 1 2 3 4 5; do scr_server_back && echo \"\$DASH_SRV_PZ|\$DASH_SRV_OPEN|\$DASH_SRV_REQ|\$DASH_SRV_ZOOM\" || echo leave; done" | tr "\n" " ")" = "|1|open|1 |0|open|1 |0|auto|1 |0|auto|0 leave " ]'
+check "the box of the requirements in a zoom is the list, even with everything fine" 'run_lib "$FINE DASH_SRV_PZ=req; dash_render" | grep -q "OBLIGATORIOS"'
+
+section "16. the focus, the zoom and the keys of each box"
+RENDER160='COLUMNS=160; DELTACTL_TUI_ROWS=40; source tests/tools/server_scenes.sh; server_scene ok >/dev/null; '
+check "the boxes on screen are the ring of Tab, in order, and Shift+Tab goes the other way" '[ "$(run_lib "$RENDER160 echo \${DASH_SRV_VIS[*]}; scr_server_tab 1; echo \$DASH_SRV_FOCUS; scr_server_tab 1; scr_server_tab 1; scr_server_tab 1; scr_server_tab 1; echo \$DASH_SRV_FOCUS; scr_server_tab 1; echo \$DASH_SRV_FOCUS; scr_server_tab -1; echo \$DASH_SRV_FOCUS" | tr "\n" " ")" = "req cpu mem disks net containers cpu containers req containers " ]'
+check "Tab walks the boxes in the panel too (it is not the next view here), and the focused box is the one with the marked chip" 'o="$(panel_ok 1 tab q)"; echo "$o" | frame_n 3 | grep -q "\\[1 Servidor\\]" && echo "$o" | frame_n 3 | grep -q ">cpu" && ! echo "$o" | frame_n 3 | grep -q ">requisitos"'
+check "when the box that had the focus is not on screen the focus goes to the first one" '[ "$(run_lib "$RENDER160 DASH_SRV_FOCUS=procs; dash_render >/dev/null; echo \$DASH_SRV_FOCUS")" = "req" ]'
+check "the keys of the last line are those of the box that has the focus" 'for f in cpu mem disks net containers procs ports; do DELTACTL_LANG=es run_lib "$RENDER160 DASH_SRV_FOCUS=$f; scr_server_texts; DASH_KEYS_T=\"\${DASH_KEYS[server_$f]}\"; [ -n \"\$DASH_KEYS_T\" ] && ! echo \"\$DASH_KEYS_T\" | grep -q \"??\"" || exit 1; done; run_lib "$RENDER160 DASH_SRV_FOCUS=containers; scr_server_texts; echo \"\${DASH_KEYS[server_containers]}\"" | grep -q "l logs · s orden · h no creados"'
+check "z zooms the box that has the focus (every other box goes) and Esc or z brings them back" '[ "$(run_lib "$RENDER160 DASH_SRV_FOCUS=net; scr_server_key z; echo \$DASH_SRV_PZ; dash_render >/dev/null; echo \${DASH_SRV_VIS[*]}; scr_server_back; echo [\$DASH_SRV_PZ]; scr_server_key z; scr_server_key z; echo [\$DASH_SRV_PZ]" | tr "\n" " ")" = "net net [] [] " ]'
+check "the zoom shows what the box does not have room for: every interface and the sockets (net), every disk and its busy time (disks), the pids of each container (containers)" 'f1="$FIX/frames/zoom-net.txt"; run_lib "$RENDER160 DASH_SRV_FOCUS=net DASH_SRV_PZ=net; dash_render" > "$f1"; grep -q "wlan0" "$f1" && grep -q "enp3s0 " "$f1"; ! run_lib "$RENDER160 dash_render" | grep -q "wlan0" && run_lib "$RENDER160 DASH_SRV_FOCUS=containers DASH_SRV_PZ=containers; dash_render" | grep -q "PIDS" && run_lib "$RENDER160 DASH_SRV_FOCUS=disks DASH_SRV_PZ=disks; dash_render" | grep -q "sdb "'
+check "m (only the figures) drops the zoom and z drops the detail of a requirement" '[ "$(run_lib "$RENDER160 DASH_SRV_PZ=cpu; scr_server_key m; echo [\$DASH_SRV_PZ]\$DASH_SRV_ZOOM; DASH_SRV_OPEN=1; scr_server_key z; echo \$DASH_SRV_OPEN" | tr "\n" " ")" = "[]1 0 " ]'
+check "the signature of the view carries the state of every box (a missing value is a stale screen)" 'for v in "DASH_SRV_FOCUS=cpu" "DASH_SRV_PZ=cpu" "DASH_SRV_CSEL=3" "DASH_SRV_SHOW_NC=1" "DASH_RES_SORT=mem" "DASH_SRV_PSEL=2" "DASH_SRV_TSEL=2" "DASH_SRV_PS_STATE=ready" "DASH_SRV_SS_STATE=ready" "DASH_SRV_REQ=open" "DASH_SRV_SEL=4"; do [ "$(run_lib "DASH_SIG=; scr_server_sig; a=\$DASH_SIG; $v; DASH_SIG=; scr_server_sig; [ \"\$a\" != \"\$DASH_SIG\" ] && echo diff")" = "diff" ] || { echo "$v"; exit 1; }; done'
+check "every box has its key (what it draws) and its function, and a box is kept while its key is the same" 'run_lib "for b in req cpu mem disks net containers procs ports; do declare -F dash_srv_key_\$b >/dev/null && declare -F dash_srv_\$b >/dev/null || [ \$b = req ] || exit 1; done; declare -F dash_srv_key_req >/dev/null"'
+check "a graph is the cached one: a new sample moves it a cell (kit_graph_cached), and the history of the server holds 240 samples" 'grep -c "kit_graph_cached" lib/screens/server_boxes.sh | grep -qE "^[3-9]" && ! grep -qE "kit_graph [a-z\$]" lib/screens/server_boxes.sh && [ "$(run_lib "echo \$MT_HOST_HIST_LEN")" = "240" ]'
+
+section "17. the containers: cursor, Enter, logs, sort, the ones not created"
+MANY='COLUMNS=160; DELTACTL_TUI_ROWS=40; source tests/tools/server_scenes.sh; server_scene many-containers >/dev/null; '
+check "the cursor moves, stops at the ends and the window follows it (the 40th container is on screen at the end)" '[ "$(run_lib "$MANY scr_server_key end; dash_render >/dev/null; echo \$DASH_SRV_CSEL \$DASH_SRV_CTOP; scr_server_key home; dash_render >/dev/null; echo \$DASH_SRV_CSEL \$DASH_SRV_CTOP; scr_server_key up; echo \$DASH_SRV_CSEL" | tr "\n" " ")" = "38 21 0 0 0 " ] || [ "$(run_lib "$MANY scr_server_key end; echo \$DASH_SRV_CSEL")" = "38" ]'
+check "the services that were never created are folded (+1 no creados) and h lists them" '[ "$(run_lib "$MANY dash_srv_crows; echo \${#DASH_SRV_CK[@]} \$DASH_SRV_NC; scr_server_key h; dash_srv_crows; echo \${#DASH_SRV_CK[@]}" | tr "\n" " ")" = "39 1 40 " ]'
+check "Enter opens the instance with the cursor on that service (the Instances view, as the Resources view does)" '[ "$(run_lib "$MANY DASH_SRV_CSEL=6; dash_srv_crows; scr_server_key enter; echo \$DASH_VIEW \$DASH_SEL \$DASH_SVC \$DASH_FOCUS" | tr "\n" " ")" = "instances 1 2 svc " ]'
+check "l goes on to the logs of the service (the panel of the instance that has them), and the zoom is left" 'run_lib "$MANY DASH_SRV_PZ=containers; dash_srv_crows; scr_server_key l; echo \$DASH_VIEW [\$DASH_SRV_PZ]" | grep -q "instances \[\]"'
+check "the shared function is the one the Resources view uses (one place decides what opening a service means)" 'grep -q "dash_res_open_key" lib/screens/resources.sh && grep -q "dash_res_open_key" lib/screens/server_view.sh && [ "$(run_lib "$MANY DASH_NAMES=(a b); DASH_SVCS[a]=\"s0 s1\"; DASH_SVCS[b]=\"s0 s1\"; dash_res_open_key b/s1; echo \$DASH_SEL \$DASH_SVC \$DASH_VIEW; dash_res_open_key nothing/s9; echo \$?")" = "$(printf "1 1 instances\n0")" ]'
+check "s sorts the containers like the Resources view (name, memory, CPU): by memory the biggest is first" '[ "$(run_lib "COLUMNS=160; DELTACTL_TUI_ROWS=40; source tests/tools/server_scenes.sh; server_scene focus-containers >/dev/null; scr_server_key s; dash_srv_crows; echo \$DASH_RES_SORT \${DASH_SRV_CK[0]}; scr_server_key s; scr_server_key s; echo \$DASH_RES_SORT" | tr "\n" " ")" = "mem piura/s1 name " ]'
+check "only the rows in view are built (the spark of 40 containers is drawn for the 17 on screen, not for all)" '[ "$(run_lib "$MANY n=0; fn=\"\$(declare -f mt_spark_v)\"; eval \"\${fn/mt_spark_v/mt_spark_v_orig}\"; mt_spark_v() { n=\$((n + 1)); mt_spark_v_orig \"\$@\"; }; dash_render >/dev/null; [ \$n -le 40 ] && echo few")" = "few" ]'
+check "the cursor is marked (it is seen with no colours too) only while the box has the focus" 'run_lib "$MANY DASH_SRV_FOCUS=containers DASH_SRV_CSEL=3; dash_render" | grep -q "> s[0-3] " && ! run_lib "$MANY DASH_SRV_FOCUS=req; dash_render" | grep -q "> s[0-3] "'
+
+section "18. the mouse (off by default): focus, rows and the wheel"
+check "a click gives the box under it the focus; a click on the strip opens the list of requirements" '[ "$(run_lib "$RENDER160 read -r x y w h <<< \"\${DASH_SRV_RECT[cpu]}\"; scr_server_click \$((x + 3)) \$((y + 3)); echo \$DASH_SRV_FOCUS; read -r x y w h <<< \"\${DASH_SRV_RECT[req]}\"; scr_server_click \$((x + 3)) \$((y + 1)); echo \$DASH_SRV_FOCUS \$DASH_SRV_REQ; scr_server_click \$((x + 3)) \$((y + 1)); echo \$DASH_SRV_REQ" | tr "\n" " ")" = "cpu req auto open " ]'
+check "a click on a container puts the cursor on it and a second click on it does what Enter does" '[ "$(run_lib "$MANY DASH_SRV_CSEL=0 DASH_SRV_CTOP=0; dash_render >/dev/null; DASH_SRV_FOCUS=containers; read -r x y w h <<< \"\${DASH_SRV_RECT[containers]}\"; scr_server_click \$((x + 5)) \$((y + 2 + 4)); echo \$DASH_SRV_CSEL \$DASH_VIEW; scr_server_click \$((x + 5)) \$((y + 2 + 4)); echo \$DASH_VIEW" | tr "\n" " ")" = "4 server instances " ]'
+check "a click on a requirement of the list selects it, and on the selected one opens its detail" '[ "$(run_lib "COLUMNS=160; DELTACTL_TUI_ROWS=40; source tests/tools/server_scenes.sh; server_scene missing >/dev/null; DASH_SRV_FOCUS=req; read -r x y w h <<< \"\${DASH_SRV_RECT[req]}\"; scr_server_click \$((x + 4)) \$((y + 6)); echo \$DASH_SRV_SEL \$DASH_SRV_OPEN; scr_server_click \$((x + 4)) \$((y + 6)); echo \$DASH_SRV_OPEN" | tr "\n" " ")" = "2 0 1 " ]'
+check "the wheel moves the cursor of the box that has the focus (the box under the pointer takes the focus first), like the arrows" '[ "$(run_lib "$MANY DASH_SRV_CSEL=0 DASH_SRV_CTOP=0; dash_render >/dev/null; read -r x y w h <<< \"\${DASH_SRV_RECT[containers]}\"; scr_server_wheel 65 \$((x + 5)) \$((y + 3)); scr_server_wheel 65 \$((x + 5)) \$((y + 3)); scr_server_wheel 64 \$((x + 5)) \$((y + 3)); echo \$DASH_SRV_FOCUS \$DASH_SRV_CSEL")" = "containers 1" ]'
+check "the click and the wheel are the screen hooks of the registry (a view with them handles the mouse itself)" 'run_lib "declare -F scr_server_click >/dev/null && declare -F scr_server_wheel >/dev/null"'
+
+section "19. the busiest processes and the ports that listen: in the background, only while their box is on screen"
+cat > "$FIX/fake-ps" <<'EOS'
+#!/bin/sh
+echo x >> "$FIX/ps.calls"
+printf '  1412 mongodb   14.2  8.1 mongod\n  2231 root      11.8  3.4 node\n     1 root       0.0  0.0 systemd\n'
+EOS
+cat > "$FIX/fake-ss" <<'EOS'
+#!/bin/sh
+echo x >> "$FIX/ss.calls"
+cat <<'TXT'
+State  Recv-Q Send-Q Local Address:Port Peer Address:Port Process
+LISTEN 0      4096         0.0.0.0:80        0.0.0.0:*     users:(("nginx",pid=907,fd=6))
+LISTEN 0      4096            [::]:80           [::]:*     users:(("nginx",pid=907,fd=7))
+LISTEN 0      128        127.0.0.1:27017     0.0.0.0:*     users:(("mongod",pid=1412,fd=14))
+LISTEN 0      4096         0.0.0.0:4100      0.0.0.0:*
+TXT
+EOS
+printf '#!/bin/sh\nsleep 20\n' > "$FIX/slow-ps"
+chmod +x "$FIX/fake-ps" "$FIX/fake-ss" "$FIX/slow-ps"
+check "ps: the producer prints the busiest processes as lines (pid user cpu mem command)" '[ "$(DELTACTL_PS="$FIX/fake-ps" run_lib "dash_srv_ps_dump | head -1")" = "  1412 mongodb   14.2  8.1 mongod" ] && [ "$(DELTACTL_PS="$FIX/fake-ps" run_lib "dash_srv_ps_dump | wc -l")" = "3" ]'
+check "ss: the producer prints the ports that listen once each, in order, with the process that owns them" '[ "$(DELTACTL_SS="$FIX/fake-ss" run_lib "dash_srv_ss_dump" | tr "\n" " ")" = "80|0.0.0.0|nginx 4100|0.0.0.0| 27017|127.0.0.1|mongod " ]'
+check "without ps or ss (a server that has neither) the producer says NA and the box says it is not available" '[ "$(DELTACTL_PS="$FIX/none" run_lib "dash_srv_ps_dump")" = "NA" ] && [ "$(DELTACTL_SS="$FIX/none" run_lib "dash_srv_ss_dump")" = "NA" ] && DELTACTL_PS="$FIX/none" run_lib "$RENDER160 DASH_SRV_PS_STATE=none; dash_srv_ps_apply NA; DASH_SRV_FOCUS=procs DASH_SRV_PZ=procs; dash_render" | grep -q "no disponible en este sistema"'
+check "a ps that hangs is cut by the time limit and the answer is NA (it never freezes the panel)" 's=$SECONDS; r="$(DELTACTL_PS="$FIX/slow-ps" run_lib "dash_srv_ps_dump")"; [ "$r" = "NA" ] && [ $((SECONDS - s)) -le 8 ]'
+check "the processes box lists them with the cursor; the ports box says which port is an instance's (the ports of DSV_PORT)" 'run_lib "$RENDER160 dash_srv_ps_apply \"\$(DELTACTL_PS=$FIX/fake-ps dash_srv_ps_dump)\"; DASH_SRV_FOCUS=procs DASH_SRV_PZ=procs; dash_render" | grep -q "mongodb .*mongod" && run_lib "$RENDER160 DASH_SRV_SS_STATE=ready DASH_SRV_SS_RAW=\"\$(DELTACTL_SS=$FIX/fake-ss dash_srv_ss_dump)\"; DASH_SRV_FOCUS=ports DASH_SRV_PZ=ports; dash_render" | grep -qE "4100 +0.0.0.0 +- +colorado/s0"'
+rm -f "$FIX/ps.calls" "$FIX/ss.calls"
+check "the producer is asked only while its box is on screen and the view is the current one" '[ "$(DELTACTL_PS="$FIX/fake-ps" DELTACTL_SS="$FIX/fake-ss" run_lib "DASH_VIEW=server; DASH_SRV_VIS=(cpu mem); scr_server_tick; DASH_VIEW=instances; DASH_SRV_VIS=(procs ports); scr_server_tick; echo \$DASH_SRV_PS_STATE \$DASH_SRV_SS_STATE; ls $FIX/ps.calls $FIX/ss.calls 2>/dev/null | wc -l")" = "$(printf "none none\n0")" ]'
+check "with the boxes on screen they are asked at once, and not again before the time limit (5 s for ps, 15 s for ss)" 'rm -f "$FIX/ps.calls" "$FIX/ss.calls"; DELTACTL_PS="$FIX/fake-ps" DELTACTL_SS="$FIX/fake-ss" run_lib "DASH_VIEW=server; DASH_SRV_VIS=(procs ports); scr_server_tick; scr_server_tick; scr_server_tick; DASH_SRV_PS_AT=\$((SECONDS - 6)); DASH_SRV_SS_AT=\$((SECONDS - 6)); scr_server_tick" >/dev/null; [ "$(wc -l < "$FIX/ps.calls")" = "2" ] && [ "$(wc -l < "$FIX/ss.calls")" = "1" ]'
+check "the interval is DELTACTL_PS_TTL / DELTACTL_SS_TTL, kept between 5 and 60 seconds (anything else is the default)" '[ "$(for v in 1 30 99 abc ""; do DELTACTL_PS_TTL="$v" run_lib "dash_srv_ttl DELTACTL_PS_TTL 5; echo \$DASH_THR"; done | tr "\n" " ")" = "5 30 5 5 5 " ] && [ "$(DELTACTL_SS_TTL=60 run_lib "dash_srv_ttl DELTACTL_SS_TTL 15; echo \$DASH_THR")" = "60" ]'
+check "the producers are the only programs of the Server view: the boxes and the screen start no process" '! grep -vE "^\s*#" lib/screens/server_boxes.sh lib/screens/server_view.sh | grep -qE "\\$\(\s*(ps|ss|df|awk|sed|grep|cut|tr|cat|date|sort|head)\b|\| *(sort|head|awk|sed)\b"'
+check "in the real panel the answer arrives on a later turn (a background job), and with the box off screen nothing runs" '[ "$(DELTACTL_PS="$FIX/fake-ps" run_lib "unset DELTACTL_TUI_KEYS; dash_init; DASH_VIEW=server; DASH_SRV_VIS=(procs); scr_server_tick; a=\$DASH_SRV_PS_STATE; for i in \$(seq 1 40); do scr_server_tick; [ \$DASH_SRV_PS_STATE = ready ] && break; sleep 0.2; done; echo \$a \$DASH_SRV_PS_STATE; dash_async_stop")" = "none ready" ]'
 
 finish

@@ -294,12 +294,12 @@ host_mem_detail_read() {
 # HOST_TEMP_LABEL[i] ("coretemp Package id 0"), HOST_TEMP_C[i] and HOST_TEMP_CRIT[i] (empty when unknown). HOST_TEMP_CPU_C is the
 # one of the processor (coretemp, k10temp, zenpower, cpu_thermal... or the hottest sensor when none is recognised); a sensor that
 # cannot be read (permissions) is skipped.
-HOST_TEMP_N=0 HOST_TEMP_CPU_C="" HOST_TEMP_MAX_C=""
+HOST_TEMP_N=0 HOST_TEMP_CPU_C="" HOST_TEMP_CPU_CRIT="" HOST_TEMP_MAX_C=""
 declare -ga HOST_TEMP_LABEL=() HOST_TEMP_C=() HOST_TEMP_CRIT=()
 declare -gA HOST_TEMP_META=()   # sensor file -> "chip|label|crit": they never change, so they are read once
 host_temp_read() {
   local sys="${DELTACTL_SYS_ROOT:-/sys}" f d base nm lab val cr cpu_done=0 i meta
-  HOST_TEMP_N=0 HOST_TEMP_CPU_C="" HOST_TEMP_MAX_C=""
+  HOST_TEMP_N=0 HOST_TEMP_CPU_C="" HOST_TEMP_CPU_CRIT="" HOST_TEMP_MAX_C=""
   HOST_TEMP_LABEL=() HOST_TEMP_C=() HOST_TEMP_CRIT=()
   for f in "$sys"/class/hwmon/hwmon*/temp*_input; do
     [ -r "$f" ] || continue
@@ -323,7 +323,7 @@ host_temp_read() {
       coretemp | k10temp | zenpower | cpu_thermal | cpu-thermal | soc_thermal | thermal_zone)
         # "Package id 0" / "Tctl" / "Tdie" are the processor as a whole: they win over the cores
         if [ "$cpu_done" -eq 0 ] || [[ "$lab" == Package* || "$lab" == Tctl || "$lab" == Tdie ]]; then
-          HOST_TEMP_CPU_C=$((val / 1000))
+          HOST_TEMP_CPU_C=$((val / 1000)) HOST_TEMP_CPU_CRIT="$cr"
           [[ "$lab" == Package* || "$lab" == Tctl || "$lab" == Tdie ]] && cpu_done=2 || cpu_done=1
         fi
         ;;
@@ -360,13 +360,14 @@ host_temp_read() {
 # the most traffic (DELTACTL_NET_IFACE forces one). HOST_NET_DOWN_BPS / HOST_NET_UP_BPS are bytes per second of the main one
 # (empty until the second reading); HOST_NET_RX_TOTAL / HOST_NET_TX_TOTAL are its bytes since boot.
 declare -gA HOST_NET_RX=() HOST_NET_TX=() HOST_NET_PREV_RX=() HOST_NET_PREV_TX=()
+declare -gA HOST_NET_IF_DN=() HOST_NET_IF_UP=()   # the speed of each interface of HOST_NET_IFACES, in bytes per second (empty until the second reading)
 HOST_NET_IFACES="" HOST_NET_MAIN="" HOST_NET_DOWN_BPS="" HOST_NET_UP_BPS="" HOST_NET_RX_TOTAL="" HOST_NET_TX_TOTAL="" HOST_NET_PREV_US=""
 host_net_read() {
   local f="${DELTACTL_PROC_ROOT:-/proc}/net/dev" line iface rx tx best="" bestv=-1 now dt tot
   local -a w
   HOST_NET_IFACES="" HOST_NET_MAIN="" HOST_NET_DOWN_BPS="" HOST_NET_UP_BPS="" HOST_NET_RX_TOTAL="" HOST_NET_TX_TOTAL=""
   [ -r "$f" ] || { HOST_NET_RX=() HOST_NET_TX=(); return 1; }
-  HOST_NET_PREV_RX=() HOST_NET_PREV_TX=()
+  HOST_NET_PREV_RX=() HOST_NET_PREV_TX=() HOST_NET_IF_DN=() HOST_NET_IF_UP=()
   for iface in "${!HOST_NET_RX[@]}"; do HOST_NET_PREV_RX[$iface]="${HOST_NET_RX[$iface]}" HOST_NET_PREV_TX[$iface]="${HOST_NET_TX[$iface]}"; done
   HOST_NET_RX=() HOST_NET_TX=()
   host_now_us; now="$HOST_NOW_US"
@@ -397,25 +398,43 @@ host_net_read() {
       if [ "${HOST_NET_TX[$best]}" -ge "${HOST_NET_PREV_TX[$best]}" ]; then HOST_NET_UP_BPS=$(((HOST_NET_TX[$best] - HOST_NET_PREV_TX[$best]) * 1000000 / dt)); else HOST_NET_UP_BPS=0; fi
     fi
   fi
+  if [ -n "$HOST_NET_PREV_US" ]; then
+    dt=$((now - HOST_NET_PREV_US))
+    if [ "$dt" -gt 0 ]; then
+      for iface in $HOST_NET_IFACES; do
+        [ -n "${HOST_NET_PREV_RX[$iface]+x}" ] || continue
+        if [ "${HOST_NET_RX[$iface]}" -ge "${HOST_NET_PREV_RX[$iface]}" ]; then HOST_NET_IF_DN[$iface]=$(((HOST_NET_RX[$iface] - HOST_NET_PREV_RX[$iface]) * 1000000 / dt)); else HOST_NET_IF_DN[$iface]=0; fi
+        if [ "${HOST_NET_TX[$iface]}" -ge "${HOST_NET_PREV_TX[$iface]}" ]; then HOST_NET_IF_UP[$iface]=$(((HOST_NET_TX[$iface] - HOST_NET_PREV_TX[$iface]) * 1000000 / dt)); else HOST_NET_IF_UP[$iface]=0; fi
+      done
+    fi
+  fi
   HOST_NET_PREV_US="$now"
   return 0
 }
 
 # Disk I/O: bytes per second read and written by the whole disks (sda, nvme0n1, vda, mmcblk0...; partitions, device-mapper, loop and
-# ram devices are left out so nothing counts twice), from /proc/diskstats. Empty until the second reading.
+# ram devices are left out so nothing counts twice), from /proc/diskstats. Empty until the second reading. Besides the total, each disk
+# has its own figures: HOST_DISKIO_NAME[i], its HOST_DISKIO_DR[i] / HOST_DISKIO_DW[i] (bytes per second) and HOST_DISKIO_BUSY[i] (percent
+# of the time the disk had requests in flight, from the "time doing I/O" column).
 HOST_DISKIO_READ_BPS="" HOST_DISKIO_WRITE_BPS="" HOST_DISKIO_PREV_R="" HOST_DISKIO_PREV_W="" HOST_DISKIO_PREV_US="" HOST_DISKIO_DEVICES=""
+declare -ga HOST_DISKIO_NAME=() HOST_DISKIO_DR=() HOST_DISKIO_DW=() HOST_DISKIO_BUSY=()
+declare -gA HOST_DISKIO_P_R=() HOST_DISKIO_P_W=() HOST_DISKIO_P_T=()
 host_diskio_read() {
-  local f="${DELTACTL_PROC_ROOT:-/proc}/diskstats" maj min name rd rm sr rt wr wm sw rest rb=0 wb=0 got=0 now dt devs=""
+  local f="${DELTACTL_PROC_ROOT:-/proc}/diskstats" maj min name rd rm sr rt wr wm sw wt infl iot rest rb=0 wb=0 got=0 now dt devs="" n b
+  local -a names=() srs=() sws=() ios=()
   HOST_DISKIO_READ_BPS="" HOST_DISKIO_WRITE_BPS="" HOST_DISKIO_DEVICES=""
+  HOST_DISKIO_NAME=() HOST_DISKIO_DR=() HOST_DISKIO_DW=() HOST_DISKIO_BUSY=()
   [ -r "$f" ] || return 1
-  while read -r maj min name rd rm sr rt wr wm sw rest; do
+  while read -r maj min name rd rm sr rt wr wm sw wt infl iot rest; do
     # whole disks only: sda (not sda1), nvme0n1 (not nvme0n1p1), vda, xvda, hda, mmcblk0 (not mmcblk0p1)
     case "$name" in
       sd[a-z] | sd[a-z][a-z] | vd[a-z] | vd[a-z][a-z] | xvd[a-z] | hd[a-z] | nvme[0-9]n[0-9] | nvme[0-9][0-9]n[0-9] | nvme[0-9]n[0-9][0-9] | mmcblk[0-9]) ;;
       *) continue ;;
     esac
     case "$sr$sw" in '' | *[!0-9]*) continue ;; esac
+    case "$iot" in '' | *[!0-9]*) iot=0 ;; esac
     rb=$((rb + sr)) wb=$((wb + sw)) got=$((got + 1)) devs+="${devs:+ }$name"
+    names+=("$name") srs+=("$sr") sws+=("$sw") ios+=("$iot")
   done < "$f"
   [ "$got" -gt 0 ] || return 1
   HOST_DISKIO_DEVICES="$devs"
@@ -425,8 +444,20 @@ host_diskio_read() {
     if [ "$dt" -gt 0 ]; then
       HOST_DISKIO_READ_BPS=$(((rb - HOST_DISKIO_PREV_R) * 512 * 1000000 / dt))
       HOST_DISKIO_WRITE_BPS=$(((wb - HOST_DISKIO_PREV_W) * 512 * 1000000 / dt))
+      for n in "${!names[@]}"; do
+        [ -n "${HOST_DISKIO_P_R[${names[n]}]+x}" ] || continue
+        [ "${srs[n]}" -ge "${HOST_DISKIO_P_R[${names[n]}]}" ] && [ "${sws[n]}" -ge "${HOST_DISKIO_P_W[${names[n]}]}" ] || continue
+        b=$(((ios[n] - HOST_DISKIO_P_T[${names[n]}]) * 100000 / dt))
+        [ "$b" -ge 0 ] || b=0
+        [ "$b" -le 100 ] || b=100
+        HOST_DISKIO_NAME+=("${names[n]}")
+        HOST_DISKIO_DR+=("$(((srs[n] - HOST_DISKIO_P_R[${names[n]}]) * 512 * 1000000 / dt))")
+        HOST_DISKIO_DW+=("$(((sws[n] - HOST_DISKIO_P_W[${names[n]}]) * 512 * 1000000 / dt))")
+        HOST_DISKIO_BUSY+=("$b")
+      done
     fi
   fi
+  for n in "${!names[@]}"; do HOST_DISKIO_P_R[${names[n]}]="${srs[n]}" HOST_DISKIO_P_W[${names[n]}]="${sws[n]}" HOST_DISKIO_P_T[${names[n]}]="${ios[n]}"; done
   HOST_DISKIO_PREV_R="$rb" HOST_DISKIO_PREV_W="$wb" HOST_DISKIO_PREV_US="$now"
   return 0
 }
@@ -493,3 +524,81 @@ host_disk_usage_read() {
   done <<< "$out"
   [ "${#HOST_DISK_TOTAL[@]}" -gt 0 ]
 }
+
+# --- More figures of the server (the Server screen; every reader is a builtin, returns 1 when its source is not there) ---------------------
+
+# Pressure stall information (/proc/pressure, kernels 4.20+ with PSI on): the share of the last ten seconds in which tasks waited for the
+# CPU, for memory ("full": all of them waited) or for the disks, as the kernel writes it ("0.52"). Empty when the kernel has no PSI.
+HOST_PSI_CPU="" HOST_PSI_MEM="" HOST_PSI_MEM_FULL="" HOST_PSI_IO="" HOST_PSI_IO_FULL=""
+host_pressure_read() {
+  local d="${DELTACTL_PROC_ROOT:-/proc}/pressure" r kind a rest
+  HOST_PSI_CPU="" HOST_PSI_MEM="" HOST_PSI_MEM_FULL="" HOST_PSI_IO="" HOST_PSI_IO_FULL=""
+  [ -r "$d/cpu" ] || return 1
+  for r in cpu memory io; do
+    [ -r "$d/$r" ] || continue
+    while read -r kind a rest; do
+      case "$a" in avg10=*) a="${a#avg10=}" ;; *) continue ;; esac
+      [[ "$a" =~ ^[0-9]+([.][0-9]+)?$ ]] || continue
+      case "$r$kind" in
+        cpusome) HOST_PSI_CPU="$a" ;;
+        memorysome) HOST_PSI_MEM="$a" ;;
+        memoryfull) HOST_PSI_MEM_FULL="$a" ;;
+        iosome) HOST_PSI_IO="$a" ;;
+        iofull) HOST_PSI_IO_FULL="$a" ;;
+      esac
+    done < "$d/$r"
+  done
+  [ -n "$HOST_PSI_CPU$HOST_PSI_MEM$HOST_PSI_IO" ]
+}
+
+# Sockets (/proc/net/sockstat): in use in all, TCP in use, waiting to close (TIME_WAIT) and allocated.
+HOST_SOCK_USED="" HOST_SOCK_TCP="" HOST_SOCK_TW="" HOST_SOCK_ALLOC=""
+host_sockstat_read() {
+  local f="${DELTACTL_PROC_ROOT:-/proc}/net/sockstat" proto k1 v1 k2 v2 k3 v3 k4 v4 rest
+  HOST_SOCK_USED="" HOST_SOCK_TCP="" HOST_SOCK_TW="" HOST_SOCK_ALLOC=""
+  [ -r "$f" ] || return 1
+  while read -r proto k1 v1 k2 v2 k3 v3 k4 v4 rest; do
+    case "$proto" in
+      sockets:) [ "$k1" != used ] || HOST_SOCK_USED="$v1" ;;
+      TCP:) HOST_SOCK_TCP="$v1" HOST_SOCK_TW="$v3" HOST_SOCK_ALLOC="$v4" ;;
+    esac
+  done < "$f"
+  [[ "$HOST_SOCK_TCP" =~ ^[0-9]+$ ]]
+}
+
+# Virtual memory counters (/proc/vmstat): pages swapped in and out and processes killed for lack of memory since boot, and what each one
+# grew since the previous reading (empty at the first). Read only now and then: the file is long.
+HOST_VM_SWPIN="" HOST_VM_SWPOUT="" HOST_VM_OOM="" HOST_VM_SWAP_D="" HOST_VM_OOM_D="" HOST_VM_PREV_SW="" HOST_VM_PREV_OOM=""
+host_vmstat_read() {
+  local f="${DELTACTL_PROC_ROOT:-/proc}/vmstat" k v got=0
+  HOST_VM_SWPIN="" HOST_VM_SWPOUT="" HOST_VM_OOM="" HOST_VM_SWAP_D="" HOST_VM_OOM_D=""
+  [ -r "$f" ] || return 1
+  while read -r k v; do
+    case "$k" in
+      pswpin) HOST_VM_SWPIN="$v"; got=$((got + 1)) ;;
+      pswpout) HOST_VM_SWPOUT="$v"; got=$((got + 1)) ;;
+      oom_kill) HOST_VM_OOM="$v"; got=$((got + 1)) ;;
+    esac
+    [ "$got" -lt 3 ] || break
+  done < "$f"
+  [[ "$HOST_VM_SWPIN$HOST_VM_SWPOUT" =~ ^[0-9]+$ ]] || return 1
+  if [ -n "$HOST_VM_PREV_SW" ]; then
+    HOST_VM_SWAP_D=$((HOST_VM_SWPIN + HOST_VM_SWPOUT - HOST_VM_PREV_SW))
+    [ "$HOST_VM_SWAP_D" -ge 0 ] || HOST_VM_SWAP_D=0
+    if [[ "$HOST_VM_OOM" =~ ^[0-9]+$ ]] && [ -n "$HOST_VM_PREV_OOM" ]; then HOST_VM_OOM_D=$((HOST_VM_OOM - HOST_VM_PREV_OOM)); [ "$HOST_VM_OOM_D" -ge 0 ] || HOST_VM_OOM_D=0; fi
+  fi
+  HOST_VM_PREV_SW=$((HOST_VM_SWPIN + HOST_VM_SWPOUT))
+  [[ "$HOST_VM_OOM" =~ ^[0-9]+$ ]] && HOST_VM_PREV_OOM="$HOST_VM_OOM"
+  return 0
+}
+
+# Processes (and threads) in the cgroup of a container into CG_PIDS (cgroup v2 only: v1 keeps them in another hierarchy).
+CG_PIDS=""
+host_cg_pids() { # dir version
+  CG_PIDS=""
+  [ "$2" = 2 ] || return 1
+  host_read1 "$1/pids.current" || return 1
+  [[ "$REPLY" =~ ^[0-9]+$ ]] || return 1
+  CG_PIDS="$REPLY"
+}
+

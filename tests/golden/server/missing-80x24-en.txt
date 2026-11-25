@@ -1,25 +1,25 @@
 === frame 1 ===
-  ITC  testhost · Memory ███░░░ 5.6/11.5 GB 48% ▆▃▁▄▂▁ · Load 3.18
-  1   2   3   4   5   6  [7 Server]  8   9   0                                 
+  ITC  testhost · Memory ███░░░ 5.6/11.5 GB 48% ▂▁▄▂▁▄ · Load 3.18
+ [1 Server]  2   3   4   5   6   7   8   9   0                                 
 ╭─┐ ▸requirements ┌────────────────────────┐6/9 ready · 3 recommended pending┌─╮
-│   REQUIRED                                                                   │
+│  disk / 86% · ✖ 4 warnings: 2 required requirements fail                     │
+│ ──────────────────────────────────────────────────────────────────────────── │
 │   ● Docker Engine                 Docker 27.0.0 (architecture amd64)         │
 │   ● Access to the Docker daemon   The Docker daemon answers                  │
 │   ● Docker Compose 2.20 or newer  Docker Compose 2.30.0                      │
 │ ▸ ✖ Free disk                     Low free disk in /var/lib/docker: 1.9 GB   │
-│   ● Memory                        Memory: 11776 MB in total, 6022 MB availab │
-│   └ What for: Images, data and logs take disk: with less than 3 GB free a de │
-│   └ How: Images and logs need space. Free some disk or move Docker.          │
+│ ─ ✖ Free disk ────────────────────────────────────────────────────────────── │
+│  Result            Low free disk in /var/lib/docker: 1.9 GB                  │
+│                                                                              │
 ╰─┘Enter details└─┘c copy└─┘! run└─┘m metrics└─────────────────────────────────╯
 ╭─┐cpu┌─────────────────────────────┐61°C┌─╮╭─┐memory┌───────────────────┐48%┌─╮
 │ CPU ▕█████████▌░░░░░░░░░░░░░░░░▏ 37%     ││ Used ·················· 5.61 GiB │
-│ Load 3.18 2.64 1.97 · 8 cores            ││ ████████████▉░░░░░░░░░░░░░░  48% │
-│             ⡀⢠                       ⡀   ││ Available ············· 5.88 GiB │
-│  ⢀          ⡇⢸          ⢸          ⢸ ⡇   ││ Total ··················· 11 GiB │
-│  ⢸     ⢀ ⡄⢠ ⣿⢸⡇   ⢀ ⡀⢀ ⣶⢸⡆      ⢠ ⡄⢸⡇⡇⢰  ││ Cached ················ 4.00 GiB │
-│ ⣤⢸⡆⡆⢸ ⡇⢸⡀⡇⢸ ⣿⣾⡇⢸ ⡆⢸ ⡇⢸⡀⣿⣸⣷⢰ ⡆⢸ ⡇⢸ ⡇⣸⣧⣧⢸⡄ ││ Free ·················· 1.00 GiB │
-│ ⣿⣼⣧⣇⢸⡆⣷⢸⡇⣿⢸⡇⣿⣿⡇⢸⡄⣧⢸⡆⣿⢸⡇⣿⣿⣿⢸⡀⣇⢸⡆⣧⢸⡇⣿⣿⣿⣿⢸⣧ ││ Swap ·················· 4.00 GiB │
-│ ⣿⣿⣿⣿⣸⣇⣿⣸⣷⣿⣾⣿⣿⣿⣿⣸⣇⣿⣸⣧⣿⣼⣿⣿⣿⣿⣸⣇⣿⣸⣇⣿⣸⣷⣿⣿⣿⣿⣿⣿ ││ ███▏░░░░░░░░░░░░░░░░░░░░░░░  12% │
+│ Load 3.18↗ 2.64 1.97 · 0.39/core · 8 cor ││ █████████████▒▒▒▒▒▒▒▒▒░░░░░  48% │
+│            ⢀          ⢀                  ││ Available ············· 5.88 GiB │
+│ ⢠ ⡄⢠      ⣇⢸ ⡀⢠ ⡄⢰   ⣇⢸⡀⡀⢠ ⡄    ⢀⢸  ⢀ ⡀⢠ ││ Total ··················· 11 GiB │
+│ ⣼⡄⣧⢸⡆⢰ ⣆⢸⢀⣿⣼⡀⣧⢸⡆⣷⢸⡇⢸ ⣿⣸⡇⣇⢸⡄⣧ ⡆⢰ ⣿⣸⡇⣧⢸⡀⣇⢸ ││ Cached ················ 4.00 GiB │
+│ ⣿⣧⣿⣾⣷⣸⣇⣿⣸⣿⣿⣿⣧⣿⣼⣷⣿⣾⣿⣸⣇⣿⣿⣇⣿⣾⣧⣿⣄⣷⣸⣆⣿⣿⣿⣿⣼⣧⣿⣾ ││ Free ·················· 1.00 GiB │
+│ -2 min ───────────────────────────── now ││ +3 more                          │
 ╰──────────────────────────────────────────╯╰──────────────────────────────────╯
 
- ↑↓ choose · Enter details · m metrics · c copy · ! run · ? help · q quit
+ ↑↓ choose · Enter details · c copy · ! run · Tab other box · ? help · q quit

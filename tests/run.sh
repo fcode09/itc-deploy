@@ -18,6 +18,9 @@ done
 export DELTACTL_GOLDEN_DIR="$SRC/tests/golden"
 # The UI language comes from the environment, never from the developer's own config file.
 export DELTACTL_LANG="${DELTACTL_LANG:-es}"
+# The panel opens on the Servidor view; the suites that exercise the other views start them from the Instancias view, as they were written
+# (tests/test-server.sh unsets this to check the real start).
+export DELTACTL_TUI_START="${DELTACTL_TUI_START:-instances}"
 export DELTACTL_CONFIG="$DST/.deltactl-config-absent"
 export DELTACTL_TEST_ISOLATED=1
 find "$DST" -name '*.sh' -o -name deltactl | xargs sed -i 's/\r$//' 2>/dev/null || true

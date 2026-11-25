@@ -1,0 +1,31 @@
+=== frame 1 ===
+  ITC  testhost · Memoria ███░░░ 5.6/11.5 GB 48% ▂▁▄▂▁▄ · Carga 3.18 · Docker 27.0.0 · contenedores 3.3G
+ [1 Servidor] 2 Instancias 3 Recursos 4 Salida 5 Ejecuciones 6 Procesos 7 Consola 8 Imágenes 9 Variables 0 Actividad   
+╭─┐ ▸requisitos ┌─────────────────────────────────────────────────────────────────────────────────────────┐9/9 listos┌─╮
+│  disco / 86% · carga 3.18↗ · 8 núcleos · activo 02:22 · ▼ 4.0 MiB/s ▲ 1.4 KiB/s · ▲ 2 avisos: disco / al 86%         │
+│ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────── │
+│   OBLIGATORIOS  9/9                                      │   RECOMENDADOS  6/6                                       │
+│   ● Docker Engine           Docker 27.0.0 (arquitectura… │   ● Límite de archivos de…  mongod permite 524288 archiv… │
+│   ● Acceso al daemon de D…  El daemon de Docker responde │   ● Proxy inverso (nginx …  Proxy inverso disponible: ng… │
+│   ● Docker Compose 2.20 o…  Docker Compose 2.30.0        │   ● certbot                 certbot disponible            │
+│   ● Disco libre             Disco libre en /var/lib/doc… │   ● Hora sincronizada       La hora del servidor está si… │
+│ ▸ ● Memoria                 Memoria: 11776 MB en total,… │   ● Cortafuegos             Cortafuegos activo: ufw       │
+│   ● MongoDB alcanzable      127.0.0.1:27017 alcanzable   │   ● curl                    curl disponible               │
+│ ─ ● Memoria ──────────────────────────────────────────────────────────────────────────────────────────────────────── │
+│  Para qué        Cada servicio tiene un techo de memoria; si la suma supera la RAM, el servidor puede quedarse sin   │
+│                   memoria.                                                                                           │
+│  Resultado        Memoria: 11776 MB en total, 6022 MB disponibles                                                    │
+╰─┘Enter detalle└─┘c copiar└─┘! ejecutar└─┘m métricas└─────────────────────────────────────────────────────────────────╯
+╭─┐cpu┌─────────────────────────────────┐61°C┌─╮╭─┐memoria┌────────────────────┐48%┌─╮╭─┐discos┌───────────────────────╮
+│ CPU ▕████████▏░░░░░░░░░░░░░▏ 37%             ││ Usada ··················· 5.61 GiB ││ /          ████▎  86%  204 GiB │
+│ Carga 3.18↗ 2.64 1.97 · 0.39/núcleo · 8 núcl ││ ██████████████▒▒▒▒▒▒▒▒▒▒░░░░░  48% ││ /srv/data  █░░░░  22%  500 GiB │
+│    ⡄⢀ ⡀⢀      ⡄⢠  ⢀ ⡀⢀   ⡄⢠  ⢀ ⡀     ⢠     ⢀ ││ Disponible ·············· 5.88 GiB ││ /var/backu █▎░░░  25% 1000 GiB │
+│ ⣧⣸⣧⣿⣾⣆⣷⣸⣆⣰⣄⣦⣸⣤⣿⣾⣄⣷⣸⣆⣷⣸⣧⣸⣄⣿⣼⣇⣧⣸⣆⣷⣀⣆⣰⣀⣿⣼⣧⣷⣸⣄⣧⣸ ││ +6 más                             ││ E/S ▼ 7.0 MiB/s ▲ 16.0 MiB/s   │
+╰──────────────────────────────────────────────╯╰────────────────────────────────────╯╰────────────────────────────────╯
+╭─┐red┌─┐enp3s0┌─────────────┐activo 02:22┌─╮╭─┐contenedores┌────────────────────────────────────────────────────┐4/4┌─╮
+│ ▼ 4.0 MiB/s  máx 4.8 MiB/s                ││ SVC    INSTANCIA          ESTADO          CPU MEMORIA                   │
+│ ▲ 1.4 KiB/s  máx 615.2 KiB/s              ││   s0   colorado           ● healthy      3.7% 196M/512M                 │
+│ TCP 58 · cerrándose 7 · sockets 412       ││   s1   colorado           ● healthy     41.2% 1.1G/2.0G                 │
+╰───────────────────────────────────────────╯╰─────────────────────────────────────────────────────────────────────────╯
+
+ ↑↓ elegir · Enter detalle · c copiar · ! ejecutar · Tab otro panel · z zoom · m métricas · ? ayuda · q salir
