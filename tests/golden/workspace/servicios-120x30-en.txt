@@ -1,0 +1,31 @@
+=== frame 1 ===
+  ITC  testhost · Memory ███░░░ 5.6/11.5 GB 48% ▄▃▂▅▃▂ · Load 3.18 · Docker 27.0.0 · containers 1.5G
+ [1 Instances]  2 Resources   3 Output   4 Runs   5 Processes   6 Console   7 Server   8 Images   9 Variables          
+╭─ Instances ────────────────────────╮ Summary [Services]                                                               
+│   + New instance                   │╭─┐ ▸ix-colorado ┌───────────────────────────────────────────────────┐● running┌─╮
+│               n/m      mem    cpu  ││   ● s0 auth-backend  · 2.14.1  :4100  mem 512m  · healthy                      │
+│ ▸ ●● ix-colorado 2/2    1.3G  25.1%││ ▸ ● s1 gueo-back-end  · 2.9.0  :4101  mem 2g  · healthy                        │
+│   ●✖ ix-lima  1/2    180M   1.2%   ││                                                                                │
+│   ✖✖ ix-piura 0/2       -      -   ││ (NestJS + Chromium for the PDF reports)                                        │
+╰────────────────────────────────────╯│ Change its version (v), port (P) or memory (m), deploy it (u), stop it (s) or  │
+╭─ Server ───────────────────────────╮│ remove it (X: its data stays).                                                 │
+│ Memory █████░░░░░ 5.6/11.5 GB 48%  ││                                                                                │
+│              ▃                     ││                                                                                │
+│              █   ▄                 ││                                                                                │
+│  ▁  ▄  ▄  █  ██  █     ▂  ▃  ▂  ▆  │╰─┘a add└─┘X remove└─┘v version└─┘P port└─┘m memory└─┘R roll back└─┘< > tab└─────╯
+│  █▁ █▂ █▁ █▅ ██▆ █  █  █  █  █▃ █▂ │╭─ Logs · s0 · following ────────────────────────────────────────────────────────╮
+│  ██ ██ ██▁██▁███▅█▄ █▄ █▇ █▇ ██ ██ ││ Reading the log...                                                             │
+│ ▃██▆██▆████████████ ██▁██▅██▄█████▇││                                                                                │
+│ Load 3.18                          ││                                                                                │
+│ containers 1.5G                    ││                                                                                │
+╰────────────────────────────────────╯╰────────────────────────────────────────────────────────────────────────────────╯
+╭─ Console ────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│ ix-colorado ❯ : type a command · ! in the terminal · Tab completes · ↑ history · help                                │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+ ↑↓ service · a add · X remove · v version · P port · m memory · u deploy · s stop · R roll back · ← list · ? help

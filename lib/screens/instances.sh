@@ -597,6 +597,7 @@ dash_key_instances() {
   { [ "$DASH_ON_NEW" -eq 0 ] && [ "${#DASH_NAMES[@]}" -gt 0 ]; } || have=0
   if [ "$DASH_FOCUS" = "logs" ] && dash_key_logs "$1"; then return 0; fi
   if [ "$DASH_FOCUS" = "todo" ] && dash_key_todo "$1"; then return 0; fi
+  if [ "$DASH_FOCUS" = "ws" ] && declare -F "ws_${DASH_WS_TAB}_key" > /dev/null && "ws_${DASH_WS_TAB}_key" "$1"; then return 0; fi
   case "$1" in
     z) dash_toggle_zoom ;;
     '/') DASH_MODE=lfilter DASH_BUF="$DASH_LIST_FILTER" DASH_CUR="${#DASH_LIST_FILTER}" ;;
@@ -699,7 +700,8 @@ scr_instances_keys() { # width
   elif [ "$DASH_ON_NEW" -eq 1 ]; then kv=new
   elif [ "$DASH_FOCUS" = "svc" ]; then kv=services
   elif [ "$DASH_FOCUS" = "todo" ]; then kv=todo
-  elif [ "$DASH_FOCUS" = "logs" ]; then kv=logs; fi
+  elif [ "$DASH_FOCUS" = "logs" ]; then kv=logs
+  elif [ "$DASH_FOCUS" = "ws" ] && [ -n "${DASH_KEYS[ws_$DASH_WS_TAB]:-}" ]; then kv="ws_$DASH_WS_TAB"; fi
   dash_keys_view "$kv" "$1"
 }
 
@@ -710,10 +712,12 @@ scr_instances_texts() {
   DASH_KEYS[logs]="$(t tui.keys.logs "$DASH_UD" "$DASH_LEFT")"
   DASH_KEYS[zoom]="$(t tui.keys.zoom "$DASH_UD")"
   DASH_KEYS[todo]="$(t tui.ws.keys.todo "$DASH_UD" "$DASH_LEFT")"
+  local id
+  for id in "${DASH_WS_TABS[@]}"; do if declare -F "ws_${id}_texts" > /dev/null; then "ws_${id}_texts"; fi; done
 }
 
 scr_instances_sig() {
-  DASH_SIG+="|$DASH_SEL|$DASH_SVC|$DASH_FOCUS|$DASH_ON_NEW|$DASH_ZOOM|$DASH_LOG_SCROLL|$DASH_LOG_FILTER|$DASH_TODO_SEL|$DASH_WS_TAB|$DASH_WS_N|$DASH_LIST_FILTER|$DASH_LIST_SORT"
+  DASH_SIG+="|$DASH_SEL|$DASH_SVC|$DASH_FOCUS|$DASH_ON_NEW|$DASH_ZOOM|$DASH_LOG_SCROLL|$DASH_LOG_FILTER|$DASH_TODO_SEL|$DASH_WS_TAB|$DASH_WS_N|$DASH_LIST_FILTER|$DASH_LIST_SORT|$DASH_WSV_SEL"
   DASH_SIG+="|$DASH_LOG_ERRONLY|$DASH_LOG_FIND|$DASH_LS_PAUSED|$DASH_LS_PEND|$DASH_LOG_MIDX"
 }
 

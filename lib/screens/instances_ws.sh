@@ -9,6 +9,9 @@
 #   ws_<id>_box <instance> <width> <height>   (required) the box of the tab, exactly <height> lines, into TUI_BOX
 #   ws_<id>_avail <instance>                  return 1 to hide the tab (for this instance, or at this size of the terminal)
 #   ws_<id>_sig                               appends "|value" pieces to the signature of the box (everything its drawing depends on)
+#   ws_<id>_key <key>                         a tab with keys of its own: it owns the keyboard while it is on screen (DASH_FOCUS=ws); return 1
+#                                             for a key it does not take (left goes back to the list)
+#   ws_<id>_texts                             rebuilds the texts of the tab that depend on the language (DASH_KEYS[ws_<id>] is its key hints)
 # The strip of tabs only exists while there are two or more visible (the first one is always there). The tab on screen is the one the
 # focus says (the services and the to-do rows are the summary's; the logs pane is the logs') and, while the list has the focus, the one
 # chosen with `<` and `>` or a click.
@@ -63,6 +66,7 @@ dash_ws_effective() { # instance
   case "$DASH_FOCUS" in
     svc | todo) want=resumen ;;
     logs) want=logs ;;
+    ws) want="$DASH_WS_TAB" ;;
     *) want="$DASH_WS_TAB" ;;
   esac
   DASH_WS_ID="${DASH_WS_VIS[0]}"
@@ -89,7 +93,10 @@ dash_ws_tab_go() { # id
   case "$1" in
     resumen) DASH_FOCUS=svc ;;
     logs) DASH_FOCUS=logs ;;
-    *) DASH_FOCUS=svc ;;
+    *)
+      # a tab that has keys of its own owns the keyboard (DASH_FOCUS=ws): ws_<id>_key
+      if declare -F "ws_${1}_key" > /dev/null; then DASH_FOCUS=ws; else DASH_FOCUS=svc; fi
+      ;;
   esac
   DASH_LOG_SCROLL=0
 }
@@ -432,3 +439,4 @@ dash_logs_visible() {
 # --- The tabs: ONE line each -------------------------------------------------------------------------------------------------
 dash_ws_register resumen tui.ws.tab.resumen
 dash_ws_register logs tui.ws.tab.logs
+dash_ws_register servicios tui.ws.tab.servicios

@@ -1,0 +1,41 @@
+=== frame 1 ===
+  ITC  testhost · Memoria ███░░░ 5.6/11.5 GB 48% ▄▃▂▅▃▂ · Carga 3.18 · Docker 27.0.0 · contenedores 1.5G
+ [1 Instancias]  2 Recursos   3 Salida   4 Ejecuciones   5 Procesos   6 Consola   7 Servidor   8 Imágenes   9 Variables                                        
+
+
+
+
+
+
+
+
+
+
+
+
+                                              ╭─ ▸quitar servicio ──────────────────────────────────────────────╮
+                                              │                                                                 │
+                                              │  Escribe la clave del servicio (s1) para quitarlo de            │
+                                              │  'ix-colorado'. Se detiene y sus variables, secretos y datos se │
+                                              │  conservan.                                                     │
+                                              │                                                                 │
+                                              │  s▸                                                             │
+                                              │                                                                 │
+                                              │  ✖ escribe s1 tal cual                                          │
+                                              │                                                                 │
+                                              ╰─────────────────────────────────────────────────────────────────╯
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ Enter guarda · ↑ la más reciente (versión) · Esc cancela

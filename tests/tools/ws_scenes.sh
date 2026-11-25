@@ -7,9 +7,9 @@
 # Sourced, never executed: it needs lib/bootstrap.sh and lib/cmd/dashboard.sh already loaded and the environment of the panel
 # (DELTACTL_UI=rich, DELTACTL_TUI_KEYS=...).
 #
-#   ws_scene <name>      name: cards | todo | todofocus | ok | stopped | logs | none | filter | sort | new
+#   ws_scene <name>      name: cards | todo | todofocus | ok | stopped | logs | none | filter | sort | new | servicios | serviciosoff | askremove | asktag | askport
 
-WS_SCENES=(cards todo todofocus ok stopped logs none filter sort new)
+WS_SCENES=(cards todo todofocus ok stopped logs none filter sort new servicios serviciosoff askremove asktag askport)
 
 # A deterministic series of N samples between 0 and $3 (a wave with bursts), oldest first, into WSS.
 WSS=""
@@ -67,6 +67,14 @@ ws_todo_data() {
   DASH_SRV_STATE=ready DASH_SRV_BAD=1 DASH_SRV_BAD_NAMES="docker compose"
 }
 
+# The .env.instance of the first instance (what the Services tab reads), in a folder of its own so the scene never depends on instances/.
+ws_svc_files() {
+  INSTANCES_DIR="$(mktemp -d)"
+  mkdir -p "$INSTANCES_DIR/ix-colorado" "$INSTANCES_DIR/ix-lima"
+  printf 'COMPOSE_PROFILES=s0,s1\nS0_TAG=2.14.1\nS0_PORT=4100\nS1_TAG=2.9.0\nS1_PORT=4101\nS1_MEM_LIMIT=2g\n' > "$INSTANCES_DIR/ix-colorado/.env.instance"
+  printf 'COMPOSE_PROFILES=s0\nS0_TAG=2.14.1\nS0_PORT=4110\n' > "$INSTANCES_DIR/ix-lima/.env.instance"
+}
+
 ws_scene() { # name
   local name="$1"
   tui_size
@@ -90,7 +98,14 @@ ws_scene() { # name
     filter) DASH_LIST_FILTER="ix-s" DASH_SEL=3 ;;
     sort) DASH_LIST_SORT=state DASH_SEL=1 ;;
     new) DASH_ON_NEW=1 ;;
+    servicios | askremove | asktag | askport) ws_svc_files; DASH_SEL=0 DASH_WS_TAB=servicios DASH_FOCUS=ws DASH_WSV_NAME=ix-colorado DASH_WSV_SEL=1 ;;
+    serviciosoff) ws_svc_files; DASH_SEL=1 DASH_SVCS[ix-lima]="s0" DASH_WS_TAB=servicios DASH_FOCUS=ws DASH_WSV_NAME=ix-lima DASH_WSV_SEL=1 ;;
     *) echo "unknown scene $name" >&2; return 1 ;;
+  esac
+  case "$name" in
+    askremove) DASH_MODE=svcask DASH_SA_KIND=remove DASH_SA_INST=ix-colorado DASH_SA_SVC=s1 DASH_BUF="s" DASH_CUR=1 ;;
+    asktag) DASH_MODE=svcask DASH_SA_KIND=tag DASH_SA_INST=ix-colorado DASH_SA_SVC=s1 DASH_SA_CUR=2.9.0 DASH_SA_STAR=2.15.0 DASH_SA_TAGS="2.15.0* 2.14.1 2.9.0" DASH_BUF="2.10" DASH_CUR=4 ;;
+    askport) DASH_MODE=svcask DASH_SA_KIND=port DASH_SA_INST=ix-colorado DASH_SA_SVC=s1 DASH_SA_CUR=4101 DASH_BUF="80" DASH_CUR=2 ;;
   esac
   dash_host_build
   dash_render
