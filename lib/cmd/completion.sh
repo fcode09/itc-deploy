@@ -29,6 +29,7 @@ COMPLETION_FLAGS=(
   "menu:--classic"
   "runs:--instance -n --json --tail --raw"
   "env:--reveal --json --stdin --force --yes"
+  "service:--tag --port --generate-secrets --yes"
 )
 
 cmd_completion() {
@@ -88,6 +89,11 @@ _deltactl_complete() {
           get | set | generate) COMPREPLY=($(compgen -W "$vars" -- "$cur")) ;;
         esac
       fi ;;
+    service)
+      if [ "$COMP_CWORD" -eq 2 ]; then COMPREPLY=($(compgen -W "list add remove set" -- "$cur"))
+      elif [ "$COMP_CWORD" -eq 3 ]; then COMPREPLY=($(compgen -W "$insts" -- "$cur"))
+      elif [ "$COMP_CWORD" -eq 4 ]; then COMPREPLY=($(compgen -W "$services" -- "$cur"))
+      elif [ "$COMP_CWORD" -eq 5 ] && [ "${COMP_WORDS[2]}" = set ]; then COMPREPLY=($(compgen -W "tag port memory" -- "$cur")); fi ;;
     runs)
       if [ "$COMP_CWORD" -eq 2 ]; then COMPREPLY=($(compgen -W "list show logs stats resolve prune" -- "$cur")); fi ;;
     completion)
