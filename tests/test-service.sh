@@ -11,7 +11,14 @@ unset NO_COLOR DELTACTL_COLOR DELTACTL_UI DELTACTL_ASCII COLUMNS
 
 FIX="$(mktemp -d)"
 export FIX
-cleanup() { rm -rf "$FIX" instances/sv-*; }
+# The copy of the tree is shared by every suite of a run: what this one changes of the catalog and the templates is put back when it ends.
+cp lib/core/catalog.data "$FIX.catalog.data"
+cp templates/.env.instance.example "$FIX.env.instance.example"
+cleanup() {
+  cp "$FIX.catalog.data" lib/core/catalog.data
+  cp "$FIX.env.instance.example" templates/.env.instance.example
+  rm -rf "$FIX" "$FIX.catalog.data" "$FIX.env.instance.example" templates/.env.s2.example instances/sv-*
+}
 trap cleanup EXIT
 rm -rf instances/sv-*
 mkdir -p "$FIX/bin"
