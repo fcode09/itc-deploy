@@ -1286,4 +1286,21 @@ out="$(panel7 0 q)"
 check "a digit with no screen is ignored (with nine screens 0 is none)" 'echo "$out" | frame_n 2 | grep -q "\[2 Instancias\]"'
 rm -rf "$R7"
 
+section "28. a lost terminal ends the panel, and there is one panel per server"
+check "when the input is gone the key is eof, not a timeout that would make the loop spin" '[ "$(run_lib "unset DELTACTL_TUI_KEYS; tui_key 1 < /dev/null; echo \$TUI_KEY")" = "eof" ]'
+check "a real timeout is still a timeout" '[ "$(run_lib "unset DELTACTL_TUI_KEYS; tui_key 0.2 < <(sleep 2); echo \$TUI_KEY")" = "timeout" ]'
+check "eof leaves the panel" '[ "$(run_lib "DASH_QUIT=0; TUI_KEY=eof; dash_handle_key; echo \$DASH_QUIT")" = "1" ]'
+LK="$FIX/lock"; rm -rf "$LK"; mkdir -p "$LK"
+check "the first panel takes the server: its pid and terminal are in the private file" '[ "$(run_lib "unset DELTACTL_TUI_KEYS; INSTANCES_DIR=$LK; dash_lock_acquire; read -r p _ < $LK/.deltactl/panel.pid; [ \"\$p\" = \"\$\$\" ] && echo mine")" = "mine" ]'
+check "closing the panel frees the server" '[ "$(run_lib "unset DELTACTL_TUI_KEYS; INSTANCES_DIR=$LK; dash_lock_acquire; dash_lock_release; [ -e $LK/.deltactl/panel.pid ] && echo left || echo freed")" = "freed" ]'
+rm -rf "$LK"; mkdir -p "$LK/.deltactl"
+bash -c 'exec -a deltactl sleep 600' & OTHER=$!
+printf '%s\t%s\n' "$OTHER" "pts/9" > "$LK/.deltactl/panel.pid"
+check "a second panel does not start while another live one has the server, and says which" 'out="$(run_lib "unset DELTACTL_TUI_KEYS; INSTANCES_DIR=$LK; dash_lock_acquire; echo rc=\$?")"; echo "$out" | grep -q "rc=1" && echo "$out" | grep -q "$OTHER" && echo "$out" | grep -q "pts/9"'
+check "DELTACTL_ALLOW_MULTI=1 lets it start anyway" '[ "$(run_lib "unset DELTACTL_TUI_KEYS; DELTACTL_ALLOW_MULTI=1; INSTANCES_DIR=$LK; dash_lock_acquire; echo rc=\$?")" = "rc=0" ]'
+kill "$OTHER" 2> /dev/null; wait "$OTHER" 2> /dev/null
+printf '%s\t%s\n' "999999" "pts/9" > "$LK/.deltactl/panel.pid"
+check "a stale file (that process is gone) does not block: it is replaced" '[ "$(run_lib "unset DELTACTL_TUI_KEYS; INSTANCES_DIR=$LK; dash_lock_acquire; echo rc=\$?")" = "rc=0" ]'
+rm -rf "$LK"
+
 finish

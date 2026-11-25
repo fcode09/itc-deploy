@@ -135,7 +135,10 @@ tui_key() { # [timeout]
   if [ -n "$t" ]; then
     IFS= read -rsn1 -t "$t" k || rc=$?
     if [ "$rc" -gt 128 ]; then TUI_KEY="timeout"; return 0; fi
-    # A resize interrupts the read with a signal status: report it as a timeout so the loop redraws.
+    # A resize interrupts the read with a signal status (above 128, handled above) and a timeout ends above 128 too. Status 1 is the end
+    # of the input or a read error: the terminal is gone (a dropped SSH session). Calling that a timeout made the loop spin at full speed
+    # forever, because read then fails at once instead of waiting.
+    if [ "$rc" -eq 1 ]; then TUI_KEY="eof"; return 0; fi
     if [ "$rc" -ne 0 ]; then TUI_KEY="timeout"; return 0; fi
   else
     IFS= read -rsn1 k || { TUI_KEY="eof"; return 0; }
