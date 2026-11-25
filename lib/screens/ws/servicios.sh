@@ -3,7 +3,7 @@
 # Tab of the workspace: Servicios. One row per service of the catalog: the ones the instance runs (state, version, port, memory) and the ones it
 # does not, with what can be done to the one under the cursor: add it, remove it (its data stays), change its version, port or memory, deploy
 # it, stop it, roll it back. Every change is `./deltactl service ...` (lib/core/svcmgmt.sh) or the command of always, run in the background
-# like any other, so it shows in Output and the history. The keys are the ones of the footer; the tab owns the keyboard (DASH_FOCUS=ws) while
+# like any other, so it shows in Output and the history. The keys are the ones of the footer; the tab owns the keyboard (DASH_FOCUS=tab) while
 # it is on screen. Loaded by lib/screens/instances_ws.sh (dash_ws_register).
 
 DASH_WSV_SEL=0           # the row under the cursor (0 = the first service of the catalog)
@@ -41,7 +41,7 @@ ws_servicios_box() { # instance width height
   local -a body=() rows=() detail=()
   iw=$((w - 3)) ih=$((h - 2))
   dash_wsv_clamp "$name"
-  [ "$DASH_FOCUS" != "ws" ] || foc=1
+  [ "$DASH_FOCUS" != "tab" ] || foc=1
   f="$INSTANCES_DIR/$name/.env.instance"
   for i in "${!KNOWN_SERVICES[@]}"; do
     s="${KNOWN_SERVICES[$i]}"

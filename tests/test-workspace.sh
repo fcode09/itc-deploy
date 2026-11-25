@@ -82,10 +82,10 @@ last_frame() { awk '/^=== frame /{ buf = "" } { buf = buf $0 "\n" } END { printf
 run_lib() { ROOT="$PWD" DELTACTL_TUI_KEYS=/dev/null DELTACTL_UI=rich DELTACTL_COLOR=never DELTACTL_ASCII=1 COLUMNS=100 bash -c 'source lib/bootstrap.sh; source lib/cmd/dashboard.sh; set +e; '"$1" 2>&1; }
 
 section "1. the tabs of the workspace are registered with one line each"
-check "the workspace has the summary, the logs and the services as tabs" '[ "$(run_lib "echo \${DASH_WS_TABS[*]}")" = "resumen logs servicios" ]'
-check "each tab is a file of lib/screens/ws" '[ -f lib/screens/ws/resumen.sh ] && [ -f lib/screens/ws/logs.sh ]'
-check "a tab registered with one line is a tab: a made-up one is drawn, its strip appears and its title is read" '[ "$(run_lib "ws_demo_box() { TUI_BOX=(\"demo\"); }; DASH_WS_TABS+=(demo); DASH_WS_TITLE[demo]=tui.ws.tab.logs; DASH_SVCS[x]=\"s0\"; COLUMNS=100; DELTACTL_TUI_ROWS=30; tui_size; dash_ws_visible x; echo \${DASH_WS_VIS[*]}")" = "resumen logs servicios demo" ]'
-check "the logs tab is hidden where the logs already sit under the summary (the overview)" '[ "$(run_lib "COLUMNS=160; DELTACTL_TUI_ROWS=40; tui_size; DASH_SVCS[x]=\"s0\"; dash_ws_visible x; echo \${DASH_WS_VIS[*]}")" = "resumen servicios" ] && [ "$(run_lib "COLUMNS=100; DELTACTL_TUI_ROWS=30; tui_size; DASH_SVCS[x]=\"s0\"; dash_ws_visible x; echo \${DASH_WS_VIS[*]}")" = "resumen logs servicios" ]'
+check "the workspace has the summary, the logs and the access as tabs" '[ "$(run_lib "echo \${DASH_WS_TABS[*]}")" = "resumen logs servicios acceso historial" ]'
+check "each tab is a file of lib/screens/ws" '[ -f lib/screens/ws/resumen.sh ] && [ -f lib/screens/ws/logs.sh ] && [ -f lib/screens/ws/acceso.sh ]'
+check "a tab registered with one line is a tab: a made-up one is drawn, its strip appears and its title is read" '[ "$(run_lib "ws_demo_box() { TUI_BOX=(\"demo\"); }; DASH_WS_TABS+=(demo); DASH_WS_TITLE[demo]=tui.ws.tab.logs; DASH_SVCS[x]=\"s0\"; COLUMNS=100; DELTACTL_TUI_ROWS=30; tui_size; dash_ws_visible x; echo \${DASH_WS_VIS[*]}")" = "resumen logs servicios acceso historial demo" ]'
+check "the logs tab is hidden where the logs already sit under the summary (the overview)" '[ "$(run_lib "COLUMNS=160; DELTACTL_TUI_ROWS=40; tui_size; DASH_SVCS[x]=\"s0\"; dash_ws_visible x; echo \${DASH_WS_VIS[*]}")" = "resumen servicios acceso historial" ] && [ "$(run_lib "COLUMNS=100; DELTACTL_TUI_ROWS=30; tui_size; DASH_SVCS[x]=\"s0\"; dash_ws_visible x; echo \${DASH_WS_VIS[*]}")" = "resumen logs servicios acceso historial" ]'
 check "an instance with no services has no logs tab" '[ "$(run_lib "COLUMNS=100; DELTACTL_TUI_ROWS=30; tui_size; DASH_SVCS[x]=\"\"; dash_ws_visible x; echo \${DASH_WS_VIS[*]}")" = "resumen servicios" ]'
 
 section "2. selecting an instance shows its options, with nothing more pressed"
@@ -100,7 +100,7 @@ out="$(panel down q)"
 check "selecting another instance shows its own workspace" 'echo "$out" | frame_n 2 | grep -q "\[tw-b . 0/2\]" && echo "$out" | frame_n 2 | grep -q "s0 auth-backend:1.0  . no creado"'
 out="$(PANEL_COLS=160 PANEL_ROWS=40 panel q)"
 check "on a wide screen each service is a card: its image, its state, its facts, and its memory and CPU as metric rows" 'echo "$out" | frame_n 1 | grep -q "\[s0\]-\[auth-backend:1.0\]-\[. healthy\]" && echo "$out" | frame_n 1 | grep -q "\[s1\]-\[gueo-back-end:1.0\]" && echo "$out" | frame_n 1 | grep -q "mem \.* 100M/512M" && echo "$out" | frame_n 1 | grep -q "mem \.* 600M/2.0G" && echo "$out" | frame_n 1 | grep -q "activo 2d00h  \.  :4100"'
-check "a wide screen has no Logs tab in its strip (the logs are under the summary) and the logs are there" '! echo "$out" | frame_n 1 | grep -q "Resumen.*Logs.*Servicios" && echo "$out" | frame_n 1 | grep -q "Logs . s0"'
+check "a wide screen has no tab for the logs (they are under the summary): the strip has the summary and the access, and the logs are there" 'echo "$out" | frame_n 1 | grep -qE "\[Resumen\] +Servicios +Acceso" && ! echo "$out" | frame_n 1 | grep -q "Resumen.* Logs" && echo "$out" | frame_n 1 | grep -q "Logs . s0"'
 check "a service that does not run has a card too, with no reading" 'PANEL_COLS=160 PANEL_ROWS=40 panel down q | frame_n 2 | grep -q "sin lectura"'
 check "the restarts of a service are in its card" 'PANEL_COLS=200 PANEL_ROWS=40 panel q | frame_n 1 | grep -q "reinicios 3"'
 
@@ -142,7 +142,7 @@ check "> opens the next tab: the logs, with the focus in them" 'echo "$out" | fr
 out="$(panel '>' '<' q)"
 check "< goes back to the summary" 'echo "$out" | frame_n 3 | grep -q ">tw-a . 2/2\|>tw-a" && echo "$out" | frame_n 3 | grep -q "\[Resumen\] Logs"'
 out="$(panel '<' q)"
-check "< from the first tab wraps around to the last" 'echo "$out" | frame_n 2 | grep -q "\[Servicios\]"'
+check "< from the first tab wraps around to the last (the history)" 'echo "$out" | frame_n 2 | grep -qE "Resumen +Logs +Servicios +Acceso +\[Historial\]"'
 check "on a wide screen > and < have no other tab to go to" '[ "$(PANEL_COLS=160 PANEL_ROWS=40 panel '"'"'>'"'"' q | frame_n 2 | grep -c ">Logs")" -eq 0 ]'
 out="$(panel down '>' q)"
 check "on the New button the tabs do nothing" '[ "$(panel up '"'"'>'"'"' q | frame_n 3 | grep -c ">Logs")" -eq 0 ]'

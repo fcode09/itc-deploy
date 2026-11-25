@@ -8,7 +8,7 @@
 │                                                                              │
 │                                                                              │
 ╰──────────────────────────────────────────────────────────────────────────────╯
-[Resumen] Logs  Servicios                                                       
+[Resumen] Logs  Servicios  Acceso  Historial                                    
 ╭─┐ix-sullana · 0/2┌────────────────────────────────────────────────┐○ parada┌─╮
 │ ▸ s0 auth-backend:2.14.1  ○ no creado                                        │
 │     :4130                                                                    │

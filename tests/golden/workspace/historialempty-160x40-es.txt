@@ -1,0 +1,41 @@
+=== frame 1 ===
+  ITC  testhost · Memoria ███░░░ 5.6/11.5 GB 48% ▄▃▂▅▃▂ · Carga 3.18 · Docker 27.0.0 · contenedores 1.5G
+ [1 Instancias]  2 Recursos   3 Salida   4 Ejecuciones   5 Procesos   6 Consola   7 Servidor   8 Imágenes   9 Variables                                        
+╭─ Instancias ───────────────────────────╮ Resumen  Servicios  Acceso [Historial]                                           ╭─ Eventos ────────────────────────╮
+│   + Nueva instancia                    │╭─┐ ▸ix-piura ┌─┐Historial┌──────────────────────────────────────┐0 operaciones┌─╮│ Sin eventos todavía              │
+│                  n/m      mem    cpu   ││   Esta instancia aún no tiene operaciones registradas. Las que cambian algo    ││                                  │
+│   ●● ix-colorado 2/2    1.3G  25.1%    ││   (desplegar, init, adopt, rollback, detener, bajar) quedan aquí con su salida ││                                  │
+│   ●✖ ix-lima     1/2    180M   1.2%    ││   y lo que consumieron.                                                        ││                                  │
+│ ▸ ✖✖ ix-piura    0/2       -      -    ││                                                                                ││                                  │
+│   ○○ ix-sullana  0/2       -      -    ││                                                                                ││                                  │
+╰────────────────────────────────────────╯│                                                                                ││                                  │
+╭─ Servidor ─────────────────────────────╮│                                                                                ││                                  │
+│ Memoria █████░░░░░ 5.6/11.5 GB 48%     ││                                                                                ││                                  │
+│                  ▃                     ││                                                                                ││                                  │
+│                  █   ▄                 ││                                                                                ││                                  │
+│   ▁  ▁  ▄  ▄  █  ██  █     ▂  ▃  ▂  ▆  ││                                                                                ││                                  │
+│   █  █▁ █▂ █▁ █▅ ██▆ █  █  █  █  █▃ █▂ ││                                                                                ││                                  │
+│ ▆ █▅ ██ ██ ██▁██▁███▅█▄ █▄ █▇ █▇ ██ ██ ││                                                                                ││                                  │
+│ █▃██▃██▆██▆████████████ ██▁██▅██▄█████▇││                                                                                ││                                  │
+│ Carga 3.18                             ││                                                                                ││                                  │
+│ contenedores 1.5G                      ││                                                                                ││                                  │
+│ Docker 27.0.0                          ││                                                                                ││                                  │
+│                                        ││                                                                                ││                                  │
+│                                        ││                                                                                ││                                  │
+│                                        ││                                                                                ││                                  │
+│                                        ││                                                                                ││                                  │
+│                                        ││                                                                                ││                                  │
+│                                        ││                                                                                ││                                  │
+│                                        ││                                                                                ││                                  │
+│                                        ││                                                                                ││                                  │
+╰────────────────────────────────────────╯╰─┘Enter salida entera└─┘PgUp PgDn desplaza└─┘< > pestaña└───────────────────────╯╰──────────────────────────────────╯
+╭─ Consola ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│ ix-piura ❯ : escribe un comando · ! en el terminal · Tab completa · ↑ historial · help                                                                       │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+ ↑↓ operación · Enter la salida entera · RePág/AvPág desplaza el detalle · z ampliar · ← atrás · ? ayuda · q salir

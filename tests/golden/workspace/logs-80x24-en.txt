@@ -8,7 +8,7 @@
 │   ●✖ ix-lima     1/2    180M   1.2%                                          │
 │   ✖✖ ix-piura    0/2       -      -                                          │
 ╰──────────────────────────────────────────────────────────────────────────────╯
- Summary [Logs] Services                                                        
+ Summary [Logs] Services  Access  History                                       
 ╭─ ▸Logs · s0 · following ─────────────────────────────────────────────────────╮
 │ linea 7 ok                                                                   │
 │ linea 8 ok                                                                   │
