@@ -66,8 +66,9 @@ prof_dump() {
   wall=$((now - PROF_T0))
   [ "$wall" -gt 0 ] || wall=1
   prof_cpu
-  me=$((PROF_SELF * 100000 / PROF_HZ / (wall / 1000 + 1)))     # tenths of a percent of one core
-  kids=$((PROF_KIDS * 100000 / PROF_HZ / (wall / 1000 + 1)))
+  # tenths of a percent of one core: (ticks / HZ) seconds of CPU over wall microseconds
+  me=$((PROF_SELF * 1000000000 / PROF_HZ / wall))
+  kids=$((PROF_KIDS * 1000000000 / PROF_HZ / wall))
   for k in "${!PROF_N[@]}"; do
     n="${PROF_N[$k]}" t="${PROF_T[$k]:-0}"
     if [ "$t" -gt 0 ]; then
