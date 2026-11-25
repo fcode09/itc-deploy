@@ -46,6 +46,15 @@ proxy_detect() {
   fi
 }
 
+# The same into PROXY_DET (nginx | caddy | empty) without starting a process: the panel asks it from its loop.
+PROXY_DET=""
+proxy_detect_r() {
+  PROXY_DET=""
+  if command -v nginx > /dev/null 2>&1 || [ -x /usr/sbin/nginx ]; then PROXY_DET=nginx
+  elif command -v caddy > /dev/null 2>&1 || [ -x /usr/bin/caddy ] || [ -x /usr/local/bin/caddy ]; then PROXY_DET=caddy
+  fi
+}
+
 # The entries of a domain: <catalog name>.<domain> for each service. The domain is lowered (names are not case sensitive).
 proxy_domain_names() { # domain service...
   local dom="${1,,}" s host port
@@ -138,5 +147,109 @@ proxy_save() { # instance flavor
   if ! printf '%s' "$PROXY_OUT" > "$tmp"; then rm -f "$tmp"; return 2; fi
   chmod 644 "$tmp"
   mv -f "$tmp" "$dir/proxy/$f" || { rm -f "$tmp"; return 2; }
+  return 0
+}
+
+# --- What an instance remembers of its access (instances/<name>/proxy/access.conf) and how it is reached ---------------------------------------
+#
+#   proxy_meta_save <instance> <domain> <nginx|caddy> <tls 0|1>   writes DOMAIN= FLAVOR= TLS= (atomically, mode 644: no secret in it); 1 invalid
+#   proxy_meta_load <instance>         PROXY_M_DOMAIN, PROXY_M_FLAVOR, PROXY_M_TLS from that file; without it, guessed from the block the instance
+#                                      already has (`new --domain` writes one): PROXY_M_FROM is file | block | none. No process.
+#   proxy_instance_ports <instance> <svc>...   PROXY_PORTS from the S<n>_PORT of .env.instance (no process)
+#   proxy_reach <port>                 0 when something listens on 127.0.0.1:<port> (a connection that is closed at once; 2 s at most)
+#   proxy_state <instance> <flavor>    PROXY_SAVED: none (no file), same (the file is what would be generated now) or differs; the generated text
+#                                      must be in PROXY_OUT
+PROXY_M_DOMAIN="" PROXY_M_FLAVOR="" PROXY_M_TLS=1 PROXY_M_FROM=none PROXY_SAVED=none
+
+proxy_meta_save() { # instance domain flavor tls
+  local inst="$1" dom="${2,,}" flavor="$3" tls="$4" dir tmp
+  valid_instance_name "$inst" || return 1
+  proxy_host_ok "$dom" || return 1
+  case "$flavor" in nginx | caddy) ;; *) return 1 ;; esac
+  case "$tls" in 0 | 1) ;; *) return 1 ;; esac
+  dir="$INSTANCES_DIR/$inst"
+  [ -d "$dir" ] || return 1
+  mkdir -p "$dir/proxy" || return 2
+  tmp="$(mktemp "$dir/proxy/.access.conf.XXXXXX")" || return 2
+  if ! printf 'DOMAIN=%s\nFLAVOR=%s\nTLS=%s\n' "$dom" "$flavor" "$tls" > "$tmp"; then rm -f "$tmp"; return 2; fi
+  chmod 644 "$tmp"
+  mv -f "$tmp" "$dir/proxy/access.conf" || { rm -f "$tmp"; return 2; }
+  return 0
+}
+
+proxy_meta_load() { # instance
+  local inst="$1" dir line host=""
+  PROXY_M_DOMAIN="" PROXY_M_FLAVOR="" PROXY_M_TLS=1 PROXY_M_FROM=none
+  valid_instance_name "$inst" || return 1
+  dir="$INSTANCES_DIR/$inst/proxy"
+  if [ -r "$dir/access.conf" ]; then
+    { while IFS= read -r line || [ -n "$line" ]; do
+      line="${line%$'\r'}"
+      case "$line" in
+        DOMAIN=*) if proxy_host_ok "${line#DOMAIN=}"; then PROXY_M_DOMAIN="${line#DOMAIN=}"; fi ;;
+        FLAVOR=nginx | FLAVOR=caddy) PROXY_M_FLAVOR="${line#FLAVOR=}" ;;
+        TLS=0 | TLS=1) PROXY_M_TLS="${line#TLS=}" ;;
+      esac
+    done < "$dir/access.conf"; } 2> /dev/null || true
+    PROXY_M_FROM="file"
+    return 0
+  fi
+  # No file: what `new --domain` left. The host of a service is <name>.<domain>: the domain is what follows its first label.
+  if [ -r "$dir/nginx.conf" ]; then
+    { while IFS= read -r line || [ -n "$line" ]; do
+      [[ "$line" =~ ^[[:space:]]*server_name[[:space:]]+([a-z0-9.-]+)\;[[:space:]]*$ ]] || continue
+      host="${BASH_REMATCH[1]}"
+      PROXY_M_TLS=0
+      break
+    done < "$dir/nginx.conf"; } 2> /dev/null || true
+    if [ -n "$host" ] && proxy_host_ok "${host#*.}"; then
+      PROXY_M_DOMAIN="${host#*.}" PROXY_M_FLAVOR=nginx PROXY_M_FROM=block
+      { while IFS= read -r line || [ -n "$line" ]; do
+        [[ "$line" == *"listen 443"* ]] && { PROXY_M_TLS=1; break; }
+      done < "$dir/nginx.conf"; } 2> /dev/null || true
+      return 0
+    fi
+  fi
+  host=""
+  if [ -r "$dir/Caddyfile" ]; then
+    { while IFS= read -r line || [ -n "$line" ]; do
+      [[ "$line" =~ ^(http://)?([a-z0-9.-]+)[[:space:]]*\{[[:space:]]*$ ]] || continue
+      host="${BASH_REMATCH[2]}" PROXY_M_TLS=1
+      [ -z "${BASH_REMATCH[1]}" ] || PROXY_M_TLS=0
+      break
+    done < "$dir/Caddyfile"; } 2> /dev/null || true
+    if [ -n "$host" ] && proxy_host_ok "${host#*.}"; then
+      PROXY_M_DOMAIN="${host#*.}" PROXY_M_FLAVOR=caddy PROXY_M_FROM=block
+      return 0
+    fi
+  fi
+  PROXY_M_TLS=1
+  return 0
+}
+
+proxy_instance_ports() { # instance service...
+  local inst="$1" s
+  shift
+  PROXY_PORTS=()
+  for s in "$@"; do
+    get_var_r "$INSTANCES_DIR/$inst/.env.instance" "${s^^}_PORT"
+    PROXY_PORTS[$s]="$GV"
+  done
+}
+
+proxy_reach() { # port
+  proxy_port_ok "$1" || return 2
+  timeout 2 bash -c 'exec 3<>"/dev/tcp/127.0.0.1/$1"' _ "$1" > /dev/null 2>&1
+}
+
+proxy_state() { # instance flavor
+  local f path cur
+  PROXY_SAVED=none
+  f="$(proxy_file "$2")" || return 1
+  valid_instance_name "$1" || return 1
+  path="$INSTANCES_DIR/$1/proxy/$f"
+  [ -r "$path" ] || return 0
+  cur="$(< "$path")" 2> /dev/null || cur=""
+  if [ "$cur" = "${PROXY_OUT%$'\n'}" ]; then PROXY_SAVED=same; else PROXY_SAVED=differs; fi
   return 0
 }

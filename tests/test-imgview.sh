@@ -47,7 +47,7 @@ run_lib() { PATH="$FIX/bin:$PATH" ROOT="$PWD" DELTACTL_TUI_KEYS=/dev/null DELTAC
 
 section "1. the view is registered with one line and follows the contract"
 check "it is the eighth tab and its digit opens it" '[ "$(run_lib "dash_screen_by_number 8; echo \$DASH_SCR_ID")" = "images" ]'
-check "its two dialogs are modes" '[ "$(run_lib "printf \"%s \" \${DASH_MODES[@]}")" = "menu confirm name cmd filter lfilter find wizard newinst palette help options srvask imguse imgload envedit " ]'
+check "its two dialogs are modes" '[ "$(run_lib "printf \"%s \" \${DASH_MODES[@]}")" = "menu confirm name cmd filter lfilter find wizard newinst palette help options srvask imguse imgload envedit accdom " ]'
 check "every function of the contract it uses is defined" 'run_lib "for f in render key keys texts sig enter back tick poll; do declare -F scr_images_\$f >/dev/null || exit 1; done; for m in imguse imgload; do for f in render key keys sig; do declare -F scr_\${m}_\$f >/dev/null || exit 1; done; done"'
 check "its signature carries what it draws" '[ "$(run_lib "DASH_SIG=; scr_images_sig; echo \$DASH_SIG")" = "|0|0|none|0|0|" ]'
 check "it is in the list of views of the console, the palette and the messages, in both languages" 'grep -q "console server images" lib/screens/console.sh && grep -q "console server images env; do" lib/screens/palette.sh && grep -q "server · images" lib/i18n/es/dashboard.sh && grep -q "server · images" lib/i18n/en/dashboard.sh'

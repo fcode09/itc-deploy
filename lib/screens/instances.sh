@@ -353,6 +353,9 @@ dash_center_top() { # instance width height
   lh=$((h * 35 / 100))
   [ "$((h - lh))" -ge 12 ] || lh=$((h - 12))
   [ "$lh" -ge 6 ] || lh=0
+  # A tab that has a pane of its own (neither the summary nor the logs) takes the whole column.
+  dash_ws_effective "$name"
+  case "$DASH_WS_ID" in resumen | logs) ;; *) lh=0 ;; esac
   dash_detail_box "$name" "$w" $((h - lh))
   DASH_CB=("${TUI_BOX[@]}")
   DASH_CT_LH="$lh" DASH_CT_KEY="$key" DASH_CT_SVC="$svc"
@@ -573,7 +576,7 @@ dash_focus_services() {
   [ "$DASH_ON_NEW" -eq 0 ] && [ "${#DASH_NAMES[@]}" -gt 0 ] || return 0
   read -ra svcs <<< "${DASH_SVCS[${DASH_NAMES[$DASH_SEL]}]:-}"
   [ "${#svcs[@]}" -gt 0 ] || return 0
-  DASH_FOCUS=svc
+  if dash_ws_tab_custom; then DASH_FOCUS=tab; else DASH_FOCUS=svc; fi   # (the pane of the tab that was chosen, or the services)
 }
 
 # Service of the selected instance as "instance service" (empty when there is none).
@@ -597,6 +600,7 @@ dash_key_instances() {
   { [ "$DASH_ON_NEW" -eq 0 ] && [ "${#DASH_NAMES[@]}" -gt 0 ]; } || have=0
   if [ "$DASH_FOCUS" = "logs" ] && dash_key_logs "$1"; then return 0; fi
   if [ "$DASH_FOCUS" = "todo" ] && dash_key_todo "$1"; then return 0; fi
+  if [ "$DASH_FOCUS" = "tab" ] && dash_ws_key "$1"; then return 0; fi
   case "$1" in
     z) dash_toggle_zoom ;;
     '/') DASH_MODE=lfilter DASH_BUF="$DASH_LIST_FILTER" DASH_CUR="${#DASH_LIST_FILTER}" ;;
@@ -604,10 +608,10 @@ dash_key_instances() {
     '<') [ "$have" -eq 0 ] || dash_ws_tab_step -1 ;;
     '>') [ "$have" -eq 0 ] || dash_ws_tab_step 1 ;;
     t) [ "$have" -eq 0 ] || dash_focus_todo ;;
-    up | k) if [ "$DASH_FOCUS" = "svc" ]; then dash_select_service -1; else dash_select -1; fi ;;
-    down | j) if [ "$DASH_FOCUS" = "svc" ]; then dash_select_service 1; else dash_select 1; fi ;;
+    up | k) if [ "$DASH_FOCUS" = "svc" ] || [ "$DASH_FOCUS" = "tab" ]; then dash_select_service -1; else dash_select -1; fi ;;
+    down | j) if [ "$DASH_FOCUS" = "svc" ] || [ "$DASH_FOCUS" = "tab" ]; then dash_select_service 1; else dash_select 1; fi ;;
     left | h) DASH_FOCUS=list ;;
-    right) if [ "$DASH_FOCUS" = "svc" ]; then dash_focus_logs; else dash_focus_services; fi ;;
+    right) if [ "$DASH_FOCUS" = "svc" ]; then dash_focus_logs; elif [ "$DASH_FOCUS" != "tab" ]; then dash_focus_services; fi ;;
     enter)
       if [ "$DASH_ON_NEW" -eq 1 ]; then dash_open_new
       elif [ "$have" -eq 1 ]; then dash_open_actions "${DASH_NAMES[$DASH_SEL]}"; fi
@@ -632,10 +636,14 @@ dash_focus_cycle() { # +1 | -1
   local -a order=(list)
   local i cur=0 n
   { [ "$DASH_ON_NEW" -eq 0 ] && [ "${#DASH_NAMES[@]}" -gt 0 ]; } || { DASH_FOCUS=list; return 0; }
-  order+=(svc)
-  dash_todo_build "${DASH_NAMES[$DASH_SEL]}"
-  if [ "$DASH_TODO_N" -gt 0 ]; then order+=(todo); fi
-  if dash_logs_reachable; then order+=(logs); fi
+  if dash_ws_tab_custom; then
+    order+=(tab)          # (the tab that was chosen owns its pane: list, that pane, and back)
+  else
+    order+=(svc)
+    dash_todo_build "${DASH_NAMES[$DASH_SEL]}"
+    if [ "$DASH_TODO_N" -gt 0 ]; then order+=(todo); fi
+    if dash_logs_reachable; then order+=(logs); fi
+  fi
   n="${#order[@]}"
   for i in "${!order[@]}"; do [ "${order[$i]}" != "$DASH_FOCUS" ] || cur="$i"; done
   DASH_FOCUS="${order[$(((cur + n + $1) % n))]}"
@@ -699,7 +707,12 @@ scr_instances_keys() { # width
   elif [ "$DASH_ON_NEW" -eq 1 ]; then kv=new
   elif [ "$DASH_FOCUS" = "svc" ]; then kv=services
   elif [ "$DASH_FOCUS" = "todo" ]; then kv=todo
-  elif [ "$DASH_FOCUS" = "logs" ]; then kv=logs; fi
+  elif [ "$DASH_FOCUS" = "logs" ]; then kv=logs
+  elif [ "$DASH_FOCUS" = "tab" ]; then
+    kv=services
+    dash_ws_effective "${DASH_NAMES[$DASH_SEL]:-}"
+    if [ -n "${DASH_KEYS[ws_$DASH_WS_ID]:-}" ]; then kv="ws_$DASH_WS_ID"; fi
+  fi
   dash_keys_view "$kv" "$1"
 }
 
@@ -710,11 +723,13 @@ scr_instances_texts() {
   DASH_KEYS[logs]="$(t tui.keys.logs "$DASH_UD" "$DASH_LEFT")"
   DASH_KEYS[zoom]="$(t tui.keys.zoom "$DASH_UD")"
   DASH_KEYS[todo]="$(t tui.ws.keys.todo "$DASH_UD" "$DASH_LEFT")"
+  dash_ws_texts
 }
 
 scr_instances_sig() {
   DASH_SIG+="|$DASH_SEL|$DASH_SVC|$DASH_FOCUS|$DASH_ON_NEW|$DASH_ZOOM|$DASH_LOG_SCROLL|$DASH_LOG_FILTER|$DASH_TODO_SEL|$DASH_WS_TAB|$DASH_WS_N|$DASH_LIST_FILTER|$DASH_LIST_SORT"
   DASH_SIG+="|$DASH_LOG_ERRONLY|$DASH_LOG_FIND|$DASH_LS_PAUSED|$DASH_LS_PEND|$DASH_LOG_MIDX"
+  dash_ws_frame_sig
 }
 
 # Tab walks the panes (list, services, logs) instead of leaving the view.

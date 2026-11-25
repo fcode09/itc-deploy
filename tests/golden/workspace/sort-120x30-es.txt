@@ -1,18 +1,18 @@
 === frame 1 ===
   ITC  testhost · Memoria ███░░░ 5.6/11.5 GB 48% ▄▃▂▅▃▂ · Carga 3.18 · Docker 27.0.0 · contenedores 1.5G
  [1 Instancias] 2 Recursos 3 Salida 4 Ejecuciones 5 Procesos 6 Consola 7 Servidor 8 Imágenes 9 Variables               
-╭─ ▸Instancias · por estado ─────────╮╭─┐ix-lima · 1/2┌────────────────────────────────────────────────────┐▲ parcial┌─╮
-│   + Nueva instancia                ││ ╭─┐s0┌─┐auth-backend:2.14.1┌──────────╮╭─┐s1┌─┐gueo-back-end:2.9.0┌┐✖ exited┌─╮│
-│               n/m      mem    cpu  ││ │ activo 6h12m  ·  :4110              ││ :4111                                ││
-│   ✖✖ ix-piura 0/2       -      -   ││ │ mem ······················ 180M/512M││ sin lectura                          ││
-│ ▸ ●✖ ix-lima  1/2    180M   1.2%   ││ │ 35%                                 ││                                      ││
-│   ○○ ix-sullana 0/2       -      - ││ │       ⣀⣀⣀⣠⣀⣄⣠⣀⣄⣰⣄⣆⣠⣀⣠⣀⣄⣠⣀⣄⣰⣄⣦⣠⣀⣀⣀⣀⣠⣀││                                      ││
-╰────────────────────────────────────╯│ │ cpu ··························· 1.2%││                                      ││
-╭─ Servidor ─────────────────────────╮│ │ 1%                                  ││                                      ││
-│ Memoria █████░░░░░ 5.6/11.5 GB 48% ││ │       ⣄⣠⣀⣄⣠⣀⣄⣠⣀⣦⣀⣆⣦⣰⣄⣠⣀⣄⣠⣀⣤⣸⣤⣄⣀⣄⣠⣀⣄⣠││                                      ││
-│              ▃                     ││ ╰─────────────────────────────────────╯╰──────────────────────────────────────╯│
+╭─ ▸Instancias · por estado ─────────╮[Resumen] Acceso                                                                  
+│   + Nueva instancia                │╭─┐ix-lima · 1/2┌────────────────────────────────────────────────────┐▲ parcial┌─╮
+│               n/m      mem    cpu  ││ ▸ s0 auth-backend:2.14.1  ● healthy                                            │
+│   ✖✖ ix-piura 0/2       -      -   ││     activo 6h12m  ·  :4110                                                     │
+│ ▸ ●✖ ix-lima  1/2    180M   1.2%   ││     mem  ████░░░░░░░░ 180M/512M  35%  ▂▅▃▂▁▄▂▁▄▂▁▄▃▁                           │
+│   ○○ ix-sullana 0/2       -      - ││     cpu  ░░░░░░░░░░░░ 1.2%  █▅▂▁▆▃▁▆▃▁▆▄▁▆                                     │
+╰────────────────────────────────────╯│                                                                                │
+╭─ Servidor ─────────────────────────╮│   s1 gueo-back-end:2.9.0  ✖ exited                                             │
+│ Memoria █████░░░░░ 5.6/11.5 GB 48% ││     :4111                                                                      │
+│              ▃                     ││                                                                                │
 │              █   ▄                 ││   Total  mem 180M/512M  cpu 1.2%  datos: sembrados                             │
-│  ▁  ▄  ▄  █  ██  █     ▂  ▃  ▂  ▆  │╰─┘u desplegar└─┘c comprobar└─┘s estado└─┘l logs└─┘Enter más└────────────────────╯
+│  ▁  ▄  ▄  █  ██  █     ▂  ▃  ▂  ▆  │╰─┘u desplegar└─┘c comprobar└─┘s estado└─┘l logs└─┘< > pestaña└─┘Enter más└──────╯
 │  █▁ █▂ █▁ █▅ ██▆ █  █  █  █  █▃ █▂ │╭─ Logs · s0 · siguiendo ────────────────────────────────────────────────────────╮
 │  ██ ██ ██▁██▁███▅█▄ █▄ █▇ █▇ ██ ██ ││ Leyendo el log...                                                              │
 │ ▃██▆██▆████████████ ██▁██▅██▄█████▇││                                                                                │

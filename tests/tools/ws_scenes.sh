@@ -9,7 +9,19 @@
 #
 #   ws_scene <name>      name: cards | todo | todofocus | ok | stopped | logs | none | filter | sort | new
 
-WS_SCENES=(cards todo todofocus ok stopped logs none filter sort new)
+WS_SCENES=(cards todo todofocus ok stopped logs none filter sort new acceso accesocaddy accesonodom accesoedit accesobad)
+
+# The data of the Access tab of ix-colorado: its ports, what answers on this server and what the instance remembers (nothing is read from disk:
+# the instance of the scene does not exist).
+ws_acceso_data() { # domain flavor tls
+  DASH_ACC_DET=nginx DASH_ACC_DET_SET=1
+  DASH_ACC_LOADED=([ix-colorado]=1)
+  DASH_ACC_DOM=([ix-colorado]="$1") DASH_ACC_FL=([ix-colorado]="$2") DASH_ACC_TLS=([ix-colorado]="$3")
+  DASH_ACC_PORT=([ix-colorado/s0]=4100 [ix-colorado/s1]=4101)
+  DASH_ACC_REACH=([ix-colorado/s0]=up [ix-colorado/s1]=down)
+  DASH_ACC_SIGM="" DASH_ACC_SCROLL=0 DASH_ACC_N=$((DASH_ACC_N + 1))
+  DASH_WS_TAB=acceso DASH_FOCUS=tab DASH_SEL=0
+}
 
 # A deterministic series of N samples between 0 and $3 (a wave with bursts), oldest first, into WSS.
 WSS=""
@@ -90,6 +102,11 @@ ws_scene() { # name
     filter) DASH_LIST_FILTER="ix-s" DASH_SEL=3 ;;
     sort) DASH_LIST_SORT=state DASH_SEL=1 ;;
     new) DASH_ON_NEW=1 ;;
+    acceso) ws_acceso_data ejemplo.pe nginx 1 ;;
+    accesocaddy) ws_acceso_data ejemplo.pe caddy 1 ;;
+    accesonodom) ws_acceso_data "" nginx 1 ;;
+    accesoedit) ws_acceso_data ejemplo.pe nginx 1; DASH_MODE=accdom DASH_BUF="otro.example.org" DASH_CUR=16 ;;
+    accesobad) ws_acceso_data ejemplo.pe nginx 0; DASH_ACC_PORT=([ix-colorado/s0]=4100) DASH_ACC_REACH=([ix-colorado/s0]=up) ;;
     *) echo "unknown scene $name" >&2; return 1 ;;
   esac
   dash_host_build
