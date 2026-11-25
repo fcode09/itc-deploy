@@ -119,9 +119,9 @@ else
 fi
 
 section "5. the tab: where it is, what it shows"
-check "the access tab is registered with one line and is a file of lib/screens/ws" '[ -f lib/screens/ws/acceso.sh ] && grep -q "^dash_ws_register acceso " lib/screens/instances_ws.sh && [ "$(run_lib "echo \${DASH_WS_TABS[*]}")" = "resumen logs acceso historial" ]'
+check "the access tab is registered with one line and is a file of lib/screens/ws" '[ -f lib/screens/ws/acceso.sh ] && grep -q "^dash_ws_register acceso " lib/screens/instances_ws.sh && [ "$(run_lib "echo \${DASH_WS_TABS[*]}")" = "resumen logs acceso historial servicios variables datos" ]'
 check "the mode that types the domain is registered" 'run_lib "printf \"%s \" \${DASH_MODES[@]}" | grep -q "accdom "'
-check "an instance with no services has no access tab" '[ "$(run_lib "COLUMNS=100; DELTACTL_TUI_ROWS=30; tui_size; DASH_SVCS[x]=\"\"; dash_ws_visible x; echo \${DASH_WS_VIS[*]}")" = "resumen" ]'
+check "an instance with no services has no access tab (the services tab is there: it is how one is added)" '[ "$(run_lib "COLUMNS=100; DELTACTL_TUI_ROWS=30; tui_size; DASH_SVCS[x]=\"\"; dash_ws_visible x; echo \${DASH_WS_VIS[*]}")" = "resumen servicios variables datos" ]'
 out="$(panel '>' q)"
 check "> opens it with the focus in it: the strip names it, the border says whose it is, and the domain, the proxy and HTTPS are there" 'f="$(echo "$out" | frame_n 2)"; echo "$f" | grep -q "\[Resumen\] Acceso\|Resumen \[Acceso\]" && echo "$f" | grep -q "\[ >ta-a" && echo "$f" | grep -q "Dominio" && echo "$f" | grep -q "Proxy" && echo "$f" | grep -q "HTTPS"'
 check "with no domain it says what to do instead of an empty box, and no block is shown" 'f="$(echo "$out" | frame_n 2)"; echo "$f" | grep -q "Escribe el dominio" && ! echo "$f" | grep -q "server_name"'

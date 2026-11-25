@@ -1,0 +1,41 @@
+=== frame 1 ===
+  ITC  testhost · Memoria ███░░░ 5.6/11.5 GB 48% ▄▃▂▅▃▂ · Carga 3.18 · Docker 27.0.0 · contenedores 1.5G
+ [1 Instancias]  2 Recursos   3 Salida   4 Ejecuciones   5 Procesos   6 Consola   7 Servidor   8 Imágenes   9 Variables                                        
+╭─ Instancias ───────────────────────────╮ Resumen  Acceso  Historial [Servicios] Variables  Datos                          ╭─ Eventos ────────────────────────╮
+│   + Nueva instancia                    │╭─┐ ▸ix-lima ┌───────────────────────────────────────────────────────┐▲ parcial┌─╮│ Sin eventos todavía              │
+│                  n/m      mem    cpu   ││   ● s0 auth-backend  · 2.14.1  :4110  mem 512m  · healthy                      ││                                  │
+│   ●● ix-colorado 2/2    1.3G  25.1%    ││ ▸ ○ s1 gueo-back-end  · sin activar                                            ││                                  │
+│ ▸ ●  ix-lima     1/2    180M   1.2%    ││                                                                                ││                                  │
+│   ✖✖ ix-piura    0/2       -      -    ││ (NestJS + Chromium para los reportes PDF)                                      ││                                  │
+│   ○○ ix-sullana  0/2       -      -    ││ No corre en esta instancia. Pulsa Enter o a para activarlo: se crean sus       ││                                  │
+╰────────────────────────────────────────╯│ variables y sus carpetas, y queda por completar y desplegar.                   ││                                  │
+╭─ Servidor ─────────────────────────────╮│                                                                                ││                                  │
+│ Memoria █████░░░░░ 5.6/11.5 GB 48%     ││                                                                                ││                                  │
+│                  ▃                     ││                                                                                ││                                  │
+│                  █   ▄                 ││                                                                                ││                                  │
+│   ▁  ▁  ▄  ▄  █  ██  █     ▂  ▃  ▂  ▆  ││                                                                                ││                                  │
+│   █  █▁ █▂ █▁ █▅ ██▆ █  █  █  █  █▃ █▂ ││                                                                                ││                                  │
+│ ▆ █▅ ██ ██ ██▁██▁███▅█▄ █▄ █▇ █▇ ██ ██ ││                                                                                ││                                  │
+│ █▃██▃██▆██▆████████████ ██▁██▅██▄█████▇││                                                                                ││                                  │
+│ Carga 3.18                             ││                                                                                ││                                  │
+│ contenedores 1.5G                      ││                                                                                ││                                  │
+│ Docker 27.0.0                          ││                                                                                ││                                  │
+│                                        ││                                                                                ││                                  │
+│                                        ││                                                                                ││                                  │
+│                                        ││                                                                                ││                                  │
+│                                        ││                                                                                ││                                  │
+│                                        ││                                                                                ││                                  │
+│                                        ││                                                                                ││                                  │
+│                                        ││                                                                                ││                                  │
+│                                        ││                                                                                ││                                  │
+╰────────────────────────────────────────╯╰─┘a añadir└─┘X quitar└─┘v versión└─┘P puerto└─┘R volver atrás└─┘< > pestaña└────╯╰──────────────────────────────────╯
+╭─ Consola ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│                                                                                                                                                              │
+│ ix-lima ❯ : escribe un comando · ! en el terminal · Tab completa · ↑ historial · help                                                                        │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+ ↑↓ servicio · a añadir · X quitar · v versión · P puerto · m memoria · u desplegar · s detener · R volver atrás · ← lista · ? ayuda

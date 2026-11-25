@@ -1,0 +1,25 @@
+=== frame 1 ===
+  ITC  testhost · Memoria ███░░░ 5.6/11.5 GB 48% ▄▃▂▅▃▂ · Carga 3.18
+ [1 Instancias]  2   3   4   5   6   7   8   9                                 
+
+
+
+
+      ╭─ ▸quitar servicio ──────────────────────────────────────────────╮
+      │                                                                 │
+      │  Escribe la clave del servicio (s1) para quitarlo de            │
+      │  'ix-colorado'. Se detiene y sus variables, secretos y datos se │
+      │  conservan.                                                     │
+      │                                                                 │
+      │  s▸                                                             │
+      │                                                                 │
+      │  ✖ escribe s1 tal cual                                          │
+      │                                                                 │
+      ╰─────────────────────────────────────────────────────────────────╯
+
+
+
+
+
+
+ Enter guarda · ↑ la más reciente (versión) · Esc cancela

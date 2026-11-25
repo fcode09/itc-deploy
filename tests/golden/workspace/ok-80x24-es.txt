@@ -8,7 +8,7 @@
 │   ●✖ ix-lima     1/2    180M   1.2%                                          │
 │   ✖✖ ix-piura    0/2       -      -                                          │
 ╰──────────────────────────────────────────────────────────────────────────────╯
-[Resumen] Logs  Acceso  Historial                                               
+[Resumen] Logs  Acceso  Historial  Servicios  Variables  Datos                  
 ╭─┐ix-colorado · 2/2┌────────────────────────────────────────────┐● en marcha┌─╮
 │ ▸ s0 auth-backend:2.14.1  ● healthy                                          │
 │     activo 2d04h  ·  :4100                                                   │

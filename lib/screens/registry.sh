@@ -179,4 +179,5 @@ dash_mode_register srvask
 dash_mode_register imguse
 dash_mode_register imgload
 dash_mode_register envedit
+dash_mode_register svcask
 dash_mode_register accdom

@@ -1,0 +1,25 @@
+=== frame 1 ===
+  ITC  testhost · Memory ███░░░ 5.6/11.5 GB 48% ▄▃▂▅▃▂ · Load 3.18
+ [1 Instances]  2   3   4   5   6   7   8   9                                  
+╭─ Instances ──────────────────────────────────────────────────────────────────╮
+│   + New instance                                                             │
+│                  n/m      mem    cpu                                         │
+│ ▸ ●● ix-colorado 2/2    1.3G  25.1%                                          │
+│   ●✖ ix-lima     1/2    180M   1.2%                                          │
+│   ✖✖ ix-piura    0/2       -      -                                          │
+╰──────────────────────────────────────────────────────────────────────────────╯
+ Summary  Logs  Access  History [Services] Variables  Data                      
+╭─┐ ▸ix-colorado ┌─────────────────────────────────────────────────┐● running┌─╮
+│   ● s0 auth-backend  · 2.14.1  :4100  mem 512m  · healthy                    │
+│ ▸ ● s1 gueo-back-end  · 2.9.0  :4101  mem 2g  · healthy                      │
+│                                                                              │
+│ (NestJS + Chromium for the PDF reports)                                      │
+╰─┘a add└─┘X remove└─┘v version└─┘P port└─┘m memory└─┘R roll back└─┘< > tab└───╯
+╭─ Console ────────────────────────────────────────────────────────────────────╮
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│ ix-colorado ❯ : type a command · ! in the terminal · Tab completes · ↑ histor│
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+ ↑↓ service · a add · X remove · v version · P port · m memory · ← list · ? help

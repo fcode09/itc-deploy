@@ -8,7 +8,7 @@
 │   ●✖ ix-lima     1/2    180M   1.2%                                          │
 │   ✖✖ ix-piura    0/2       -      -                                          │
 ╰──────────────────────────────────────────────────────────────────────────────╯
- Resumen  Logs [Acceso] Historial                                               
+ Resumen  Logs [Acceso] Historial  Servicios  Variables  Datos                  
 ╭─┐ ▸ix-colorado ┌─┐Acceso┌───────────────────────────┐● nginx detectado aquí┌─╮
 │ Dominio   ● ejemplo.pe                                                       │
 │ Proxy     ● nginx   ○ caddy   nginx detectado aquí                           │

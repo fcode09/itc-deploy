@@ -12,12 +12,18 @@ dash_env_after() {
   # Something was written: the file changed, so the marks of what is deployed are read again.
   if [ "$KEE_COMMIT_N" -gt 0 ]; then KEE_COMMIT_N=0; dash_env_request; fi
   case "$KEE_ACTION" in
-    leave) DASH_MODE=normal DASH_VIEW="${DASH_SCREENS[0]}" ;;
+    leave)
+      # (from the view: back to the first one; from the tab of the workspace: back to the list)
+      DASH_MODE=normal
+      if [ "$DASH_VIEW" = instances ]; then DASH_FOCUS=list; else DASH_VIEW="${DASH_SCREENS[0]}"; fi
+      ;;
     deploy)
       if job_running; then dash_msg warn "$(t tui.msg.busy)"; return 0; fi
       dash_start_job stay deploy "$inst"
       ;;
     prev | next)
+      # In the tab the instance is the one chosen in the list: another one is chosen there.
+      [ "$DASH_VIEW" != instances ] || return 0
       if kee_dirty; then dash_msg warn "$(t tui.env.switch_dirty "$inst")"; return 0; fi
       for i in "${!DASH_NAMES[@]}"; do [ "${DASH_NAMES[$i]}" != "$inst" ] || cur="$i"; done
       [ "$n" -gt 1 ] || return 0
@@ -40,10 +46,20 @@ scr_envedit_key() { # key
   # key did nothing that took the keyboard elsewhere.
   DASH_MODE=normal
   if dash_key_global "$k"; then
-    if [ "$DASH_VIEW" = env ] && [ "$DASH_MODE" = normal ] && [ "$DASH_QUIT" -eq 0 ]; then DASH_MODE=envedit; fi
+    if dash_envedit_here && [ "$DASH_MODE" = normal ] && [ "$DASH_QUIT" -eq 0 ]; then DASH_MODE=envedit; fi
+  elif [ "$DASH_VIEW" = instances ]; then
+    # in the workspace the keys of the Instances view are the rest (< and > change tab)
+    dash_key_instances "$k"
+    if dash_envedit_here && [ "$DASH_MODE" = normal ]; then DASH_MODE=envedit; fi
   else
     DASH_MODE=envedit
   fi
+}
+
+# Is the editor where the mode lives: the view Variables, or the Variables tab of the workspace with the focus in it?
+dash_envedit_here() {
+  [ "$DASH_VIEW" = env ] && return 0
+  [ "$DASH_VIEW" = instances ] && [ "$DASH_FOCUS" = tab ] && [ "$DASH_WS_TAB" = variables ]
 }
 
 scr_envedit_keys() { # width

@@ -1,0 +1,38 @@
+# service · services of an instance
+
+See which services an instance runs, activate one from the catalog, remove one (its data stays) and change its
+version, port or memory limit. It deploys nothing: it says what is left (variables) and the command that follows.
+
+## Usage
+$ ./deltactl service list <instance>
+$ ./deltactl service add <instance> <service> [--tag <version|latest>] [--port <n>] [--generate-secrets]
+$ ./deltactl service remove <instance> <service> [--yes]
+$ ./deltactl service set <instance> <service> tag|port|memory <value>
+
+## Subcommands
+- `list` the services of the catalog, which ones are active in the instance, their version, port and memory limit
+- `add` activates a service: it creates its `.env.<service>` from the template and its `data/` folders, finds a free
+  port for it and adds it to `COMPOSE_PROFILES`. It never overwrites what exists (a service that was removed and comes
+  back finds its variables and data). A secret the services share (`JWT_SECRET`) is copied from the one the instance
+  already has. With `--tag latest` it uses the most recent version this server can run (as `new` does).
+  Then: fill in its variables and deploy it
+- `remove` takes the service out of `COMPOSE_PROFILES` and stops its container. It asks to type the key of the
+  service (or `--yes`). Its variables file, its secrets and its data folder **are kept**. An instance never ends up
+  with no services
+- `set` changes `tag` (the version), `port` (1024 to 65535, not used by another instance or by another service of
+  this one) or `memory` (`512m`, `2g`). The change applies when that service is deployed
+
+## Options
+- `--tag <version|latest>` the version of the new service
+- `--port <n>` the port of the new service (else the first free one of the instance)
+- `--generate-secrets` generates the secrets of the new service (as `new --generate-secrets`)
+- `--yes` does not ask
+
+## Examples
+$ ./deltactl service list colorado
+$ ./deltactl service add colorado s1 --tag latest --generate-secrets
+$ ./deltactl service set colorado s1 memory 3g
+$ ./deltactl service remove colorado s1
+
+The operations that change something (`add`, `remove`, `set`) go in the history (`./deltactl runs`).
+A new service of the ecosystem is added with one line in the catalog: `./deltactl help services`.

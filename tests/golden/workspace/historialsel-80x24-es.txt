@@ -8,7 +8,7 @@
 │   ●✖ ix-lima     1/2    180M   1.2%                                          │
 │   ✖✖ ix-piura    0/2       -      -                                          │
 ╰──────────────────────────────────────────────────────────────────────────────╯
- Resumen  Logs  Acceso [Historial]                                              
+ Resumen  Logs  Acceso [Historial] Servicios  Variables  Datos                  
 ╭─┐ ▸ix-colorado ┌─┐Historial┌─────────────────────────────────┐3 operaciones┌─╮
 │   ● 11-01 10:00 deploy       41.2 s                                          │
 │   ✖ 11-01 09:00 check         2.1 s                                          │

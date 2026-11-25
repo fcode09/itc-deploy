@@ -69,9 +69,9 @@ frame_n() { awk -v n="$1" '/^=== frame /{ f = ($3 == n) } f'; }
 run_lib() { ROOT="$PWD" DELTACTL_TUI_KEYS=/dev/null DELTACTL_UI=rich DELTACTL_COLOR=never DELTACTL_ASCII=1 COLUMNS=160 DELTACTL_TUI_ROWS=40 bash -c 'source lib/bootstrap.sh; source lib/cmd/dashboard.sh; set +e; '"$1" 2>&1; }
 
 section "1. it is a tab, registered with one line"
-check "the history tab is a file of lib/screens/ws with one line in instances_ws.sh, after the access" '[ -f lib/screens/ws/historial.sh ] && grep -q "^dash_ws_register historial " lib/screens/instances_ws.sh && [ "$(run_lib "echo \${DASH_WS_TABS[*]}")" = "resumen logs acceso historial" ]'
-check "an instance with no services has only the summary (no history tab either)" '[ "$(run_lib "COLUMNS=100; DELTACTL_TUI_ROWS=30; tui_size; DASH_SVCS[x]=\"\"; dash_ws_visible x; echo \${DASH_WS_VIS[*]}")" = "resumen" ]'
-check "on a wide screen the tabs are the summary, the access and the history (the logs are under the summary)" '[ "$(run_lib "tui_size; DASH_SVCS[x]=\"s0\"; dash_ws_visible x; echo \${DASH_WS_VIS[*]}")" = "resumen acceso historial" ]'
+check "the history tab is a file of lib/screens/ws with one line in instances_ws.sh, after the access" '[ -f lib/screens/ws/historial.sh ] && grep -q "^dash_ws_register historial " lib/screens/instances_ws.sh && [ "$(run_lib "echo \${DASH_WS_TABS[*]}")" = "resumen logs acceso historial servicios variables datos" ]'
+check "an instance with no services has only the summary and the services (no access, no history)" '[ "$(run_lib "COLUMNS=100; DELTACTL_TUI_ROWS=30; tui_size; DASH_SVCS[x]=\"\"; dash_ws_visible x; echo \${DASH_WS_VIS[*]}")" = "resumen servicios variables datos" ]'
+check "on a wide screen the tabs are the summary, the access, the history and the services (the logs are under the summary)" '[ "$(run_lib "tui_size; DASH_SVCS[x]=\"s0\"; dash_ws_visible x; echo \${DASH_WS_VIS[*]}")" = "resumen acceso historial servicios variables datos" ]'
 
 section "2. what it lists: the operations of this instance, newest first"
 out="$(panel '>' '>' q)"

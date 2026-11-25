@@ -249,6 +249,24 @@ trabajo debajo). `z` da todo el cuerpo al panel con el foco.
     no corra. Sin nada pendiente (y con sitio) dice «Todo al día». Con poco sitio solo queda la cabecera con el recuento y la tecla `t`.
 - **Logs** (`lib/screens/ws/logs.sh`): el panel de logs de siempre (`lib/screens/instances_logs.sh`) con todo el espacio de trabajo. En pantalla ancha los logs ya están debajo
   del resumen y la pestaña no se ofrece; en las demás es la forma de llegar a ellos.
+- **Servicios** (`lib/screens/ws/servicios.sh`): una fila por servicio del catálogo (`catalog.data`, no solo s0 y s1): los que corren en la instancia con su estado,
+  versión, puerto y límite de memoria, y los que no, como «sin activar». Debajo de la lista, qué es el servicio que tiene el cursor y qué hacen las teclas con él.
+  La pestaña **es dueña del teclado** mientras está en pantalla (`DASH_FOCUS=tab`; lo que no usa, como `z` o `q`, sigue al panel). Cada cambio es una orden que corre en
+  segundo plano, como todas (se ve en Salida y queda en el historial): `a` (o Enter) activa el servicio con `service add --tag latest --generate-secrets` tras preguntar;
+  `X` pide escribir la clave del servicio y lo quita con `service remove` (se detiene, y se conservan sus variables, secretos y datos); `v`, `P` y `m` abren el modo
+  `svcask` (`lib/screens/svcask.sh`) para escribir la versión, el puerto o la memoria: se comprueba mientras se escribe con las mismas reglas de la orden
+  (`lib/core/svcmgmt.sh`), ↑ toma la versión cargada más reciente y Enter ejecuta `service set`; `u` despliega solo ese servicio, `s` lo detiene y `R` lo devuelve a la
+  versión anterior, los tres tras preguntar. Las teclas `x`, `p` y `r` son del panel (cancelar, pausar, releer), por eso aquí son `X`, `P` y `R`.
+- **Variables** (`lib/screens/ws/variables.sh`): el editor de la vista Variables (`lib/ui/kit/env_editor.sh`) dentro del espacio de trabajo, para la instancia elegida. Es **el
+  mismo editor** (un solo modelo): lo que está sin guardar se conserva al cambiar de pestaña o de vista, y mientras haya cambios el editor no cambia de instancia: elegir otra
+  en la lista muestra un aviso en la pestaña en vez de perderlos (`dash_ws_vars_sync`). El teclado va por el modo `envedit`, como en la vista (las teclas de una letra son del
+  editor: `d` es «valor por defecto», `r` «revelar»…; las que no usa llegan al panel: los dígitos, Tab, `?`, `:` y `q`; `<` y `>` cambian de pestaña); abrir la pestaña le da
+  el teclado (`ws_variables_enter`, el gancho de una pestaña cuyo teclado es un modo) y Esc, sin cambios o tras decidir, vuelve a la lista. `[` y `]` no hacen nada aquí: la
+  instancia es la de la lista.
+- **Datos** (`lib/screens/ws/datos.sh`): el estado de los datos (`sembrados`, `existentes` o `sin sembrar`), el marcador `.initialized` (de dónde viene y cuándo), las carpetas
+  de `data/` de cada servicio que corre (presentes o no) y los registros de las siembras (`init-logs/`, el más nuevo primero). Todo se lee con el propio shell, sin procesos.
+  `I` siembra una instancia sin sembrar (pide escribir su nombre, igual que `init` desde el menú) y `A` la marca como existente (`adopt`, tras preguntar); con el marcador
+  ya puesto dicen que no hace falta.
 - **Acceso** (`lib/screens/ws/acceso.sh`, modo `lib/screens/accdom.sh`): cómo se llega a la instancia desde fuera. Una sola caja con el **dominio**
   (el nombre público de cada servicio es `<nombre del servicio>.<dominio>`), el **proxy** (nginx o Caddy, y cuál hay instalado en este servidor) y **HTTPS**;
   una tabla de los servicios (su puerto en `.env.instance`, si **responde en este servidor** y su nombre público) y el **bloque** del proxy: se ve, se copia
@@ -298,7 +316,8 @@ le da el cursor y otro la resuelve.
 elegir la instancia, al terminar un comando y cada 30 s) y el catálogo de imágenes (por la misma maquinaria que la vista Imágenes, cada 5 minutos). En el modo de prueba no
 se leen salvo que un caso lo pida con `DELTACTL_TUI_WSENV=1`.
 
-Pruebas: `tests/test-workspace.sh`; escenas con datos fijos en `tests/tools/ws_scenes.sh` (instantáneas en `tests/golden/workspace/`).
+Pruebas: `tests/test-workspace.sh`; escenas con datos fijos en `tests/tools/ws_scenes.sh` (instantáneas en `tests/golden/workspace/`); `tests/test-svcview.sh` (la pestaña
+Servicios y su modo, de punta a punta contra el docker simulado), `tests/test-wstabs.sh` (las pestañas Variables y Datos) y `tests/test-service.sh` (la orden y sus reglas).
 
 ## La vista Imágenes
 

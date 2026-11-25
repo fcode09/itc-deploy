@@ -43,6 +43,7 @@ runs_is_mutation() { # command [args...]
   shift
   case "$c" in
     deploy | rollback | load | init | adopt | stop | down) return 0 ;;
+    service) case "${1:-}" in add | remove | set) return 0 ;; esac; return 1 ;;
     new)
       [ "$#" -gt 0 ] || return 1
       case " $* " in *" --wizard "*) return 1 ;; esac
@@ -56,6 +57,7 @@ runs_is_mutation() { # command [args...]
 runs_instance_of() { # command [args...]
   local c="$1" a
   shift
+  if [ "$c" = "service" ]; then shift; fi   # (service <add|remove|set> <instance> ...)
   if [ "$c" != "load" ]; then
     for a in "$@"; do
       case "$a" in -*) ;; *) printf '%s' "$a"; return 0 ;; esac
