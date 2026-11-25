@@ -267,13 +267,24 @@ trabajo debajo). `z` da todo el cuerpo al panel con el foco.
     `proxy_reach`), cada 10 segundos y solo mientras la pestaña está a la vista. El dibujo no lanza ningún proceso: el modelo (la tabla y el bloque) se rehace
     solo cuando cambia algo (`dash_acc_model`, por firma). En el modo de prueba no se sondea salvo que un caso lo pida con `DELTACTL_TUI_WSACC=1`.
 
+- **Historial** (`lib/screens/ws/historial.sh`): las operaciones que cambiaron algo en **esta** instancia (las de `lib/core/runs.sh`: desplegar, init, adopt, rollback,
+  detener…), la más nueva primero, y debajo el detalle de la elegida: cómo terminó, cuándo, cuánto tardó, cómo se compara con las anteriores del mismo comando
+  y **lo que imprimió**: el resumen de la vista Salida cuando el comando tiene forma (`outsum_for`, el intérprete de `lib/core/outparse.sh`) o el final de la
+  salida cuando no la tiene. Comparte el índice de ejecuciones con la vista Ejecuciones (`dash_runs_load`); lo relee cada 5 segundos **solo mientras la pestaña está a la
+  vista** y construye el detalle una vez por selección. Lo que dicen los archivos de una ejecución es dato: se limpia antes de dibujarlo (una secuencia de escape
+  en el usuario o en la salida no mueve el cursor ni borra la pantalla). La selección sigue a la ejecución, no a la fila.
+  - *Teclas* (con el foco en la pestaña): ↑↓ (o `k` `j`) eligen la operación, Inicio y Fin van a la primera y a la última, RePág/AvPág desplazan el detalle, `Enter` abre
+    **toda la salida guardada** en el visor de la vista Ejecuciones (paginado, con búsqueda), `z` da a la pestaña todo el cuerpo. Es solo lectura: la pestaña no escribe
+    nada de las ejecuciones.
+- **Logs** (cambio): `{` y `}` eligen el log del servicio anterior o del siguiente sin salir del panel (la pestaña no tenía forma de cambiar de servicio).
+
 **Pestañas.** Una pestaña es un archivo `lib/screens/ws/<id>.sh` con `ws_<id>_box <instancia> <ancho> <alto>` (la caja, en `TUI_BOX`; opcionales `ws_<id>_avail` para
 ocultarla y `ws_<id>_sig` para lo que añade a la firma) y **una línea** al final de `instances_ws.sh` (`dash_ws_register <id> <clave del título>`). La tira de pestañas solo
 sale cuando hay dos o más visibles. La pestaña en pantalla la dice el foco (los servicios y las filas son del resumen; los logs, de los logs; un panel propio, el foco
 `tab`) y, con el foco en la lista, la elegida con `<` y `>` o con un clic. Una pestaña con panel propio recibe además sus teclas (`ws_<id>_key <tecla>`: devuelve 0 si
 la tomó; ↑↓ eligen el servicio y ← vuelve a la lista salvo que las tome ella), los textos de su barra de teclas (`ws_<id>_texts`: `DASH_KEYS[ws_<id>]`) y un gancho
 de trabajo en cada vuelta del bucle (`ws_<id>_tick`, que no cuesta nada mientras no está a la vista). En pantalla ancha, donde los logs van bajo el resumen, una
-pestaña con panel propio se queda con toda la columna. Las pestañas de las tareas siguientes (Servicios, Variables y datos, Historial) se añaden así.
+pestaña con panel propio se queda con toda la columna. Las pestañas de las tareas siguientes (Servicios, Variables y datos) se añaden así.
 
 **La lista.** `/` la filtra por nombre mientras se escribe (modo `lfilter`: la línea es la última de la caja de la lista; Enter la deja, Esc la deja como estaba, una línea
 vacía muestra todo); `S` la ordena por nombre, por estado (lo que necesita atención primero) o por memoria. Las flechas solo recorren lo que la lista enseña (`DASH_VIS`;
