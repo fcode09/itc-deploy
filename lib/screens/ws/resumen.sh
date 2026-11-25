@@ -8,6 +8,7 @@
 
 # The highest of a history and a floor, into DASH_WS_PK.
 DASH_WS_PK=0
+DASH_WS_SC_SIG="" DASH_WS_SC_LINES=() DASH_WS_SC_OFF=0   # (the last services section drawn, see ws_resumen_box)
 dash_ws_peak() { # history floor
   local v pk="$2"
   for v in $1; do [ "$v" -le "$pk" ] || pk="$v"; done
@@ -17,7 +18,7 @@ dash_ws_peak() { # history floor
 # The card of a service: a box $3 x $4 whose body is its facts, then its memory and its CPU as metric rows (label and value, the percentage,
 # and a graph of $5 rows). Into KIT_BOX. $6 = 1 when it is the service under the cursor, $7 = 1 when the cursor is in the services.
 dash_ws_card() { # instance service width height graph_rows selected focused
-  local name="$1" svc="$2" cw="$3" ch="$4" gr="$5" sel="$6" foc="$7" key="$1/$2" iw chips status facts rs mem lim pct val c a peak up
+  local name="$1" svc="$2" cw="$3" ch="$4" gr="$5" sel="$6" foc="$7" key="$1/$2" iw chips status facts rs mem lim pct val c a peak up mx
   local -a body=() opts=()
   iw=$((cw - 3))                      # (the box puts a space before each line and its border right after)
   dash_ws_esc "$svc"; chips="$DASH_WS_ESC"
@@ -42,7 +43,8 @@ dash_ws_card() { # instance service width height graph_rows selected focused
       val="$a"
     fi
     dt tui.lbl.mem
-    kit_metric_row "$DTV" "$val" "$pct" "${MT_HMEM[$key]:-}" "$([ "$lim" -gt 0 ] && echo "$lim" || echo auto)" "$iw" "$gr" mem
+    mx=auto; [ "$lim" -le 0 ] || mx="$lim"
+    kit_metric_row "$DTV" "$val" "$pct" "${MT_HMEM[$key]:-}" "$mx" "$iw" "$gr" mem
     body+=("${KM_LINES[@]}")
     c="${MT_CPU[$key]:-}"
     dt tui.lbl.cpu
@@ -70,7 +72,7 @@ dash_ws_card() { # instance service width height graph_rows selected focused
 # The cards of the services of an instance, in as many columns as fit, into DASH_WS_SVC when they fit in $3 lines at $2 cells.
 # Returns 1 when they do not (the list of lines is used instead).
 dash_ws_cards() { # instance width avail
-  local name="$1" iw="$2" avail="$3" ns cols rows gr ch base last r k i j line cw foc=0 inrow
+  local name="$1" iw="$2" avail="$3" ns cols rows gr ch base last r k i j line cw foc=0 inrow cur
   local -a svcs=() CL=()
   read -ra svcs <<< "${DASH_SVCS[$name]:-}"
   ns="${#svcs[@]}"
@@ -92,7 +94,8 @@ dash_ws_cards() { # instance width avail
       [ "$i" -lt "$ns" ] || break
       cw="$base"; [ "$k" -lt $((cols - 1)) ] || cw="$last"
       # (a row that is not full gives each card the width it would have in a full one)
-      dash_ws_card "$name" "${svcs[$i]}" "$cw" "$ch" "$gr" "$([ "$i" -eq "$DASH_SVC" ] && echo 1 || echo 0)" "$foc"
+      cur=0; [ "$i" -ne "$DASH_SVC" ] || cur=1
+      dash_ws_card "$name" "${svcs[$i]}" "$cw" "$ch" "$gr" "$cur" "$foc"
       for ((j = 0; j < ch; j++)); do CL[k * ch + j]="${KIT_BOX[$j]}"; done
       inrow=$((inrow + 1))
     done
@@ -176,20 +179,30 @@ ws_resumen_box() { # instance width height
     th=2       # (nothing is left: said only when there is room, the services come first)
   fi
   avail=$((ih - th))
-  DASH_WS_SVC=()
-  dash_ws_totals "$name"
-  if dash_ws_cards "$name" "$iw" $((avail - ${#DASH_WS_TOT[@]})); then
-    DASH_WS_SVC+=("${DASH_WS_TOT[@]}")        # (what the services add up to, under their cards)
+  # The services (the cards or the list, and the totals) do not depend on the cursor of the rows: a key that only moves it draws them from here.
+  local ssig fs=0
+  [ "$DASH_FOCUS" != "svc" ] || fs=1
+  ssig="$name|$iw|$avail|$DASH_SVC|$fs|$DASH_REFRESH_N|$MT_SAMPLES|$DASH_ERRS_N|$DASH_LANG_N|$TH_NAME|$DASH_DET_OFF|${UI_UTF8:-0}"
+  if [ "$ssig" = "$DASH_WS_SC_SIG" ]; then
+    DASH_WS_SVC=("${DASH_WS_SC_LINES[@]}")
+    DASH_DET_OFF="$DASH_WS_SC_OFF"
   else
-    # The list of lines of each service, scrolled to keep the selected one inside.
-    local s e
-    dash_detail_lines "$name"
-    s="${DASH_DET_START[$DASH_SVC]:-0}" e=$((s + 4))
-    [ "$DASH_DET_OFF" -le "$s" ] || DASH_DET_OFF="$s"
-    [ "$e" -le $((DASH_DET_OFF + avail)) ] || DASH_DET_OFF=$((e - avail))
-    [ "$DASH_DET_OFF" -ge 0 ] || DASH_DET_OFF=0
-    [ "${#DASH_DET_LINES[@]}" -gt "$avail" ] || DASH_DET_OFF=0
-    if [ "$avail" -gt 0 ]; then DASH_WS_SVC=("${DASH_DET_LINES[@]:$DASH_DET_OFF:$avail}"); fi
+    DASH_WS_SVC=()
+    dash_ws_totals "$name"
+    if dash_ws_cards "$name" "$iw" $((avail - ${#DASH_WS_TOT[@]})); then
+      DASH_WS_SVC+=("${DASH_WS_TOT[@]}")        # (what the services add up to, under their cards)
+    else
+      # The list of lines of each service, scrolled to keep the selected one inside.
+      local s e
+      dash_detail_lines "$name"
+      s="${DASH_DET_START[$DASH_SVC]:-0}" e=$((s + 4))
+      [ "$DASH_DET_OFF" -le "$s" ] || DASH_DET_OFF="$s"
+      [ "$e" -le $((DASH_DET_OFF + avail)) ] || DASH_DET_OFF=$((e - avail))
+      [ "$DASH_DET_OFF" -ge 0 ] || DASH_DET_OFF=0
+      [ "${#DASH_DET_LINES[@]}" -gt "$avail" ] || DASH_DET_OFF=0
+      if [ "$avail" -gt 0 ]; then DASH_WS_SVC=("${DASH_DET_LINES[@]:$DASH_DET_OFF:$avail}"); fi
+    fi
+    DASH_WS_SC_SIG="$ssig" DASH_WS_SC_LINES=("${DASH_WS_SVC[@]}") DASH_WS_SC_OFF="$DASH_DET_OFF"
   fi
   body=("${DASH_WS_SVC[@]}")
   DASH_WS_TODO_REL=-1 DASH_WS_TODO_SHOWN=0 DASH_WS_TODO_START=0
