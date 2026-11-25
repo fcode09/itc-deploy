@@ -345,8 +345,58 @@ dash_events_drain() {
   return "$got"
 }
 
+# --- One panel per server ----------------------------------------------------------------------------------
+# A second panel on the same server only adds load (each one samples the host and draws every second), and a dropped session used to
+# leave an orphan behind. The panel that opens first writes its pid and terminal to instances/.deltactl/panel.pid (private); another one
+# refuses to start while that pid is alive and is a deltactl. A stale file (the process is gone) is replaced. DELTACTL_ALLOW_MULTI=1 skips
+# the check; so does the test mode. If the file cannot be written the check is skipped: the guard never stops a panel for its own failure.
+DASH_LOCK_FILE=""
+dash_lock_alive() { # pid ; is it a live deltactl process?
+  local pid="$1" cmd=""
+  [[ "$pid" =~ ^[0-9]+$ ]] || return 1
+  kill -0 "$pid" 2> /dev/null || [ -d "/proc/$pid" ] || return 1
+  if [ -r "/proc/$pid/cmdline" ]; then
+    IFS= read -rd '' cmd < "/proc/$pid/cmdline" 2> /dev/null || true
+    [ -n "$cmd" ] || return 0   # (a zombie or an unreadable one: assume it is ours)
+    [[ "$(tr '\0' ' ' < "/proc/$pid/cmdline" 2> /dev/null)" == *deltactl* ]] || return 1
+  fi
+  return 0
+}
+# Takes the panel of this server. Returns 1 (with the message printed) when another live panel has it.
+dash_lock_acquire() {
+  local f pid="" tty="" me="" tries=0
+  tui_test_mode && return 0
+  [ "${DELTACTL_ALLOW_MULTI:-0}" != "1" ] || return 0
+  f="$(runs_dir)/panel.pid"
+  mkdir -p "$(runs_dir)" 2> /dev/null || return 0
+  me="$(tty 2> /dev/null)" || me="?"
+  while [ "$tries" -lt 2 ]; do
+    tries=$((tries + 1))
+    if ( set -o noclobber; printf '%s\t%s\n' "$$" "$me" > "$f" ) 2> /dev/null; then
+      DASH_LOCK_FILE="$f"
+      return 0
+    fi
+    [ -e "$f" ] || return 0   # (it could not be created for another reason: do not block)
+    IFS=$'\t' read -r pid tty < "$f" 2> /dev/null || true
+    if [ "$pid" != "$$" ] && dash_lock_alive "$pid"; then
+      printf '%s\n' "$(t tui.lock.busy "$pid" "${tty:-?}")" >&2
+      return 1
+    fi
+    rm -f "$f" 2> /dev/null || return 0
+  done
+  return 0
+}
+dash_lock_release() {
+  local pid=""
+  [ -n "$DASH_LOCK_FILE" ] || return 0
+  IFS=$'\t' read -r pid _ < "$DASH_LOCK_FILE" 2> /dev/null || true
+  [ "$pid" != "$$" ] || rm -f "$DASH_LOCK_FILE" 2> /dev/null || true
+  DASH_LOCK_FILE=""
+}
+
 dash_shutdown() {
   tui_leave
+  dash_lock_release
   theme_restore
   [ -z "$DASH_EV_PID" ] || kill "$DASH_EV_PID" 2>/dev/null || true
   dash_runs_log_cancel_scan
@@ -687,12 +737,17 @@ cmd_dashboard() {
   local errexit=0
   case "$-" in *e*) errexit=1 ;; esac
   set +e
+  if ! dash_lock_acquire; then
+    [ "$errexit" -eq 0 ] || set -e
+    return 1
+  fi
   dash_init
   dash_start_view
   dash_hist_load
   dash_alias_load
   trap 'dash_shutdown' EXIT
   trap 'dash_shutdown; exit 130' TERM
+  trap 'dash_shutdown; exit 129' HUP   # the terminal went away (a dropped SSH session): leave instead of staying behind
   trap 'DASH_SIGINT=1' INT          # Ctrl+C is handled by the loop (see dash_ctrl_c), it does not end the panel by itself
   tui_enter
   dash_refresh
