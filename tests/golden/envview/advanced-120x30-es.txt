@@ -1,6 +1,6 @@
 === frame 1 ===
 
- 1 Instancias 2 Recursos 3 Salida 4 Ejecuciones 5 Procesos 6 Consola 7 Servidor 8 Imágenes [9 Variables]               
+ 1 Instancias 2 Recursos 3 Salida 4 Ejecuciones 5 Procesos 6 Consola 7 Servidor 8 Imágenes [9 Variables] 0 Actividad   
 ╭─┐ ▸⁹variables ┌─┐ix-colorado┌────────────────────────────────────┐6 sin completar┌─╮╭─┐S0_MEM_LIMIT┌─────────────────╮
 │ ▾ .env.instance                                                       12 variables ││ Opcional · .env.instance       │
 │ ● INSTANCE                        ix-colorado                                      ││                                │

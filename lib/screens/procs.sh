@@ -113,6 +113,8 @@ dash_proc_self() {
 dash_procs_root() {
   local f id pid base="$INSTANCES_DIR/.deltactl"
   DASH_PR_PID="" DASH_PR_LABEL=""
+  # The Activity view shows the processes of the operation that is selected there, not of whichever one is going on.
+  if [ "$DASH_VIEW" = "activity" ]; then dash_act_proc_root; return 0; fi
   if job_running; then DASH_PR_PID="$JOB_PID" DASH_PR_LABEL="./deltactl $JOB_TITLE"; return 0; fi
   for f in "$base"/active/*; do
     [ -e "$f" ] || continue
@@ -130,9 +132,11 @@ dash_procs_root() {
 # Called every loop: the header card while a command of the panel runs, and the whole view while it is on screen. At most once a
 # second while a command runs and once every 2 s otherwise, and the frame is marked dirty only when what is drawn changed.
 DASH_PROCS_LAST=-1
+# Is the process tree on screen? In its own view, or in the tab Procesos of the Activity view.
+dash_procs_shown() { [ "$DASH_VIEW" = "procs" ] || { [ "$DASH_VIEW" = "activity" ] && [ "${DASH_ACT_TAB:-}" = "procesos" ]; }; }
 dash_procs_tick() {
   local sig card="" iv=2
-  if [ "$DASH_VIEW" != "procs" ] && ! job_running; then
+  if ! dash_procs_shown && ! job_running; then
     [ -z "$DASH_PC_TXT" ] || { DASH_PC_TXT=""; DASH_DIRTY=1; }
     DASH_PROCS_LAST=-1 DASH_PS_PREV_TICKS=-1   # (the "now" CPU of the next visit must not average the time spent away)
     return 0
@@ -143,20 +147,20 @@ dash_procs_tick() {
     [ "$DASH_PAUSED" -eq 0 ] || return 0
   fi
   DASH_PROCS_LAST="$SECONDS"
-  if [ "$DASH_VIEW" = "procs" ]; then
+  if dash_procs_shown; then
     dash_procs_root || true
     if [ -n "$DASH_PR_PID" ]; then dash_proc_tree "$DASH_PR_PID"; else DASH_PT_PID=() DASH_PT_SUM=0 DASH_PT_N=0; fi
     dash_proc_self
   elif job_running; then
     dash_proc_tree "$JOB_PID"
   fi
-  if [ "$DASH_PT_N" -gt 0 ] && { job_running || [ "$DASH_VIEW" = "procs" ]; }; then
+  if [ "$DASH_PT_N" -gt 0 ] && { job_running || dash_procs_shown; }; then
     runs_fmt_kb "$DASH_PT_SUM"
     dtf tui.procs.card "$DASH_PT_N" "$RUNS_F"; card="$DTF"
   fi
   if job_running && [ "$card" != "$DASH_PC_TXT" ]; then DASH_PC_TXT="$card"; DASH_DIRTY=1; fi
   sig="$DASH_PR_PID|$DASH_PT_SUM|$DASH_PT_N|${DASH_PT_PID[*]-}|$DASH_PS_RSS|$DASH_PS_NOW|$DASH_PS_AVG|${DASH_PS_KIDS[*]-}"
-  if [ "$DASH_VIEW" = "procs" ] && [ "$sig" != "$DASH_PROCS_SIG" ]; then
+  if dash_procs_shown && [ "$sig" != "$DASH_PROCS_SIG" ]; then
     DASH_PROCS_SIG="$sig"
     DASH_PROCS_N=$((DASH_PROCS_N + 1))
     DASH_DIRTY=1
@@ -254,3 +258,4 @@ scr_procs_keys() { dash_keys_view procs "$1"; } # width
 scr_procs_texts() { DASH_KEYS[procs]="$(t tui.keys.procs "$DASH_UD")"; }
 scr_procs_sig() { DASH_SIG+="|$DASH_PROCS_N|$DASH_PROCS_OFF|$DASH_PC_TXT"; }
 scr_procs_tick() { dash_procs_tick; }
+scr_procs_enter() { dash_act_moved_notice; }

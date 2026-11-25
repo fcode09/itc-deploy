@@ -117,9 +117,10 @@ dash_runs_stats_load() {
 
 # Called every loop. The data is only read while the view is on screen; leaving it forgets the clock so that coming back reads again.
 dash_runs_tick() {
-  if [ "$DASH_VIEW" != "runs" ]; then DASH_RUNS_AT=-1000; DASH_RUNS_MODE=list; fi
-  [ "$DASH_RUNS_MODE" = "log" ] || [ -z "$DASH_RV_ID" ] || dash_runs_log_close   # (a viewer that is not shown holds nothing)
-  [ "$DASH_VIEW" = "runs" ] || return 0
+  # (the Activity view reads the same data, and keeps the viewer of the saved output for its own tab Salida)
+  if [ "$DASH_VIEW" != "runs" ] && [ "$DASH_VIEW" != "activity" ]; then DASH_RUNS_AT=-1000; DASH_RUNS_MODE=list; fi
+  [ "$DASH_VIEW" = "activity" ] || [ "$DASH_RUNS_MODE" = "log" ] || [ -z "$DASH_RV_ID" ] || dash_runs_log_close   # (a viewer that is not shown holds nothing)
+  [ "$DASH_VIEW" = "runs" ] || [ "$DASH_VIEW" = "activity" ] || return 0
   if [ "$DASH_RUNS_AT" -lt 0 ] || { [ "$DASH_PAUSED" -eq 0 ] && [ $((SECONDS - DASH_RUNS_AT)) -ge 5 ]; }; then dash_runs_load; fi
 }
 
@@ -642,3 +643,4 @@ scr_runs_sig() {
 # Esc closes the statistics (or the log) before it leaves the view.
 scr_runs_back() { [ "$DASH_RUNS_MODE" != "list" ] || return 1; DASH_RUNS_MODE=list; }
 scr_runs_tick() { dash_runs_tick; }
+scr_runs_enter() { dash_act_moved_notice; }

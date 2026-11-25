@@ -136,6 +136,33 @@ for size in 80x24 120x30 160x40; do
     ms "output (raw): hot frame" "$N" dash_render
     # shellcheck disable=SC2034  # read by the Output view
     DASH_OUT_RAW=0 DASH_VIEW=instances
+    # The Activity view (lib/screens/activity.sh) over the five runs of tests/tools/act_scenes.sh and the command above as the last one of the
+    # panel. "hot": the frame of a selection that is already built; "a key": the cursor moves to another run (its detail is built again, once);
+    # "a page": the saved output is open in the tab Salida and a page is asked for; "processes": the tab Procesos (the tree is read by the tick).
+    # shellcheck source=tests/tools/act_scenes.sh
+    source tests/tools/act_scenes.sh
+    act_data; act_job
+    JOB_LINES=(); mapfile -t JOB_LINES < tests/golden/outsum/in/doctor-es.txt
+    JOB_TITLE=doctor JOB_END_US=43000000 JOB_TOTAL="${#JOB_LINES[@]}"
+    DASH_VIEW=activity; dash_runs_load; scr_activity_enter
+    dash_act_select 1
+    # shellcheck disable=SC2329,SC2034  # called through ms
+    act_key() { DASH_ACT_SWAP=$((1 - ${DASH_ACT_SWAP:-0})); dash_act_select $((1 + DASH_ACT_SWAP * 2)); dash_render; }
+    # shellcheck disable=SC2329,SC2034  # called through ms
+    act_page() { if [ "$((DASH_ACT_SWAP = 1 - ${DASH_ACT_SWAP:-0}))" -eq 1 ]; then dash_act_pane_key pgup; else dash_act_pane_key end; fi; dash_render; }
+    dash_render > /dev/null
+    ms "activity: hot frame (the summary of a run)" "$N" dash_render
+    ms "activity: a key moves to another run" "$N" act_key
+    dash_act_select 3; dash_act_tab_go salida; dash_render > /dev/null
+    ms "activity: a page of the saved output" "$N" act_page
+    dash_act_tab_go consumo; dash_render > /dev/null
+    ms "activity: Consumo, hot frame" "$N" dash_render
+    dash_act_tab_go procesos; dash_render > /dev/null
+    ms "activity: Procesos, hot frame" "$N" dash_render
+    dash_act_tab_go resumen; dash_act_select 0; dash_render > /dev/null
+    ms "activity: the command of the panel, hot" "$N" dash_render
+    rm -rf "${ACT_TMP:-/nonexistent}"
+    DASH_VIEW=instances
     ms "mt_sample" "$N" mt_sample
     # shellcheck disable=SC2329,SC2034  # called through ms; MT_HOST_DETAIL is read by mt_sample
     mt_detail() { MT_HOST_DETAIL=1 mt_sample; MT_HOST_DETAIL=0; }

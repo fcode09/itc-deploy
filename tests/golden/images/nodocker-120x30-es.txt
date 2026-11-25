@@ -1,6 +1,6 @@
 === frame 1 ===
 
- 1 Instancias 2 Recursos 3 Salida 4 Ejecuciones 5 Procesos 6 Consola 7 Servidor [8 Imágenes] 9 Variables               
+ 1 Instancias 2 Recursos 3 Salida 4 Ejecuciones 5 Procesos 6 Consola 7 Servidor [8 Imágenes] 9 Variables 0 Actividad   
 ╭─┐ ▸⁸imágenes ┌──────────────────────────────────────────────────────────────────────────────────────────┐sin Docker┌─╮
 │                                                                                                                      │
 │                                                                                                                      │

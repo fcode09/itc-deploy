@@ -1,0 +1,25 @@
+=== frame 1 ===
+  ITC  testhost · Docker 27.0.0
+  1   2   3   4   5   6   7   8   9  [0 Actividad]                             
+╭─ ▸Actividad (5) ─────────────────────────────────────────────────────────────╮
+│ ▸ ● 11-01 10:00 deploy   ix-colorado                                   41.2 s│
+│   ● 11-01 09:50 deploy   ix-lima                                       30.1 s│
+│   ✖ 11-01 09:00 check    ix-colorado                                    2.1 s│
+│   ● 10-31 15:00 rollback ix-colorado                                    5.3 s│
+│   ● 10-30 10:00 deploy   ix-colorado                                   38.0 s│
+╰──────────────────────────────────────────────────────────────────────────────╯
+ Resumen [Salida] Consumo  Procesos                                             
+╭─ ▸Salida de 20261101T100000Z-1 · líneas 1-4 de 4 ────────────────────────────╮
+│   1 Validando compose...                                                     │
+│   2 Imágenes locales (REGISTRY vacío): no se descarga nada.                  │
+│   3 Levantando servicios (espera a que estén healthy)...                     │
+│   4 OK instancia 'sim-01' desplegada (s0 s1)                                 │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+ ↑↓ elegir · ← → pestaña · RePág/AvPág Inicio/Fin desplazan · ? ayuda · q salir

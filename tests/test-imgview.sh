@@ -50,8 +50,8 @@ check "it is the eighth tab and its digit opens it" '[ "$(run_lib "dash_screen_b
 check "its two dialogs are modes" '[ "$(run_lib "printf \"%s \" \${DASH_MODES[@]}")" = "menu confirm name cmd filter lfilter find wizard newinst palette help options srvask imguse imgload envedit svcask accdom " ]'
 check "every function of the contract it uses is defined" 'run_lib "for f in render key keys texts sig enter back tick poll; do declare -F scr_images_\$f >/dev/null || exit 1; done; for m in imguse imgload; do for f in render key keys sig; do declare -F scr_\${m}_\$f >/dev/null || exit 1; done; done"'
 check "its signature carries what it draws" '[ "$(run_lib "DASH_SIG=; scr_images_sig; echo \$DASH_SIG")" = "|0|0|none|0|0|" ]'
-check "it is in the list of views of the console, the palette and the messages, in both languages" 'grep -q "console server images" lib/screens/console.sh && grep -q "console server images env; do" lib/screens/palette.sh && grep -q "server · images" lib/i18n/es/dashboard.sh && grep -q "server · images" lib/i18n/en/dashboard.sh'
-check "the help of the panel names it (both languages)" 'grep -q "1-9  " lib/i18n/es/dashboard.sh && grep -q "IMÁGENES ↑" lib/i18n/es/dashboard.sh && grep -q "IMAGES   ↑" lib/i18n/en/dashboard.sh'
+check "it is in the list of views of the console, the palette and the messages, in both languages" 'grep -q "console server images" lib/screens/console.sh && grep -q "console server images env activity; do" lib/screens/palette.sh && grep -q "server · images" lib/i18n/es/dashboard.sh && grep -q "server · images" lib/i18n/en/dashboard.sh'
+check "the help of the panel names it (both languages)" 'grep -q "1-9 0  " lib/i18n/es/dashboard.sh && grep -q "IMÁGENES ↑" lib/i18n/es/dashboard.sh && grep -q "IMAGES   ↑" lib/i18n/en/dashboard.sh'
 check "the tab has a name in both languages" '[ "$(run_lib "t tui.tab.images")" = "Imágenes" ] && [ "$(LANGX=en run_lib "t tui.tab.images")" = "Images" ]'
 
 section "2. the catalog is applied: where the cursor starts and where it stays"

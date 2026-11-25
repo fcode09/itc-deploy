@@ -78,8 +78,8 @@ check "the mode that gives it the keyboard is registered, after the others" '[ "
 check "every function of the contract it uses is defined" 'run_lib "for f in render key keys texts sig enter tick; do declare -F scr_env_\$f >/dev/null || exit 1; done; for f in key keys sig; do declare -F scr_envedit_\$f >/dev/null || exit 1; done"'
 check "its signature carries what it draws: the instance, the editor revision and the marks read" '[[ "$(run_lib "DASH_SIG=; scr_env_sig; echo \$DASH_SIG")" =~ ^\|\|[0-9]+\|0$ ]]'
 check "the tab has a name in both languages" '[ "$(run_lib "t tui.tab.env")" = "Variables" ] && [ "$(LANGX=en run_lib "t tui.tab.env")" = "Variables" ]'
-check "it is in the lists of views of the console and the palette" 'grep -q "console server images env) ;;" lib/screens/console.sh && grep -q "console server images env; do" lib/screens/palette.sh && grep -q "images · env" lib/i18n/es/dashboard.sh && grep -q "images · env" lib/i18n/en/dashboard.sh'
-check "the help of the panel names it (both languages)" 'grep -q "1-9  Instancias" lib/i18n/es/dashboard.sh && grep -q "VARIABLES ↑" lib/i18n/es/dashboard.sh && grep -q "VARIABLES ↑" lib/i18n/en/dashboard.sh'
+check "it is in the lists of views of the console and the palette" 'grep -q "console server images env activity) ;;" lib/screens/console.sh && grep -q "console server images env activity; do" lib/screens/palette.sh && grep -q "images · env" lib/i18n/es/dashboard.sh && grep -q "images · env" lib/i18n/en/dashboard.sh'
+check "the help of the panel names it (both languages)" 'grep -q "1-9 0  Instancias" lib/i18n/es/dashboard.sh && grep -q "VARIABLES ↑" lib/i18n/es/dashboard.sh && grep -q "VARIABLES ↑" lib/i18n/en/dashboard.sh'
 check "the editor is a kit component loaded with the others" 'grep -q "env_editor.sh" lib/ui/kit/kit.sh'
 
 section "2. the model: what is listed, in what state, folded or not"
