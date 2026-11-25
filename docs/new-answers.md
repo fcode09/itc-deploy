@@ -48,6 +48,9 @@ Genera el texto del proxy inverso de cada servicio de la instancia y lo guarda *
 - **Qué genera** (`lib/core/proxy.sh`): un servidor por servicio, con el nombre `<nombre del servicio>.<dominio>` (por ejemplo `auth-backend.muni.example.com`) hacia
   `127.0.0.1:<puerto de la instancia>`. Con `--tls`, nginx redirige el 80 y escucha el 443 con las rutas de certbot (`/etc/letsencrypt/live/<nombre>/…`, solo como texto) y Caddy
   consigue el certificado solo; sin `--tls`, solo http. nginx lleva los encabezados de un proxy y el *upgrade* de websocket.
+- **Más tarde**: la pestaña *Acceso* del espacio de trabajo de la instancia (vista Instancias) muestra, copia y vuelve a guardar el mismo bloque (cambiando el
+  dominio, el proxy o HTTPS) y dice si lo guardado es lo que se escribiría ahora. Recuerda lo que eligió en `instances/<instancia>/proxy/access.conf`; si ese archivo no
+  existe, adivina el dominio del bloque que dejó `new` (`proxy_meta_load`).
 - **Solo texto**: no escribe nada en `/etc`, no recarga nginx ni Caddy, no instala nada y no ejecuta ningún comando. Se copia a donde el proxy lo lea
   (`/etc/nginx/conf.d/`, el `Caddyfile`) y se aplica con `nginx -t && systemctl reload nginx` o `caddy reload`. El panel muestra el mismo texto y puede copiarlo.
 - **Qué se valida**: el nombre (minúsculas, números, guion y puntos; etiquetas de hasta 63; hasta 253 en total), el puerto y la etiqueta de cada servicio. Nada que no se

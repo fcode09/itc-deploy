@@ -249,11 +249,31 @@ trabajo debajo). `z` da todo el cuerpo al panel con el foco.
     no corra. Sin nada pendiente (y con sitio) dice «Todo al día». Con poco sitio solo queda la cabecera con el recuento y la tecla `t`.
 - **Logs** (`lib/screens/ws/logs.sh`): el panel de logs de siempre (`lib/screens/instances_logs.sh`) con todo el espacio de trabajo. En pantalla ancha los logs ya están debajo
   del resumen y la pestaña no se ofrece; en las demás es la forma de llegar a ellos.
+- **Acceso** (`lib/screens/ws/acceso.sh`, modo `lib/screens/accdom.sh`): cómo se llega a la instancia desde fuera. Una sola caja con el **dominio**
+  (el nombre público de cada servicio es `<nombre del servicio>.<dominio>`), el **proxy** (nginx o Caddy, y cuál hay instalado en este servidor) y **HTTPS**;
+  una tabla de los servicios (su puerto en `.env.instance`, si **responde en este servidor** y su nombre público) y el **bloque** del proxy: se ve, se copia
+  y se guarda. **Es solo texto** (`lib/core/proxy.sh`): se guarda dentro de la instancia (`instances/<n>/proxy/nginx.conf` o `Caddyfile`, más `access.conf` con
+  el dominio, el proxy y HTTPS que recuerda la pestaña); no se escribe nada en `/etc`, no se recarga ni se instala nada. La caja dice dónde va y con qué
+  comando se recarga; ponerlo ahí es cosa de quien administra el servidor. Junto al título del bloque dice si lo guardado es lo que se escribiría ahora
+  (`guardado`), si es otro (`distinto del guardado`) o si no hay nada (`sin guardar`). Sin `access.conf`, el dominio se adivina del bloque que dejó
+  `new --domain`.
+  - *Teclas* (con el foco en la pestaña; `<` y `>` la abren): `Enter` escribe el dominio (modo `accdom`: una línea vacía lo quita, un nombre que no lo es se
+    rechaza y la línea sigue abierta, Esc lo deja como estaba), `b` el bloque del otro proxy, `w` HTTPS, `y` copia el bloque entero (el mismo texto que se guarda),
+    `g` lo guarda, RePág/AvPág lo desplazan, `z` da a la pestaña todo el cuerpo y ↑↓ eligen el servicio (su fila va marcada). Las teclas de la instancia
+    (`u`, `c`, `s`, `l`) siguen valiendo.
+  - *Sin dominio* no se genera nada y la caja lo dice; *sin puerto* de un servicio no se genera el bloque con un hueco: lo dice. Con el dominio, el proxy y HTTPS
+    que se ven es el bloque que se guarda: ninguna tecla escribe en disco salvo `g`.
+  - *Lo que se lee en segundo plano*: el puerto de cada servicio y si algo escucha en `127.0.0.1:<puerto>` (una conexión que se cierra al instante, como mucho 2 s,
+    `proxy_reach`), cada 10 segundos y solo mientras la pestaña está a la vista. El dibujo no lanza ningún proceso: el modelo (la tabla y el bloque) se rehace
+    solo cuando cambia algo (`dash_acc_model`, por firma). En el modo de prueba no se sondea salvo que un caso lo pida con `DELTACTL_TUI_WSACC=1`.
 
 **Pestañas.** Una pestaña es un archivo `lib/screens/ws/<id>.sh` con `ws_<id>_box <instancia> <ancho> <alto>` (la caja, en `TUI_BOX`; opcionales `ws_<id>_avail` para
 ocultarla y `ws_<id>_sig` para lo que añade a la firma) y **una línea** al final de `instances_ws.sh` (`dash_ws_register <id> <clave del título>`). La tira de pestañas solo
-sale cuando hay dos o más visibles. La pestaña en pantalla la dice el foco (los servicios y las filas son del resumen; los logs, de los logs) y, con el foco en la lista,
-la elegida con `<` y `>` o con un clic. Las pestañas de las tareas siguientes (Servicios, Variables y datos, Acceso, Historial) se añaden así.
+sale cuando hay dos o más visibles. La pestaña en pantalla la dice el foco (los servicios y las filas son del resumen; los logs, de los logs; un panel propio, el foco
+`tab`) y, con el foco en la lista, la elegida con `<` y `>` o con un clic. Una pestaña con panel propio recibe además sus teclas (`ws_<id>_key <tecla>`: devuelve 0 si
+la tomó; ↑↓ eligen el servicio y ← vuelve a la lista salvo que las tome ella), los textos de su barra de teclas (`ws_<id>_texts`: `DASH_KEYS[ws_<id>]`) y un gancho
+de trabajo en cada vuelta del bucle (`ws_<id>_tick`, que no cuesta nada mientras no está a la vista). En pantalla ancha, donde los logs van bajo el resumen, una
+pestaña con panel propio se queda con toda la columna. Las pestañas de las tareas siguientes (Servicios, Variables y datos, Historial) se añaden así.
 
 **La lista.** `/` la filtra por nombre mientras se escribe (modo `lfilter`: la línea es la última de la caja de la lista; Enter la deja, Esc la deja como estaba, una línea
 vacía muestra todo); `S` la ordena por nombre, por estado (lo que necesita atención primero) o por memoria. Las flechas solo recorren lo que la lista enseña (`DASH_VIS`;
