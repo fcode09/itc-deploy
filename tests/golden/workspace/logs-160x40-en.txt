@@ -1,7 +1,7 @@
 === frame 1 ===
   ITC  testhost · Memory ███░░░ 5.6/11.5 GB 48% ▄▃▂▅▃▂ · Load 3.18 · Docker 27.0.0 · containers 1.5G
  [1 Instances]  2 Resources   3 Output   4 Runs   5 Processes   6 Console   7 Server   8 Images   9 Variables                                                  
-╭─ Instances ────────────────────────────╮[Summary] Services  Access  History                                               ╭─ Events ─────────────────────────╮
+╭─ Instances ────────────────────────────╮[Summary] Access  History  Services                                               ╭─ Events ─────────────────────────╮
 │   + New instance                       │╭─┐ix-colorado · 2/2┌────────────────────────────────────────────────┐● running┌─╮│ No events yet                    │
 │                  n/m      mem    cpu   ││ ╭─┐s0┌─┐auth-backend:2.14.1┌──────────╮╭─┐s1┌─┐gueo-back-end:2.9.0┌───────────╮││                                  │
 │ ▸ ●● ix-colorado 2/2    1.3G  25.1%    ││ │ up 2d04h  ·  :4100                  ││ up 2d04h  ·  :4101  ·  restarts 3    │││                                  │

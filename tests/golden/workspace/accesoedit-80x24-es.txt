@@ -8,7 +8,7 @@
 │   ●✖ ix-lima     1/2    180M   1.2%                                          │
 │   ✖✖ ix-piura    0/2       -      -                                          │
 ╰──────────────────────────────────────────────────────────────────────────────╯
- Resumen  Logs  Servicios [Acceso] Historial                                    
+ Resumen  Logs [Acceso] Historial  Servicios                                    
 ╭─┐ ▸ix-colorado ┌─┐Acceso┌───────────────────────────┐● nginx detectado aquí┌─╮
 │ Dominio   ● otro.example.org                                                 │
 │ Proxy     ● nginx   ○ caddy   nginx detectado aquí                           │

@@ -488,6 +488,6 @@ dash_logs_visible() {
 # --- The tabs: ONE line each -------------------------------------------------------------------------------------------------
 dash_ws_register resumen tui.ws.tab.resumen
 dash_ws_register logs tui.ws.tab.logs
-dash_ws_register servicios tui.ws.tab.servicios
 dash_ws_register acceso tui.ws.tab.acceso
 dash_ws_register historial tui.ws.tab.historial
+dash_ws_register servicios tui.ws.tab.servicios

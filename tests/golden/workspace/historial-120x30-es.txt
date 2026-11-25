@@ -1,7 +1,7 @@
 === frame 1 ===
   ITC  testhost · Memoria ███░░░ 5.6/11.5 GB 48% ▄▃▂▅▃▂ · Carga 3.18 · Docker 27.0.0 · contenedores 1.5G
  [1 Instancias] 2 Recursos 3 Salida 4 Ejecuciones 5 Procesos 6 Consola 7 Servidor 8 Imágenes 9 Variables               
-╭─ Instancias ───────────────────────╮ Resumen  Servicios  Acceso [Historial]                                           
+╭─ Instancias ───────────────────────╮ Resumen  Acceso [Historial] Servicios                                            
 │   + Nueva instancia                │╭─┐ ▸ix-colorado ┌─┐Historial┌───────────────────────────────────┐3 operaciones┌─╮
 │               n/m      mem    cpu  ││ ▸ ● 11-01 10:00 deploy       41.2 s                                            │
 │ ▸ ●● ix-colorado 2/2    1.3G  25.1%││   ✖ 11-01 09:00 check         2.1 s                                            │

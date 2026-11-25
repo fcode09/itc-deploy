@@ -8,7 +8,7 @@
 │ ▸ ●  ix-lima     1/2    180M   1.2%                                          │
 │   ✖✖ ix-piura    0/2       -      -                                          │
 ╰──────────────────────────────────────────────────────────────────────────────╯
- Resumen  Logs [Servicios] Acceso  Historial                                    
+ Resumen  Logs  Acceso  Historial [Servicios]                                   
 ╭─┐ ▸ix-lima ┌─────────────────────────────────────────────────────┐▲ parcial┌─╮
 │   ● s0 auth-backend  · 2.14.1  :4110  mem 512m  · healthy                    │
 │ ▸ ○ s1 gueo-back-end  · sin activar                                          │
