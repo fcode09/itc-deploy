@@ -346,7 +346,7 @@ dash_nz_goto_inst() {
   [ -n "$DASH_GOTO_INST" ] || return 0
   for i in "${!DASH_NAMES[@]}"; do
     if [ "${DASH_NAMES[$i]}" = "$DASH_GOTO_INST" ]; then
-      DASH_ON_NEW=0 DASH_SEL="$i" DASH_SVC=0 DASH_FOCUS=list DASH_GOTO_INST=""
+      DASH_ON_NEW=0 DASH_SEL="$i" DASH_SVC=0 DASH_DET_OFF=0 DASH_FOCUS=list DASH_WS_TAB=resumen DASH_GOTO_INST=""
       return 0
     fi
   done
