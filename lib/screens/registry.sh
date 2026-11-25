@@ -3,7 +3,7 @@
 # Screen registry and router of the interactive panel. Sourced by lib/cmd/dashboard.sh.
 #
 # The panel is made of SCREENS. There are two kinds:
-#   views   the tabs (1-9, 0 for the tenth, or Tab): instances, resources, output, runs, procs, console, server, images, env, activity. One is current (DASH_VIEW).
+#   views   the tabs (1-9, 0 for the tenth, or Tab): server, instances, resources, output, runs, procs, console, images, env, activity. One is current (DASH_VIEW).
 #   modes   what takes the keyboard over a view: dialogs (menu, confirm, name, palette, help, options, wizard) and lines being typed
 #           (cmd, filter, find). One is current (DASH_MODE); `normal` means none.
 # To add a screen: write lib/screens/<id>.sh with the functions of the contract below and add ONE line to the registry at the end of
@@ -156,13 +156,13 @@ dash_screen_click() { # column row
 
 # --- The registry: ONE line per screen ------------------------------------------------------------------------------------
 # Views, in tab order (their number is their position). The title is the key of its tab text; `live` is 1 when the body shows figures.
+dash_screen_register server tui.tab.server 1
 dash_screen_register instances tui.tab.instances 1
 dash_screen_register resources tui.tab.resources 1
 dash_screen_register output tui.tab.output 0
 dash_screen_register runs tui.tab.runs 0
 dash_screen_register procs tui.tab.procs 0
 dash_screen_register console tui.tab.console 0
-dash_screen_register server tui.tab.server 1
 dash_screen_register images tui.tab.images 0
 dash_screen_register env tui.tab.env 0
 dash_screen_register activity tui.tab.activity 0

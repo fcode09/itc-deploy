@@ -50,7 +50,7 @@ check "it is the eighth tab and its digit opens it" '[ "$(run_lib "dash_screen_b
 check "its two dialogs are modes" '[ "$(run_lib "printf \"%s \" \${DASH_MODES[@]}")" = "menu confirm name cmd filter lfilter find wizard newinst palette help options srvask imguse imgload envedit svcask accdom " ]'
 check "every function of the contract it uses is defined" 'run_lib "for f in render key keys texts sig enter back tick poll; do declare -F scr_images_\$f >/dev/null || exit 1; done; for m in imguse imgload; do for f in render key keys sig; do declare -F scr_\${m}_\$f >/dev/null || exit 1; done; done"'
 check "its signature carries what it draws" '[ "$(run_lib "DASH_SIG=; scr_images_sig; echo \$DASH_SIG")" = "|0|0|none|0|0|" ]'
-check "it is in the list of views of the console, the palette and the messages, in both languages" 'grep -q "console server images" lib/screens/console.sh && grep -q "console server images env activity; do" lib/screens/palette.sh && grep -q "server · images" lib/i18n/es/dashboard.sh && grep -q "server · images" lib/i18n/en/dashboard.sh'
+check "it is in the list of views of the console, the palette and the messages, in both languages" 'grep -q "console images env activity)" lib/screens/console.sh && grep -q "console images env activity; do" lib/screens/palette.sh && grep -q "console · images" lib/i18n/es/dashboard.sh && grep -q "console · images" lib/i18n/en/dashboard.sh'
 check "the help of the panel names it (both languages)" 'grep -q "1-9 0  " lib/i18n/es/dashboard.sh && grep -q "IMÁGENES ↑" lib/i18n/es/dashboard.sh && grep -q "IMAGES   ↑" lib/i18n/en/dashboard.sh'
 check "the tab has a name in both languages" '[ "$(run_lib "t tui.tab.images")" = "Imágenes" ] && [ "$(LANGX=en run_lib "t tui.tab.images")" = "Images" ]'
 
@@ -165,9 +165,9 @@ check "down and up move across the images: past the last version of the first im
 check "on an image of another architecture the line says it cannot be used" 'panel 8 up | last_frame | grep -q "imagen de arquitectura arm64; este servidor es amd64"'
 check "on a tag that moves the line warns that it cannot take you back" 'panel 8 down | last_frame | grep -q "etiqueta que se mueve: no sirve para volver a una versión anterior"'
 check "space opens the detail and Esc closes it before leaving the view" 'o="$(panel 8 space)"; echo "$o" | last_frame | grep -q "ID a1aaaaaaaaaa" && o="$(panel 8 space esc)" && echo "$o" | last_frame | grep -q "\[8 Imágenes\]" && ! echo "$o" | last_frame | grep -q "ID a1aaaaaaaaaa"'
-check "a second Esc goes to the first view" 'panel 8 esc | last_frame | grep -q "\[1 Instancias\]"'
+check "a second Esc goes to the first view (the Server view)" 'panel 8 esc | last_frame | grep -q "\[1 Servidor\]"'
 check "home and end go to the first and the last version" 'panel 8 end | last_frame | grep -q "2.9.0 ★" && panel 8 end home | last_frame | grep -q "arquitectura arm64"'
-check "the tab key and the digits reach the view from the others" 'panel 7 tab | last_frame | grep -q "\[8 Imágenes\]" && panel 1 8 | last_frame | grep -q "⁸imágenes"'
+check "the tab key and the digits reach the view from the others" 'panel 7 tab | last_frame | grep -q "\[8 Imágenes\]" && panel 2 8 | last_frame | grep -q "⁸imágenes"'
 rm -f "$FIX/clip.txt"
 check "c copies the reference (image:tag) of the version, and says so" 'o="$(DELTACTL_CLIP="cat > $FIX/clip.txt" panel 8 c)"; [ "$(cat "$FIX/clip.txt")" = "auth-backend:2.14.1" ] && echo "$o" | last_frame | grep -q "Copiado: auth-backend:2.14.1"'
 check "c with no clipboard says what to copy by hand" 'o="$(DELTACTL_CLIP=false panel 8 c)"; echo "$o" | last_frame | grep -q "No se pudo copiar.*auth-backend:2.14.1"'

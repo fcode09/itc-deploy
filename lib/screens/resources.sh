@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC2034,SC2154  # the DASH_* variables (DASH_KEYS, TUI_CURSOR...) are declared in lib/cmd/dashboard*.sh and shared by every screen
-# Screen: Resources (view 2). Every service of every instance with memory, CPU and trend; `s` sorts them.
+# Screen: Resources (view 3). Every service of every instance with memory, CPU and trend; `s` sorts them.
 
 # Services of every instance as "instance/service" keys, ordered by DASH_RES_SORT, into DASH_RES_KEYS.
 DASH_RES_KEYS=()
@@ -136,8 +136,24 @@ dash_view_resources() { # body_height
   TUI_FRAME+=("${TUI_BOX[@]}")
 }
 
+# Opens the instance of a service ("instance/service") in the Instances view, with the cursor on that service. Shared by the keys of this
+# view and of the Server view (the containers box). 1 when the key is not a service that is listed.
+dash_res_open_key() { # key
+  local key="$1" inst svc i name s
+  [ -n "$key" ] || return 1
+  inst="${key%%/*}" svc="${key#*/}"
+  for i in "${!DASH_NAMES[@]}"; do
+    [ "${DASH_NAMES[$i]}" != "$inst" ] || DASH_SEL="$i"
+  done
+  DASH_SVC=0 s=0
+  for name in ${DASH_SVCS[$inst]:-}; do
+    [ "$name" != "$svc" ] || DASH_SVC="$s"
+    s=$((s + 1))
+  done
+  DASH_DET_OFF=0 DASH_VIEW=instances DASH_ON_NEW=0 DASH_FOCUS=svc
+}
+
 dash_key_resources() {
-  local key inst svc i name s
   case "$1" in
     up | k) [ "$DASH_RES_SEL" -le 0 ] || DASH_RES_SEL=$((DASH_RES_SEL - 1)) ;;
     down | j) DASH_RES_SEL=$((DASH_RES_SEL + 1)) ;;
@@ -148,18 +164,7 @@ dash_key_resources() {
       ;;
     enter)
       dash_res_rows
-      key="${DASH_RES_KEYS[$DASH_RES_SEL]:-}"
-      [ -n "$key" ] || return 0
-      inst="${key%%/*}" svc="${key#*/}"
-      for i in "${!DASH_NAMES[@]}"; do
-        [ "${DASH_NAMES[$i]}" != "$inst" ] || DASH_SEL="$i"
-      done
-      DASH_SVC=0 s=0
-      for name in ${DASH_SVCS[$inst]:-}; do
-        [ "$name" != "$svc" ] || DASH_SVC="$s"
-        s=$((s + 1))
-      done
-      DASH_DET_OFF=0 DASH_VIEW=instances DASH_ON_NEW=0 DASH_FOCUS=svc
+      dash_res_open_key "${DASH_RES_KEYS[$DASH_RES_SEL]:-}" || true
       ;;
   esac
 }

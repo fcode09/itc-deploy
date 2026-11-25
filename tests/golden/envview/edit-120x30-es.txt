@@ -1,6 +1,6 @@
 === frame 1 ===
 
- 1 Instancias 2 Recursos 3 Salida 4 Ejecuciones 5 Procesos 6 Consola 7 Servidor 8 Imágenes [9 Variables] 0 Actividad   
+ 1 Servidor 2 Instancias 3 Recursos 4 Salida 5 Ejecuciones 6 Procesos 7 Consola 8 Imágenes [9 Variables] 0 Actividad   
 ╭─┐ ▸⁹variables ┌─┐ix-colorado┌────────────────────────────────────┐6 sin completar┌─╮╭─┐IP_SERVER┌────────────────────╮
 │ ▸ .env.instance                                                       12 variables ││ Obligatoria · .env.s0          │
 │ ▾ .env.s0                                            9 variables · 2 sin completar ││                                │

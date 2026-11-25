@@ -207,7 +207,7 @@ check "the sampler fills network speeds, their recent maximum and the session to
   '[ "$(lib "source $FIX/sample2.sh; echo \$HOST_NET_DOWN_BPS \$MT_NET_DOWN_MAX \$MT_NET_UP_MAX \$MT_NET_DOWN_TOTAL \$MT_NET_UP_TOTAL")" = "2000000 2000000 1000000 2000000 1000000" ]'
 check "the sampler fills disk I/O and the use of the disks" '[ "$(lib "source $FIX/sample2.sh; echo \$MT_HH_DIOR \$HOST_DISK_N \${HOST_DISK_PCT[0]}")" = "1024000 2 40" ]'
 check "every source that answered is marked 1" '[ "$(lib "source $FIX/sample2.sh; echo \${MT_SRC[cpu]} \${MT_SRC[net]} \${MT_SRC[diskio]} \${MT_SRC[disk]} \${MT_SRC[load]} \${MT_SRC[uptime]}")" = "1 1 1 1 1 1" ]'
-check "the histories hold MT_HIST_LEN values at most" '[ "$(lib "MT_HIST_LEN=3; source $FIX/sample2.sh; for i in 1 2 3 4 5; do HOST_FAKE_NOW_US=\$((3000000 + i * 1000000)); mt_host_sample; done; read -ra h <<< \"\$MT_HH_CPU\"; echo \${#h[@]}")" = "3" ]'
+check "the histories of the server hold MT_HOST_HIST_LEN values at most (the ones of the services MT_HIST_LEN)" '[ "$(lib "MT_HOST_HIST_LEN=3; source $FIX/sample2.sh; for i in 1 2 3 4 5; do HOST_FAKE_NOW_US=\$((3000000 + i * 1000000)); mt_host_sample; done; read -ra h <<< \"\$MT_HH_CPU\"; echo \${#h[@]}")" = "3" ]'
 check "the recent maximum is the largest value of the window" '[ "$(lib "mt_max_of \"3 9 4 1\"; echo \$MT_MAXV; mt_max_of \"\"; echo \$MT_MAXV")" = "$(printf "9\n0")" ]'
 check "with no sources at all (WSL, a container) the sampler does not fail and marks them 0" \
   '[ "$(DELTACTL_PROC_ROOT=$FIX/none DELTACTL_SYS_ROOT=$FIX/none DELTACTL_MEMINFO=$FIX/none DELTACTL_LOADAVG=$FIX/none lib "MT_HOST_DETAIL=1; HOST_FAKE_NOW_US=1000000; mt_host_sample; echo \$? \${MT_SRC[cpu]} \${MT_SRC[temp]} \${MT_SRC[net]} \${MT_SRC[diskio]} \${MT_SRC[disk]} \${MT_SRC[load]} \${MT_SRC[mem]} \${MT_SRC[uptime]}")" = "0 0 0 0 0 0 0 0 0" ]'
@@ -222,7 +222,7 @@ section "9. cost: no process per reading and a bounded time per source"
 # docs/panel-pendiente.md. Best of three batches, so one busy moment of the machine does not fail it.
 fnbody() { sed -n "/^$1() {/,/^}/p" lib/adapters/host.sh; }
 check "the readers of the server start no process (no \$( ), no pipes, no external program)" \
-  'for f in host_cpu_read host_load_full_read host_uptime_read host_mem_detail_read host_temp_read host_net_read host_diskio_read host_disks_read; do ! fnbody $f | grep -vE "^\s*#" | grep -qE "\\$\\([^(]|\b(awk|sed|grep|cut|tr|cat|df|date)\b"; done'
+  'for f in host_cpu_read host_load_full_read host_uptime_read host_mem_detail_read host_temp_read host_net_read host_diskio_read host_disks_read host_pressure_read host_sockstat_read host_vmstat_read host_cg_pids; do ! fnbody $f | grep -vE "^\s*#" | grep -qE "\\$\\([^(]|\b(awk|sed|grep|cut|tr|cat|df|date)\b"; done'
 # (the behaviour of the limit and of the cache is checked with a df that really hangs, in section 10)
 check "the only process of the use of the disks is one df, behind its cache and its time limit" '[ "$(fnbody host_disk_usage_read | grep -cE "\\$\\([^(]")" = "2" ] && fnbody host_disk_usage_read | grep -q "timeout -k 1 \"\$HOST_DF_TIMEOUT\""'
 bench() { # snippet -> best average microseconds per call over three batches of 200
@@ -234,7 +234,24 @@ printf 'cpu  1000 0 1000 7000 0 0 0 0 0 0\ncpu0 500 0 500 3500 0 0 0 0 0 0\ncpu1
 netdev 1000000 500000 1000 1000
 printf '8 0 sda 100 0 2000 50 200 0 4000 80 0 10 130\n259 0 nvme0n1 10 0 800 5 20 0 1600 8 0 3 13\n' > "$FIX/proc/diskstats"
 mkdir -p "$FIX/sys/class/hwmon/hwmon0"; echo coretemp > "$FIX/sys/class/hwmon/hwmon0/name"; echo 45000 > "$FIX/sys/class/hwmon/hwmon0/temp1_input"
-for src in "host_cpu_read" "host_net_read" "host_diskio_read" "host_temp_read" "host_load_full_read" "host_mem_detail_read" "host_uptime_read" "host_disks_read"; do
+mkdir -p "$FIX/proc/pressure"
+printf 'some avg10=0.52 avg60=0.31 avg300=0.10 total=12345
+' > "$FIX/proc/pressure/cpu"
+printf 'some avg10=0.00 avg60=0.00 avg300=0.00 total=0
+full avg10=0.00 avg60=0.00 avg300=0.00 total=0
+' > "$FIX/proc/pressure/memory"
+printf 'some avg10=1.37 avg60=0.80 avg300=0.20 total=99
+full avg10=0.80 avg60=0.40 avg300=0.10 total=50
+' > "$FIX/proc/pressure/io"
+printf 'sockets: used 412
+TCP: inuse 58 orphan 1 tw 7 alloc 71 mem 5
+' > "$FIX/proc/net/sockstat"
+printf 'nr_free_pages 100
+pswpin 10
+pswpout 20
+oom_kill 1
+' > "$FIX/proc/vmstat"
+for src in "host_cpu_read" "host_net_read" "host_diskio_read" "host_temp_read" "host_load_full_read" "host_mem_detail_read" "host_uptime_read" "host_disks_read" "host_pressure_read" "host_sockstat_read" "host_vmstat_read"; do
   check "$src: under 5 ms per reading even on a loaded machine" '[ "$(bench "" "'"$src"'")" -lt 5000 ]'
 done
 rm -rf "$FIX/sys/class"
@@ -272,5 +289,31 @@ EOF
 chmod +x "$FIX/fake-df-dash"
 check "use of the disks: a capacity of - (0 blocks) is 0 %, a number, and nothing is written to stderr" \
   '[ "$(DELTACTL_DF=$FIX/fake-df-dash lib "host_disks_read; host_disk_usage_read; echo \${HOST_DISK_PCT[0]} \${HOST_DISK_PCT[1]}")" = "40 0" ]'
+
+section "11. more figures of the server: pressure, sockets, virtual memory, each disk, each interface, the processes of a container and a longer history"
+mkdir -p "$FIX/proc/pressure"
+printf 'some avg10=0.52 avg60=0.31 avg300=0.10 total=12345\n' > "$FIX/proc/pressure/cpu"
+printf 'some avg10=0.00 avg60=0.00 avg300=0.00 total=0\nfull avg10=0.00 avg60=0.00 avg300=0.00 total=0\n' > "$FIX/proc/pressure/memory"
+printf 'some avg10=1.37 avg60=0.80 avg300=0.20 total=99\nfull avg10=0.80 avg60=0.40 avg300=0.10 total=50\n' > "$FIX/proc/pressure/io"
+check "pressure: the share of the last ten seconds that tasks waited for the CPU, memory (some and full) and the disks" '[ "$(lib "host_pressure_read; echo \$HOST_PSI_CPU \$HOST_PSI_MEM \$HOST_PSI_MEM_FULL \$HOST_PSI_IO \$HOST_PSI_IO_FULL")" = "0.52 0.00 0.00 1.37 0.80" ]'
+check "pressure: a kernel without it (no /proc/pressure) is a clean failure with nothing left over" '[ "$(DELTACTL_PROC_ROOT=$FIX/none lib "host_pressure_read || echo none [\$HOST_PSI_CPU\$HOST_PSI_MEM\$HOST_PSI_IO]")" = "none []" ]'
+printf 'sockets: used 412\nTCP: inuse 58 orphan 1 tw 7 alloc 71 mem 5\nUDP: inuse 3 mem 2\nRAW: inuse 0\n' > "$FIX/proc/net/sockstat"
+check "sockets: in use, TCP in use, waiting to close and allocated" '[ "$(lib "host_sockstat_read; echo \$HOST_SOCK_USED \$HOST_SOCK_TCP \$HOST_SOCK_TW \$HOST_SOCK_ALLOC")" = "412 58 7 71" ] && [ "$(DELTACTL_PROC_ROOT=$FIX/none lib "host_sockstat_read || echo none")" = "none" ]'
+printf 'nr_free_pages 100\npswpin 10\npswpout 20\npgfault 5\noom_kill 1\nnr_other 9\n' > "$FIX/proc/vmstat"
+check "virtual memory: pages swapped and processes killed for lack of memory, and what grew since the previous reading" '[ "$(lib "host_vmstat_read; echo \$HOST_VM_SWPIN \$HOST_VM_SWPOUT \$HOST_VM_OOM [\$HOST_VM_SWAP_D]; printf \"pswpin 15\npswpout 20\noom_kill 3\n\" > $FIX/proc/vmstat; host_vmstat_read; echo \$HOST_VM_SWAP_D \$HOST_VM_OOM_D")" = "$(printf "10 20 1 []\n5 2")" ] && [ "$(DELTACTL_PROC_ROOT=$FIX/none lib "host_vmstat_read || echo none")" = "none" ]'
+printf 'nr_free_pages 100\npswpin 10\npswpout 20\noom_kill 1\n' > "$FIX/proc/vmstat"
+printf '8 0 sda 100 0 2000 50 200 0 4000 80 0 10 130\n8 16 sdb 10 0 800 5 20 0 1600 8 0 3 13\n' > "$FIX/proc/diskstats"
+check "each disk has its own speed and how busy it was (the time with requests in flight over the time between readings)" '[ "$(lib "HOST_FAKE_NOW_US=1000000; host_diskio_read; printf \"8 0 sda 100 0 4000 50 200 0 8000 80 0 510 130\n8 16 sdb 10 0 800 5 20 0 1600 8 0 3 13\n\" > $FIX/proc/diskstats; HOST_FAKE_NOW_US=2000000; host_diskio_read; echo \${HOST_DISKIO_NAME[*]} \${HOST_DISKIO_DR[*]} \${HOST_DISKIO_DW[*]} \${HOST_DISKIO_BUSY[*]}")" = "sda sdb 1024000 0 2048000 0 50 0" ]'
+check "the busy time never passes 100 % and a disk that appears later starts without figures" '[ "$(lib "HOST_FAKE_NOW_US=1000000; host_diskio_read; printf \"8 0 sda 100 0 4000 50 200 0 8000 80 0 99999 130\n8 16 sdc 10 0 800 5 20 0 1600 8 0 3 13\n\" > $FIX/proc/diskstats; HOST_FAKE_NOW_US=2000000; host_diskio_read; echo \${HOST_DISKIO_NAME[*]} \${HOST_DISKIO_BUSY[*]}")" = "sda 100" ]'
+netdev 1000000 500000 1000 1000
+check "each interface has its own speed, and an interface that is not the main one still has it" '[ "$(lib "HOST_FAKE_NOW_US=1000000; host_net_read; sed -i s/^.*wlan0.*\$/\"  wlan0: 5000 1 0 0 0 0 0 0 3000 1 0 0 0 0 0 0\"/ $FIX/proc/net/dev; HOST_FAKE_NOW_US=3000000; host_net_read; echo \${HOST_NET_IF_DN[wlan0]} \${HOST_NET_IF_UP[wlan0]}")" = "2000 1000" ]'
+mkdir -p "$FIX/cg/system.slice/docker-abc.scope"
+echo 24 > "$FIX/cg/system.slice/docker-abc.scope/pids.current"
+check "the processes in the cgroup of a container (v2); on v1 there is no such file and it says so" '[ "$(lib "host_cg_pids $FIX/cg/system.slice/docker-abc.scope 2; echo \$? \$CG_PIDS; host_cg_pids $FIX/cg/system.slice/docker-abc.scope 1; echo \$? [\$CG_PIDS]; host_cg_pids $FIX/none 2; echo \$?" | tr "\n" " ")" = "0 24 1 [] 1 " ]'
+check "the sampler reads them: the pressure every sample, the sockets and the virtual memory every MT_SLOW_EVERY, the load history and the pids of each container" '[ "$(lib "source $FIX/sample2.sh; echo \${MT_SRC[psi]} \${MT_SRC[sock]} \${MT_SRC[vm]} \$MT_HH_LOAD \$HOST_PSI_IO \$HOST_SOCK_TCP")" = "1 1 1 82 82 1.37 58" ]'
+check "a source that is not there is marked 0 and the pressure is not asked for again (until mt_reset)" '[ "$(DELTACTL_PROC_ROOT=$FIX/none DELTACTL_SYS_ROOT=$FIX/none lib "MT_HOST_DETAIL=1; HOST_FAKE_NOW_US=1000000; mt_host_sample; echo \${MT_SRC[psi]} \${MT_SRC[sock]} \${MT_SRC[vm]}; mt_reset; echo \${MT_SRC[psi]}" | tr "\n" " ")" = "0 0 0 1 " ]'
+check "the history of the server holds MT_HOST_HIST_LEN (240) values and that of a service MT_HIST_LEN (120): a fourth argument to mt_push is the limit" '[ "$(lib "echo \$MT_HOST_HIST_LEN \$MT_HIST_LEN; h=\"\"; for i in \$(seq 1 250); do mt_push \"\$h\" \$i k 240; h=\"\$MT_H\"; done; read -ra a <<< \"\$h\"; echo \${#a[@]} \${a[0]} \${MT_HN[k]}; h=\"\"; for i in \$(seq 1 130); do mt_push \"\$h\" \$i; h=\"\$MT_H\"; done; read -ra a <<< \"\$h\"; echo \${#a[@]}" | tr "
+" " ")" = "240 120 240 11 240 120 " ]'
+check "the sampler keeps the history of the server as long as the history of a wide screen needs" '[ "$(lib "MT_HOST_HIST_LEN=5; source $FIX/sample2.sh; for i in 1 2 3 4 5 6 7; do HOST_FAKE_NOW_US=\$((3000000 + i * 1000000)); mt_host_sample; done; read -ra h <<< \"\$MT_HH_CPU\"; read -ra n <<< \"\$MT_HH_NETD\"; read -ra l <<< \"\$MT_HH_LOAD\"; echo \${#h[@]} \${#n[@]} \${#l[@]}")" = "5 5 5" ]'
 
 finish

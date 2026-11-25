@@ -43,4 +43,19 @@ check "Overview columns at 120, 149, 150, 159, 160 and 200" '[ "$(ov 120)|$(ov 1
 check "the columns always add up to the width" 'for c in $(seq 120 240); do s=0; for v in $(ov "$c"); do s=$((s + v)); done; [ "$s" -eq "$c" ] || exit 1; done'
 check "every size from 0 to 60 is filled exactly, whatever the panels" 'for t in $(seq 0 60); do lay_split "$t" 7:6:9 0:6::1:1 3:2:5:2 0:0::1; s=0; for v in "${LAY[@]}"; do s=$((s + v)); done; [ "$s" -eq "$t" ] || exit 1; done'
 
+section "5. the rules of the Server view (lib/screens/server_view.sh): heights and widths"
+# The strip (3 lines, or the list of requirements), the figures (they want 14 lines and take up to 30) and the containers (a line each: they ask
+# for what their table needs and never take more, except the last panel of the screen, which takes what nobody else could).
+sv() { lay_split "$1" "${@:2}"; echo "${LAY[*]}"; }
+check "an 80x24 screen (18 lines of body): the strip, 9 lines of figures, 6 of containers" '[ "$(sv 18 3:3:3:0 14:6:44:3 7:6:7:1)" = "3 9 6" ]'
+check "a 160x40 screen (34 lines): the figures take most of what is left and the containers keep a few more than their rows" '[ "$(sv 34 3:3:3:0 14:6:44:3 12:7:16:1)" = "3 18 13" ]'
+check "the figures stop at 44 lines, the containers at what their rows need and the processes and ports at 12: the figures take what is left" '[ "$(sv 64 3:3:3:0 14:6:44:3 7:6:7:1 10:6:12:2)" = "3 42 7 12" ] && [ "$(sv 49 3:3:3:0 14:6:44:3 7:6:7:1 10:6:12:2)" = "3 27 7 12" ] && [ "$(sv 70 3:3:3:0 14:6:44:3 7:6:7:1 10:6:12:2)" = "3 44 7 16" ]'
+check "with 40 containers they keep two fifths of the body even when the figures want more" '[ "$(sv 34 3:3:3:0 14:6:44:3 44:13:44:1)" = "3 14 17" ]'
+check "with the list of requirements open it takes what it needs and the figures give way down to their minimum" '[ "$(sv 34 26:18:26:0 14:6:44:3 7:5:7:1)" = "23 6 5" ]'
+check "a body too short for everything is still filled exactly and a row that cannot hold a box is merged by the view" '[ "$(sv 12 3:3:3:0 14:6:44:3 7:6:7:1)" = "3 6 3" ]'
+check "widths of a 250-column screen: four boxes that share what is left by weight, none above its maximum" '[ "$(sv 250 50:40:100:3 40:30:60:2 40:30:60:2 44:34:90:2)" = "76 57 57 60" ]'
+check "widths of 160 columns: three boxes, then the network and the containers; every row adds up to the width" 'for c in 120 160 199 200 250 300; do for spec in "48:40:100:3 38:30:70:2 40:30:70:2" "40:34:48:1 0:60::3" "50:40:100:3 40:30:60:2 40:30:60:2 44:34:90:2"; do s=0; for v in $(sv "$c" $spec); do s=$((s + v)); done; [ "$s" -eq "$c" ] || exit 1; done; done'
+check "a box never gets more than its maximum while another can take it (cpu 100, memory and disks 60) up to 300 columns" 'for c in 200 250 300; do w=($(sv "$c" 50:40:100:3 40:30:60:2 40:30:60:2 44:34:90:2)); [ "${w[0]}" -le 100 ] && [ "${w[1]}" -le 60 ] && [ "${w[2]}" -le 60 ] || exit 1; done'
+
+
 finish

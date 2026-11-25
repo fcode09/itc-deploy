@@ -10,7 +10,7 @@ Un panel de una sola pantalla (`./deltactl` en una terminal, o `./deltactl menu`
   reinicios, memoria y CPU con barra y tendencia, errores de los últimos 10 min, siguientes pasos) y el panel de salida del último comando.
 - **Recursos**: todos los servicios de todas las instancias con memoria, CPU, tendencia, reinicios y tiempo activo; orden con `s`.
 - **Salida**: el último comando. Los que tienen forma (`new`, `check`, `deploy`, `init`, `doctor`, `images`, `env`, `rollback`, `adopt`) se muestran como resumen (ver «El resumen de la Salida» abajo); `v` alterna con la salida cruda, que es la que se ve siempre para cualquier otro comando. Desplazamiento (`↑↓`, PgUp/PgDn, Home/End), `f` para seguir y `e` solo errores (siempre sobre la salida cruda).
-- **Ejecuciones** (`4`): el historial de las operaciones que cambian algo (`lib/core/runs.sh`). Lista (las que están en curso primero,
+- **Ejecuciones** (`5`): el historial de las operaciones que cambian algo (`lib/core/runs.sh`). Lista (las que están en curso primero,
   luego las más nuevas), y de la seleccionada: estado y código, comparación con la anterior correcta de la misma operación y con la
   media de las cinco anteriores (duración, CPU, docker, memoria pico), consumo, contenedores antes y después y el final de su salida
   (PgUp/PgDn desplazan el detalle). `t` da las estadísticas por operación (`s` las limita a una instancia) y `Enter` abre su salida
@@ -24,7 +24,7 @@ Un panel de una sola pantalla (`./deltactl` en una terminal, o `./deltactl menu`
   Con el foco en los logs: `Espacio` pausa y reanuda (el título cuenta las líneas que esperan), `f` o `Fin` vuelven al final, `e` deja solo
   errores y avisos, `/` filtra por texto, `s` busca (resalta, `[` y `]` saltan a la coincidencia anterior o siguiente). Si lees líneas
   antiguas la vista se queda quieta, como siempre.
-- **Procesos** (`5`): el árbol vivo del comando en curso (PID, memoria, línea de comandos; la suma no cuenta el proceso que espera,
+- **Procesos** (`6`): el árbol vivo del comando en curso (PID, memoria, línea de comandos; la suma no cuenta el proceso que espera,
   igual que `runs show`) y lo que cuesta el propio panel (memoria, CPU ahora y de media, procesos que ha lanzado, p. ej. `docker events`).
   Mientras corre un comando, la cabecera lleva una tarjeta (`N proc · X MB`) y las pestañas inactivas se reducen a su número si falta sitio.
 
@@ -58,7 +58,7 @@ imágenes) → `perf(panel)` (segundo plano, dibujo rápido, caché del cuerpo).
   `~/.config/deltactl/config` que `UI_LANG` y `UI_THEME` (`TUI_SAMPLE`, `TUI_REFRESH`, `TUI_VIM=on|off`), con escritura atómica
   (`set_var`). `DELTACTL_THEME`, `DELTACTL_LANG`, `DELTACTL_METRICS_INTERVAL` y `DELTACTL_REFRESH` siguen mandando al arrancar, y la
   pantalla lo indica. Un valor del archivo que no sea un número dentro de su rango se ignora (vale el de por defecto).
-- **Consola a pantalla completa** (vista `6 Consola`): la misma consola de la vista Instancias ocupando todo el cuerpo. `6` (o
+- **Consola a pantalla completa** (vista `7 Consola`): la misma consola de la vista Instancias ocupando todo el cuerpo. `7` (o
   `goto console`, o un clic en la pestaña) la abre con la línea lista para escribir y, tras cada orden, la línea sigue lista, como en
   un terminal; las órdenes se quedan en la consola en vez de abrir Salida. Esc suelta el teclado (↑↓, PgUp/PgDn casi una pantalla e
   Inicio/Fin recorren lo escrito; Enter o `:` vuelven a escribir) y otra Esc vuelve a Instancias. Tab llega a ella desde Procesos sin
@@ -93,6 +93,10 @@ imágenes) → `perf(panel)` (segundo plano, dibujo rápido, caché del cuerpo).
   de modo que siempre se llena el total. Se verificó con 990 fotogramas (11 anchos x 9 altos x varios escenarios) antes y después
   del cambio: idénticos. El reparto interno del centro (tabla, gráficos de altura `2*R+5`, siguientes pasos y logs) sigue en su
   panel porque sus alturas van a saltos.
+  La vista Servidor lo usa en tres niveles (`scr_server_render`, `dash_srv_widths`): las alturas de las filas (la tira, las cajas de cifras que piden 14 y
+  llegan a 44, los contenedores que piden lo que sus filas necesitan y nunca menos de dos quintos si son muchos), los anchos de las cajas de una fila (cada una
+  con un máximo; la última toma lo que nadie pueda) y la clase de pantalla —ancha, media o estrecha— que decide qué cajas van en cada fila. Probado en
+  `tests/test-layout.sh`, sección 5.
 - **Caché por panel**: la lista, el servidor, el centro (tabla, gráficos y siguientes pasos) y el detalle de la vista compacta se
   guardan con la firma del estado del que dependen (estado de Docker, cifras, errores, selección, foco, tamaño, tema e idioma) y
   se reutilizan mientras no cambie; los logs y los eventos ya tenían la suya. Un fotograma tras una línea de log o una tecla
@@ -443,8 +447,8 @@ sigue a un guardado y las marcas «sin desplegar».
 
 ## La vista Actividad
 
-`lib/screens/activity.sh` (vista `activity`, la décima: se abre con `0`) y los textos `lib/i18n/{es,en}/activity.sh`. Junta lo que hacían Salida (3), Ejecuciones (4) y
-Procesos (5): a la izquierda una lista de operaciones (el último comando de **este panel** primero, marcado «este panel», y con el cursor en él al abrir la vista mientras corre o si terminó hace menos de dos minutos; luego las que están en marcha en cualquier
+`lib/screens/activity.sh` (vista `activity`, la décima: se abre con `0`) y los textos `lib/i18n/{es,en}/activity.sh`. Junta lo que hacían Salida (4), Ejecuciones (5) y
+Procesos (6): a la izquierda una lista de operaciones (el último comando de **este panel** primero, marcado «este panel», y con el cursor en él al abrir la vista mientras corre o si terminó hace menos de dos minutos; luego las que están en marcha en cualquier
 terminal y las recientes de todas las instancias, como las listaba Ejecuciones) y, a la derecha, un panel con cuatro pestañas para la operación elegida:
 
 | Pestaña | Qué enseña |
@@ -502,46 +506,94 @@ columnas la línea de pestañas enseña solo el número de las que no están abi
 
 ## La vista Servidor y la barrera de primer arranque
 
-`lib/screens/server.sh` (vista `server`, 7) y `lib/screens/srvask.sh` (modo `srvask`, la pregunta). Se construyen con el kit (`kit_box` con chips y
-pie, `kit_graph` y `kit_graph_mirror`, `kit_meter`, `kit_leader`, `kit_table`, `kit_state_icon`, `kit_overlay` para la caja de los núcleos sobre la
-gráfica de CPU) y con el motor de reparto (`lay_split`: las filas y las columnas se recomponen a 80, 120 y 160 columnas; lo que no cabe se quita, la
-segunda fila primero).
+`lib/screens/server.sh` (vista `server`, 1: **la primera, con la que se abre el panel**; los requisitos, los avisos y la tira), `lib/screens/server_boxes.sh`
+(las cajas de cifras y de contenedores), `lib/screens/server_ps.sh` (los procesos y los puertos), `lib/screens/server_view.sh` (el reparto, el foco, las
+teclas, el ratón y el trabajo en segundo plano) y `lib/screens/srvask.sh` (modo `srvask`, la pregunta). Se construyen con el kit (`kit_box` con chips y
+pie, `kit_graph_cached`, `kit_meter`, `kit_leader`, `kit_table`, `kit_state_icon`) y con el motor de reparto (`lay_split`).
 
-- **Requisitos**: `prereq_run_all` corre en un trabajo en segundo plano (`dash_async prereq`, como el estado de Docker y los logs: una comprobación
-  puede preguntar a Docker o abrir un TCP) y el resultado vuelve como líneas `declare -p` de las variables `PR_*` (solo esas se cargan). En el modo
-  de prueba (`DELTACTL_TUI_KEYS`) es síncrono. Se repite cada 2 minutos mientras la vista está a la vista (cuesta ~0,35 s de procesos) y con `R`.
-- **Cifras**: `MT_HOST_DETAIL=1` solo mientras la vista es la actual (`scr_server_tick`); elegir la vista pide la primera muestra al instante.
+**Arranque**: `dash_start_view` (`lib/cmd/dashboard.sh`) abre la primera vista registrada o la que diga `DELTACTL_TUI_START` (un id de vista);
+`tests/run.sh` lo exporta como `instances` para que las suites que se escribieron cuando la primera vista era Instancias sigan empezando ahí
+(`tests/test-server.sh` lo quita para comprobar el arranque real). Esc desde otra vista vuelve a la primera (Servidor) y desde Servidor sale del panel.
+`dash_srv_after_apply` solo salta a Servidor si la vista actual es la de arranque y no es Servidor (el caso de las suites con `DELTACTL_TUI_START`).
+
+**Antes y después de los requisitos.** Antes: 14 filas fijas, siempre, con los 9 requisitos en una columna (o en dos desde 120 columnas) y, por debajo y
+sin separación, líneas sueltas dentro de las mismas columnas (para qué sirve, resultado, comando, enlace), de modo que con 9/9 listos ocupaban el
+mismo sitio que con 3 fallos y el detalle de una fila se mezclaba con las filas de al lado. Ahora: una **tira** de 3 filas (`9/9 listos · 2
+recomendados pendientes`, las constantes vitales y el aviso que hay) mientras todo lo obligatorio está en orden; si algo obligatorio falla o avisa
+(`dash_srv_expanded`), o con Enter, se abre una **lista** agrupada en obligatorios y recomendados (cada grupo con cuántos están listos), con lo que falla
+primero y un resultado resumido por fila que acaba en `…` cuando no cabe, y debajo, separado por una línea con el estado y el nombre del elegido, el
+**detalle** en una zona aparte con etiquetas en columna (*Para qué*, *Resultado*, *Cómo*, *Más información*): lo que no cabe se quita por bloques
+enteros (nunca a medias) y el resultado entero siempre está ahí. La lista pide solo lo que necesita (`dash_srv_need`) y las cajas de cifras ceden
+hasta 6 filas; con la lista cerrada todo el sitio es de las cifras.
+
+- **Reparto** (`scr_server_render`, `dash_srv_widths`): por ancho, `L` (200 columnas o más) pone cpu · memoria · discos · red en una fila y los contenedores
+  a todo el ancho; `M` (120 a 199) cpu · memoria · discos y luego red · contenedores; `N` (menos de 120) cpu · memoria y los contenedores (con 38 filas de
+  cuerpo, una fila más con disco · red), sin dejar el bloque de red desperdiciado; desde 49 filas de cuerpo (55 de terminal) una fila más con procesos y
+  puertos. Cada fila pide lo que su contenido necesita (los contenedores, una fila por servicio más la cabecera y los bordes; las cifras, 14 y hasta 44), cada
+  caja tiene un máximo de ancho (cpu 100, memoria y discos 60 a 70, red 48 a 90) y lo que nadie puede tomar va al último panel (`lay_split`, probado en
+  `tests/test-layout.sh`, sección 5). Con muchos servicios los contenedores conservan al menos dos quintos del cuerpo. Los espacios muertos de antes venían
+  de que `lay_split` da el alto que sobra a la última fila y de que las gráficas (120 muestras, alineadas a la derecha) y la caja de núcleos (31 celdas
+  fijas) no crecían con la pantalla.
+- **Requisitos**: `prereq_run_all` corre en un trabajo en segundo plano (`dash_async prereq`) y el resultado vuelve como líneas `declare -p` de las
+  variables `PR_*` (solo esas se cargan). En el modo de prueba (`DELTACTL_TUI_KEYS`) es síncrono. Se repite cada 2 minutos mientras la vista está a la
+  vista (cuesta ~0,35 s de procesos) y con `R`. Estado: `DASH_SRV_REQ` (`auto`: se abre sola si falla algo obligatorio; `open`: abierta con Enter).
+- **Avisos** (`dash_srv_alerts`, una función pura sobre las cifras que ya están en memoria, sin leer nada): umbrales fijos que mueven
+  `DELTACTL_ALERT_DISK_WARN` (85), `_DISK_ERR` (95), `_MEM_AVAIL` (10 %; por debajo de la mitad es error), `_SWAP` (50), `_LOAD_PCT` (100 % de los núcleos) y
+  `_TEMP_MARGIN` (10 grados bajo el límite del sensor); un contenedor con error o aviso (no los «no creado») y la hora sin sincronizar. Salen en la tira, y
+  `DASH_SRV_AL[caja]` da el peor color al borde de la caja afectada. `DASH_SRV_ALKEY` entra en la clave de las cajas.
+- **Cajas y memo**: cada caja es `dash_srv_<nombre> ancho alto` y tiene su `dash_srv_key_<nombre>` con TODO lo que dibuja; se reconstruye solo si la
+  clave (más el tamaño, el idioma, el tema, el foco, el zoom y su aviso) cambia. Las gráficas son `kit_graph_cached` (una muestra nueva mueve una celda).
+  `scr_server_sig` lleva todo el estado nuevo (foco, zoom, cursores, orden, estados de `ps` y `ss`).
+- **Foco, zoom y teclas** (`DASH_SRV_FOCUS`, `DASH_SRV_PZ`, `scr_server_tab`, `scr_server_key`): Tab y Mayús+Tab recorren las cajas a la vista; `z` zoom
+  (`DASH_SRV_ZM=1` mientras se dibuja: todos los núcleos, todos los montajes y discos, todas las interfaces, todas las columnas de los contenedores con
+  sus procesos); `m` solo cifras; en los contenedores ↑↓, Enter (la función compartida `dash_res_open_key` de `resources.sh`), `l`, `s` (`DASH_RES_SORT`), `h`.
+  Las teclas de la última línea son las de la caja con foco (`DASH_KEYS[server_<caja>]`).
+- **Ratón** (`scr_server_click`, `scr_server_wheel`; apagado por defecto): `DASH_SRV_RECT[caja]` (x y ancho alto) se guarda al dibujar; un clic da el foco, el
+  segundo clic en una fila hace lo que Enter, un clic en la tira abre la lista, la rueda mueve el cursor de la caja con foco.
+- **Cifras nuevas** (`lib/adapters/host.sh`, solo lecturas de Bash sin procesos; `MT_SRC[fuente]=0` y «no disponible» cuando falta la fuente):
+  historial de la carga (`MT_HH_LOAD`), E/S y ocupación de cada disco (`HOST_DISKIO_NAME/DR/DW/BUSY`, de la columna «tiempo con peticiones»), velocidad de
+  cada interfaz (`HOST_NET_IF_DN/UP`), presión del kernel (`host_pressure_read`, `/proc/pressure/*`), sockets (`/proc/net/sockstat`), memoria virtual
+  (`/proc/vmstat`: swap y OOM, cada `MT_SLOW_EVERY`=5 muestras) y procesos de cada cgroup (`pids.current`, v2). El historial del servidor es de
+  `MT_HOST_HIST_LEN`=240 muestras (`mt_push` recibe el límite como cuarto argumento); el de un servicio sigue en 120.
+- **`ps` y `ss`** (`server_ps.sh`): en segundo plano (`dash_async`), solo mientras la caja está a la vista y la vista es la actual, cada 5 s (`ps`) y 15 s (`ss`)
+  (`DELTACTL_PS_TTL` y `DELTACTL_SS_TTL`, entre 5 y 60), con `timeout -k 1 3` y `NA` cuando el programa falta o no contesta; `ss` se cruza con los puertos
+  de las instancias (`DSV_PORT`). Quedan fuera los certificados y los inodos. En el modo de prueba son síncronos; `DELTACTL_PS` y `DELTACTL_SS`
+  (solo dentro de los tests) cambian el programa.
 - **Copiar y ejecutar**: `dash_srv_copy` (`wl-copy`, `xclip`, `xsel`, `pbcopy`, OSC 52) y `dash_srv_terminal`, que solo llama el modo `srvask` tras un
-  `y`. Nada instala por su cuenta. Variables de prueba: `DELTACTL_CLIP` (un comando que lee el texto por su entrada, en vez de tocar el portapapeles),
-  `DELTACTL_PR_SHELL` (el intérprete del comando, en vez de `bash`: los tests ponen un script que solo anota qué se le pidió) y `DELTACTL_DF`:
-  las tres solo se respetan dentro de los tests (`DELTACTL_TEST_ISOLATED=1`, que exporta `tests/run.sh`), para que una variable heredada por
-  casualidad no cambie qué programa ejecuta un comando confirmado. El comando se muestra entero o no se muestra: si no cabe en la ventana
-  (URL larga en una terminal estrecha, terminal baja), la ventana pide agrandarla y `y` no ejecuta nada. Un requisito que espera a otro (el
-  daemon de un Docker sin instalar) o que aún no tiene respuesta no ofrece comando para copiar ni ejecutar.
-- **Primer arranque**: `dash_srv_startup` pide la comprobación al arrancar; con un obligatorio en `err` abre la vista Servidor y avisa una vez
-  (`dash_srv_after_apply`). `dash_open_new` (el único punto por el que se abre el formulario de nueva instancia) llama a `dash_srv_blocking` y, si
-  falta algo y la persona no ha dicho que siga, abre `srvask` en vez del formulario. La opción `TUI_PREREQ=on|off` (Opciones) lo apaga y enciende.
-  En el modo de prueba el arranque no comprueba nada salvo con `DELTACTL_TUI_GATE=1`: así las demás pruebas no abren en esta vista por lo que le
-  falte a la máquina donde corren.
-- **Pruebas**: `tests/test-server.sh`; las escenas con datos fijos (`tests/tools/server_scenes.sh`: ok, missing, open, zoom, na, loading) son las
-  instantáneas de `tests/golden/server/` (`DELTACTL_GOLDEN=record` las regraba). `tests/tools/sim_env.sh` tiene `sim_host`, un servidor simulado
-  (CPU, red, discos y sensor en un `/proc` y un `/sys` falsos) con `sim_host_tick` para moverlo.
-- **Capturas**: `tests/tools/pty_shot.py` (un PTY real; `DELTACTL_SHOT_ALL=1` copia todas las instancias de un servidor simulado) y
-  `tests/tools/shot_png.py` (Pillow) dibujan el resultado como PNG; también acepta un fotograma con colores de una escena
-  (`DELTACTL_COLOR=always COLORTERM=truecolor`) para ver el diseño sin esperar a que las gráficas se llenen.
+  `y`. Nada instala por su cuenta. Variables de prueba: `DELTACTL_CLIP`, `DELTACTL_PR_SHELL` y `DELTACTL_DF`: las tres solo se respetan dentro de los tests
+  (`DELTACTL_TEST_ISOLATED=1`, que exporta `tests/run.sh`), para que una variable heredada por casualidad no cambie qué programa ejecuta un comando
+  confirmado. El comando se muestra entero o no se muestra: si no cabe en la ventana, la ventana pide agrandarla y `y` no ejecuta nada. Un requisito que
+  espera a otro o que aún no tiene respuesta no ofrece comando para copiar ni ejecutar.
+- **Primer arranque**: `dash_srv_startup` pide la comprobación al arrancar; con un obligatorio en `err` la lista se abre sola y avisa una vez
+  (`dash_srv_after_apply`). `dash_open_new` llama a `dash_srv_blocking` y, si falta algo y la persona no ha dicho que siga, abre `srvask` en vez del
+  formulario. La opción `TUI_PREREQ=on|off` (Opciones) lo apaga y enciende. En el modo de prueba el arranque no comprueba nada salvo con
+  `DELTACTL_TUI_GATE=1`.
+- **Pruebas**: `tests/test-server.sh` (las 13 escenas de `tests/tools/server_scenes.sh` —ok, missing, open, zoom, na, loading, alert, ok-open,
+  focus-containers, zoom-cpu, many-cores, many-containers, wide— a los tamaños de cada una, de 80x24 a 250x70, son las instantáneas de
+  `tests/golden/server/`; `DELTACTL_GOLDEN=record` las regraba), `tests/test-metrics.sh` (las lecturas nuevas y su coste) y `tests/test-layout.sh`.
+  `tests/tools/sim_env.sh` tiene `sim_host`, un servidor simulado con `sim_host_tick` para moverlo.
+- **Capturas**: `tests/tools/pty_shot.py` y `tests/tools/shot_png.py` (Pillow) dibujan el resultado como PNG; también acepta un fotograma con colores de una
+  escena (`DELTACTL_COLOR=always COLORTERM=truecolor`).
 
-**Consumo de la vista Servidor** (simulado: `bench_frames.sh` y un PTY real contra Docker y host simulados, 12 instancias, máquina con poca carga; son cifras de
-esta máquina, no del WSL de las medidas anteriores). Fotograma con la firma sin cambios (solo se vuelve a pintar): 7, 12 y 16 ms a 80x24, 120x30 y
-160x40 (en el modo de prueba pinta todas las líneas; el panel real solo las que cambian). Con una muestra nueva: 5, 9 y 12 ms si las cifras no se
-movieron (cada recuadro se guarda mientras su clave —las cifras que dibuja, el tamaño, el idioma y el tema— no cambia) y 24, 38 y 55 ms **con la lectura
-del host incluida** si el servidor se mueve (todo se dibuja de nuevo). CPU en reposo durante 40 s a 160x40: Instancias 2,4 %, Servidor 3,7 % con el
-host moviéndose y 3,2 % con el host quieto (+1,2 y +0,8 puntos); a 120x30, 2,2 % y 2,7 % con el host moviéndose (+0,5). Lo que más costaba era la comprobación de requisitos (≈0,35 s de procesos: cada 30 s
-sumaba unos 2 puntos): por eso se repite cada 2 minutos. El presupuesto del diseño (≤ 1,5 % en cualquier vista, ≤ 45 ms sin caché a 160x40) **no se cumple
-del todo con un servidor que se mueve** (55 ms, +1,2 puntos); lo que queda es el coste de `kit_box` (≈ 2 ms por recuadro) y de pintar las gráficas por fila.
-`TUI_SAMPLE` en Opciones (5 s) lo reduce a la mitad.
+**Consumo de la vista Servidor.** Medido con `tests/tools/bench_frames.sh` (`BENCH_ONLY=server BENCH_SIZES="..." BENCH_INSTANCES=4`, host simulado, 240 muestras de historial)
+**en esta máquina de desarrollo (Windows con Git Bash, donde cada archivo abierto y cada proceso cuestan varias veces lo que en Linux)**; sirven para comparar
+antes y después en la misma máquina, no como cifras absolutas. Antes (HEAD, la vista como estaba) / ahora, en ms: fotograma sin caché con la firma igual
+(`dash_render`, modo de prueba): 159 / 180 a 80x24, 560 (ruido) / 202 a 120x30 y 246 / 227 a 160x40; con una muestra nueva y el servidor moviéndose
+(`sample + render, busy`): 201 / 231, 480 / 291 y 303 / 295; `mt_sample` sin y con las cifras del host: 23 → 53 antes y 25 → 65 ahora a 80x24, 24 → 55 y
+21 → 63 a 160x40. Los tamaños nuevos: 200x55 303 ms (idle) y 444 (busy); 250x70 363 y 520. El fotograma a 160x40 no empeora (la caja de
+núcleos al lado de la gráfica, el eje de tiempo y las cajas nuevas se pagan con el memo por clave y `kit_graph_cached`), pero **el presupuesto de ≤ 45 ms
+sin caché a 160x40 no se puede comprobar con estas cifras** (lo medido en Linux antes era ~55 ms; aquí la máquina es ~4-5 veces más lenta): hay que
+repetir el banco en el servidor real. Las lecturas nuevas del host (presión, sockets, memoria virtual, E/S por disco, velocidad por interfaz, `pids.current`)
+suman unos 11 ms por muestra aquí sobre ~30 ms de las que ya había.
 
-Límites: con siete vistas, a 80 columnas la línea de pestañas deja solo el número de las que no están activas; hasta 120 columnas la vista no
-dibuja la caja de contenedores (la vista Recursos sigue siendo la tabla completa).
+**Muestrear el host con la vista fuera de pantalla: no se activa.** La condición era < 0,3 puntos de CPU extra, es decir menos de ~6 ms por muestra de 2 s;
+`mt_sample` con las cifras del host cuesta ~30 ms más que sin ellas antes del cambio y ~40 ms más ahora en esta máquina (≈ 1,5 a 2 puntos), así que
+`DASH_SRV_ALWAYS=0` (lectura solo mientras la vista Servidor es la actual, como antes) y el historial puede tener huecos mientras se mira otra vista.
+Para activarlo basta poner `DASH_SRV_ALWAYS=1` en `scr_server_tick` una vez medido en el servidor real y ver la prueba «the figures of the server are read
+only while the view is current», que hay que cambiar a `111`.
+
+Límites: con diez vistas, a 80 columnas la línea de pestañas deja solo el número de las que no están activas; la caja de contenedores se dibuja desde
+80 columnas (compacta), y el reparto completo (cuatro cajas en una fila) pide 200.
 
 ## Cómo probar
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC2034,SC2154  # the DASH_* variables (DASH_KEYS, TUI_CURSOR...) are declared in lib/cmd/dashboard*.sh and shared by every screen
-# Screen: Console (view 6). The console of the Instances strip over the whole body. The key 6 gives the line the keyboard at once;
+# Screen: Console (view 7). The console of the Instances strip over the whole body. The key 7 gives the line the keyboard at once;
 # Tab only shows the view. Loaded by lib/screens/registry.sh.
 
 source "$ROOT/lib/screens/console_alias.sh"
@@ -42,7 +42,7 @@ dash_prompt_name() {
   if [ "$DASH_ON_NEW" -eq 0 ] && [ "${#DASH_NAMES[@]}" -gt 0 ]; then DASH_PN="${DASH_NAMES[$DASH_SEL]}"; else DASH_PN="deltactl"; fi
 }
 
-# --- The Console view (6): the same console, over the whole body. The key 6 (and `goto console`) give the line the keyboard at
+# --- The Console view (7): the same console, over the whole body. The key 7 (and `goto console`) give the line the keyboard at
 # once; Tab only shows the view. Without the keyboard, the arrows and PgUp/PgDn move along the transcript and Enter or : type.
 dash_open_console() {
   DASH_VIEW=console DASH_MODE=cmd DASH_BUF="" DASH_CUR=0 DASH_HIDX="${#DASH_HIST[@]}"
@@ -173,7 +173,7 @@ dash_complete() {
     1)
       case "${toks[0]:-}" in
         theme) pool=("${TH_THEMES[@]}") ;;
-        goto | view) pool=(instances resources output runs procs console server images env activity) ;;
+        goto | view) pool=(server instances resources output runs procs console images env activity) ;;
         alias | unalias) pool=(${DASH_ALIAS_NAMES[@]+"${DASH_ALIAS_NAMES[@]}"}) ;;
         *) pool=("${DASH_NAMES[@]}") ;;
       esac

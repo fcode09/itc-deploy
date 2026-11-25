@@ -1,25 +1,25 @@
 === frame 1 ===
-  ITC  testhost · Memoria ███░░░ 5.6/11.5 GB 48% ▆▃▁▄▂▁ · Carga 3.18
-  1   2   3   4   5   6  [7 Servidor]  8   9   0                               
+  ITC  testhost · Memoria ███░░░ 5.6/11.5 GB 48% ▂▁▄▂▁▄ · Carga 3.18
+ [1 Servidor]  2   3   4   5   6   7   8   9   0                               
 ╭─┐ ▸requisitos ┌─────────────────────────────────────────────────┐9/9 listos┌─╮
-│   OBLIGATORIOS                                                               │
-│ ▸ ● Docker Engine                   Docker 27.0.0 (arquitectura amd64)       │
-│   ● Acceso al daemon de Docker      El daemon de Docker responde             │
-│   ● Docker Compose 2.20 o superior  Docker Compose 2.30.0                    │
-│   ● Disco libre                     Disco libre en /var/lib/docker: 171.1 GB │
-│   ● Memoria                         Memoria: 11776 MB en total, 6022 MB disp │
-│   └ Para qué: Ejecuta los servicios de cada instancia en contenedores.       │
-│   └ Más información: https://docs.docker.com/engine/install/                 │
-╰─┘Enter detalle└─┘c copiar└─┘! ejecutar└─┘m métricas└─────────────────────────╯
+│  disco / 86% · carga 3.18↗ · 8 núcleos · ▲ 2 avisos: disco / al 86%          │
+╰─┘Enter ampliar└─┘R comprobar└─┘m métricas└───────────────────────────────────╯
 ╭─┐cpu┌─────────────────────────────┐61°C┌─╮╭─┐memoria┌──────────────────┐48%┌─╮
 │ CPU ▕█████████▌░░░░░░░░░░░░░░░░▏ 37%     ││ Usada ················· 5.61 GiB │
-│ Carga 3.18 2.64 1.97 · 8 núcleos         ││ ████████████▉░░░░░░░░░░░░░░  48% │
-│             ⡀⢠                       ⡀   ││ Disponible ············ 5.88 GiB │
-│  ⢀          ⡇⢸          ⢸          ⢸ ⡇   ││ Total ··················· 11 GiB │
-│  ⢸     ⢀ ⡄⢠ ⣿⢸⡇   ⢀ ⡀⢀ ⣶⢸⡆      ⢠ ⡄⢸⡇⡇⢰  ││ Caché ················· 4.00 GiB │
-│ ⣤⢸⡆⡆⢸ ⡇⢸⡀⡇⢸ ⣿⣾⡇⢸ ⡆⢸ ⡇⢸⡀⣿⣸⣷⢰ ⡆⢸ ⡇⢸ ⡇⣸⣧⣧⢸⡄ ││ Libre ················· 1.00 GiB │
-│ ⣿⣼⣧⣇⢸⡆⣷⢸⡇⣿⢸⡇⣿⣿⡇⢸⡄⣧⢸⡆⣿⢸⡇⣿⣿⣿⢸⡀⣇⢸⡆⣧⢸⡇⣿⣿⣿⣿⢸⣧ ││ Swap ·················· 4.00 GiB │
-│ ⣿⣿⣿⣿⣸⣇⣿⣸⣷⣿⣾⣿⣿⣿⣿⣸⣇⣿⣸⣧⣿⣼⣿⣿⣿⣿⣸⣇⣿⣸⣇⣿⣸⣷⣿⣿⣿⣿⣿⣿ ││ ███▏░░░░░░░░░░░░░░░░░░░░░░░  12% │
+│ Carga 3.18↗ 2.64 1.97 · 0.39/núcleo · 8  ││ █████████████▒▒▒▒▒▒▒▒▒░░░░░  48% │
+│            ⢀          ⢀                  ││ Disponible ············ 5.88 GiB │
+│ ⢠ ⡄⢠      ⣇⢸ ⡀⢠ ⡄⢰   ⣇⢸⡀⡀⢠ ⡄    ⢀⢸  ⢀ ⡀⢠ ││ Total ··················· 11 GiB │
+│ ⣼⡄⣧⢸⡆⢰ ⣆⢸⢀⣿⣼⡀⣧⢸⡆⣷⢸⡇⢸ ⣿⣸⡇⣇⢸⡄⣧ ⡆⢰ ⣿⣸⡇⣧⢸⡀⣇⢸ ││ Caché ················· 4.00 GiB │
+│ ⣿⣧⣿⣾⣷⣸⣇⣿⣸⣿⣿⣿⣧⣿⣼⣷⣿⣾⣿⣸⣇⣿⣿⣇⣿⣾⣧⣿⣄⣷⣸⣆⣿⣿⣿⣿⣼⣧⣿⣾ ││ Libre ················· 1.00 GiB │
+│ -2 min ─────────────────────────── ahora ││ Swap ·················· 4.00 GiB │
+│ mín 0% · media 39% · máx 86%             ││ +2 más                           │
 ╰──────────────────────────────────────────╯╰──────────────────────────────────╯
+╭─┐contenedores┌─────────────────────────────────────────────────────────┐4/4┌─╮
+│ SVC    INSTANCIA          ESTADO          CPU MEMORIA                        │
+│   s0   colorado           ● healthy      3.7% 196M/512M                      │
+│   s1   colorado           ● healthy     41.2% 1.1G/2.0G                      │
+│   s0   piura              ● healthy      2.5% 180M/512M                      │
+│   s1   piura              ▲ unhealthy   87.3% 1.7G/2.0G                      │
+╰──────────────────────────────────────────────────────────────────────────────╯
 
- ↑↓ elegir · Enter detalle · m métricas · c copiar · ? ayuda · q salir
+ Enter ampliar · Tab otro panel · z zoom · m métricas · ? ayuda · q salir
