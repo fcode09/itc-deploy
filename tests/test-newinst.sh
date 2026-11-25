@@ -127,7 +127,7 @@ check "Up goes back to new" 'panel n enter enter enter enter down up | last_fram
 
 section "7. the way around"
 check "Esc goes back one step at a time, and Enter forward" 'panel n enter enter esc | last_frame | grep -q "Paso 2 de 8" && panel n enter enter esc esc | last_frame | grep -q "Paso 1 de 8"'
-check "on the first step Esc with nothing chosen cancels at once, back on the instances" 'f="$(panel n esc | last_frame)"; echo "$f" | grep -q "Cancelado" && echo "$f" | grep -q "\[1 Instancias\]"'
+check "on the first step Esc with nothing chosen cancels at once, back on the instances" 'f="$(panel n esc | last_frame)"; echo "$f" | grep -q "Cancelado" && echo "$f" | grep -q "\[2 Instancias\]"'
 check "...and with something chosen it asks once: a second Esc cancels, any other key keeps the wizard" 'a="$(panel n $(typed nz-x) esc | last_frame)"; b="$(panel n $(typed nz-x) esc esc | last_frame)"; c="$(panel n $(typed nz-x) esc $(typed y) | last_frame)"; echo "$a" | grep -q "Esc otra vez cancela" && echo "$b" | grep -q "Cancelado" && echo "$c" | grep -q "Paso 1 de 8" && ! echo "$c" | grep -q "Esc otra vez"'
 check "the digits jump to a step already visited" 'panel n enter enter enter 2 | last_frame | grep -q "Paso 2 de 8" && panel n enter enter enter 1 | last_frame | grep -q "Paso 1 de 8"'
 check "...but not to one that was not reached yet" 'panel n enter 4 | last_frame | grep -q "Paso 2 de 8"'

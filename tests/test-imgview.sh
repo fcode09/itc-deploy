@@ -167,7 +167,7 @@ check "on a tag that moves the line warns that it cannot take you back" 'panel 8
 check "space opens the detail and Esc closes it before leaving the view" 'o="$(panel 8 space)"; echo "$o" | last_frame | grep -q "ID a1aaaaaaaaaa" && o="$(panel 8 space esc)" && echo "$o" | last_frame | grep -q "\[8 Imágenes\]" && ! echo "$o" | last_frame | grep -q "ID a1aaaaaaaaaa"'
 check "a second Esc goes to the first view (the Server view)" 'panel 8 esc | last_frame | grep -q "\[1 Servidor\]"'
 check "home and end go to the first and the last version" 'panel 8 end | last_frame | grep -q "2.9.0 ★" && panel 8 end home | last_frame | grep -q "arquitectura arm64"'
-check "the tab key and the digits reach the view from the others" 'panel 7 tab | last_frame | grep -q "\[8 Imágenes\]" && panel 2 8 | last_frame | grep -q "⁸imágenes"'
+check "the tab key and the digits reach the view from the others" 'panel 9 btab | last_frame | grep -q "\[8 Imágenes\]" && panel 2 8 | last_frame | grep -q "⁸imágenes"'
 rm -f "$FIX/clip.txt"
 check "c copies the reference (image:tag) of the version, and says so" 'o="$(DELTACTL_CLIP="cat > $FIX/clip.txt" panel 8 c)"; [ "$(cat "$FIX/clip.txt")" = "auth-backend:2.14.1" ] && echo "$o" | last_frame | grep -q "Copiado: auth-backend:2.14.1"'
 check "c with no clipboard says what to copy by hand" 'o="$(DELTACTL_CLIP=false panel 8 c)"; echo "$o" | last_frame | grep -q "No se pudo copiar.*auth-backend:2.14.1"'

@@ -1,6 +1,6 @@
 === frame 1 ===
 
-  1   2  [3 Salida]  4   5   6   7   8   9   0  ✖ ./deltactl deploy sim-01 term
+  1   2   3  [4 Salida]  5   6   7   8   9   0  ✖ ./deltactl deploy sim-01 term
 ╭─ ▸Salida · ./deltactl deploy sim-01 · terminó con error 1 00:42 · resumen ───╮
 │ ✖ 2 imagen(es) sin cargar. Cárgalas con ./deltactl load <archivo> y revisa   │
 │   las disponibles con ./deltactl images (ayuda: ./deltactl help imagenes)    │

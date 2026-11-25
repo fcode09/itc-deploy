@@ -1,6 +1,6 @@
 === frame 1 ===
 
-  1   2  [3 Salida]  4   5   6   7   8   9   0                             ✖ ./deltactl init sim-01 terminó con error 1
+  1   2   3  [4 Salida]  5   6   7   8   9   0                             ✖ ./deltactl init sim-01 terminó con error 1
 ╭─ ▸Salida · ./deltactl init sim-01 · terminó con error 1 00:42 · resumen ─────────────────────────────────────────────╮
 │ ✖ 'sim-01' ya está inicializada (init, 2026-01-01T00:00:00Z). init no se vuelve a ejecutar: los seeds borran datos.  │
 │                                                                                                                      │
