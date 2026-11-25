@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC2034,SC2154  # the DASH_* variables (DASH_KEYS, TUI_CURSOR...) are declared in lib/cmd/dashboard*.sh and shared by every screen
-# Screen: Instances (view 1). The list of instances at the left, the WORKSPACE of the selected one at its right (lib/screens/instances_ws.sh:
+# Screen: Instances (view 2). The list of instances at the left, the WORKSPACE of the selected one at its right (lib/screens/instances_ws.sh:
 # the lifecycle, a card per service and what is left to deploy, in tabs) and the strip of the console under them. Wide screens also get the
 # server and the events beside it (the Overview) and the logs under the summary; small ones the compact view; `z` zooms one pane.
 # Loaded by lib/screens/registry.sh. The logs pane (a stream of `docker logs`) is in instances_logs.sh.

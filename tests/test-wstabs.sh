@@ -75,7 +75,7 @@ check "> > opens the tab with the editor: the files of the instance and what is 
 check "it is the editor of that instance" 'panel "${VR[@]}" | last_frame | grep -q "wt-a"'
 check "the keys of the editor win over the panel’s: d is the default of a variable, not the diagnosis" '
   panel "${VR[@]}" d | last_frame | tail -1 | grep -q "Enter pliega"'
-check "the keys the editor does not use reach the panel: a digit changes the view" 'panel "${VR[@]}" 3 | last_frame | grep -q "\[3 Salida\]"'
+check "the keys the editor does not use reach the panel: a digit changes the view" 'panel "${VR[@]}" 4 | last_frame | grep -q "\[4 Salida\]"'
 check "Esc leaves the editor and goes back to the list of instances" 'panel "${VR[@]}" esc | last_frame | tail -1 | grep -q "↑↓ instancia"'
 check "< and > change tab from inside the editor" '
   panel "${DT[@]}" | last_frame | grep -q "Variables \[Datos\]" && panel "${VR[@]}" "<" | last_frame | grep -q "\[Servicios\]"'
