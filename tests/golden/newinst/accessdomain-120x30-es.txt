@@ -2,8 +2,8 @@
 
  [1 Instancias] 2 Recursos 3 Salida 4 Ejecuciones 5 Procesos 6 Consola 7 Servidor 8 Imágenes 9 Variables               
 ╭─┐nueva instancia┌──────────────────────────────────────────────────────────────────────────────────────┐instancia-1┌─╮
-│ ●━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━▲━━━━━━━━━━━━━━━▲━━━━━━━━━━━━━━━◉         Paso 7 de 7│
-│ Nombre          Servicios       Versiones       Datos           Variables       Secretos        Acceso               │
+│ ●━━━━━━━━━━━━━●━━━━━━━━━━━━━●━━━━━━━━━━━━━●━━━━━━━━━━━━━▲━━━━━━━━━━━━━▲━━━━━━━━━━━━━◉━━━━━━━━━━━━━○       Paso 7 de 8│
+│ Nombre        Servicios     Versiones     Datos         Variables     Secretos      Acceso        Revisión           │
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 ╭─┐ ▸7 · Acceso ┌──────────────────────────────────────────────────────╮╭─┐vista previa┌───────────────────────────────╮
 │                                                                      ││ instances/instancia-1/                       │
@@ -26,6 +26,6 @@
 │     listen 80;                                                       ││                                              │
 │ … y 43 líneas más (se guardan enteras en la instancia)               ││                                              │
 │                                                                      ││                                              │
-╰─┘Esc atrás└─┘Enter crear└────────────────────────────────────────────╯╰──────────────────────────────────────────────╯
+╰─┘Esc atrás└─┘Enter siguiente└────────────────────────────────────────╯╰──────────────────────────────────────────────╯
 
- ↑↓ mover · ←→ espacio cambia · c copia el bloque · v nginx/Caddy · Enter crea · Esc atrás · Tab vista previa
+ ↑↓ mover · ←→ espacio cambia · c copia el bloque · v nginx/Caddy · Enter revisa · Esc atrás · Tab vista previa

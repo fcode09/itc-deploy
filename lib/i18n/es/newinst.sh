@@ -11,7 +11,7 @@ MSG_es["tui.nz.esc_again"]="Esc otra vez cancela y descarta lo elegido; cualquie
 MSG_es["tui.nz.blocked"]="No se puede crear todavía: {1}"
 MSG_es["tui.nz.foot.back"]="atrás"
 MSG_es["tui.nz.foot.next"]="siguiente"
-MSG_es["tui.nz.foot.create"]="crear"
+MSG_es["tui.nz.foot.create"]="ejecutar"
 MSG_es["tui.nz.foot.preview"]="vista previa"
 MSG_es["tui.nz.foot.form"]="formulario"
 
@@ -80,7 +80,7 @@ MSG_es["tui.nz.help.access"]="¿Con qué nombre se entra desde internet? Con un 
 
 MSG_es["tui.nz.keys.variables"]="{1} mover · Enter edita · g genera · r muestra · d por defecto · a avanzadas · s sigue · Esc atrás · Tab vista previa"
 MSG_es["tui.nz.keys.secrets"]="{1} mover · e escribe la ruta · b busca · x quita · Enter sigue · 1-9 paso · Esc atrás · Tab vista previa"
-MSG_es["tui.nz.keys.access"]="{1} mover · ←→ espacio cambia · c copia el bloque · v nginx/Caddy · Enter crea · Esc atrás · Tab vista previa"
+MSG_es["tui.nz.keys.access"]="{1} mover · ←→ espacio cambia · c copia el bloque · v nginx/Caddy · Enter revisa · Esc atrás · Tab vista previa"
 
 MSG_es["tui.nz.pv.envfile"]="<respuestas>"
 MSG_es["tui.nz.pv.vars"]="variables: {1} puestas · {2} generadas"
@@ -128,3 +128,20 @@ MSG_es["tui.nz.acc.more"]="… y {1} líneas más (se guardan enteras en la inst
 MSG_es["tui.nz.acc.copied"]="Bloque copiado."
 MSG_es["tui.nz.acc.copy_fail"]="No se pudo copiar el bloque (¿no hay portapapeles?)."
 MSG_es["tui.nz.acc.nothing_copy"]="Pon un dominio válido: sin él no hay bloque que copiar."
+
+# --- Step 8: the review ---
+MSG_es["tui.nz.step.review"]="Revisión"
+MSG_es["tui.nz.help.review"]="Todo lo elegido, en una vista. Nada se escribe hasta que pulses un botón: Crear, o Crear y seguir con la comprobación o el despliegue."
+MSG_es["tui.nz.keys.review"]="{1} elegir botón · Enter lo ejecuta · c crea · p crea y comprueba · d crea y despliega · 1-9 paso · Esc atrás · Tab vista previa"
+MSG_es["tui.nz.rev.ready"]="{1} de {2} listos"
+MSG_es["tui.nz.rev.v_ready"]="todo listo"
+MSG_es["tui.nz.rev.v_ready_warn"]="{1} con aviso"
+MSG_es["tui.nz.rev.v_block"]="{1} por corregir"
+MSG_es["tui.nz.rev.b_create"]="Crear"
+MSG_es["tui.nz.rev.b_check"]="Crear y comprobar"
+MSG_es["tui.nz.rev.b_deploy"]="Crear y desplegar"
+MSG_es["tui.nz.rev.n_create"]="Crea instances/{1}. No arranca nada: lo despliegas cuando quieras."
+MSG_es["tui.nz.rev.n_check"]="Crea instances/{1} y corre ./deltactl check {1}: revisa archivos, secretos y puertos sin arrancar nada."
+MSG_es["tui.nz.rev.n_deploy"]="Crea instances/{1} y corre ./deltactl deploy {1}: arranca contenedores en este servidor."
+MSG_es["tui.nz.rev.confirm"]="Esto arranca contenedores en este servidor. Pulsa Enter otra vez para crear y desplegar; cualquier otra tecla lo cancela."
+MSG_es["tui.nz.failed"]="No se pudo crear {1} (código {2}): la vista Salida dice por qué. Tus respuestas siguen aquí: corrige y vuelve a crear."

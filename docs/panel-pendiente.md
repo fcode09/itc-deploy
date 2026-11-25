@@ -300,10 +300,10 @@ selector de versión del kit (`kit_vpick`, una tabla por imagen, con `msg=0` y u
 
 ## El asistente de nueva instancia por pasos (modo `newinst`)
 
-`lib/screens/newinst.sh` es el **motor** y `lib/screens/newinst/<paso>.sh` son los **pasos**. Se abre en lugar del formulario antiguo (`lib/screens/wizard.sh`)
-cuando el ajuste `TUI_WIZARD=2` está en el archivo de configuración o se arranca el panel con `DELTACTL_WIZARD=2`; por omisión sigue abriéndose el antiguo
-hasta que el nuevo cree, revise y avise (tareas N2 y N3 del plan). `n`, la paleta, la consola y el botón de la cabecera llaman a `dash_open_new`, que
-decide.
+`lib/screens/newinst.sh` es el **motor** y `lib/screens/newinst/<paso>.sh` son los **pasos**. Es el asistente del panel: `n`, la paleta, la consola y el botón de
+la cabecera llaman a `dash_open_new`, que abre este. El formulario antiguo (`lib/screens/wizard.sh`) solo se abre con `TUI_WIZARD=1` en el archivo de
+configuración o `DELTACTL_WIZARD=1`: es el camino de vuelta; quitarlo es una tarea aparte (entonces `dash_open_new` pasa a `newinst.sh`, se borra `wizard.sh`
+y desaparece el modo `wizard`).
 
 - **Qué se ve**: una barra de progreso arriba (`kit_stepper`: ● hecho, ◉ abierto, ▲ con aviso, ✖ con error, ○ por venir), el formulario del paso a la izquierda
   (`kit_box` con el número y el nombre del paso en el borde y `Esc atrás`/`Enter siguiente` en el pie) y, a la derecha desde 100 columnas, la **vista previa**
@@ -312,10 +312,10 @@ decide.
   líneas sin marco.
 - **Teclas**: Enter sigue con lo propuesto y Esc vuelve (en el primer paso, con algo elegido, pide Esc otra vez); PgUp/PgDn van al paso anterior y siguiente;
   los dígitos y un clic en la barra saltan a un paso ya visitado (en un paso donde se escribe, como el nombre, los dígitos son texto).
-- **Los siete pasos de hoy**: *Nombre* (la primera `instancia-N` libre; libre = sin carpeta, sin proyecto de Compose con contenedores y sin red
+- **Los ocho pasos**: *Nombre* (la primera `instancia-N` libre; libre = sin carpeta, sin proyecto de Compose con contenedores y sin red
   `<nombre>_…`: `lib/core/instname.sh` lee Docker una vez al abrir y compara sin lanzar procesos en cada tecla), *Servicios* (una tarjeta por servicio del
   catálogo con su descripción, puerto, memoria y dependencias), *Versiones* (el selector del kit con la ★ ya elegida; una por servicio, la que tiene el
-  cursor desplegada), *Datos* (nueva o ya existente, con la consecuencia dicha), *Variables*, *Secretos* y *Acceso* (más abajo). Las imágenes son las del
+  cursor desplegada), *Datos* (nueva o ya existente, con la consecuencia dicha), *Variables*, *Secretos*, *Acceso* y *Revisión* (más abajo). Las imágenes son las del
   catálogo: cambiar el nombre de la imagen es una variable de la instancia (paso *Variables*).
 - **Paso 5, Variables** (`newinst/variables.sh`): el editor del kit (`lib/ui/kit/env_editor.sh`, el mismo de la vista Variables) sobre un modelo sin disco
   (`kee_init`): los archivos que tendrá la instancia (`.env.instance` y el `.env.<servicio>` de cada servicio elegido), agrupados, con su descripción y su
@@ -332,14 +332,25 @@ decide.
   generan (nombres, nunca valores).
 - **Paso 7, Acceso** (`newinst/access.sh`): el dominio (opcional), nginx / Caddy / los dos y HTTPS. Con un dominio muestra el bloque que se generará
   (`lib/core/proxy.sh`): un servidor por servicio, `<nombre del servicio>.<dominio>` hacia su puerto. **Es solo texto**: `c` lo copia y `new` lo guarda dentro
-  de la instancia (`instances/<n>/proxy/`); no se escribe nada en `/etc` ni se recarga ni se instala nada. Es el último paso: Enter crea.
+  de la instancia (`instances/<n>/proxy/`); no se escribe nada en `/etc` ni se recarga ni se instala nada. Enter sigue a la Revisión: **este paso ya no crea**.
+- **Paso 8, Revisión** (`newinst/review.sh`): **el único sitio donde se crea la instancia**. Arriba un medidor dice cuántos de los siete pasos anteriores están
+  listos (`5 de 7 listos`), después una línea por paso con su respuesta (los que piden atención primero: ▲ aviso, ✖ no deja crear) y abajo tres botones que
+  eligen las flechas: *Crear* (solo crea; no arranca nada), *Crear y comprobar* (crea y corre `./deltactl check <nombre>`) y *Crear y desplegar* (crea y corre
+  `./deltactl deploy <nombre>`; **pide Enter otra vez** y cualquier otra tecla lo cancela, porque arranca contenedores en el servidor). `c` crea, `p` crea y
+  comprueba, `d` elige el despliegue. En una pantalla corta la lista solo enseña lo que pide atención. Si un paso ya no deja crear (un nombre que dejó de estar
+  libre mientras tanto, un valor que no pasa), abre ese paso con el motivo y no crea nada.
 - **Cómo llegan las respuestas a `new`**: las opciones de siempre más `--env-file` (variables, de un archivo), `--secret-file ORIGEN:NOMBRE` y
   `--domain/--proxy/--tls` (ver `docs/new-answers.md`). El archivo de `--env-file` solo existe desde `Crear` hasta que el comando termina: modo 600 en la
   carpeta temporal del usuario (`$TMPDIR`), y se borra al terminar el comando, al cancelar, al reabrir el asistente y al salir del panel. Un secreto no está nunca
   en una línea de comandos, en la vista previa, en la consola ni en un fotograma. Como el modelo del editor es **uno solo** para todo el panel, el asistente no
   se abre sobre cambios sin guardar de la vista Variables (lo dice) y al terminar o cancelar suelta el modelo para que la vista lo vuelva a leer.
-- **Al terminar** (Enter en el último paso) arranca `./deltactl new <nombre> …` como trabajo del panel, igual que el formulario antiguo, tras volver a
-  comprobar todos los pasos: si un nombre dejó de estar libre mientras tanto, abre ese paso con el motivo y no crea nada. Nada se escribe antes.
+- **Al crear** (Enter en un botón de la Revisión) arranca `./deltactl new <nombre> …` como trabajo del panel y lleva a la vista Salida, que lo muestra como un
+  resumen de pasos con iconos (`lib/core/outparse.sh`), no como volcado de texto; la salida cruda sigue en `v`. Las respuestas se quedan en memoria mientras
+  corre. **Cuando termina** `dash_nz_after` decide: si fue bien, suelta el modelo del editor, selecciona la instancia nueva en cuanto el estado la tiene
+  (`DASH_GOTO_INST`, que lee `dash_after_collect`) y abre la vista Instancias (o arranca `check` o `deploy` si ese fue el botón); si falló o se canceló, el
+  asistente vuelve con **todas las respuestas**, en el primer paso que ahora no pasa y, si ninguno, en la Revisión con lo que pasó. Cancelar el asistente antes
+  de crear no deja carpetas ni archivos temporales. La instancia que crea el asistente tiene los mismos archivos y variables que `new` con las mismas opciones
+  (lo comprueba `tests/test-newinst.sh`).
 - **Para añadir un paso**: crear `lib/screens/newinst/<id>.sh` con `dash_nzs_<id>_render <ancho> <alto>` (añade líneas a `DASH_NZ_B`) y, si hace falta,
   `_key`, `_enter`, `_state`, `_gate`, `_typing`, `_args` (opciones que añade a `new`), `_preview`, `_reset` (al abrir el asistente), `_sig` (lo que la barra y la
   vista previa dependen de ella) y `_prepare` (escribe lo que entrega a `new` como archivo, justo antes de crear; puede detener la creación); añadir los textos `tui.nz.step.<id>`, `tui.nz.help.<id>`
@@ -348,9 +359,8 @@ decide.
 - **Pruebas**: `tests/test-newinst.sh` (registro y apertura, nombres libres y tomados con el docker simulado, cada paso, el recorrido, la instancia creada
   de punta a punta, escenas de `tests/tools/newinst_scenes.sh` en `tests/golden/newinst/` a 80x24, 120x30 y 160x40 y su degradación). El docker simulado
   entiende `network ls` (`networks.txt`) y `ps -a --format` con el proyecto de cada contenedor (`containers.txt`).
-- **Dónde se engancha la revisión (N3)**: `dash_nz_finish` (Enter en el último paso) es la función que N3 sustituye por el paso de revisión y el progreso de
-  creación; hoy crea tras volver a comprobar todos los pasos. `dash_nz_create` ya llama al gancho `_prepare` de cada paso antes de armar el comando.
-- **Límites de hoy**: no hay todavía la revisión (N3), y se sigue pudiendo abrir el formulario antiguo (`TUI_WIZARD` distinto de 2); el paso de versiones no
+- **Límites de hoy**: el formulario antiguo sigue en el código tras `TUI_WIZARD=1` (720 líneas de `wizard.sh`, con sus pruebas en `test-tui`); si falla la creación el
+  paso que se abre sale de volver a comprobar las respuestas, no de leer la salida de `new`; el paso de versiones no
   carga archivos `.tar` (se hace en la vista Imágenes, `l`); el ratón solo actúa en la barra de pasos; la lista de estado de los pasos (a la derecha) solo
   aparece cuando la vista previa conserva 14 filas (160x40 sí, 120x30 no); `new` no escribe `.bak` de los archivos que acaba de crear.
 

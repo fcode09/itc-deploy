@@ -33,13 +33,16 @@
 # written only in the temporary file of --env-file (mode 600, in a folder only the person can read), and the file is deleted when the command
 # ends, when the wizard is cancelled and when the panel leaves; it is never in a command line, in the preview or in the console.
 #
-# At the end of the last step Enter runs dash_nz_finish: today it creates the instance (dash_nz_create starts `./deltactl new <name> ...`
-# as a job of the panel, like the old form did), and the review step (N3) replaces that one function: THE HOOK for the end of the wizard.
+# THE LAST STEP IS THE REVIEW (newinst/review.sh) and it is the only place where the instance is created: Enter on its buttons runs
+# dash_nz_finish, which checks that every step lets it and starts `./deltactl new <name> ...` as a job of the panel (the Output view follows
+# it as a summary of steps with icons). When the job ends dash_nz_after takes over: if it went well the instance opens in the Instances view
+# (and `check` or `deploy` runs when that button was the one pressed); if it did not, the wizard opens again with every answer still there, at
+# the first step that refuses now or, when none does, at the review with what happened.
 #
-# It opens in place of the old form when the setting TUI_WIZARD=2 (or DELTACTL_WIZARD=2) is on; the old form stays until the new one
-# creates, reviews and reports (the next tasks of the plan).
+# It is the wizard of the panel. The old form (lib/screens/wizard.sh) opens only when the setting TUI_WIZARD=1 (or DELTACTL_WIZARD=1) says
+# so: a way back that costs nothing; removing the old form is a task of its own.
 
-DASH_WIZARD=1                                  # TUI_WIZARD: 2 opens this wizard in place of lib/screens/wizard.sh
+DASH_WIZARD=2                                  # TUI_WIZARD: 1 opens the old form (lib/screens/wizard.sh) in place of this wizard
 DASH_NZ_STEPS=()                               # ids of the steps, in order
 DASH_NZ_I=0 DASH_NZ_MAX=0                      # the step that is open (0-based) and the furthest one reached
 DASH_NZ_V=0 DASH_NZ_ERR="" DASH_NZ_PREVIEW=0 DASH_NZ_ESC=0
@@ -50,6 +53,8 @@ DASH_NZ_KROW=0 DASH_NZ_KX=2                    # where the steps of the bar are 
 DASH_NZ_TMPS=() DASH_NZ_ENVFILE=""             # the temporary files of the answers (deleted when the command ends) and the one of --env-file
 DASH_NZ_REAL=0                                 # 1 while the command that will run is being built (the preview is built with 0)
 DASH_NZ_GENDONE=0                              # 1 when the step of the variables generated the secrets (then `new` is not asked to: --generate-secrets)
+DASH_NZ_AFTER_SEQ="" DASH_NZ_AFTER_ACT=0 DASH_NZ_AFTER_NAME=""   # the job that creates the instance, what to do after it and the name it creates
+DASH_GOTO_INST=""                              # an instance to select as soon as the state has it (the one that was just created)
 declare -gA DASH_NZ_SEL=() DASH_NZ_TAG=() DASH_NZ_PORT=() DASH_NZ_PBUSY=() DASH_NZ_TX=() DASH_NZ_NOTE=()
 
 # Registers a step: its id (also the name of its file) in order. Loads its file.
@@ -262,10 +267,11 @@ dash_nz_argv() { # name
   if dash_nz_gen_ok && [ "$DASH_NZ_GEN" -eq 1 ] && [ "$DASH_NZ_GENDONE" -eq 0 ]; then DASH_NZ_ARGV+=(--generate-secrets); fi
 }
 
-# Starts `new` with the answers as options, as a job of the panel (its output lands in the console like any other command). The steps first
-# write what they hand over as files (hook prepare); when one refuses, nothing starts and its step opens.
-dash_nz_create() {
-  local i why rc
+# Starts `new` with the answers as options, as a job of the panel (the Output view follows it as a summary). The steps first write what they
+# hand over as files (hook prepare); when one refuses, nothing starts and its step opens. $1 is what to do when it ends well: 0 nothing more,
+# 1 `check`, 2 `deploy`.
+dash_nz_create() { # action
+  local i why rc act="${1:-0}" name="$DASH_NZ_NAME"
   dash_nz_tmp_clean
   for ((i = 0; i < ${#DASH_NZ_STEPS[@]}; i++)); do
     rc=0
@@ -278,19 +284,21 @@ dash_nz_create() {
     return 0
   done
   DASH_NZ_REAL=1   # (the command that runs has the real paths; the preview shows them short)
-  dash_nz_argv "$DASH_NZ_NAME"
+  dash_nz_argv "$name"
   DASH_NZ_REAL=0
   DASH_MODE=normal
-  if dash_start_job stay "${DASH_NZ_ARGV[@]}"; then
-    dash_nz_env_release
+  # (the answers stay in memory until the job ends: when it fails the wizard opens again with them)
+  if dash_start_job output "${DASH_NZ_ARGV[@]}"; then
+    DASH_NZ_AFTER_SEQ="$JOB_SEQ" DASH_NZ_AFTER_ACT="$act" DASH_NZ_AFTER_NAME="$name"
   else
     dash_nz_tmp_clean
+    DASH_MODE=newinst
   fi
 }
 
-# The end of the last step: creates when every step lets it; if one does not, opens it (its gate says why).
+# The end of the review: creates when every step lets it; if one does not, opens it (its gate says why). A deploy asks for a second Enter.
 dash_nz_finish() {
-  local i
+  local i act="${DASH_NZR_ACT:-0}"
   if job_running; then DASH_NZ_ERR="$(t tui.msg.busy)"; return 0; fi
   for ((i = 0; i < ${#DASH_NZ_STEPS[@]}; i++)); do
     if ! dash_nz_gate_ok "$i"; then
@@ -301,7 +309,47 @@ dash_nz_finish() {
       return 0
     fi
   done
-  dash_nz_create
+  if [ "$act" -eq 2 ] && [ "${DASH_NZR_ARM:-0}" -eq 0 ]; then DASH_NZR_ARM=1 DASH_NZ_ERR=""; return 0; fi
+  DASH_NZR_ARM=0
+  dash_nz_create "$act"
+}
+
+# The job that created the instance ended (dash_job_tick calls this once): $1 is its exit code and $2 is 1 when it was cancelled.
+dash_nz_after() { # rc cancelled
+  local rc="$1" i why name="$DASH_NZ_AFTER_NAME" act="$DASH_NZ_AFTER_ACT"
+  [ -n "$DASH_NZ_AFTER_SEQ" ] || return 0
+  DASH_NZ_AFTER_SEQ=""
+  if [ "$rc" -eq 0 ] && [ "${2:-0}" -ne 1 ]; then
+    dash_nz_env_release
+    DASH_GOTO_INST="$name"
+    case "$act" in
+      1) dash_start_job output check "$name" ;;
+      2) dash_start_job output deploy "$name" ;;
+      *) DASH_VIEW=instances ;;
+    esac
+    return 0
+  fi
+  # It did not go well: the wizard again, with the answers. The step that refuses now is the one that opens (a name that is no longer
+  # free, a value that does not pass); with none, the review says what happened.
+  t_r tui.nz.failed "$name" "$rc"; why="$T_OUT"
+  DASH_MODE=newinst
+  for ((i = 0; i < ${#DASH_NZ_STEPS[@]} - 1; i++)); do
+    if ! dash_nz_gate_ok "$i"; then why="$DASH_NZ_ERR"; dash_nz_goto "$i"; DASH_NZ_ERR="$why"; return 0; fi
+  done
+  dash_nz_goto $((${#DASH_NZ_STEPS[@]} - 1))
+  DASH_NZ_ERR="$why"
+}
+
+# Selects the instance that was just created as soon as the state has it (dash_after_collect calls this).
+dash_nz_goto_inst() {
+  local i
+  [ -n "$DASH_GOTO_INST" ] || return 0
+  for i in "${!DASH_NAMES[@]}"; do
+    if [ "${DASH_NAMES[$i]}" = "$DASH_GOTO_INST" ]; then
+      DASH_ON_NEW=0 DASH_SEL="$i" DASH_SVC=0 DASH_DET_OFF=0 DASH_FOCUS=list DASH_WS_TAB=resumen DASH_GOTO_INST=""
+      return 0
+    fi
+  done
 }
 
 # --- Keys --------------------------------------------------------------------------------------------------------------------------
@@ -593,3 +641,4 @@ dash_nz_step_register data
 dash_nz_step_register variables
 dash_nz_step_register secrets
 dash_nz_step_register access
+dash_nz_step_register review

@@ -127,10 +127,13 @@ se aplica al momento y se guarda en `~/.config/deltactl/config`. Las variables `
 - **Aviso de requisitos** (activado por defecto, `TUI_PREREQ`): avisa al abrir el panel y al crear una instancia si falta algo obligatorio
   del servidor (ver «Servidor y requisitos»).
 
-- **Asistente de nueva instancia por pasos** (en prueba; `TUI_WIZARD=2` en el archivo de configuración o `DELTACTL_WIZARD=2`): en lugar del
-  formulario, `n` abre un asistente con una barra de pasos (Nombre, Servicios, Versiones, Datos), una vista previa de lo que se creará y el comando
-  equivalente. Enter sigue con lo propuesto, Esc vuelve, los dígitos y el clic saltan a un paso ya visitado y Tab muestra la vista previa en una pantalla
-  estrecha. Comprueba que el nombre esté libre también en Docker (proyectos y redes), no solo en la carpeta `instances/`.
+- **Asistente de nueva instancia por pasos**: `n` abre un asistente de ocho pasos con una barra de progreso (Nombre, Servicios, Versiones, Datos,
+  Variables, Secretos, Acceso y Revisión), una vista previa de lo que se creará y el comando `./deltactl new …` equivalente. Enter sigue con lo propuesto,
+  Esc vuelve, los dígitos y el clic saltan a un paso ya visitado y Tab muestra la vista previa en una pantalla estrecha. Comprueba que el nombre esté libre
+  también en Docker (proyectos y redes), no solo en la carpeta `instances/`. **Nada se escribe hasta la Revisión**, que dice cuántos pasos están listos y
+  tiene tres botones: *Crear*, *Crear y comprobar* (después corre `check`) y *Crear y desplegar* (pide Enter otra vez, porque arranca contenedores). Al
+  terminar abre la instancia en la vista Instancias; si falla, el asistente vuelve con todas las respuestas, en el primer paso que no pasa. El formulario
+  antiguo vuelve con `TUI_WIZARD=1` en el archivo de configuración (o `DELTACTL_WIZARD=1`).
 
 También: `T` cambia de tema, `L` de idioma, `p` pausa la actualización, `r` refresca, `n` crea una instancia, `d` diagnóstico,
 `i` imágenes.

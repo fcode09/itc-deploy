@@ -108,6 +108,7 @@ dash_collect() {
 dash_after_collect() {
   [ "$DASH_SEL" -lt "${#DASH_NAMES[@]}" ] || DASH_SEL=$((${#DASH_NAMES[@]} - 1))
   [ "$DASH_SEL" -ge 0 ] || DASH_SEL=0
+  dash_nz_goto_inst   # (the instance that the wizard created is the one selected)
   # With no instance the only thing to select is the New button; the services have no focus when there are none.
   if [ "${#DASH_NAMES[@]}" -eq 0 ]; then DASH_ON_NEW=1 DASH_FOCUS=list; fi
   [ "$ST_DOCKER" -ne 1 ] || DK_READY_AT="$SECONDS"
@@ -422,6 +423,8 @@ dash_job_tick() {
     fi
     dash_refresh_request
     DASH_RUNS_AT=-1000   # the command left a run: the Runs view reads the history again
+    # The command that created an instance (the wizard's) ended: the wizard decides what comes next (open it, check it, deploy it, or open again).
+    if [ -n "$DASH_NZ_AFTER_SEQ" ] && [ "$DASH_NZ_AFTER_SEQ" = "$JOB_SEQ" ]; then dash_nz_after "$JOB_RC" "$JOB_CANCELLED"; fi
   fi
 }
 

@@ -10,6 +10,7 @@ export LANG=C.UTF-8
 unset NO_COLOR DELTACTL_COLOR DELTACTL_UI DELTACTL_ASCII COLUMNS DELTACTL_TUI_KEYS DELTACTL_TUI_EVENTS DELTACTL_TUI_ROWS
 unset DELTACTL_THEME DELTACTL_REFRESH DELTACTL_METRICS_INTERVAL   # the Options screen reads them: a value from the shell would change what it shows
 unset DELTACTL_TUI_IDLE_AFTER                                     # (and this one changes how often an idle panel samples)
+export DELTACTL_WIZARD=1   # this suite checks the sections of the old form (the way back, TUI_WIZARD=1); the wizard of steps has tests/test-newinst.sh
 
 FIX="$(mktemp -d)"
 export FIX

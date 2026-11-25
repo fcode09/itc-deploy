@@ -2,8 +2,8 @@
 
  [1 Instancias]  2   3   4   5   6   7   8   9                                 
 ╭─┐nueva instancia┌──────────────────────────────────────────────┐instancia-1┌─╮
-│ ●━━━━━━━━━━●━━━━━━━━━━●━━━━━━━━━━●━━━━━━━━━━▲━━━━━━━━━━▲━━━━━━━━━━◉          │
-│ Nombre     Servicios  Versiones  Datos      Variables  Secretos   Acceso     │
+│ ●━━━━━━━━●━━━━━━━━●━━━━━━━━●━━━━━━━━▲━━━━━━━━▲━━━━━━━━◉━━━━━━━━○  Paso 7 de 8│
+│ Nombre   Servicio Versione Datos    Variable Secretos Acceso   Revisión      │
 ╰──────────────────────────────────────────────────────────────────────────────╯
 ╭─┐ ▸7 · Acceso ┌──────────────────────────────────────────────────────────────╮
 │ Dominio   ● muni.example.com                                                 │
@@ -20,6 +20,6 @@
 │     server_name auth-backend.muni.example.com;                               │
 │ … y 42 líneas más (se guardan enteras en la instancia)                       │
 │                                                                              │
-╰─┘Esc atrás└─┘Enter crear└─┘Tab vista previa└─────────────────────────────────╯
+╰─┘Esc atrás└─┘Enter siguiente└─┘Tab vista previa└─────────────────────────────╯
 
  ↑↓ mover · ←→ espacio cambia · c copia el bloque · Esc atrás · Tab vista previa

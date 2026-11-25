@@ -2,8 +2,8 @@
 
  [1 Instances]  2 Resources   3 Output   4 Runs   5 Processes   6 Console   7 Server   8 Images   9 Variables                                                  
 ╭─┐new instance┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐instancia-1┌─╮
-│ ●━━━━━━━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━━━━━━━▲━━━━━━━━━━━━━━━━━━━━━▲━━━━━━━━━━━━━━━━━━━━━◉             Step 7 of 7│
-│ Name                  Services              Versions              Data                  Variables             Secrets               Access                   │
+│ ●━━━━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━━━━▲━━━━━━━━━━━━━━━━━━▲━━━━━━━━━━━━━━━━━━◉━━━━━━━━━━━━━━━━━━○            Step 7 of 8│
+│ Name               Services           Versions           Data               Variables          Secrets            Access             Review                  │
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 ╭─┐ ▸7 · Access ┌──────────────────────────────────────────────────────────────────────────────╮╭─┐preview┌────────────────────────────────────────────────────╮
 │                                                                                              ││ instances/instancia-1/                                       │
@@ -26,16 +26,16 @@
 │     return 301 https://$host$request_uri;                                                    ││                                                              │
 │ }                                                                                            ││                                                              │
 │ server {                                                                                     ││                                                              │
-│     listen 443 ssl;                                                                          ││                                                              │
-│     server_name auth-backend.muni.example.com;                                               │╰──────────────────────────────────────────────────────────────╯
-│     # the certificate: certbot --nginx -d auth-backend.muni.example.com                      │╭─┐steps┌──────────────────────────────────────────────────────╮
-│     ssl_certificate /etc/letsencrypt/live/auth-backend.muni.example.com/fullchain.pem;       ││ ● Name        instancia-1                                    │
-│     ssl_certificate_key /etc/letsencrypt/live/auth-backend.muni.example.com/privkey.pem;     ││ ● Services    s0 s1                                          │
-│     location / {                                                                             ││ ● Versions    2.14.1 2.9.0                                   │
-│         proxy_pass http://127.0.0.1:4100;                                                    ││ ● Data        new                                            │
-│         proxy_http_version 1.1;                                                              ││ ▲ Variables   3 missing                                      │
-│ … and 31 more lines (the whole block is saved in the instance)                               ││ ▲ Secrets     0 of 2                                         │
-│                                                                                              ││ ◐ Access      muni.example.com                               │
-╰─┘Esc back└─┘Enter create└────────────────────────────────────────────────────────────────────╯╰──────────────────────────────────────────────────────────────╯
+│     listen 443 ssl;                                                                          │╰──────────────────────────────────────────────────────────────╯
+│     server_name auth-backend.muni.example.com;                                               │╭─┐steps┌──────────────────────────────────────────────────────╮
+│     # the certificate: certbot --nginx -d auth-backend.muni.example.com                      ││ ● Name        instancia-1                                    │
+│     ssl_certificate /etc/letsencrypt/live/auth-backend.muni.example.com/fullchain.pem;       ││ ● Services    s0 s1                                          │
+│     ssl_certificate_key /etc/letsencrypt/live/auth-backend.muni.example.com/privkey.pem;     ││ ● Versions    2.14.1 2.9.0                                   │
+│     location / {                                                                             ││ ● Data        new                                            │
+│         proxy_pass http://127.0.0.1:4100;                                                    ││ ▲ Variables   3 missing                                      │
+│         proxy_http_version 1.1;                                                              ││ ▲ Secrets     0 of 2                                         │
+│ … and 31 more lines (the whole block is saved in the instance)                               ││ ◐ Access      muni.example.com                               │
+│                                                                                              ││ ○ Review                                                     │
+╰─┘Esc back└─┘Enter next└──────────────────────────────────────────────────────────────────────╯╰──────────────────────────────────────────────────────────────╯
 
- ↑↓ move · ←→ space changes · c copies the block · v nginx/Caddy · Enter creates · Esc back · Tab preview
+ ↑↓ move · ←→ space changes · c copies the block · v nginx/Caddy · Enter reviews · Esc back · Tab preview

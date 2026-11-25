@@ -2,8 +2,8 @@
 
  [1 Instancias]  2 Recursos   3 Salida   4 Ejecuciones   5 Procesos   6 Consola   7 Servidor   8 Imágenes   9 Variables                                        
 ╭─┐nueva instancia┌──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐instancia-1┌─╮
-│ ●━━━━━━━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━━━━━━━◉━━━━━━━━━━━━━━━━━━━━━○━━━━━━━━━━━━━━━━━━━━━○             Paso 5 de 7│
-│ Nombre                Servicios             Versiones             Datos                 Variables             Secretos              Acceso                   │
+│ ●━━━━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━━━━◉━━━━━━━━━━━━━━━━━━○━━━━━━━━━━━━━━━━━━○━━━━━━━━━━━━━━━━━━○            Paso 5 de 8│
+│ Nombre             Servicios          Versiones          Datos              Variables          Secretos           Acceso             Revisión                │
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 ╭─┐ ▸5 · Variables ┌───────────────────────────────────────────────────────────────────────────╮╭─┐vista previa┌───────────────────────────────────────────────╮
 │ 3 obligatorias por poner · 0 puestos · 4 generados                                           ││ instances/instancia-1/                                       │
@@ -26,16 +26,16 @@
 │ ● FCM_CERT                        /run/secrets/fcm.json                                      ││                                                              │
 │ ● KEEPER_FCM_CERT                 /run/secrets/keeper-fcm.json                               ││                                                              │
 │ ● FEDERATION_ENCRYPTION_KEY       ⚿ ••••••••••                                     modificada││                                                              │
-│ ● SERVERS_CONFIG                  ⚿ ••••••••••                                               ││                                                              │
-│ ▲ DEEPGRAM_API_KEY                (vacía)                                         obligatoria│╰──────────────────────────────────────────────────────────────╯
-│ ● SHIFT_UPDATE_BASELINE_SECRET    ⚿ ••••••••••                                     modificada│╭─┐pasos┌──────────────────────────────────────────────────────╮
-│                                                                                              ││ ● Nombre      instancia-1                                    │
+│ ● SERVERS_CONFIG                  ⚿ ••••••••••                                               │╰──────────────────────────────────────────────────────────────╯
+│ ▲ DEEPGRAM_API_KEY                (vacía)                                         obligatoria│╭─┐pasos┌──────────────────────────────────────────────────────╮
+│ ● SHIFT_UPDATE_BASELINE_SECRET    ⚿ ••••••••••                                     modificada││ ● Nombre      instancia-1                                    │
 │                                                                                              ││ ● Servicios   s0 s1                                          │
 │                                                                                              ││ ● Versiones   2.14.1 2.9.0                                   │
-│ ─────────────────────────────────────────────────────────────────────────────────────────────││ ● Datos       nueva                                          │
-│ .env.instance  se crea con la instancia                                                      ││ ◐ Variables   faltan 3                                       │
-│ Este archivo aún no existe: se hace desde su plantilla al crear la instancia, con lo que se  ││ ○ Secretos                                                   │
-│ ponga aquí.                                                                                  ││ ○ Acceso                                                     │
+│                                                                                              ││ ● Datos       nueva                                          │
+│ ─────────────────────────────────────────────────────────────────────────────────────────────││ ◐ Variables   faltan 3                                       │
+│ .env.instance  se crea con la instancia                                                      ││ ○ Secretos                                                   │
+│ Este archivo aún no existe: se hace desde su plantilla al crear la instancia, con lo que se  ││ ○ Acceso                                                     │
+│ ponga aquí.                                                                                  ││ ○ Revisión                                                   │
 ╰─┘Esc atrás└─┘Enter siguiente└────────────────────────────────────────────────────────────────╯╰──────────────────────────────────────────────────────────────╯
 
  ↑↓ mover · Enter edita · g genera · r muestra · d por defecto · a avanzadas · s sigue · Esc atrás · Tab vista previa

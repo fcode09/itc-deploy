@@ -1,0 +1,41 @@
+=== frame 1 ===
+
+ [1 Instances]  2 Resources   3 Output   4 Runs   5 Processes   6 Console   7 Server   8 Images   9 Variables                                                  
+╭─┐new instance┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐instancia-1┌─╮
+│ ●━━━━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━━━━▲━━━━━━━━━━━━━━━━━━▲━━━━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━━━━◉            Step 8 of 8│
+│ Name               Services           Versions           Data               Variables          Secrets            Access             Review                  │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭─┐ ▸8 · Review ┌──────────────────────────────────────────────────────────────────────────────╮╭─┐preview┌────────────────────────────────────────────────────╮
+│                                                                                              ││ instances/instancia-1/                                       │
+│ Everything chosen, in one view. Nothing is written until you press a button: Create, or      ││   .env.instance                                              │
+│ Create and go on with the check or the deploy.                                               ││     COMPOSE_PROFILES=s0,s1                                   │
+│                                                                                              ││     S0_PORT=4100                                             │
+│ ████████████████████████████▍░░░░░░░░░░░ 5 of 7 ready                                        ││     S0_TAG=2.14.1                                            │
+│ ▲ Variables   3 missing                                                                      ││     S1_PORT=4101                                             │
+│ ▲ Secrets     0 of 2                                                                         ││     S1_TAG=2.9.0                                             │
+│ ● Name        instancia-1                                                                    ││   .env.s0 .env.s1                                            │
+│ ● Services    s0 s1                                                                          ││   secrets/  data/                                            │
+│ ● Versions    2.14.1 2.9.0                                                                   ││     data/ empty: init seeds it                               │
+│ ● Data        new                                                                            ││   variables: 0 set · 4 generated                             │
+│ ● Access      no proxy                                                                       ││                                                              │
+│                                                                                              ││ ≈ ./deltactl new instancia-1                                 │
+│ ▸ [ Create ]                                                                                ││     --services s0,s1 --s0-tag 2.14.1 --s1-tag 2.9.0          │
+│   [ Create and check ]                                                                       ││     --env-file <answers>                                     │
+│   [ Create and deploy ]                                                                      ││                                                              │
+│   Creates instances/instancia-1. Nothing is started: you deploy when you want.               ││                                                              │
+│                                                                                              ││                                                              │
+│                                                                                              ││                                                              │
+│                                                                                              ││                                                              │
+│                                                                                              │╰──────────────────────────────────────────────────────────────╯
+│                                                                                              │╭─┐steps┌──────────────────────────────────────────────────────╮
+│                                                                                              ││ ● Name        instancia-1                                    │
+│                                                                                              ││ ● Services    s0 s1                                          │
+│                                                                                              ││ ● Versions    2.14.1 2.9.0                                   │
+│                                                                                              ││ ● Data        new                                            │
+│                                                                                              ││ ▲ Variables   3 missing                                      │
+│                                                                                              ││ ▲ Secrets     0 of 2                                         │
+│                                                                                              ││ ● Access      no proxy                                       │
+│                                                                                              ││ ◐ Review      2 with a warning                               │
+╰─┘Esc back└─┘Enter run└───────────────────────────────────────────────────────────────────────╯╰──────────────────────────────────────────────────────────────╯
+
+ ↑↓ choose button · Enter runs it · c creates · p creates and checks · d creates and deploys · 1-9 step · Esc back · Tab preview

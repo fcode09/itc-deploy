@@ -11,7 +11,7 @@ MSG_en["tui.nz.esc_again"]="Esc again cancels and drops what was chosen; any oth
 MSG_en["tui.nz.blocked"]="It cannot be created yet: {1}"
 MSG_en["tui.nz.foot.back"]="back"
 MSG_en["tui.nz.foot.next"]="next"
-MSG_en["tui.nz.foot.create"]="create"
+MSG_en["tui.nz.foot.create"]="run"
 MSG_en["tui.nz.foot.preview"]="preview"
 MSG_en["tui.nz.foot.form"]="form"
 
@@ -80,7 +80,7 @@ MSG_en["tui.nz.help.access"]="With what name is it reached from the internet? Wi
 
 MSG_en["tui.nz.keys.variables"]="{1} move · Enter edits · g generates · r shows · d default · a advanced · s goes on · Esc back · Tab preview"
 MSG_en["tui.nz.keys.secrets"]="{1} move · e types the path · b searches · x removes · Enter goes on · 1-9 step · Esc back · Tab preview"
-MSG_en["tui.nz.keys.access"]="{1} move · ←→ space changes · c copies the block · v nginx/Caddy · Enter creates · Esc back · Tab preview"
+MSG_en["tui.nz.keys.access"]="{1} move · ←→ space changes · c copies the block · v nginx/Caddy · Enter reviews · Esc back · Tab preview"
 
 MSG_en["tui.nz.pv.envfile"]="<answers>"
 MSG_en["tui.nz.pv.vars"]="variables: {1} set · {2} generated"
@@ -128,3 +128,20 @@ MSG_en["tui.nz.acc.more"]="… and {1} more lines (the whole block is saved in t
 MSG_en["tui.nz.acc.copied"]="Block copied."
 MSG_en["tui.nz.acc.copy_fail"]="The block could not be copied (is there a clipboard?)."
 MSG_en["tui.nz.acc.nothing_copy"]="Type a valid domain: without it there is no block to copy."
+
+# --- Step 8: the review ---
+MSG_en["tui.nz.step.review"]="Review"
+MSG_en["tui.nz.help.review"]="Everything chosen, in one view. Nothing is written until you press a button: Create, or Create and go on with the check or the deploy."
+MSG_en["tui.nz.keys.review"]="{1} choose button · Enter runs it · c creates · p creates and checks · d creates and deploys · 1-9 step · Esc back · Tab preview"
+MSG_en["tui.nz.rev.ready"]="{1} of {2} ready"
+MSG_en["tui.nz.rev.v_ready"]="all ready"
+MSG_en["tui.nz.rev.v_ready_warn"]="{1} with a warning"
+MSG_en["tui.nz.rev.v_block"]="{1} to fix"
+MSG_en["tui.nz.rev.b_create"]="Create"
+MSG_en["tui.nz.rev.b_check"]="Create and check"
+MSG_en["tui.nz.rev.b_deploy"]="Create and deploy"
+MSG_en["tui.nz.rev.n_create"]="Creates instances/{1}. Nothing is started: you deploy when you want."
+MSG_en["tui.nz.rev.n_check"]="Creates instances/{1} and runs ./deltactl check {1}: it checks files, secrets and ports without starting anything."
+MSG_en["tui.nz.rev.n_deploy"]="Creates instances/{1} and runs ./deltactl deploy {1}: it starts containers on this server."
+MSG_en["tui.nz.rev.confirm"]="This starts containers on this server. Press Enter again to create and deploy; any other key cancels it."
+MSG_en["tui.nz.failed"]="{1} could not be created (code {2}): the Output view says why. Your answers are still here: fix and create again."

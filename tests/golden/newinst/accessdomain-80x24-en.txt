@@ -2,8 +2,8 @@
 
  [1 Instances]  2   3   4   5   6   7   8   9                                  
 ╭─┐new instance┌─────────────────────────────────────────────────┐instancia-1┌─╮
-│ ●━━━━━━━━━━●━━━━━━━━━━●━━━━━━━━━━●━━━━━━━━━━▲━━━━━━━━━━▲━━━━━━━━━━◉          │
-│ Name       Services   Versions   Data       Variables  Secrets    Access     │
+│ ●━━━━━━━━●━━━━━━━━●━━━━━━━━●━━━━━━━━▲━━━━━━━━▲━━━━━━━━◉━━━━━━━━○  Step 7 of 8│
+│ Name     Services Versions Data     Variable Secrets  Access   Review        │
 ╰──────────────────────────────────────────────────────────────────────────────╯
 ╭─┐ ▸7 · Access ┌──────────────────────────────────────────────────────────────╮
 │ Domain    ● muni.example.com                                                 │
@@ -20,6 +20,6 @@
 │     server_name auth-backend.muni.example.com;                               │
 │ … and 42 more lines (the whole block is saved in the instance)               │
 │                                                                              │
-╰─┘Esc back└─┘Enter create└─┘Tab preview└──────────────────────────────────────╯
+╰─┘Esc back└─┘Enter next└─┘Tab preview└────────────────────────────────────────╯
 
  ↑↓ move · ←→ space changes · c copies the block · Esc back · Tab preview
