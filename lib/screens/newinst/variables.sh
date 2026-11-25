@@ -14,12 +14,12 @@
 # Keys: those of the editor (Enter edits, g generates, r shows a secret, d default, a advanced, ↑↓ PgUp PgDn Home End). The editor owns Enter, so
 # `s` goes on to the next step; with required variables still empty it says so first and goes on the second time (▲: the deploy will ask for them).
 
-DASH_NZV_BUILT=0 DASH_NZV_SIG="" DASH_NZV_ASK=-1 DASH_NZV_ACK=-1 DASH_NZV_IP="" DASH_NZV_GENN=0 DASH_NZV_GENIDN=0 DASH_NZV_GENNAMES=""
+DASH_NZV_PRE="" DASH_NZV_BUILT=0 DASH_NZV_SIG="" DASH_NZV_ASK=-1 DASH_NZV_ACK=-1 DASH_NZV_IP="" DASH_NZV_GENN=0 DASH_NZV_GENIDN=0 DASH_NZV_GENNAMES=""
 declare -gA DASH_NZV_KEEP=() DASH_NZV_GENID=()
 
 dash_nzs_variables_reset() {
-  DASH_NZV_BUILT=0 DASH_NZV_SIG="" DASH_NZV_ASK=-1 DASH_NZV_ACK=-1 DASH_NZV_IP="" DASH_NZV_GENN=0 DASH_NZV_GENIDN=0 DASH_NZV_GENNAMES=""
-  DASH_NZV_KEEP=() DASH_NZV_GENID=()
+  DASH_NZV_PRE="" DASH_NZV_BUILT=0 DASH_NZV_SIG="" DASH_NZV_ASK=-1 DASH_NZV_ACK=-1 DASH_NZV_IP="" DASH_NZV_GENN=0 DASH_NZV_GENIDN=0 DASH_NZV_GENNAMES=""
+  DASH_NZV_KEEP=() DASH_NZV_GENID=() DASH_NZV_CREV=-1
   DASH_NZ_GENDONE=0
 }
 
@@ -110,8 +110,14 @@ dash_nzv_ensure() {
   dash_nz_sel_list
   sig="$DASH_NZ_NAME|$DASH_NZ_CSV|$DASH_NZ_DATA|$DASH_NZ_SSL|$DASH_NZ_GEN"
   if [ "$DASH_NZV_BUILT" -eq 1 ] && [ "$sig" = "$DASH_NZV_SIG" ]; then
-    dash_nzv_prefill
-    kee_refresh
+    # (every variable is evaluated again only when what the earlier steps decided changed: a frame must not pay for it)
+    local pre="$sig"
+    for s in "${DASH_NZ_SL[@]}"; do pre+="|${DASH_NZ_PORT[$s]:-}:${DASH_NZ_TAG[$s]:-}"; done
+    if [ "$pre" != "$DASH_NZV_PRE" ]; then
+      DASH_NZV_PRE="$pre"
+      dash_nzv_prefill
+      kee_refresh
+    fi
     return 0
   fi
   if [ "$DASH_NZV_BUILT" -eq 1 ]; then
@@ -130,7 +136,7 @@ dash_nzv_ensure() {
     KEE_VAL[$id]="${DASH_NZV_KEEP[$id]}"
   done
   dash_nzv_generate
-  DASH_NZV_SIG="$sig" DASH_NZV_BUILT=1
+  DASH_NZV_SIG="$sig" DASH_NZV_BUILT=1 DASH_NZV_PRE=""
   kee_refresh
   kee_autofold
   DASH_NZV_IP=""
@@ -142,10 +148,13 @@ dash_nzs_variables_enter() {
 }
 
 # The ids that changed against what the files will already say (what `new` has to be told), in the order of the files.
-DASH_NZV_CHANGED=()
+DASH_NZV_CHANGED=() DASH_NZV_CREV=-1
 dash_nzv_changed() {
   local f id
   local -a ids=()
+  # (the bar, the preview and the form ask for it in every frame: it is made again only when the model changed)
+  [ "$DASH_NZV_CREV" != "$KEE_REV" ] || return 0
+  DASH_NZV_CREV="$KEE_REV"
   DASH_NZV_CHANGED=()
   for f in "${KEE_FILES[@]}"; do
     read -ra ids <<< "${KEE_FIDS[$f]:-}"
