@@ -199,7 +199,7 @@ printf 'ID=plan9\nNAME="Plan 9"\n' > "$FIX/os/none"
 rm -f "$FIX/clip.txt"
 DELTACTL_OS_RELEASE="$FIX/os/none" DELTACTL_CLIP="cat > $FIX/clip.txt" panel_bad 1 c q > "$FIX/out.txt"
 check "on a distribution that is not known there is no command to copy" '[ ! -s "$FIX/clip.txt" ] && grep -q "No hay un comando" "$FIX/out.txt"'
-check "and the detail says so and lists the command of each package manager" 'o="$(PANEL_ROWS=40 DELTACTL_OS_RELEASE="$FIX/os/none" panel_bad 1 enter q | last_frame)"; echo "$o" | grep -q "No se reconoce la distribución" && echo "$o" | grep -q "apt: sudo apt-get" && echo "$o" | grep -q "pacman: sudo pacman"'
+check "and the detail says so and lists the command of each package manager" 'o="$(PANEL_ROWS=40 DELTACTL_OS_RELEASE="$FIX/os/none" panel_bad 1 enter q | last_frame)"; echo "$o" | grep -q "No se reconoce la distribución" && echo "$o" | grep -qE "apt: +sudo apt-get" && echo "$o" | grep -qE "pacman: +sudo pacman"'
 printf 'ID=fedora\nNAME=Fedora\n' > "$FIX/os/fedora"
 rm -f "$FIX/clip.txt"
 DELTACTL_OS_RELEASE="$FIX/os/fedora" DELTACTL_CLIP="cat > $FIX/clip.txt" panel_bad 1 c q > /dev/null
