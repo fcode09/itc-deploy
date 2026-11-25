@@ -9,7 +9,34 @@
 #
 #   ws_scene <name>      name: cards | todo | todofocus | ok | stopped | logs | none | filter | sort | new
 
-WS_SCENES=(cards todo todofocus ok stopped logs none filter sort new acceso accesocaddy accesonodom accesoedit accesobad)
+WS_SCENES=(cards todo todofocus ok stopped logs none filter sort new acceso accesocaddy accesonodom accesoedit accesobad historial historialsel historialempty)
+
+# The runs of the History tab: three of ix-colorado (a deploy and a check whose output has a shape, a rollback whose output has none) and one of
+# ix-lima, in a folder of their own that the scene removes when it has drawn (WS_TMP). The inputs are the captured outputs of the Output view's scenes.
+ws_historial_data() {
+  local d lang="${DELTACTL_LANG:-es}" id
+  d="$(mktemp -d)"
+  WS_TMP="$d"
+  INSTANCES_DIR="$d"
+  mkdir -p "$d/.deltactl/runs"
+  ws_run() { # id op args instance state rc started ms output-file
+    mkdir -p "$d/.deltactl/runs/$1"
+    printf 'RUN_ID=%s\nOP=%s\nARGS=%s\nINSTANCE=%s\nSTATE=%s\nRC=%s\nSTARTED_AT=%s\nENDED_AT=%s\nDURATION_MS=%s\nUSER=ana\nHOST=testhost\n' \
+      "$1" "$2" "$3" "$4" "$5" "$6" "$7" "$7" "$8" > "$d/.deltactl/runs/$1/meta"
+    cp "$9" "$d/.deltactl/runs/$1/out.log"
+    printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$1" "$7" "$2" "$4" "$5" "$6" "$8" >> "$d/.deltactl/runs.idx"
+  }
+  printf 'Rolling back auth-backend to 2.13.0\nDone\n' > "$d/plain.txt"
+  ws_run 20261031T150000Z-3 rollback "ix-colorado s0" ix-colorado succeeded 0 2026-10-31T15:00:00Z 5300 "$d/plain.txt"
+  ws_run 20261101T090000Z-2 check ix-colorado ix-colorado failed 1 2026-11-01T09:00:00Z 2100 "tests/golden/outsum/in/check-fail-$lang.txt"
+  ws_run 20261101T095000Z-4 deploy ix-lima ix-lima succeeded 0 2026-11-01T09:50:00Z 30100 "tests/golden/outsum/in/deploy-$lang.txt"
+  ws_run 20261101T100000Z-1 deploy ix-colorado ix-colorado succeeded 0 2026-11-01T10:00:00Z 41200 "tests/golden/outsum/in/deploy-$lang.txt"
+  unset -f ws_run
+  DASH_WS_TAB=historial DASH_FOCUS=tab DASH_SEL=0
+  DASH_RUNS_AT=-1000 DASH_HIS_AT=-1000 DASH_HIS_INST="" DASH_HIS_ID="" DASH_HIS_SEL=0 DASH_HIS_OFF=0 DASH_HIS_DET_KEY=""
+  dash_runs_load
+  dash_his_filter "${1:-ix-colorado}"
+}
 
 # The data of the Access tab of ix-colorado: its ports, what answers on this server and what the instance remembers (nothing is read from disk:
 # the instance of the scene does not exist).
@@ -107,8 +134,12 @@ ws_scene() { # name
     accesonodom) ws_acceso_data "" nginx 1 ;;
     accesoedit) ws_acceso_data ejemplo.pe nginx 1; DASH_MODE=accdom DASH_BUF="otro.example.org" DASH_CUR=16 ;;
     accesobad) ws_acceso_data ejemplo.pe nginx 0; DASH_ACC_PORT=([ix-colorado/s0]=4100) DASH_ACC_REACH=([ix-colorado/s0]=up) ;;
+    historial) ws_historial_data ;;
+    historialsel) ws_historial_data; dash_his_select 2 ;;
+    historialempty) ws_historial_data ix-piura; DASH_SEL=2 ;;
     *) echo "unknown scene $name" >&2; return 1 ;;
   esac
   dash_host_build
   dash_render
+  [ -z "${WS_TMP:-}" ] || rm -rf "$WS_TMP"
 }

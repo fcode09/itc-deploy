@@ -1,0 +1,31 @@
+=== frame 1 ===
+  ITC  testhost · Memoria ███░░░ 5.6/11.5 GB 48% ▄▃▂▅▃▂ · Carga 3.18 · Docker 27.0.0 · contenedores 1.5G
+ [1 Instancias] 2 Recursos 3 Salida 4 Ejecuciones 5 Procesos 6 Consola 7 Servidor 8 Imágenes 9 Variables               
+╭─ Instancias ───────────────────────╮ Resumen  Acceso [Historial]                                                      
+│   + Nueva instancia                │╭─┐ ▸ix-colorado ┌─┐Historial┌───────────────────────────────────┐3 operaciones┌─╮
+│               n/m      mem    cpu  ││   ● 11-01 10:00 deploy       41.2 s                                            │
+│ ▸ ●● ix-colorado 2/2    1.3G  25.1%││   ✖ 11-01 09:00 check         2.1 s                                            │
+│   ●✖ ix-lima  1/2    180M   1.2%   ││ ▸ ● 10-31 15:00 rollback      5.3 s                                            │
+│   ✖✖ ix-piura 0/2       -      -   ││ ───────────────────────────────────────────────────────────────────────────────│
+╰────────────────────────────────────╯│  comando        ./deltactl rollback ix-colorado s0                             │
+╭─ Servidor ─────────────────────────╮│  estado         ● correcta · código 0                                          │
+│ Memoria █████░░░░░ 5.6/11.5 GB 48% ││  inicio (UTC)   2026-10-31 15:00:00Z                                           │
+│              ▃                     ││  duración       5.3 s                                                          │
+│              █   ▄                 ││  quién          ana@testhost                                                   │
+│  ▁  ▄  ▄  █  ██  █     ▂  ▃  ▂  ▆  ││                                                                                │
+│  █▁ █▂ █▁ █▅ ██▆ █  █  █  █  █▃ █▂ ││  Salida (últimas 2 líneas)                                                     │
+│  ██ ██ ██▁██▁███▅█▄ █▄ █▇ █▇ ██ ██ ││  Rolling back auth-backend to 2.13.0                                           │
+│ ▃██▆██▆████████████ ██▁██▅██▄█████▇││  Done                                                                          │
+│ Carga 3.18                         ││                                                                                │
+│ contenedores 1.5G                  ││                                                                                │
+╰────────────────────────────────────╯╰─┘Enter salida entera└─┘PgUp PgDn desplaza└─┘< > pestaña└───────────────────────╯
+╭─ Consola ────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│ ix-colorado ❯ : escribe un comando · ! en el terminal · Tab completa · ↑ historial · help                            │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+ ↑↓ operación · Enter la salida entera · RePág/AvPág desplaza el detalle · z ampliar · ← atrás · ? ayuda · q salir

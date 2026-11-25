@@ -683,6 +683,8 @@ dash_key_logs() { # key
     s) DASH_MODE=find DASH_BUF="$DASH_LOG_FIND" DASH_CUR="${#DASH_LOG_FIND}" ;;
     ']') dash_logs_jump 1 ;;
     '[') dash_logs_jump -1 ;;
+    '{') dash_select_service -1; DASH_LOG_SCROLL=0 DASH_LOG_MIDX=-1 ;;       # the log of the other service, without leaving the pane
+    '}') dash_select_service 1; DASH_LOG_SCROLL=0 DASH_LOG_MIDX=-1 ;;
     left | h) DASH_FOCUS=svc ;;
     *) return 1 ;;
   esac

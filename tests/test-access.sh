@@ -119,7 +119,7 @@ else
 fi
 
 section "5. the tab: where it is, what it shows"
-check "the access tab is registered with one line and is a file of lib/screens/ws" '[ -f lib/screens/ws/acceso.sh ] && grep -q "^dash_ws_register acceso " lib/screens/instances_ws.sh && [ "$(run_lib "echo \${DASH_WS_TABS[*]}")" = "resumen logs acceso" ]'
+check "the access tab is registered with one line and is a file of lib/screens/ws" '[ -f lib/screens/ws/acceso.sh ] && grep -q "^dash_ws_register acceso " lib/screens/instances_ws.sh && [ "$(run_lib "echo \${DASH_WS_TABS[*]}")" = "resumen logs acceso historial" ]'
 check "the mode that types the domain is registered" 'run_lib "printf \"%s \" \${DASH_MODES[@]}" | grep -q "accdom "'
 check "an instance with no services has no access tab" '[ "$(run_lib "COLUMNS=100; DELTACTL_TUI_ROWS=30; tui_size; DASH_SVCS[x]=\"\"; dash_ws_visible x; echo \${DASH_WS_VIS[*]}")" = "resumen" ]'
 out="$(panel '>' q)"
@@ -172,7 +172,7 @@ check "up and down choose the service (its row is marked)" 'panel ">" q | frame_
 check "the keys of the summary still work in the tab that is not the tab's: u deploys, c checks (they are not taken)" 'panel ">" c wait q | grep -q "Ejecutando: ./deltactl check ta-a"'
 
 section "7. a state change is never a stale screen"
-check "every key that changes the tab changes the frame: other proxy, HTTPS, a service, the domain" 'a="$(panel ">" q | frame_n 2 | md5sum)"; for k in b w down; do [ "$(panel ">" $k q | frame_n 3 | md5sum)" != "$a" ] || { echo "$k"; exit 1; }; done; [ "$(panel ">" enter x enter q | last_frame | md5sum)" != "$a" ]'
+check "every key that changes the tab changes the frame: other proxy, HTTPS, a service, the domain" 'a="$(panel ">" q | frame_n 2 | sed 1d | md5sum)"; for k in b w down; do [ "$(panel ">" $k q | frame_n 3 | sed 1d | md5sum)" != "$a" ] || { echo "$k"; exit 1; }; done; [ "$(panel ">" enter x enter q | last_frame | sed 1d | md5sum)" != "$a" ]'
 check "what a frame depends on is in its signature: the tab says its own part of it" 'run_lib "DASH_NAMES=(ta-a); DASH_SEL=0; DASH_ON_NEW=0; DASH_SVCS[ta-a]=\"s0 s1\"; DASH_WS_TAB=acceso; DASH_FOCUS=tab; dash_init; DASH_SIG=\"\"; dash_ws_frame_sig; a=\"\$DASH_SIG\"; DASH_ACC_N=\$((DASH_ACC_N + 1)); DASH_SIG=\"\"; dash_ws_frame_sig; [ \"\$a\" != \"\$DASH_SIG\" ] && echo different" | grep -q different'
 
 section "8. what answers on this server is read in the background and shown"

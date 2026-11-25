@@ -8,7 +8,7 @@
 │   ✖✖ ix-piura    0/2       -      -                                          │
 │ ▸ ○○ ix-sullana  0/2       -      -                                          │
 ╰──────────────────────────────────────────────────────────────────────────────╯
-[Resumen] Logs  Acceso                                                          
+[Resumen] Logs  Acceso  Historial                                               
 ╭─┐ix-sullana · 0/2┌────────────────────────────────────────────────┐○ parada┌─╮
 │ ▸ s0 auth-backend:2.14.1  ○ no creado                                        │
 │     :4130                                                                    │

@@ -8,7 +8,7 @@
 │   ●✖ ix-lima     1/2    180M   1.2%                                          │
 │   ✖✖ ix-piura    0/2       -      -                                          │
 ╰──────────────────────────────────────────────────────────────────────────────╯
-[Summary] Logs  Access                                                          
+[Summary] Logs  Access  History                                                 
 ╭─┐ix-colorado · 2/2┌──────────────────────────────────────────────┐● running┌─╮
 │ ▸ s0 auth-backend:2.14.1  ● healthy                                          │
 │     up 2d04h  ·  :4100                                                       │
