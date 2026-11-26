@@ -17,9 +17,9 @@
 │   █  █▁ █▂ █▁ █▅ ██▆ █  █  █  █  █▃ █▂ ││ │       ⣆⣷⣿⣆⣷⣸⣇⣿⣸⣿⣿⣿⣧⣿⣆⣷⣸⣆⣿⣸⣿⣿⣿⣧⣿⣆⣧⣿⣇⣷││        ⣆⣷⣿⣆⣷⣸⣇⣿⣸⣿⣿⣿⣧⣿⣆⣷⣸⣆⣿⣸⣿⣿⣿⣧⣿⣆⣧⣿⣇⣷│││                                  │
 │ ▆ █▅ ██ ██ ██▁██▁███▅█▄ █▄ █▇ █▇ ██ ██ ││ ╰─────────────────────────────────────╯╰──────────────────────────────────────╯││                                  │
 │ █▃██▃██▆██▆████████████ ██▁██▅██▄█████▇││   Total  mem 1.3G/2.5G  cpu 25.1%  data: seeded                                ││                                  │
-│ Load 3.18                              ││ To deploy                                                                      ││                                  │
-│ containers 1.5G                        ││   ● All up to date  nothing is waiting to be deployed                          ││                                  │
-│ Docker 27.0.0                          │╰─┘u deploy└─┘c check└─┘s status└─┘l logs└─┘< > tab└─┘Enter more└────────────────╯│                                  │
+│ Load 3.18                              ││ To deploy · 1                                                                  ││                                  │
+│ containers 1.5G                        ││   ℹ No domain: nobody reaches it by name  the nginx block is m  ⏎ set up access││                                  │
+│ Docker 27.0.0                          │╰─┘u deploy└─┘c check└─┘s status└─┘l logs└─┘t to do└─┘< > tab└─┘Enter more└──────╯│                                  │
 │                                        │╭─ ▸Logs · s0 · following ───────────────────────────────────────────────────────╮│                                  │
 │                                        ││ linea 4 ok                                                                     ││                                  │
 │                                        ││ linea 5 ok                                                                     ││                                  │

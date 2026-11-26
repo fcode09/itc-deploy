@@ -17,8 +17,8 @@
 │   █  █▁ █▂ █▁ █▅ ██▆ █  █  █  █  █▃ █▂ ││ │       ⣆⣷⣿⣆⣷⣸⣇⣿⣸⣿⣿⣿⣧⣿⣆⣷⣸⣆⣿⣸⣿⣿⣿⣧⣿⣆⣧⣿⣇⣷││        ⣆⣷⣿⣆⣷⣸⣇⣿⣸⣿⣿⣿⣧⣿⣆⣷⣸⣆⣿⣸⣿⣿⣿⣧⣿⣆⣧⣿⣇⣷│││                                  │
 │ ▆ █▅ ██ ██ ██▁██▁███▅█▄ █▄ █▇ █▇ ██ ██ ││ ╰─────────────────────────────────────╯╰──────────────────────────────────────╯││                                  │
 │ █▃██▃██▆██▆████████████ ██▁██▅██▄█████▇││   Total  mem 1.3G/2.5G  cpu 25.1%  datos: sembrados                            ││                                  │
-│ Carga 3.18                             ││ Para desplegar                                                                 ││                                  │
-│ contenedores 1.5G                      ││   ● Todo al día  no hay nada pendiente de desplegar                            ││                                  │
+│ Carga 3.18                             ││ Para desplegar · 1                                                             ││                                  │
+│ contenedores 1.5G                      ││   ℹ Sin dominio: nadie la alcanza por nombre  falta el blo  ⏎ configurar acceso││                                  │
 │ Docker 27.0.0                          │╰─┘u desplegar└─┘c comprobar└─┘s estado└─┘l logs└─┘< > pestaña└─┘Enter más└──────╯│                                  │
 │                                        │╭─ ▸Logs · s0 · siguiendo ───────────────────────────────────────────────────────╮│                                  │
 │                                        ││ linea 4 ok                                                                     ││                                  │

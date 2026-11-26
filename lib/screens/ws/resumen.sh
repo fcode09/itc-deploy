@@ -15,6 +15,17 @@ dash_ws_peak() { # history floor
   DASH_WS_PK="$pk"
 }
 
+# The public name a service answers to (the name of its own, or <catalog name>.<domain>) into DASH_WS_H, "" when the instance has no access saved.
+# A read of a small file, no process.
+DASH_WS_H=""
+dash_ws_host() { # instance service
+  DASH_WS_H=""
+  proxy_meta_load "$1"
+  [ "$PROXY_M_FROM" != "none" ] || return 0
+  if [ -n "${PROXY_M_HOSTS[$2]:-}" ]; then DASH_WS_H="${PROXY_M_HOSTS[$2]}"
+  elif [ -n "$PROXY_M_DOMAIN" ]; then DASH_WS_H="${CAT_NAME[$2]:-$2}.$PROXY_M_DOMAIN"; fi
+}
+
 # The card of a service: a box $3 x $4 whose body is its facts, then its memory and its CPU as metric rows (label and value, the percentage,
 # and a graph of $5 rows). Into KIT_BOX. $6 = 1 when it is the service under the cursor, $7 = 1 when the cursor is in the services.
 dash_ws_card() { # instance service width height graph_rows selected focused
@@ -32,6 +43,9 @@ dash_ws_card() { # instance service width height graph_rows selected focused
   if [ "$rs" -gt 0 ] 2> /dev/null; then dt tui.lbl.restarts; facts+="${facts:+  $UI_S_DOT  }$C_YEL$DTV $rs$C_OFF"; fi
   if [ -z "$facts" ] && [ -n "${DSV_NOTE[$key]:-}" ]; then facts="$C_YEL$UI_S_WARN$C_OFF ${DSV_NOTE[$key]}"; fi
   tui_fit "$facts" "$iw"; body+=("$TUI_OUT")
+  # The name it answers to, on a line of its own (the card has two lines to spare): a long name does not push the uptime and the port out.
+  dash_ws_host "$name" "$svc"
+  if [ -n "$DASH_WS_H" ]; then tui_fit "${TH[accent]:-}$DASH_WS_H$C_OFF" "$iw"; body+=("$TUI_OUT"); fi
   if [ -n "${MT_MEM[$key]:-}" ]; then
     mem="${MT_MEM[$key]}" lim="${MT_LIM[$key]:-0}"
     mt_bytes_v "$mem"; a="$MT_B"
@@ -182,7 +196,7 @@ ws_resumen_box() { # instance width height
   # The services (the cards or the list, and the totals) do not depend on the cursor of the rows: a key that only moves it draws them from here.
   local ssig fs=0
   [ "$DASH_FOCUS" != "svc" ] || fs=1
-  ssig="$name|$iw|$avail|$DASH_SVC|$fs|$DASH_REFRESH_N|$MT_SAMPLES|$DASH_ERRS_N|$DASH_LANG_N|$TH_NAME|$DASH_DET_OFF|${UI_UTF8:-0}"
+  ssig="$name|$iw|$avail|$DASH_SVC|$fs|$DASH_REFRESH_N|$MT_SAMPLES|$DASH_ERRS_N|$DASH_LANG_N|$TH_NAME|$DASH_DET_OFF|${UI_UTF8:-0}|$DASH_ACC_N"
   if [ "$ssig" = "$DASH_WS_SC_SIG" ]; then
     DASH_WS_SVC=("${DASH_WS_SC_LINES[@]}")
     DASH_DET_OFF="$DASH_WS_SC_OFF"
