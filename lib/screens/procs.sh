@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC2034,SC2154  # the DASH_P* variables are shared with lib/cmd/dashboard.sh, dashboard_view.sh and the other screens
-# The Processes view of the panel (key 5) and the card in the header: what the command that is running is made of, live, and what
+# The Processes view of the panel (key 7) and the card in the header: what the command that is running is made of, live, and what
 # the panel itself costs. Loaded by lib/screens/registry.sh. Everything is read with Bash builtins from /proc (DELTACTL_PROC_ROOT points
 # to another tree in the tests), the same way the sampler of a recorded run does it, so looking costs next to nothing.
 #

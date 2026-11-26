@@ -1,6 +1,6 @@
 === frame 1 ===
 
-  1 Server  [2 Instances]  3 Resources   4 Output   5 Runs   6 Processes   7 Console   8 Images   9 Variables   0 Activity                                     
+  1 Server   2 Images  [3 Instances]  4 Resources   5 Output   6 Runs   7 Processes   8 Console   9 Variables   0 Activity                                     
 ╭─┐new instance┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐instancia-1┌─╮
 │ ●━━━━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━━━━▲━━━━━━━━━━━━━━━━━━▲━━━━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━━━━◉            Step 8 of 8│
 │ Name               Services           Versions           Data               Variables          Secrets            Access             Review                  │

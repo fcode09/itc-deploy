@@ -10,13 +10,13 @@ se está ejecutando, actualizado solo. Fuera de una terminal (una tubería, `TER
 | Tecla | Vista | Para qué |
 | --- | --- | --- |
 | `1` | Servidor | Qué necesita el servidor para funcionar (con el comando para instalarlo) y cómo va: una tira con las constantes vitales y los avisos, y cajas de CPU, memoria, discos, red, contenedores (y, en pantallas muy altas, procesos y puertos) |
-| `2` | Instancias | La lista de instancias, el detalle de la seleccionada (servicios, memoria, CPU, errores), sus gráficos y sus logs en vivo, y la consola debajo |
-| `3` | Recursos | Todos los servicios de todas las instancias en una tabla; `s` ordena por nombre, memoria o CPU |
-| `4` | Salida | El resultado del último comando: de `new`, `check`, `deploy`, `init`, `doctor`, `images` y `env` un resumen con iconos, secciones y veredicto (`v` pasa a la salida cruda); de cualquier otro, la salida completa |
-| `5` | Ejecuciones | El historial de operaciones (deploy, init, rollback...) con su consumo, la comparación con las anteriores y sus logs guardados |
-| `6` | Procesos | De qué está hecho el comando que se está ejecutando y cuánto cuesta el propio panel |
-| `7` | Consola | La consola a pantalla completa, lista para escribir |
-| `8` | Imágenes | Qué versiones de cada servicio hay cargadas en este Docker, cuál es la más reciente, quién usa cuál; usar una versión en una instancia y cargar un archivo |
+| `2` | Imágenes | Qué versiones de cada servicio hay cargadas en este Docker, cuál es la más reciente, quién usa cuál; usar una versión en una instancia y cargar un archivo |
+| `3` | Instancias | La lista de instancias, el detalle de la seleccionada (servicios, memoria, CPU, errores), sus gráficos y sus logs en vivo, y la consola debajo |
+| `4` | Recursos | Todos los servicios de todas las instancias en una tabla; `s` ordena por nombre, memoria o CPU |
+| `5` | Salida | El resultado del último comando: de `new`, `check`, `deploy`, `init`, `doctor`, `images` y `env` un resumen con iconos, secciones y veredicto (`v` pasa a la salida cruda); de cualquier otro, la salida completa |
+| `6` | Ejecuciones | El historial de operaciones (deploy, init, rollback...) con su consumo, la comparación con las anteriores y sus logs guardados |
+| `7` | Procesos | De qué está hecho el comando que se está ejecutando y cuánto cuesta el propio panel |
+| `8` | Consola | La consola a pantalla completa, lista para escribir |
 | `9` | Variables | Las variables de una instancia, con su esquema (ver [env-variables.md](env-variables.md)) |
 | `0` | Actividad | Todo lo que se ha ejecutado en una lista (el comando de este panel, lo que está en marcha en cualquier terminal y lo reciente de todas las instancias) y, de la elegida, cuatro pestañas: Resumen, Salida, Consumo y Procesos. Junta las vistas 3, 4 y 5, que siguen un tiempo |
 
@@ -28,6 +28,9 @@ Tab y Mayús+Tab recorren las vistas (en Instancias, los paneles: lista, servici
   con el foco a toda la pantalla.
 - **Actuar sobre ella**: Enter abre el menú de acciones (estado, comprobar, desplegar, rollback, logs, parar...). Atajos directos:
   `u` despliega, `c` comprueba, `s` muestra el estado, `l` sigue los logs del servicio.
+- **El nombre de cada servicio**: en la tarjeta de un servicio (vista Instancias, Resumen) aparece, en su propia línea, el nombre al que responde desde
+  fuera (`backlion.deltampa.com`), el que se guardó en la pestaña Acceso o con `./deltactl access`. Una instancia que corre bien y aún no tiene acceso
+  guardado muestra en «Para desplegar» la fila **Sin dominio** (`t` y Enter la abren: lleva a la pestaña Acceso), igual que las demás filas.
 - **Buscar cualquier acción**: Ctrl+P abre la paleta; escribe parte del nombre ("despl", "logs", "tema") y Enter.
 - **Crear una instancia**: `n` (o Enter sobre «+ Nueva instancia», o `new` en la consola) abre el formulario de nueva
   instancia dentro del panel. A la izquierda están las secciones (Nombre, Servicios, Datos, Imágenes, Acceso y Resumen), cada una
@@ -40,7 +43,7 @@ Tab y Mayús+Tab recorren las vistas (en Instancias, los paneles: lista, servici
   opciones y la salida queda en la consola; si falta algo obligatorio (nombre, servicios o imagen válida), te lleva a esa sección.
   Con `!` delante (`!new --wizard`) el asistente sigue disponible en el terminal.
 - **Escribir un comando**: `:` da el teclado a la consola; escribe cualquier comando de deltactl sin el prefijo
-  (`status colorado`, `logs colorado s0 -f`). `!` delante lo ejecuta en la terminal; `!` solo abre una shell. En la vista `7` la
+  (`status colorado`, `logs colorado s0 -f`). `!` delante lo ejecuta en la terminal; `!` solo abre una shell. En la vista `8` la
   línea siempre está lista.
 - **Cancelar**: `x` (o Ctrl+C) para el comando en curso.
 - **Logs de un servicio**: con el foco en ellos, Espacio pausa, `f` vuelve a seguir el final, `e` deja solo errores y avisos, `/`
@@ -106,7 +109,7 @@ sola y el panel lo dice en la línea de mensajes; las demás vistas siguen dispo
 (`n`, el botón o `new`) pregunta antes mientras falte algo obligatorio: `y` crea igualmente, `v` muestra los requisitos, `n` no vuelve a
 avisar (se guarda `TUI_PREREQ=off`; en Opciones, «Aviso de requisitos» lo vuelve a activar) y Esc cancela.
 
-## Imágenes (`8`)
+## Imágenes (`2`)
 
 Una caja por **imagen** (`s0 · auth-backend`, `s1 · gueo-back-end`, y las que alguna instancia use con otro nombre) con una tabla de sus versiones, de la
 más nueva a la más vieja **por fecha de creación de la imagen** (una etiqueta es solo un nombre): VERSIÓN, CREADA («hace 2 días»), TAMAÑO, ARQ y USO
@@ -114,6 +117,11 @@ más nueva a la más vieja **por fecha de creación de la imagen** (una etiqueta
 **★** la más reciente que este servidor puede usar (la más nueva por fecha entre las etiquetas que son versión y de la arquitectura del servidor; se
 marca «↑ más reciente»), **▲** una etiqueta que se mueve (`latest`, o sin versión: no sirve para volver atrás y nunca es ★), **✖** una imagen de otra
 arquitectura (no arrancaría aquí). Si el orden por versión discrepa del orden por fecha (¿se reconstruyó una vieja?), un aviso lo dice debajo de la imagen.
+Bajo el encabezado de cada imagen, una línea **En uso** dice qué versiones corren y quién corre cada una (`★ 2.14.1 (lima) · 2.13.2 (colorado)`; un servicio
+parado cuenta con su versión configurada y lo dice: `[parada]`). Debajo, un aviso por cada cosa que no cuadra: **▲** la instancia corre una versión distinta
+de la configurada en `.env.instance` (se escribió la etiqueta y falta desplegar) y **✖** la versión configurada no está cargada en este Docker (el próximo
+despliegue fallaría o la descargaría de un registry). Salen hasta dos avisos por imagen y «+N avisos más». Lo configurado se lee de `.env.instance`
+(`IC_CFG`, en el mismo segundo plano que el catálogo) y lo que corre del estado de Docker que el panel ya tiene: la vista no hace consultas nuevas.
 El cursor empieza en la ★ de la primera imagen. La última línea de la caja dice lo importante de la versión elegida (por qué no se puede usar, que la
 etiqueta se mueve, que es la más reciente).
 
@@ -132,6 +140,21 @@ etiqueta se mueve, que es la más reciente).
 
 La vista lee el catálogo en segundo plano al elegirla, cuando termina un comando (una carga o un despliegue cambian lo cargado y quién lo usa), cada
 minuto mientras está a la vista y con `R`. Nada de aquí borra una imagen.
+
+## Acceso desde fuera: nginx y Caddy
+
+La sección **Acceso** de una instancia (y `./deltactl access <instancia>` en la terminal) genera el bloque de proxy inverso de cada servicio. Es **solo
+texto**: se muestra, se copia (`y`) y se guarda dentro de la instancia (`g`, `instances/<instancia>/proxy/`); nunca se escribe en `/etc` ni se recarga
+nginx: el comando para ponerlo en marcha (`sudo cp … /etc/nginx/conf.d/…`, `sudo nginx -t && sudo systemctl reload nginx`) lo ejecuta quien administra el servidor.
+
+- **Una plantilla por servicio**, en `templates/nginx/<servicio>.location.conf` (`@PORT@` es el puerto de `.env.instance`). `s0` lleva WebSockets y cabeceras de
+  proxy; `s1` además timeouts de 10 minutos y `proxy_buffering off`. Si un servicio no tiene la suya, usa `default.location.conf`; la carpeta se cambia con
+  `DELTACTL_NGINX_TEMPLATES`. Las de `s0` y `s1` llevan `Connection 'upgrade'` literal y no necesitan el `map`, así que varias instancias conviven en un
+  servidor sin definirlo dos veces (nginx lo rechaza). `nginx -t` comprueba lo que se escriba en una plantilla.
+- **El nombre de cada servicio**: por defecto `<nombre-del-servicio>.<dominio>`; con `--host s0=backlion.deltampa.com --host s1=backguep.deltampa.com` cada
+  uno responde en el suyo, y con `--www` también en `www.<nombre>` (el certificado se pide para los dos). Se recuerda en `proxy/access.conf`
+  (`HOST_S0=…`, `WWW=1`), que la pestaña Acceso lee y conserva al guardar.
+- `new --domain D --host sN=NOMBRE --www` lo hace al crear la instancia; `access` lo cambia después (`--save` guarda; sin él es una vista previa).
 
 ## Alias de la consola
 

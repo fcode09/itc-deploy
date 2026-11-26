@@ -62,6 +62,8 @@ complete() { # instance
   sed -i "s#^MONGO_URI=.*#MONGO_URI=mongodb://ana:pw@db.itc.pe:27017/auth#" "instances/$1/.env.s0"
 }
 newinst tw-a 1.0 1.0; seeded tw-a; complete tw-a
+# (tw-a is the instance that runs well: it has its access saved, with a name of its own for s0, so that "nothing to resolve" is true of it)
+mkdir -p instances/tw-a/proxy; printf 'DOMAIN=itc.pe\nFLAVOR=nginx\nTLS=0\nHOST_S0=backlion.itc.pe\n' > instances/tw-a/proxy/access.conf
 newinst tw-b 1.0 1.0                                   # (not seeded, and its variables are still the template's: the files have things to fill in)
 newinst tw-c 1.0 1.0; seeded tw-c; complete tw-c
 image auth-backend:1.0 sha256:aaa; image gueo-back-end:1.0 sha256:bbb
@@ -129,6 +131,10 @@ LAST_STARS='IC_N=2; IC_GROUPS=("s0|auth-backend"); IC_TAG=(1.0 2.0); IC_EPOCH=(1
 check "a version that is more recent than the one in use is a row that leads to the images" '[ "$(run_lib "$LAST_STARS dash_ws_stars tw-a; echo \"\$DASH_TODO_STAR\"")" = "s0|2.0|1.0" ]'
 check "the star the instance already uses is not a row" '[ -z "$(run_lib "$LAST_STARS IC_USE=(\"\" \"tw-a(current) \"); dash_ws_stars tw-a; echo \"\$DASH_TODO_STAR\"")" ]'
 check "without the catalog of Docker there are no rows about versions" '[ -z "$(run_lib "$LAST_STARS DASH_IMG_STATE=none; dash_ws_stars tw-a; echo \"\$DASH_TODO_STAR\"")" ]'
+check "a running instance with no access saved has a row that says nobody reaches it by name, and Enter on it opens the Access tab" '[ "$(run_lib "HINTS=(); DASH_KIND[tw-b]=ok; DASH_SVCS[tw-b]=\"s0 s1\"; dash_todo_build tw-b; echo \"\${DASH_TODO_ACT[*]}|\${DASH_TODO[0]}\"")" = "tab:acceso|info|Sin dominio: nadie la alcanza por nombre|falta el bloque de nginx|configurar acceso" ] && [ "$(run_lib "HINTS=(); DASH_KIND[tw-b]=ok; DASH_SVCS[tw-b]=\"s0 s1\"; DASH_NAMES=(tw-b); DASH_SEL=0; DASH_TODO_SEL=0; dash_todo_run tw-b; echo \"\$DASH_WS_TAB \$DASH_FOCUS\"")" = "acceso tab" ]'
+check "the row is not there when the access is saved, when the instance is not running well, or when it runs nothing" '[ -z "$(run_lib "HINTS=(); DASH_KIND[tw-a]=ok; DASH_SVCS[tw-a]=\"s0 s1\"; dash_todo_build tw-a; echo \"\${DASH_TODO_ACT[*]}\"")" ] && [ -z "$(run_lib "HINTS=(); DASH_KIND[tw-b]=warn; DASH_SVCS[tw-b]=\"s0 s1\"; dash_todo_build tw-b; echo \"\${DASH_TODO_ACT[*]}\"")" ] && [ -z "$(run_lib "HINTS=(); DASH_KIND[tw-b]=ok; DASH_SVCS[tw-b]=; dash_todo_build tw-b; echo \"\${DASH_TODO_ACT[*]}\"")" ]'
+check "the card of a service shows the name it answers to: the one of its own, or <catalog name>.<domain>" 'f="$(PANEL_COLS=160 PANEL_ROWS=40 panel q | frame_n 1)"; echo "$f" | grep -q "backlion.itc.pe" && echo "$f" | grep -q "gueo-back-end.itc.pe"'
+check "an instance with no access shows no name in its cards" '[ -z "$(run_lib "DASH_SVCS[tw-b]=\"s0\"; dash_ws_host tw-b s0; echo \$DASH_WS_H")" ] && [ "$(run_lib "DASH_SVCS[tw-a]=\"s0 s1\"; dash_ws_host tw-a s1; echo \$DASH_WS_H")" = "gueo-back-end.itc.pe" ]'
 check "the rows about a version lead to the Images view" '[ "$(run_lib "$LAST_STARS DASH_VIEW=instances; DASH_NAMES=(tw-a); DASH_SEL=0; HINTS=(); dash_todo_build tw-a; echo \"\${DASH_TODO_ACT[*]}\"")" = "view:images" ]'
 check "what the server lacks is a row while the instance does not run, leading to the Server view" '[ "$(run_lib "DASH_SRV_STATE=ready; DASH_SRV_BAD=1; DASH_SRV_BAD_NAMES=docker; DASH_KIND[tw-b]=err; HINTS=(); dash_todo_build tw-b; echo \"\${DASH_TODO_ACT[*]}\"")" = "view:server" ] && [ -z "$(run_lib "DASH_SRV_STATE=ready; DASH_SRV_BAD=1; DASH_KIND[tw-a]=ok; HINTS=(); dash_todo_build tw-a; echo \"\${DASH_TODO_ACT[*]}\"")" ]'
 check "the files that changed since the last deploy are a row that leads to the Variables view" '[ "$(run_lib "HINTS=(); DASH_WS_ENVPEND[tw-a]=\"s0 instance\"; dash_todo_build tw-a; echo \"\${DASH_TODO_ACT[*]}|\${DASH_TODO[0]}\"")" = "view:env|pend|Variables cambiadas sin desplegar|s0, instance|ver variables" ]'

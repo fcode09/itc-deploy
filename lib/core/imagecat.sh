@@ -27,6 +27,8 @@
 #   IC_OK[i]                 1 when it can run on this server
 #   IC_STAR[i]               1 for the most recent of its group (rule 2)
 #   IC_USE[i]                "instance(current) other(previous) ", "" when nobody uses it
+#   IC_CFG["inst/sN"]        "<image>|<tag>|<previous tag>" the instance has written for that service in .env.instance and .previous (the tag may be
+#                            empty): what is CONFIGURED, to set against what runs (the panel has that) and what is loaded
 #   IC_GROUPS                the groups, "<sN>|<repo>", services in catalog order
 #   IC_ORDER[group]          the indexes of the group, the newest first ("3 0 1")
 #   IC_STARIDX[group]        the index of the star (-1 when there is none)
@@ -36,7 +38,7 @@
 IC_N=0 IC_SERVER_ARCH=""
 IC_SVC=() IC_REPO=() IC_FULL=() IC_TAG=() IC_ID=() IC_ARCH=() IC_SINCE=() IC_SIZE=() IC_EPOCH=() IC_KIND=() IC_VNUM=() IC_VPRE=() IC_OK=() IC_STAR=() IC_USE=()
 IC_GROUPS=()
-declare -gA IC_ORDER=() IC_STARIDX=() IC_DISC=() IC_USED=() IC_REPOS=()
+declare -gA IC_ORDER=() IC_STARIDX=() IC_DISC=() IC_USED=() IC_REPOS=() IC_CFG=()
 
 # --- Dates -----------------------------------------------------------------------------------------------------------
 
@@ -187,7 +189,7 @@ ic_vcmp() { # numbers_a pre_a numbers_b pre_b
 # (the default one plus each instance's own, in IC_REPOS["<sN>"], separated by spaces).
 ic_usage_build() {
   local svc f name r cur prev dir
-  IC_USED=() IC_REPOS=()
+  IC_USED=() IC_REPOS=() IC_CFG=()
   for svc in "${KNOWN_SERVICES[@]}"; do IC_REPOS[$svc]="$(default_repo "$svc")"; done
   for f in "$INSTANCES_DIR"/*/.env.instance; do
     [ -f "$f" ] || continue
@@ -198,6 +200,7 @@ ic_usage_build() {
       case " ${IC_REPOS[$svc]} " in *" $r "*) ;; *) IC_REPOS[$svc]+=" $r" ;; esac
       get_var_r "$f" "$(tag_var "$svc")"; cur="$GV"
       get_var_r "$dir/.previous" "$(tag_var "$svc")"; prev="$GV"
+      IC_CFG["$name/$svc"]="$r|$cur|$prev"
       [ -z "$cur" ] || IC_USED["$r:$cur"]+="$name(current) "
       if [ -n "$prev" ] && [ "$prev" != "$cur" ]; then IC_USED["$r:$prev"]+="$name(previous) "; fi
     done

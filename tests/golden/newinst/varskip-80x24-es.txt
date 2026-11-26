@@ -1,6 +1,6 @@
 === frame 1 ===
 
-  1  [2 Instancias]  3   4   5   6   7   8   9   0                             
+  1   2  [3 Instancias]  4   5   6   7   8   9   0                             
 ╭─┐nueva instancia┌──────────────────────────────────────────────┐instancia-1┌─╮
 │ ●━━━━━━━━●━━━━━━━━●━━━━━━━━●━━━━━━━━◉━━━━━━━━○━━━━━━━━○━━━━━━━━○  Paso 5 de 8│
 │ Nombre   Servicio Versione Datos    Variable Secretos Acceso   Revisión      │

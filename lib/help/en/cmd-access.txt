@@ -1,0 +1,36 @@
+# access · how an instance is reached from outside (nginx / Caddy)
+
+Makes the reverse-proxy block of each service of an instance (nginx or Caddy) from the templates in
+`templates/nginx/`, with the name each service answers to and its port on this server. It is **text only**:
+without `--save` it shows it; with `--save` it keeps it inside the instance and says which commands to run. It
+writes nothing under `/etc` and reloads nothing: that is up to you.
+
+## Usage
+$ ./deltactl access <instance> [--domain D] [--host sN=NAME]... [--www | --no-www]
+    [--tls | --no-tls] [--proxy nginx|caddy] [--save]
+
+## Example (two services, each with its own name)
+$ ./deltactl access colorado --domain deltampa.com \
+    --host s0=backlion.deltampa.com --host s1=backguep.deltampa.com --www --proxy nginx --save
+$ sudo cp instances/colorado/proxy/nginx.conf /etc/nginx/conf.d/colorado.conf
+$ sudo nginx -t && sudo systemctl reload nginx
+
+## Options
+- `--domain <D>`   the base domain. Without `--host`, a service answers on `<service name>.<D>`
+- `--host sN=NAME`  a name of its own for a service (it can be repeated; `--host s0=` removes it)
+- `--www` / `--no-www`  the block also answers on `www.<name>` (or stops doing so)
+- `--tls` / `--no-tls`  HTTPS (nginx: port 80 redirects and a 443 block with certbot's paths; Caddy does it by itself)
+- `--proxy nginx|caddy`  which one to make (by default the one the instance already used, or nginx)
+- `--save`  keeps the block in `instances/<instance>/proxy/` and remembers the answers in `access.conf`
+
+What you do not say is taken from what the instance remembered (`access.conf`), as the Access tab of the panel does.
+
+## Templates
+Each service comes from `templates/nginx/<service>.location.conf` (if it does not exist, from `default.location.conf`).
+Inside, `@PORT@` is the port of the service. `s0` has WebSockets and `s1` also has 10-minute timeouts and no
+buffering; edit the file to change it. The folder can be changed with `DELTACTL_NGINX_TEMPLATES`. `nginx -t` is what
+checks what you write in a template.
+
+## Related
+- `./deltactl new <instance> --domain D --host sN=NAME --www` does the same when creating
+- `./deltactl help existing-instance`

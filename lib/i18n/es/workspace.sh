@@ -49,3 +49,8 @@ MSG_es["tui.list.sort.name"]="por nombre"
 MSG_es["tui.list.sort.state"]="por estado"
 MSG_es["tui.list.sort.mem"]="por memoria"
 MSG_es["tui.list.sorted"]="Lista ordenada {1}"
+
+# Para desplegar: el acceso por nombre (lib/screens/instances_ws.sh)
+MSG_es["tui.ws.todo.access"]="Sin dominio: nadie la alcanza por nombre"
+MSG_es["tui.ws.todo.access_detail"]="falta el bloque de nginx"
+MSG_es["tui.ws.todo.access_act"]="configurar acceso"

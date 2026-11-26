@@ -1,6 +1,6 @@
 === frame 1 ===
 
- 1 Servidor [2 Instancias] 3 Recursos 4 Salida 5 Ejecuciones 6 Procesos 7 Consola 8 Imágenes 9 Variables 0 Actividad   
+ 1 Servidor 2 Imágenes [3 Instancias] 4 Recursos 5 Salida 6 Ejecuciones 7 Procesos 8 Consola 9 Variables 0 Actividad   
 ╭─┐nueva instancia┌──────────────────────────────────────────────────────────────────────────────────────┐instancia-1┌─╮
 │ ●━━━━━━━━━━━━━◉━━━━━━━━━━━━━○━━━━━━━━━━━━━○━━━━━━━━━━━━━○━━━━━━━━━━━━━○━━━━━━━━━━━━━○━━━━━━━━━━━━━○       Paso 2 de 8│
 │ Nombre        Servicios     Versiones     Datos         Variables     Secretos      Acceso        Revisión           │

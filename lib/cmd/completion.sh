@@ -16,7 +16,7 @@ _new_flags="--services --existing --wizard"
 for _s in "${KNOWN_SERVICES[@]}"; do _new_flags+=" --$_s-image"; done
 for _s in "${KNOWN_SERVICES[@]}"; do _new_flags+=" --$_s-tag"; done
 COMPLETION_FLAGS=(
-  "new:$_new_flags --ip --generate-secrets --env-file --secret-file --domain --proxy --tls"
+  "new:$_new_flags --ip --generate-secrets --env-file --secret-file --domain --host --www --proxy --tls"
   "init:--yes"
   "doctor:--json"
   "rollback:--yes"
@@ -30,6 +30,7 @@ COMPLETION_FLAGS=(
   "runs:--instance -n --json --tail --raw"
   "env:--reveal --json --stdin --force --yes"
   "service:--tag --port --generate-secrets --yes"
+  "access:--domain --host --www --no-www --tls --no-tls --proxy --save"
 )
 
 cmd_completion() {
@@ -74,7 +75,7 @@ _deltactl_complete() {
     deploy | rollback | stop | logs | check | status)
       if [ "$COMP_CWORD" -eq 2 ]; then COMPREPLY=($(compgen -W "$insts" -- "$cur"))
       elif [ "$COMP_CWORD" -eq 3 ]; then COMPREPLY=($(compgen -W "$services" -- "$cur")); fi ;;
-    init | adopt | down | ps)
+    init | adopt | down | ps | access)
       [ "$COMP_CWORD" -eq 2 ] && COMPREPLY=($(compgen -W "$insts" -- "$cur")) ;;
     images | versions)
       [ "$COMP_CWORD" -eq 2 ] && COMPREPLY=($(compgen -W "$services" -- "$cur")) ;;

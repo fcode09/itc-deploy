@@ -1,6 +1,6 @@
 === frame 1 ===
   ITC  testhost · Memoria ███░░░ 5.6/11.5 GB 48% ▄▃▂▅▃▂ · Carga 3.18 · Docker 27.0.0 · contenedores 1.5G
-  1 Servidor  [2 Instancias]  3 Recursos   4 Salida   5 Ejecuciones   6 Procesos   7 Consola   8 Imágenes   9 Variables   0 Actividad                          
+  1 Servidor   2 Imágenes  [3 Instancias]  4 Recursos   5 Salida   6 Ejecuciones   7 Procesos   8 Consola   9 Variables   0 Actividad                          
 ╭─ ▸Instancias ──────────────────────────╮[Resumen] Acceso  Historial  Servicios  Variables  Datos                          ╭─ Eventos ────────────────────────╮
 │   + Nueva instancia                    │╭─┐ix-colorado · 2/2┌──────────────────────────────────────────────┐● en marcha┌─╮│ Sin eventos todavía              │
 │                  n/m      mem    cpu   ││ ╭─┐s0┌─┐auth-backend:2.14.1┌──────────╮╭─┐s1┌─┐gueo-back-end:2.9.0┌───────────╮││                                  │
@@ -17,8 +17,8 @@
 │   █  █▁ █▂ █▁ █▅ ██▆ █  █  █  █  █▃ █▂ ││ │       ⣆⣷⣿⣆⣷⣸⣇⣿⣸⣿⣿⣿⣧⣿⣆⣷⣸⣆⣿⣸⣿⣿⣿⣧⣿⣆⣧⣿⣇⣷││        ⣆⣷⣿⣆⣷⣸⣇⣿⣸⣿⣿⣿⣧⣿⣆⣷⣸⣆⣿⣸⣿⣿⣿⣧⣿⣆⣧⣿⣇⣷│││                                  │
 │ ▆ █▅ ██ ██ ██▁██▁███▅█▄ █▄ █▇ █▇ ██ ██ ││ ╰─────────────────────────────────────╯╰──────────────────────────────────────╯││                                  │
 │ █▃██▃██▆██▆████████████ ██▁██▅██▄█████▇││   Total  mem 1.3G/2.5G  cpu 25.1%  datos: sembrados                            ││                                  │
-│ Carga 3.18                             ││ Para desplegar                                                                 ││                                  │
-│ contenedores 1.5G                      ││   ● Todo al día  no hay nada pendiente de desplegar                            ││                                  │
+│ Carga 3.18                             ││ Para desplegar · 1                                                             ││                                  │
+│ contenedores 1.5G                      ││   ℹ Sin dominio: nadie la alcanza por nombre  falta el blo  ⏎ configurar acceso││                                  │
 │ Docker 27.0.0                          │╰─┘u desplegar└─┘c comprobar└─┘s estado└─┘l logs└─┘< > pestaña└─┘Enter más└──────╯│                                  │
 │                                        │╭─ Logs · s0 · siguiendo ────────────────────────────────────────────────────────╮│                                  │
 │                                        ││ Leyendo el log...                                                              ││                                  │

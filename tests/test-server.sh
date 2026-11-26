@@ -76,7 +76,7 @@ check "the dialog that asks is a mode" '[ "$(run_lib "printf \"%s \" \${DASH_MOD
 check "every function of the contract it uses is defined" 'run_lib "for f in render key keys texts sig enter back tick poll bang tab click wheel; do declare -F scr_server_\$f >/dev/null || exit 1; done; for f in render key keys sig; do declare -F scr_srvask_\$f >/dev/null || exit 1; done"'
 check "the requirements are shown required first, then recommended, in the order of the catalog" '[ "$(run_lib "echo \${DASH_SRV_ORDER[*]} \$DASH_SRV_NREQ")" = "docker daemon compose disk ram mongo ss openssl gunzip nofile proxy certbot timesync firewall curl 9" ]'
 check "its signature carries the state it draws" '[ "$(run_lib "DASH_SIG=; scr_server_sig; echo \$DASH_SIG")" = "|0|0|auto|0||none|0|0|req|0|0|name|0|0|none|none" ]'
-check "it is first in the list of views of the console, the palette and the error message" 'grep -q "pool=(server instances resources" lib/screens/console.sh && grep -q "for v in server instances resources output runs procs console images env activity; do" lib/screens/palette.sh && grep -q "Vistas: server · instances" lib/i18n/es/dashboard.sh && grep -q "Views: server · instances" lib/i18n/en/dashboard.sh'
+check "it is first in the list of views of the console, the palette and the error message" 'grep -q "pool=(server images instances" lib/screens/console.sh && grep -q "for v in server images instances resources output runs procs console env activity; do" lib/screens/palette.sh && grep -q "Vistas: server · images" lib/i18n/es/dashboard.sh && grep -q "Views: server · images" lib/i18n/en/dashboard.sh'
 check "the registry documents the hook of the key !" 'grep -q "scr_<id>_bang" lib/screens/registry.sh'
 
 section "3. snapshots of the scenes (from 80x24 to 250x70)"
@@ -177,7 +177,7 @@ check "the compact detail has what it is for, the result, how to fix it and wher
 check "Esc closes the detail without leaving the view" 'o="$(panel_bad 1 enter esc q)"; echo "$o" | frame_n 3 | grep -q "Instálalo: https" && ! echo "$o" | frame_n 4 | grep -q "Instálalo: https" && echo "$o" | frame_n 4 | grep -q "\[1 Servidor\]"'
 check "m shows only the figures and m again brings the requirements back" 'o="$(panel_bad 1 m m q)"; ! echo "$o" | frame_n 3 | grep -q "OBLIGATORIOS" && echo "$o" | frame_n 3 | grep -q "m requisitos" && echo "$o" | frame_n 4 | grep -q "OBLIGATORIOS"'
 check "Esc leaves the metrics view first; the next one leaves the panel (this is the first view: there is nowhere to go back to)" 'o="$(panel_bad 1 m esc esc)"; echo "$o" | frame_n 4 | grep -q "OBLIGATORIOS" && echo "$o" | frame_n 4 | grep -q "\[1 Servidor\]" && ! echo "$o" | grep -q "^=== frame 6 ==="'
-check "from another view Esc comes back to this one" 'panel_bad 2 esc q | frame_n 3 | grep -q "\[1 Servidor\]"'
+check "from another view Esc comes back to this one" 'panel_bad 3 esc q | frame_n 3 | grep -q "\[1 Servidor\]"'
 check "R checks again: it says so and draws another frame with the answer" 'o="$(panel_bad 1 R q)"; echo "$o" | last_frame | grep -q "Comprobando los requisitos"'
 check "Up and Down stop at the ends of the list; PgDn and End go to the last one" 'panel_bad 1 up up q | last_frame | grep "^| > " | grep -q "Docker Engine" && panel_bad 1 end q | last_frame | grep "^| > " | grep -q "curl"'
 check "with a keyboard that moves with j and k they move too (the vim keys)" 'panel_bad 1 j j k q | last_frame | grep "^| > " | grep -q "ss (iproute2)"'
@@ -239,7 +239,7 @@ check "the same command on a terminal where it fits is offered and runs" 'grep -
 rm -f "$FIX/ran.txt"
 DELTACTL_PR_SHELL="$FIX/fakesh" panel_ok 1 enter '!' q > "$FIX/out.txt"
 check "a requirement that is fine has nothing to run (the list is opened first: with the strip there is no requirement to run)" '[ ! -e "$FIX/ran.txt" ] && grep -q "ya está listo: no hay nada que ejecutar" "$FIX/out.txt"'
-check "outside this view ! is still the command line that runs in the terminal, and so it is here when the strip has the focus (no requirement is shown to run)" '[ "$(panel_ok 2 "!" x | last_frame | grep -c "!x")" -ge 1 ] && [ "$(panel_ok "!" x | last_frame | grep -c "!x")" -ge 1 ]'
+check "outside this view ! is still the command line that runs in the terminal, and so it is here when the strip has the focus (no requirement is shown to run)" '[ "$(panel_ok 3 "!" x | last_frame | grep -c "!x")" -ge 1 ] && [ "$(panel_ok "!" x | last_frame | grep -c "!x")" -ge 1 ]'
 
 section "9. the notice when the panel starts (the first-run gate)"
 out="$(DELTACTL_TUI_GATE=1 panel_bad q)"
@@ -248,11 +248,11 @@ check "and says what is missing, once, in the message line" 'echo "$out" | frame
 out="$(DELTACTL_TUI_GATE=1 panel_ok q)"
 check "with everything in place it is on the Server view too and says nothing" 'echo "$out" | frame_n 1 | grep -q "\[1 Servidor\]" && ! echo "$out" | frame_n 1 | grep -q "Faltan"'
 out="$(panel_bad q)"
-check "in test mode, without DELTACTL_TUI_GATE, the panel starts on this view without a notice (the other suites start from Instancias with DELTACTL_TUI_START)" 'echo "$out" | frame_n 1 | grep -q "\[1 Servidor\]" && ! echo "$out" | frame_n 1 | grep -q "Faltan" && [ "$(DELTACTL_TUI_START=instances panel_bad q | frame_n 1 | grep -c "\[2 Instancias\]")" = 1 ]'
-out="$(DELTACTL_TUI_GATE=1 panel_bad 2 esc q)"
-check "the view can be left, with nothing blocking the other views, and Esc comes back to it" 'echo "$out" | frame_n 2 | grep -q "\[2 Instancias\]" && echo "$out" | frame_n 3 | grep -q "\[1 Servidor\]"'
-out="$(DELTACTL_TUI_GATE=1 panel_bad 3 4 1 q)"
-check "the other views open normally from the notice" 'echo "$out" | frame_n 3 | grep -q "\[4 Salida\]"'
+check "in test mode, without DELTACTL_TUI_GATE, the panel starts on this view without a notice (the other suites start from Instancias with DELTACTL_TUI_START)" 'echo "$out" | frame_n 1 | grep -q "\[1 Servidor\]" && ! echo "$out" | frame_n 1 | grep -q "Faltan" && [ "$(DELTACTL_TUI_START=instances panel_bad q | frame_n 1 | grep -c "\[3 Instancias\]")" = 1 ]'
+out="$(DELTACTL_TUI_GATE=1 panel_bad 3 esc q)"
+check "the view can be left, with nothing blocking the other views, and Esc comes back to it" 'echo "$out" | frame_n 2 | grep -q "\[3 Instancias\]" && echo "$out" | frame_n 3 | grep -q "\[1 Servidor\]"'
+out="$(DELTACTL_TUI_GATE=1 panel_bad 4 5 1 q)"
+check "the other views open normally from the notice" 'echo "$out" | frame_n 3 | grep -q "\[5 Salida\]"'
 
 section "10. creating an instance with something required missing"
 rm -f "$CFG"
@@ -263,17 +263,17 @@ out="$(DELTACTL_TUI_GATE=1 panel_bad n y)"
 check "y goes on: the form opens" 'echo "$out" | last_frame | grep -q "\[nueva instancia\]"'
 out="$(DELTACTL_TUI_GATE=1 panel_bad n y esc n)"
 check "and the question is not asked again in the same session" 'echo "$out" | last_frame | grep -q "\[nueva instancia\]" || echo "$out" | last_frame | grep -q "Nueva instancia"'
-out="$(DELTACTL_TUI_GATE=1 panel_bad 2 n v)"
+out="$(DELTACTL_TUI_GATE=1 panel_bad 3 n v)"
 check "v shows the requirements" 'echo "$out" | last_frame | grep -q "\[1 Servidor\]" && echo "$out" | last_frame | grep -q "OBLIGATORIOS"'
-out="$(DELTACTL_TUI_GATE=1 panel_bad 2 n esc)"
-check "Esc cancels: back to where it was, nothing created" 'echo "$out" | last_frame | grep -q "\[2 Instancias\]" && ! echo "$out" | last_frame | grep -q "\[nueva instancia\]" && echo "$out" | last_frame | grep -q "Cancelado"'
+out="$(DELTACTL_TUI_GATE=1 panel_bad 3 n esc)"
+check "Esc cancels: back to where it was, nothing created" 'echo "$out" | last_frame | grep -q "\[3 Instancias\]" && ! echo "$out" | last_frame | grep -q "\[nueva instancia\]" && echo "$out" | last_frame | grep -q "Cancelado"'
 check "nothing is written to the config file by any of those answers" '[ ! -s "$CFG" ] || ! grep -q "TUI_PREREQ" "$CFG"'
-out="$(DELTACTL_TUI_GATE=1 panel_bad 2 n n)"
+out="$(DELTACTL_TUI_GATE=1 panel_bad 3 n n)"
 check "n (do not warn again) goes on to the form and says it will not warn again" 'echo "$out" | last_frame | grep -q "\[nueva instancia\]" && echo "$out" | grep -q "No se volverá a avisar"'
 check "and it is remembered in the config file" 'grep -q "^TUI_PREREQ=off$" "$CFG"'
 out="$(DELTACTL_TUI_GATE=1 panel_bad q)"
 check "from then on the panel starts with no notice" 'echo "$out" | frame_n 1 | grep -q "\[1 Servidor\]" && ! echo "$out" | frame_n 1 | grep -q "Faltan"'
-out="$(DELTACTL_TUI_GATE=1 panel_bad 2 n)"
+out="$(DELTACTL_TUI_GATE=1 panel_bad 3 n)"
 check "and n opens the form at once" 'echo "$out" | last_frame | grep -q "\[nueva instancia\]"'
 out="$(panel_bad o down down down down down down)"
 check "Options has the option, off, with what it does" 'echo "$out" | last_frame | grep -q "Aviso de requisitos" && echo "$out" | last_frame | grep -q "avisa si"'

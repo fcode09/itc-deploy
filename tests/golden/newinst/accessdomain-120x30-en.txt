@@ -1,6 +1,6 @@
 === frame 1 ===
 
- 1 Server [2 Instances] 3 Resources 4 Output 5 Runs 6 Processes 7 Console 8 Images 9 Variables 0 Activity              
+ 1 Server 2 Images [3 Instances] 4 Resources 5 Output 6 Runs 7 Processes 8 Console 9 Variables 0 Activity              
 ╭─┐new instance┌─────────────────────────────────────────────────────────────────────────────────────────┐instancia-1┌─╮
 │ ●━━━━━━━━━━━━━●━━━━━━━━━━━━━●━━━━━━━━━━━━━●━━━━━━━━━━━━━▲━━━━━━━━━━━━━▲━━━━━━━━━━━━━◉━━━━━━━━━━━━━○       Step 7 of 8│
 │ Name          Services      Versions      Data          Variables     Secrets       Access        Review             │
@@ -19,12 +19,12 @@
 │   be generated anyway).                                              ││   variables: 0 set · 4 generated             │
 │                                                                      ││   proxy/ nginx.conf Caddyfile                │
 │ nginx block → instances/instancia-1/proxy/nginx.conf                 ││                                              │
-│ map $http_upgrade $connection_upgrade { default upgrade; '' close; } ││ ≈ ./deltactl new instancia-1                 │
-│                                                                      ││     --services s0,s1 --s0-tag 2.14.1         │
-│ # s0                                                                 ││     --s1-tag 2.9.0 --env-file <answers>      │
-│ server {                                                             ││     --domain muni.example.com --tls          │
-│     listen 80;                                                       ││                                              │
-│ … and 43 more lines (the whole block is saved in the instance)       ││                                              │
+│                                                                      ││ ≈ ./deltactl new instancia-1                 │
+│ # s0                                                                 ││     --services s0,s1 --s0-tag 2.14.1         │
+│ server {                                                             ││     --s1-tag 2.9.0 --env-file <answers>      │
+│     listen 80;                                                       ││     --domain muni.example.com --tls          │
+│     server_name auth-backend.muni.example.com;                       ││                                              │
+│ … and 63 more lines (the whole block is saved in the instance)       ││                                              │
 │                                                                      ││                                              │
 ╰─┘Esc back└─┘Enter next└──────────────────────────────────────────────╯╰──────────────────────────────────────────────╯
 

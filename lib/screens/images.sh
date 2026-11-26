@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC2034,SC2153,SC2154  # the DASH_* variables (DASH_KEYS, TUI_CURSOR...) are declared in lib/cmd/dashboard*.sh and shared by every screen
-# Screen: Images (view 8). What this Docker has of each service: its versions from the newest to the oldest, with the most recent one you may
+# Screen: Images (view 2). What this Docker has of each service: its versions from the newest to the oldest, with the most recent one you may
 # choose starred (★), the tags that move marked (▲), the images that cannot run here marked (✖), who uses each one and, for the one chosen,
 # why it can or cannot be used. Enter uses a version in an instance (lib/screens/imguse.sh asks which, shows the change and, on y, deploys it);
 # l loads an image archive (lib/screens/imgload.sh; `./deltactl load` runs in the background and the panel keeps working); c copies the
@@ -38,7 +38,7 @@ DASH_IMG_NOTE=""         # the warning of the group of the version under the cur
 dash_img_dump() {
   if ! ic_load; then echo "DASH_IMG_NODOCKER=1"; return 0; fi
   declare -p IC_N IC_SERVER_ARCH IC_SVC IC_REPO IC_FULL IC_TAG IC_ID IC_ARCH IC_SINCE IC_SIZE IC_EPOCH IC_KIND IC_VNUM IC_VPRE IC_OK IC_STAR IC_USE \
-    IC_GROUPS IC_ORDER IC_STARIDX IC_DISC
+    IC_GROUPS IC_ORDER IC_STARIDX IC_DISC IC_CFG
 }
 
 # The versions in the order they are shown, from the groups of the catalog.
@@ -113,6 +113,69 @@ dash_img_t() { # key [a] [b] [c] [d] [e]
   DASH_T="${DASH_T//\{5\}/${6:-}}"
 }
 
+# What is in use of one image, in the lines under its heading (DASH_IMG_CUR): which versions the instances that have the service run, and who
+# runs each; and a warning for what does not add up: a configured version that is not loaded (the next deploy would fail or pull it) and a
+# service that runs a version other than the configured one (the tag was written and it was not deployed). What runs comes from the state of
+# the panel (ST_CIMAGE); a stopped service counts with its configured version and says it is stopped.
+DASH_IMG_CUR=()
+dash_img_current() { # group width
+  local grp="$1" w="$2" svc repo name rec cfg key st img base run shown tag i k found nw=0 maxw=2 line ns
+  local -a order=() warns=() has=()
+  local -A who=()
+  svc="${grp%%|*}" repo="${grp#*|}"
+  DASH_IMG_CUR=()
+  for i in ${IC_ORDER[$grp]:-}; do has+=("${IC_TAG[$i]}"); done
+  for name in "${DASH_NAMES[@]}"; do
+    case " ${DASH_SVCS[$name]:-} " in *" $svc "*) ;; *) continue ;; esac
+    rec="${IC_CFG[$name/$svc]:-}"
+    [ -n "$rec" ] && [ "${rec%%|*}" = "$repo" ] || continue
+    cfg="${rec#*|}"; cfg="${cfg%%|*}"
+    [ -n "$cfg" ] || continue
+    key="$name/$svc" st="${ST_STATE[$key]:-}" img="${ST_CIMAGE[$key]:-}" run=""
+    if [ "$st" = running ] && [ -n "$img" ]; then
+      case "$img" in sha256:* | *@sha256:*) run="?" ;; *) base="${img##*/}"; if [[ "$base" == *:* ]]; then run="${base#*:}"; else run="latest"; fi ;; esac
+    fi
+    tag="$cfg" shown="$name"
+    if [ -n "$run" ]; then
+      tag="$run"
+      if [ "$run" != "?" ] && [ "$run" != "$cfg" ]; then dash_img_t tui.img.warn_drift "$name" "$run" "$cfg"; warns+=("warn|$DASH_T"); fi
+    else
+      dt tui.img.stopped; shown="$name [$DTV]"
+    fi
+    found=0
+    for k in "${has[@]}"; do [ "$k" != "$cfg" ] || found=1; done
+    if [ "$found" -eq 0 ]; then dash_img_t tui.img.warn_notloaded "$name" "$cfg"; warns+=("err|$DASH_T"); fi
+    if [ -z "${who[$tag]+x}" ]; then order+=("$tag"); who[$tag]="$shown"; else who[$tag]+=", $shown"; fi
+  done
+  if [ "${#order[@]}" -eq 0 ]; then
+    dt tui.img.inuse_none; tui_fit "  ${TH[dim]:-}$DTV$TH_RESET" "$w"; DASH_IMG_CUR+=("$TUI_OUT")
+    return 0
+  fi
+  # The versions the catalog has come first, the newest first; a configured version that is not loaded goes last.
+  local -a sorted=()
+  for k in "${has[@]}"; do [ -z "${who[$k]+x}" ] || sorted+=("$k"); done
+  for tag in "${order[@]}"; do
+    found=0
+    for k in "${has[@]}"; do [ "$k" != "$tag" ] || found=1; done
+    [ "$found" -eq 1 ] || sorted+=("$tag")
+  done
+  line=""
+  ns="${IC_STARIDX[$grp]:--1}"
+  for tag in "${sorted[@]}"; do
+    [ -z "$line" ] || line+=" $UI_S_DOT "
+    if [ "$ns" -ge 0 ] && [ "${IC_TAG[$ns]}" = "$tag" ]; then line+="$UI_S_STAR "; fi
+    line+="${TH[accent]:-}$tag$TH_RESET ${TH[dim]:-}(${who[$tag]})$TH_RESET"
+  done
+  dt tui.img.inuse; tui_fit "  ${TH[dim]:-}$DTV$TH_RESET $line" "$w"; DASH_IMG_CUR+=("$TUI_OUT")
+  for line in "${warns[@]}"; do
+    nw=$((nw + 1))
+    if [ "$nw" -gt "$maxw" ]; then continue; fi
+    kit_state_icon "${line%%|*}"
+    tui_fit "  $KIT_ICON ${KIT_COL}${line#*|}$TH_RESET" "$w"; DASH_IMG_CUR+=("$TUI_OUT")
+  done
+  if [ "$nw" -gt "$maxw" ]; then dash_img_t tui.img.warn_more $((nw - maxw)); tui_fit "  ${TH[dim]:-}$DASH_T$TH_RESET" "$w"; DASH_IMG_CUR+=("$TUI_OUT"); fi
+}
+
 # The lines of the list ($1 cells wide) into DASH_IMG_FLAT, and for each version the line it is on (DASH_IMG_LINE, by item): a heading per
 # image, its table (header and one row per version), the warning when the two orders disagree, and a blank line.
 # Nothing in them depends on the cursor, so they are built again only when the answer, the language, the theme or the width change.
@@ -120,7 +183,7 @@ DASH_IMG_FLAT=() DASH_IMG_LINE=() DASH_IMG_KEY=""
 dash_img_build() { # width
   local w="$1" key g grp svc repo n i k nv tw=8 head left right plain mark ns
   local -a REC=() order=() lines=()
-  key="$w|$DASH_IMG_N|$DASH_LANG_N|${UI_UTF8:-0}|$DASH_IMG_STATE"
+  key="$w|$DASH_IMG_N|$DASH_LANG_N|${UI_UTF8:-0}|$DASH_IMG_STATE|$DASH_REFRESH_N"
   [ "$key" != "$DASH_IMG_KEY" ] || return 0
   DASH_IMG_FLAT=() DASH_IMG_LINE=() DASH_IMG_KEY="$key"
   declare -A TX=()
@@ -147,6 +210,8 @@ dash_img_build() { # width
     tui_vlen "$right"
     if [ $((head + 2 + TUI_VL)) -le "$w" ]; then printf -v plain '%*s' $((w - head - TUI_VL)) ''; DASH_IMG_FLAT+=("$left$plain${TH[dim]:-}$right$TH_RESET")
     else tui_fit "$left" "$w"; DASH_IMG_FLAT+=("$TUI_OUT"); fi
+    dash_img_current "$grp" "$w"
+    DASH_IMG_FLAT+=("${DASH_IMG_CUR[@]}")
     if [ "$nv" -eq 0 ]; then
       dt tui.img.none; tui_fit "  ${TH[dim]:-}$DTV$TH_RESET" "$w"; DASH_IMG_FLAT+=("$TUI_OUT" "")
       continue
@@ -251,7 +316,7 @@ scr_images_render() { # width height
     body+=("$TUI_OUT")
   fi
   # The box: the title, how many versions the server has and its architecture, and the keys of the view in the border.
-  dt tui.img.title; chips="8:$DTV"
+  dt tui.img.title; chips="2:$DTV"
   if [ "$DASH_IMG_STATE" = "ready" ]; then
     dash_img_t tui.img.status "$IC_SERVER_ARCH" "${#DASH_IMG_ITEMS[@]}"; status="$DASH_T"
     if [ "$DASH_IMG_BUSY" -eq 1 ]; then status+=" $UI_S_DOT $UI_S_RUN"; fi
@@ -303,7 +368,9 @@ scr_images_key() { # key
 
 scr_images_keys() { dash_keys_view images "$1"; } # width
 scr_images_texts() { DASH_KEYS[images]="$(t tui.keys.images "$DASH_UD")"; }
-scr_images_sig() { DASH_SIG+="|$DASH_IMG_SEL|$DASH_IMG_OPEN|$DASH_IMG_STATE|$DASH_IMG_BUSY|$DASH_IMG_N|$DASH_IMG_LOADING"; }
+# (what runs changes with the state of Docker, which only matters while this view is the one drawn: every screen adds its part to the signature of
+# every view, and a part that moved with each refresh would rebuild the bodies of the views that are not live)
+scr_images_sig() { local r=""; [ "$DASH_VIEW" != images ] || r="$DASH_REFRESH_N"; DASH_SIG+="|$DASH_IMG_SEL|$DASH_IMG_OPEN|$DASH_IMG_STATE|$DASH_IMG_BUSY|$DASH_IMG_N|$DASH_IMG_LOADING|$r"; }
 
 # Esc: first the detail; else leave the view.
 scr_images_back() {

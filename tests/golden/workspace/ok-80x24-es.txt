@@ -1,6 +1,6 @@
 === frame 1 ===
   ITC  testhost · Memoria ███░░░ 5.6/11.5 GB 48% ▄▃▂▅▃▂ · Carga 3.18
-  1  [2 Instancias]  3   4   5   6   7   8   9   0                             
+  1   2  [3 Instancias]  4   5   6   7   8   9   0                             
 ╭─ ▸Instancias ────────────────────────────────────────────────────────────────╮
 │   + Nueva instancia                                                          │
 │                  n/m      mem    cpu                                         │
@@ -10,10 +10,10 @@
 ╰──────────────────────────────────────────────────────────────────────────────╯
 [Resumen] Logs  Acceso  Historial  Servicios  Variables  Datos                  
 ╭─┐ix-colorado · 2/2┌────────────────────────────────────────────┐● en marcha┌─╮
-│ ▸ s0 auth-backend:2.14.1  ● healthy                                          │
 │     activo 2d04h  ·  :4100                                                   │
 │     mem  █████░░░░░░░ 196M/512M  38%  ▅▃▁▅▄▂▅▄▂▅▄▂▁▄                         │
 │     cpu  ░░░░░░░░░░░░ 3.7%  ▅▂▇▅▃▁▅▃█▅▄▁▆▃                                   │
+│ Para desplegar · 1  t pendientes                                             │
 ╰─┘u desplegar└─┘c comprobar└─┘s estado└─┘l logs└─┘< > pestaña└─┘Enter más└────╯
 ╭─ Consola ────────────────────────────────────────────────────────────────────╮
 │                                                                              │

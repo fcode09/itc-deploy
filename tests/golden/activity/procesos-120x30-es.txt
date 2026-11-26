@@ -1,6 +1,6 @@
 === frame 1 ===
   ITC  testhost · Docker 27.0.0
- 1 Servidor 2 Instancias 3 Recursos 4 Salida 5 Ejecuciones 6 Procesos 7 Consola 8 Imágenes 9 Variables [0 Actividad]   
+ 1 Servidor 2 Imágenes 3 Instancias 4 Recursos 5 Salida 6 Ejecuciones 7 Procesos 8 Consola 9 Variables [0 Actividad]   
 ╭─ ▸Actividad (5) ───────────────────────────╮ Resumen  Salida  Consumo [Procesos]                                      
 │ ▸ ● 11-01 10:00 deploy   ix-colora   41.2 s│╭─ ▸Comando en curso ────────────────────────────────────────────────────╮
 │   ● 11-01 09:50 deploy   ix-lima     30.1 s││  No hay ningún comando en curso. Cuando lances uno (desplegar,         │

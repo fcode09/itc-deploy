@@ -230,6 +230,17 @@ dash_todo_build() { # instance
     DASH_TODO+=("info|$line|$DASH_T|$DTV")
     DASH_TODO_ACT+=("view:images")
   done <<< "$DASH_TODO_STAR"
+  # A running instance that nobody can reach by name: it has no domain saved yet (the block of the proxy is made in the Access tab).
+  if [ "${DASH_KIND[$name]:-}" = "ok" ] && [ -n "${DASH_SVCS[$name]:-}" ]; then
+    proxy_meta_load "$name"
+    if [ "$PROXY_M_FROM" = "none" ]; then
+      dt tui.ws.todo.access; line="$DTV"
+      dt tui.ws.todo.access_detail; why="$DTV"
+      dt tui.ws.todo.access_act
+      DASH_TODO+=("info|$line|$why|$DTV")
+      DASH_TODO_ACT+=("tab:acceso")
+    fi
+  fi
   # What the server lacks (the requirements of the Server view), while the instance is not running.
   if [ "$DASH_SRV_STATE" = "ready" ] && [ "$DASH_SRV_BAD" -gt 0 ] && [ "${DASH_KIND[$name]:-}" != "ok" ]; then
     dash_ws_t tui.ws.todo.server "$DASH_SRV_BAD_NAMES"; line="$DASH_T"
@@ -251,6 +262,7 @@ dash_todo_run() { # instance
   case "$act" in
     init:*) DASH_NAME_TARGET="${act#init:}" DASH_BUF="" DASH_CUR=0 DASH_MODE=name ;;
     view:*) dash_screen_goto "${act#view:}" ;;
+    tab:*) dash_ws_tab_go "${act#tab:}" ;;
     job:*)
       args="${act#job:}"
       verb="${args%% *}"

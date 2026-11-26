@@ -1,6 +1,6 @@
 === frame 1 ===
   ITC  testhost · Memoria ███░░░ 5.6/11.5 GB 48% ▄▃▂▅▃▂ · Carga 3.18 · Docker 27.0.0 · contenedores 1.5G
-  1 Servidor  [2 Instancias]  3 Recursos   4 Salida   5 Ejecuciones   6 Procesos   7 Consola   8 Imágenes   9 Variables   0 Actividad                          
+  1 Servidor   2 Imágenes  [3 Instancias]  4 Recursos   5 Salida   6 Ejecuciones   7 Procesos   8 Consola   9 Variables   0 Actividad                          
 ╭─ Instancias ───────────────────────────╮ Resumen [Acceso] Historial  Servicios  Variables  Datos                          ╭─ Eventos ────────────────────────╮
 │   + Nueva instancia                    │╭─┐ ▸ix-colorado ┌─┐Acceso┌─────────────────────────────┐● nginx detectado aquí┌─╮│ Sin eventos todavía              │
 │                  n/m      mem    cpu   ││ Dominio   ● ejemplo.pe                                                         ││                                  │
@@ -13,21 +13,21 @@
 │ Memoria █████░░░░░ 5.6/11.5 GB 48%     ││                                                                                ││                                  │
 │                  ▃                     ││ Bloque de nginx  ○ sin guardar  proxy/nginx.conf                               ││                                  │
 │                  █   ▄                 ││ Va en /etc/nginx/conf.d/ · nginx -t && systemctl reload nginx · aquí no se escr││                                  │
-│   ▁  ▁  ▄  ▄  █  ██  █     ▂  ▃  ▂  ▆  ││ map $http_upgrade $connection_upgrade { default upgrade; '' close; }           ││                                  │
-│   █  █▁ █▂ █▁ █▅ ██▆ █  █  █  █  █▃ █▂ ││                                                                                ││                                  │
-│ ▆ █▅ ██ ██ ██▁██▁███▅█▄ █▄ █▇ █▇ ██ ██ ││ # s0                                                                           ││                                  │
-│ █▃██▃██▆██▆████████████ ██▁██▅██▄█████▇││ server {                                                                       ││                                  │
-│ Carga 3.18                             ││     listen 80;                                                                 ││                                  │
-│ contenedores 1.5G                      ││     server_name auth-backend.ejemplo.pe;                                       ││                                  │
-│ Docker 27.0.0                          ││     return 301 https://$host$request_uri;                                      ││                                  │
-│                                        ││ }                                                                              ││                                  │
-│                                        ││ server {                                                                       ││                                  │
+│   ▁  ▁  ▄  ▄  █  ██  █     ▂  ▃  ▂  ▆  ││ # s0                                                                           ││                                  │
+│   █  █▁ █▂ █▁ █▅ ██▆ █  █  █  █  █▃ █▂ ││ server {                                                                       ││                                  │
+│ ▆ █▅ ██ ██ ██▁██▁███▅█▄ █▄ █▇ █▇ ██ ██ ││     listen 80;                                                                 ││                                  │
+│ █▃██▃██▆██▆████████████ ██▁██▅██▄█████▇││     server_name auth-backend.ejemplo.pe;                                       ││                                  │
+│ Carga 3.18                             ││     return 301 https://$host$request_uri;                                      ││                                  │
+│ contenedores 1.5G                      ││ }                                                                              ││                                  │
+│ Docker 27.0.0                          ││ server {                                                                       ││                                  │
 │                                        ││     listen 443 ssl;                                                            ││                                  │
 │                                        ││     server_name auth-backend.ejemplo.pe;                                       ││                                  │
 │                                        ││     # the certificate: certbot --nginx -d auth-backend.ejemplo.pe              ││                                  │
 │                                        ││     ssl_certificate /etc/letsencrypt/live/auth-backend.ejemplo.pe/fullchain.pem││                                  │
 │                                        ││     ssl_certificate_key /etc/letsencrypt/live/auth-backend.ejemplo.pe/privkey.p││                                  │
 │                                        ││     location / {                                                               ││                                  │
+│                                        ││         proxy_pass http://127.0.0.1:4100;                                      ││                                  │
+│                                        ││                                                                                ││                                  │
 ╰────────────────────────────────────────╯╰─┘Enter dominio└─┘b bloque└─┘w https└─┘y copiar└─┘g guardar└─┘< > pestaña└──────╯╰──────────────────────────────────╯
 ╭─ Consola ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
 │                                                                                                                                                              │

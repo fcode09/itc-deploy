@@ -1,6 +1,6 @@
 === frame 1 ===
 
-  1 Servidor  [2 Instancias]  3 Recursos   4 Salida   5 Ejecuciones   6 Procesos   7 Consola   8 Imágenes   9 Variables   0 Actividad                          
+  1 Servidor   2 Imágenes  [3 Instancias]  4 Recursos   5 Salida   6 Ejecuciones   7 Procesos   8 Consola   9 Variables   0 Actividad                          
 ╭─┐nueva instancia┌──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐instancia-1┌─╮
 │ ●━━━━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━━━━▲━━━━━━━━━━━━━━━━━━▲━━━━━━━━━━━━━━━━━━◉━━━━━━━━━━━━━━━━━━○            Paso 7 de 8│
 │ Nombre             Servicios          Versiones          Datos              Variables          Secretos           Acceso             Revisión                │
@@ -17,24 +17,24 @@
 │ ℹ No se detectó nginx ni Caddy en este servidor (el bloque se puede generar igual).          ││   secrets/  data/                                            │
 │                                                                                              ││     data/ vacía: init la siembra                             │
 │ Bloque de nginx → instances/instancia-1/proxy/nginx.conf                                     ││   variables: 0 puestas · 4 generadas                         │
-│ map $http_upgrade $connection_upgrade { default upgrade; '' close; }                         ││   proxy/ nginx.conf Caddyfile                                │
-│                                                                                              ││                                                              │
-│ # s0                                                                                         ││ ≈ ./deltactl new instancia-1                                 │
-│ server {                                                                                     ││     --services s0,s1 --s0-tag 2.14.1 --s1-tag 2.9.0          │
-│     listen 80;                                                                               ││     --env-file <respuestas> --domain muni.example.com --tls  │
-│     server_name auth-backend.muni.example.com;                                               ││                                                              │
+│                                                                                              ││   proxy/ nginx.conf Caddyfile                                │
+│ # s0                                                                                         ││                                                              │
+│ server {                                                                                     ││ ≈ ./deltactl new instancia-1                                 │
+│     listen 80;                                                                               ││     --services s0,s1 --s0-tag 2.14.1 --s1-tag 2.9.0          │
+│     server_name auth-backend.muni.example.com;                                               ││     --env-file <respuestas> --domain muni.example.com --tls  │
 │     return 301 https://$host$request_uri;                                                    ││                                                              │
 │ }                                                                                            ││                                                              │
 │ server {                                                                                     ││                                                              │
-│     listen 443 ssl;                                                                          │╰──────────────────────────────────────────────────────────────╯
-│     server_name auth-backend.muni.example.com;                                               │╭─┐pasos┌──────────────────────────────────────────────────────╮
-│     # the certificate: certbot --nginx -d auth-backend.muni.example.com                      ││ ● Nombre      instancia-1                                    │
-│     ssl_certificate /etc/letsencrypt/live/auth-backend.muni.example.com/fullchain.pem;       ││ ● Servicios   s0 s1                                          │
-│     ssl_certificate_key /etc/letsencrypt/live/auth-backend.muni.example.com/privkey.pem;     ││ ● Versiones   2.14.1 2.9.0                                   │
-│     location / {                                                                             ││ ● Datos       nueva                                          │
-│         proxy_pass http://127.0.0.1:4100;                                                    ││ ▲ Variables   faltan 3                                       │
-│         proxy_http_version 1.1;                                                              ││ ▲ Secretos    0 de 2                                         │
-│ … y 31 líneas más (se guardan enteras en la instancia)                                       ││ ◐ Acceso      muni.example.com                               │
+│     listen 443 ssl;                                                                          ││                                                              │
+│     server_name auth-backend.muni.example.com;                                               │╰──────────────────────────────────────────────────────────────╯
+│     # the certificate: certbot --nginx -d auth-backend.muni.example.com                      │╭─┐pasos┌──────────────────────────────────────────────────────╮
+│     ssl_certificate /etc/letsencrypt/live/auth-backend.muni.example.com/fullchain.pem;       ││ ● Nombre      instancia-1                                    │
+│     ssl_certificate_key /etc/letsencrypt/live/auth-backend.muni.example.com/privkey.pem;     ││ ● Servicios   s0 s1                                          │
+│     location / {                                                                             ││ ● Versiones   2.14.1 2.9.0                                   │
+│         proxy_pass http://127.0.0.1:4100;                                                    ││ ● Datos       nueva                                          │
+│                                                                                              ││ ▲ Variables   faltan 3                                       │
+│         # Requerido para WebSockets                                                          ││ ▲ Secretos    0 de 2                                         │
+│ … y 51 líneas más (se guardan enteras en la instancia)                                       ││ ◐ Acceso      muni.example.com                               │
 │                                                                                              ││ ○ Revisión                                                   │
 ╰─┘Esc atrás└─┘Enter siguiente└────────────────────────────────────────────────────────────────╯╰──────────────────────────────────────────────────────────────╯
 

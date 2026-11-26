@@ -1,8 +1,9 @@
 === frame 1 ===
 
-  1   2   3   4   5   6   7  [8 Imágenes]  9   0                               
-╭─┐ ▸⁸imágenes ┌────────────────────────────────┐servidor amd64 · 6 versiones┌─╮
+  1  [2 Imágenes]  3   4   5   6   7   8   9   0                               
+╭─┐ ▸²imágenes ┌────────────────────────────────┐servidor amd64 · 6 versiones┌─╮
 │ ▾ s0 · auth-backend                                   5 versiones · ★ 2.14.1 │
+│   En uso: ★ 2.14.1 (ix-lima [parada]) · 2.14.0 (ix-colorado [parada])        │
 │   VERSIÓN       CREADA         TAMAÑO ARQ       USO                          │
 │   3.0.0-rc1     hace 1 h         300MB arm64 ✖   sin usar                    │
 │   2.14.1 ★      hace 2 días      300MB amd64 ✔   ix-lima(actual)  ↑ más reci │
@@ -11,10 +12,9 @@
 │   2.13.2        hace 1 mes       300MB amd64 ✔   ix-lima(previa)             │
 │                                                                              │
 │ ▾ s1 · gueo-back-end                                     1 versión · ★ 2.9.0 │
+│   En uso: ★ 2.9.0 (ix-colorado [parada], ix-lima [parada])                   │
 │   VERSIÓN       CREADA         TAMAÑO ARQ       USO                          │
 │   2.9.0 ★       hace 5 días      300MB amd64 ✔   ix-colorado(actual) ix-lima │
-│                                                                              │
-│                                                                              │
 │                                                                              │
 │                                                                              │
 │                                                                              │

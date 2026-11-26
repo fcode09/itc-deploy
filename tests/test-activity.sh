@@ -71,13 +71,13 @@ frame_n() { awk -v n="$1" '/^=== frame /{ f = ($3 == n) } f'; }
 run_lib() { ROOT="$PWD" DELTACTL_TUI_KEYS=/dev/null DELTACTL_UI=rich DELTACTL_COLOR=never DELTACTL_ASCII=1 COLUMNS=160 DELTACTL_TUI_ROWS=40 bash -c 'source lib/bootstrap.sh; source lib/cmd/dashboard.sh; set +e; '"$1" 2>&1; }
 
 section "1. it is the tenth view, registered with one line, and key 0 opens it"
-check "it is a file of lib/screens with one line at the end of the views of the registry, after the Variables" '[ -f lib/screens/activity.sh ] && grep -q "^dash_screen_register activity tui.tab.activity 0$" lib/screens/registry.sh && [ "$(run_lib "echo \${DASH_SCREENS[*]}")" = "server instances resources output runs procs console images env activity" ]'
+check "it is a file of lib/screens with one line at the end of the views of the registry, after the Variables" '[ -f lib/screens/activity.sh ] && grep -q "^dash_screen_register activity tui.tab.activity 0$" lib/screens/registry.sh && [ "$(run_lib "echo \${DASH_SCREENS[*]}")" = "server images instances resources output runs procs console env activity" ]'
 check "the key 0 opens it (the tenth tab has no digit of its own)" 'panel 0 q | frame_n 2 | grep -q "\[0 Actividad\]"'
-check "the tab line numbers the other views from 1 to 9 and this one 0" 'f="$(panel q | frame_n 1 | sed -n 3p)"; echo "$f" | grep -q "1 Servidor" && echo "$f" | grep -q "2 Instancias" && echo "$f" | grep -q "9 Variables" && echo "$f" | grep -q "0 Actividad"'
+check "the tab line numbers the other views from 1 to 9 and this one 0" 'f="$(panel q | frame_n 1 | sed -n 3p)"; echo "$f" | grep -q "1 Servidor" && echo "$f" | grep -q "3 Instancias" && echo "$f" | grep -q "9 Variables" && echo "$f" | grep -q "0 Actividad"'
 check "Tab goes from Variables to Activity and wraps to Servidor" 'out="$(panel 9 tab tab q)"; echo "$out" | frame_n 3 | grep -q "\[0 Actividad\]" && echo "$out" | frame_n 4 | grep -q "\[1 Servidor\]"'
 check "a click on its tab opens it" 'panel mouse:0:126:2 q | frame_n 2 | grep -q "\[0 Actividad\]"'
 check "the console goes to it and the palette lists it" 'panel : $(printf "%s\n" g o t o space a c t i v i t y) enter q | grep -q "\[0 Actividad\]" && run_lib "dash_pal_build; printf \"%s\\n\" \"\${DASH_PAL_ALL_A[@]}\"" | grep -qx "view:activity"'
-check "the old views are still there and still work (4 Salida, 5 Ejecuciones, 6 Procesos)" 'panel 4 q | frame_n 2 | grep -q "\[4 Salida\]" && panel 5 q | frame_n 2 | grep -q "\[5 Ejecuciones\]" && panel 6 q | frame_n 2 | grep -q "\[6 Procesos\]"'
+check "the old views are still there and still work (4 Salida, 5 Ejecuciones, 6 Procesos)" 'panel 5 q | frame_n 2 | grep -q "\[5 Salida\]" && panel 6 q | frame_n 2 | grep -q "\[6 Ejecuciones\]" && panel 7 q | frame_n 2 | grep -q "\[7 Procesos\]"'
 check "0 is not a digit for anything else: with only nine views it does nothing" '[ "$(run_lib "DASH_SCREENS=(a b c); dash_screen_by_number 0; echo \$?")" = "1" ]'
 
 section "2. the list: what happened, newest first, with its state, when and how long"
@@ -119,7 +119,7 @@ check "leaving the tab closes the viewer (nothing is held for a viewer that is n
 check "a run with no saved output says so" 'rm -f "$STATE/runs/20261102T080000Z-5/out.log"; out="$(panel 0 enter q | frame_n 3)"; cp "$FIX/hostile.txt" "$STATE/runs/20261102T080000Z-5/out.log"; echo "$out" | grep -q "no guard. salida"'
 check "the output of the command of this panel is the Output view's box: its title says the command and how it ended" 'f="$(panel i wait 0 enter q | last_frame)"; echo "$f" | grep -q "Salida . ./deltactl images" && echo "$f" | grep -q "termin. bien"'
 check "a command started from this view (i: images) stays in the view and shows its output in the tab Salida, on its own row" 'f="$(panel 0 i wait q | last_frame)"; echo "$f" | grep -q "\[0 Actividad\]" && echo "$f" | grep -q "Resumen \[Salida\]" && echo "$f" | grep -qE "> . este panel +images" && echo "$f" | grep -q "Salida . ./deltactl images"'
-check "from another view the same command still opens the Output view, as it always did" 'panel i wait q | last_frame | grep -q "\[4 Salida\]"'
+check "from another view the same command still opens the Output view, as it always did" 'panel i wait q | last_frame | grep -q "\[5 Salida\]"'
 check "v switches between the summary and the raw text of the command, e keeps only the errors" 'a="$(panel i wait 0 enter q | last_frame | md5sum)"; b="$(panel i wait 0 enter v q | last_frame | md5sum)"; [ "$a" != "$b" ] && panel i wait 0 enter e q | last_frame | grep -qE "Salida|solo errores|ning.n"'
 check "the raw text and the summary are both in the pane: the title tells which" 'panel i wait 0 enter v q | last_frame | grep -q "./deltactl images" && panel i wait 0 enter q | last_frame | grep -q "resumen"'
 
@@ -178,9 +178,9 @@ check "the wheel over the pane scrolls it, three lines a notch, where it is long
 check "over the viewer of the saved output the wheel scrolls its lines (it started at the end)" 'PANEL_ROWS=24 panel 0 down down down enter q | frame_n 6 | grep -qE "l.neas [0-9]+-18 de 18" && ! PANEL_ROWS=24 panel 0 down down down enter mouse:64:100:12 q | frame_n 7 | grep -qE "l.neas [0-9]+-18 de 18"'
 
 section "9. the old views moved here: the notice, once"
-check "the first time Output, Runs or Processes is chosen with its number the panel says that Activity is where they live now" 'panel 4 q | frame_n 2 | grep -q "ahora viven en Actividad (tecla 0)"'
+check "the first time Output, Runs or Processes is chosen with its number the panel says that Activity is where they live now" 'panel 5 q | frame_n 2 | grep -q "ahora viven en Actividad (tecla 0)"'
 check "it is said once: the next time one of them is chosen it is not said again" '[ "$(run_lib "dash_init; dash_act_moved_notice; a=\$DASH_MSG; DASH_MSG=; dash_act_moved_notice; echo \"[\$a][\$DASH_MSG]\"" | grep -c "ahora viven en Actividad (tecla 0).*\]\[\]$")" = "1" ]'
-check "the other views do not say it" '! panel 1 2 3 7 q | grep -q "ahora viven en Actividad"'
+check "the other views do not say it" '! panel 1 3 4 8 q | grep -q "ahora viven en Actividad"'
 check "the help names the view and what moved to it" 'PANEL_ROWS=60 panel "?" q | frame_n 2 | grep -q "ACTIVIDAD" && PANEL_ROWS=60 panel "?" q | frame_n 2 | grep -q "1-9 0 "'
 
 section "10. cost: it reads nothing while another view is on screen, and the drawing starts no process"

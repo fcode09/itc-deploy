@@ -29,6 +29,9 @@ $ ./deltactl help <tema>           guía completa paso a paso
 | load <archivo.tar|.tar.gz> | Carga imágenes en el Docker de este servidor
 | images [servicio] [--json] | Versiones de imagen disponibles y qué instancias las usan (alias: versions)
 
+## Acceso desde fuera
+| access <instancia> [--domain D] [--host sN=NOMBRE] [--save] | Bloque nginx/Caddy por servicio, con su nombre, desde plantillas
+
 ## Información
 | status [instancia] [--json|--stats] | Panel de estado: versiones, salud, desajustes y siguientes pasos
 | runs [list|show|logs] | Historial de operaciones: cuándo, cuánto tardó, cómo terminó y su salida completa

@@ -14,7 +14,7 @@
 
 HELP_DIR="$ROOT/lib/help"
 # shellcheck disable=SC2034  # read by completion.sh and the tests
-HELP_COMMANDS=(new init adopt deploy rollback stop down load images versions list status runs ps logs check doctor env service menu completion help)
+HELP_COMMANDS=(new init adopt deploy rollback stop down load images versions list status runs ps logs check doctor env service access menu completion help)
 # Topic ids as the Spanish page files are named (topic-<id>.txt). topic_label shows them in the UI language.
 HELP_TOPICS=(nueva-instancia instancia-existente actualizar imagenes servicios red datos secretos archivos puertos solucion-problemas glosario)
 
