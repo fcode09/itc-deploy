@@ -4,7 +4,7 @@
 # s0
 server {
     listen 80;
-    server_name auth-backend.ejemplo.pe;
+    server_name backend-s0.ejemplo.pe;
     location / {
         proxy_pass http://127.0.0.1:4100;
 
@@ -27,7 +27,7 @@ server {
 # s1
 server {
     listen 80;
-    server_name gueo-back-end.ejemplo.pe;
+    server_name backend-s1.ejemplo.pe;
     location / {
         proxy_pass http://127.0.0.1:4101;
 

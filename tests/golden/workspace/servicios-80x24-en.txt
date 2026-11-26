@@ -10,8 +10,8 @@
 ╰──────────────────────────────────────────────────────────────────────────────╯
  Summary  Logs  Access  History [Services] Variables  Data                      
 ╭─┐ ▸ix-colorado ┌─────────────────────────────────────────────────┐● running┌─╮
-│   ● s0 auth-backend  · 2.14.1  :4100  mem 512m  · healthy                    │
-│ ▸ ● s1 gueo-back-end  · 2.9.0  :4101  mem 2g  · healthy                      │
+│   ● s0 backend-s0  · 2.14.1  :4100  mem 512m  · healthy                      │
+│ ▸ ● s1 backend-s1  · 2.9.0  :4101  mem 2g  · healthy                         │
 │                                                                              │
 │ (NestJS + Chromium for the PDF reports)                                      │
 ╰─┘a add└─┘X remove└─┘v version└─┘P port└─┘m memory└─┘R roll back└─┘< > tab└───╯

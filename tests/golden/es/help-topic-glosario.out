@@ -4,7 +4,7 @@ Glosario
 
   . **instancia**: una municipalidad desplegada. Tiene su carpeta `instances/<nombre>/`, su red, sus
     puertos y sus bases
-  . **servicio**: una aplicación del ecosistema. Hoy `s0` (auth-backend) y `s1` (gueo-back-end)
+  . **servicio**: una aplicación del ecosistema. Hoy `s0` (backend-s0) y `s1` (backend-s1)
   . **perfil** (`COMPOSE_PROFILES`): lista de servicios activos en una instancia
   . **etiqueta (tag)**: la versión de una imagen, por ejemplo `1.2.0`
   . **imagen**: el paquete con la aplicación; se construye en tu PC y se carga en el servidor con

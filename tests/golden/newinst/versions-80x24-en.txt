@@ -10,7 +10,7 @@
 │ Which version of each service? The most recent one is already chosen: Enter  │
 │ accepts it.                                                                  │
 │                                                                              │
-│ ▸ s0 · auth-backend  image auth-backend                                      │
+│ ▸ s0 · backend-s0  image backend-s0                                          │
 │   VERSION                CREATED           SIZE ARCH      USE                │
 │   3.0.0-rc1              1 h ago          300MB arm64 ✖   unused             │
 │   2.14.1 ★               2 days ago       300MB amd64 ✔   unused  ↑ most rece│
@@ -19,7 +19,7 @@
 │   2.13.2                 1 month ago      300MB amd64 ✔   unused             │
 │   write another version…                                                     │
 │   Enter chooses the most recent one                                          │
-│   ● s1 · gueo-back-end  2.9.0 ★                                              │
+│   ● s1 · backend-s1  2.9.0 ★                                                 │
 ╰─┘Esc back└─┘Enter next└─┘Tab preview└────────────────────────────────────────╯
 
  ↑↓ choose · Enter chooses and goes on · Esc back · Tab preview

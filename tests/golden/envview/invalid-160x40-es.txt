@@ -4,22 +4,26 @@
 ╭─┐ ▸⁹variables ┌─┐ix-colorado┌────────────────────────────────────────────────────────────────────┐6 sin completar┌─╮╭─┐IP_SERVER┌────────────────────────────╮
 │ ▸ .env.instance                                                                                       12 variables ││ Obligatoria · .env.s0                  │
 │ ▾ .env.s0                                                                            9 variables · 2 sin completar ││                                        │
-│   IP_SERVER                ✖ colorado            debe ser una URL con esquema y host: http://host o https://host   ││ URL pública base del sistema, con      │
+│ ▲ IP_SERVER                  http://CAMBIAR-direccion-del-servidor                                   por completar ││ URL pública base del sistema, con      │
 │ ▲ JWT_SECRET                 (vacía)                                                                   obligatoria ││ esquema (`http://` o `https://`), sin  │
-│ ● MONGO_URI                  ⚿ ••••••••••                                                                          ││ puerto ni barra final. Los seeds la    │
+│ ● MONGO_URI                  mongodb://host.docker.internal:27017/authsoftware_ix-colorado                         ││ puerto ni barra final. Los seeds la    │
 │ ● IP_INTERNAL_CONNECTION     s1                                                                                    ││ usan: `url_systems` la guarda como URL │
 │ ▾ .env.s1                                                                           27 variables · 4 sin completar ││ de cada sistema (se ve en Auth,        │
 │ ▲ IP_SERVER                  http://CAMBIAR-direccion-del-servidor                                   por completar ││ Configuración, Sistemas) y como base   │
 │ ● AUTH_URL                   http://s0:3200                                                                        ││ de las URLs de backend                 │
 │ ▲ JWT_SECRET                 (vacía)                                                                   obligatoria ││ (`<IP_SERVER>:3000/3100/3200`). Tras   │
-│ ● MONGO_DELTA_DISPATCH_URI   ⚿ ••••••••••                                                                          ││ `init`, revisa esas URLs: todas llevan │
-│ ● MONGO_AUTHSOFTWARE_URI     ⚿ ••••••••••                                                                          ││ el mismo valor.                        │
-│ ● MONGO_ROBIN_URI            ⚿ ••••••••••                                                                          ││                                        │
-│ ● FCM_CERT                   /run/secrets/fcm.json                                                                 ││ Por defecto: http://localhost          │
-│ ● KEEPER_FCM_CERT            /run/secrets/keeper-fcm.json                                                          ││                                        │
-│ ▲ FEDERATION_ENCRYPTION_KEY  (vacía)                                                                   obligatoria ││ ✖ debe ser una URL con esquema y host: │
-│ ● SERVERS_CONFIG             ⚿ ••••••••••                                                                          ││   http://host o https://host           │
-│ ▲ DEEPGRAM_API_KEY           (vacía)                                                                   obligatoria ││                                        │
+│ ● MONGO_DELTA_DISPATCH_URI   mongodb://host.docker.internal:27017/deltadispatch_ix-colorado                        ││ `init`, revisa esas URLs: todas llevan │
+│ ● MONGO_AUTHSOFTWARE_URI     mongodb://h╭─┐ ▸IP_SERVER ┌───────────────────────────────────────────────────────────╮│ el mismo valor.                        │
+│ ● MONGO_ROBIN_URI            mongodb://h│                                                                          ││                                        │
+│ ● FCM_CERT                   /run/secret│ Obligatoria · .env.s0                                                    ││ Por defecto: http://localhost          │
+│ ● KEEPER_FCM_CERT            /run/secret│ URL pública base del sistema, con esquema (`http://` o `https://`), sin  ││                                        │
+│ ▲ FEDERATION_ENCRYPTION_KEY  (vacía)    │ puerto ni barra final. Los seeds la usan: `url_systems` la guarda como   ││ ✖ debe ser una URL con esquema y host: │
+│ ● SERVERS_CONFIG             ⚿ •••••••••│ URL de cada sistema (se ve en Auth, Configuración, Sistemas) y como base ││   http://host o https://host           │
+│ ▲ DEEPGRAM_API_KEY           (vacía)    │ de las URLs de backend (`<IP_SERVER>:3000/3100/3200`). Tras `init`,      ││                                        │
+│                                         │                                                                          ││                                        │
+│                                         │ ✖ colorado                                                               ││                                        │
+│                                         │ debe ser una URL con esquema y host: http://host o https://host          ││                                        │
+│                                         ╰─┘Enter aceptar└─┘Esc cancelar└─┘Tab ver└─┘Ctrl+G generar└─┘Ctrl+U borrar└╯│                                        │
 │                                                                                                                    ││                                        │
 │                                                                                                                    ││                                        │
 │                                                                                                                    ││                                        │
@@ -32,10 +36,6 @@
 │                                                                                                                    ││                                        │
 │                                                                                                                    ││                                        │
 │                                                                                                                    ││                                        │
-│                                                                                                                    ││                                        │
-│                                                                                                                    ││                                        │
-│                                                                                                                    ││                                        │
-│                                                                                                                    ││                                        │
-╰─┘Enter aceptar└─┘Esc cancelar└─────────────────────────────────────────────────────────────────────────────────────╯╰────────────────────────────────────────╯
+╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯╰────────────────────────────────────────╯
 
- Enter acepta · Esc cancela · ←→ mueven · Ctrl+U borra · q ? : son letras aquí
+ Enter acepta · Esc cancela · Tab ver u ocultar · Ctrl+G genera · Ctrl+U borra · se puede pegar · q ? : son letras aquí

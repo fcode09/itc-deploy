@@ -31,6 +31,7 @@ COMPLETION_FLAGS=(
   "env:--reveal --json --stdin --force --yes"
   "service:--tag --port --generate-secrets --yes"
   "access:--domain --host --www --no-www --tls --no-tls --proxy --save"
+  "secret:--force"
 )
 
 cmd_completion() {
@@ -95,6 +96,10 @@ _deltactl_complete() {
       elif [ "$COMP_CWORD" -eq 3 ]; then COMPREPLY=($(compgen -W "$insts" -- "$cur"))
       elif [ "$COMP_CWORD" -eq 4 ]; then COMPREPLY=($(compgen -W "$services" -- "$cur"))
       elif [ "$COMP_CWORD" -eq 5 ] && [ "${COMP_WORDS[2]}" = set ]; then COMPREPLY=($(compgen -W "tag port memory" -- "$cur")); fi ;;
+    secret)
+      if [ "$COMP_CWORD" -eq 2 ]; then COMPREPLY=($(compgen -W "list check add" -- "$cur"))
+      elif [ "$COMP_CWORD" -eq 3 ]; then COMPREPLY=($(compgen -W "$insts" -- "$cur"))
+      elif [ "$COMP_CWORD" -eq 5 ] && [ "${COMP_WORDS[2]}" = add ]; then COMPREPLY=($(compgen -f -- "$cur")); fi ;;
     runs)
       if [ "$COMP_CWORD" -eq 2 ]; then COMPREPLY=($(compgen -W "list show logs stats resolve prune" -- "$cur")); fi ;;
     completion)

@@ -28,7 +28,7 @@ MSG_es["tui.nz.help.data"]="¿La municipalidad empieza de cero o ya tiene datos 
 MSG_es["tui.nz.keys.name"]="Enter siguiente · Esc atrás · Tab vista previa"
 MSG_es["tui.nz.keys.services"]="{1} mover · Enter siguiente · Espacio marca · a todos · 1-9 paso · Esc atrás · Tab vista previa"
 MSG_es["tui.nz.keys.versions"]="{1} elegir · Enter elige y sigue · R releer Docker · 1-9 paso · Esc atrás · Tab vista previa"
-MSG_es["tui.nz.keys.data"]="{1} elegir · Enter sigue · Espacio cambia · 1-9 paso · Esc atrás · Tab vista previa"
+MSG_es["tui.nz.keys.data"]="{1} elegir · Enter sigue · Espacio cambia · u usuario de Mongo · c contraseña · 1-9 paso · Esc atrás · Tab vista previa"
 
 MSG_es["tui.nz.pv.noname"]="nombre"
 MSG_es["tui.nz.pv.notag"]="(la de la plantilla)"
@@ -74,7 +74,7 @@ MSG_es["tui.nz.step.variables"]="Variables"
 MSG_es["tui.nz.step.secrets"]="Secretos"
 MSG_es["tui.nz.step.access"]="Acceso"
 
-MSG_es["tui.nz.help.variables"]="¿Qué valores llevan sus archivos? Lo obligatorio va arriba; los secretos únicos ya están generados y no se muestran. Lo que no cambies queda como la plantilla."
+MSG_es["tui.nz.help.variables"]="¿Qué valores llevan sus archivos? Lo obligatorio va arriba; los secretos únicos ya están generados: en la lista son puntos, Enter abre su valor y r lo muestra unos segundos. Lo que no cambies queda como la plantilla."
 MSG_es["tui.nz.help.secrets"]="Archivos que los servicios leen de secrets/ (el JSON de Firebase de las notificaciones). Se copian al crear, con permisos 600; si aún no los tienes, los copias después."
 MSG_es["tui.nz.help.access"]="¿Con qué nombre se entra desde internet? Con un dominio se prepara el bloque de nginx o Caddy; es solo texto: no se instala ni se recarga nada."
 
@@ -145,3 +145,14 @@ MSG_es["tui.nz.rev.n_check"]="Crea instances/{1} y corre ./deltactl check {1}: r
 MSG_es["tui.nz.rev.n_deploy"]="Crea instances/{1} y corre ./deltactl deploy {1}: arranca contenedores en este servidor."
 MSG_es["tui.nz.rev.confirm"]="Esto arranca contenedores en este servidor. Pulsa Enter otra vez para crear y desplegar; cualquier otra tecla lo cancela."
 MSG_es["tui.nz.failed"]="No se pudo crear {1} (código {2}): la vista Salida dice por qué. Tus respuestas siguen aquí: corrige y vuelve a crear."
+
+# Step 4 (data): the user of Mongo of a new instance.
+MSG_es["tui.nz.data.m_title"]="Usuario de Mongo de esta instancia"
+MSG_es["tui.nz.data.m_note"]="Uno por instancia, con acceso solo a las bases de esta instancia. La contraseña es opcional: vacía, se genera una. Las URIs de Mongo del paso Variables la llevan, y ./deltactl init crea el usuario."
+MSG_es["tui.nz.data.m_user"]="Usuario"
+MSG_es["tui.nz.data.m_pass"]="Contraseña"
+MSG_es["tui.nz.data.m_gen"]="(se genera sola)"
+MSG_es["tui.nz.data.m_typed"]="(la que escribiste)"
+MSG_es["tui.nz.data.m_key_u"]="u cambia"
+MSG_es["tui.nz.data.m_key_c"]="c cambia"
+MSG_es["tui.nz.data.m_bad_user"]="El usuario solo lleva letras, números, punto, guion y guion bajo (hasta 64)."

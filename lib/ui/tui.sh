@@ -7,13 +7,14 @@
 # previous frame, in a single write, so a clock or a counter ticking does not make the screen flicker.
 #
 # Test mode (no terminal needed): DELTACTL_TUI_KEYS=<file> makes tui_key read one key name per line from that file
-# (up, down, left, right, enter, esc, tab, pgup, pgdn, home, end, timeout, mouse:<button>:<column>:<row>[:up], or a character;
+# (up, down, left, right, enter, esc, tab, pgup, pgdn, home, end, timeout, mouse:<button>:<column>:<row>[:up], paste:<text>, or a character;
 # the end of the file is the key eof) and tui_draw print every frame as plain text between "=== frame N ===" lines, without any escape sequence. The
 # size is then DELTACTL_TUI_ROWS x COLUMNS (30 x 100 by default).
 
 shopt -s extglob
 
 TUI_KEY=""
+TUI_PASTE=""   # the text of the last key "paste" (bracketed paste: what the terminal pastes arrives as one key, not as many)
 TUI_FRAME=()
 TUI_PREV=()
 TUI_FRAMES=0
@@ -60,7 +61,7 @@ tui_size() {
 tui_enter() {
   tui_test_mode && { tui_size; return 0; }
   [ "$TUI_ACTIVE" -eq 1 ] && return 0
-  printf '\033[?1049h\033[?25l\033[?7l%s' "$TH_RESET"
+  printf '\033[?1049h\033[?25l\033[?7l\033[?2004h%s' "$TH_RESET"   # (2004: what is pasted comes between ESC[200~ and ESC[201~)
   # Keys that arrive while the screen is being drawn would be echoed by the terminal itself, in the middle of the frame: the
   # echo is off for as long as the panel is on (tui_leave restores the settings it found).
   TUI_STTY="$(stty -g 2> /dev/null || true)"
@@ -82,7 +83,7 @@ tui_leave() {
     local _d _n=0
     while [ "$_n" -lt 256 ] && IFS= read -rsn1 -t 0.02 _d; do _n=$((_n + 1)); done
   fi
-  printf '\033[0m\033[?7h\033[?25h\033[?1049l\033[0m'
+  printf '\033[?2004l\033[0m\033[?7h\033[?25h\033[?1049l\033[0m'
   if [ -n "$TUI_STTY" ]; then stty "$TUI_STTY" 2> /dev/null || stty echo 2> /dev/null || true; else stty echo 2> /dev/null || true; fi
   TUI_ACTIVE=0
   trap - WINCH
@@ -125,6 +126,8 @@ tui_key() { # [timeout]
       TUI_KEYS_OPEN=1
     fi
     if IFS= read -r k <&9; then TUI_KEY="$k"; else TUI_KEY="eof"; fi
+    # paste:<text> is one pasted text (bracketed paste of a real terminal)
+    if [[ "$TUI_KEY" == paste:* ]]; then TUI_PASTE="${TUI_KEY#paste:}" TUI_KEY="paste"; fi
     if [[ "$TUI_KEY" =~ ^mouse:([0-9]+):([0-9]+):([0-9]+)(:up)?$ ]]; then
       c=M
       [ -z "${BASH_REMATCH[4]}" ] || c=m
@@ -169,6 +172,18 @@ tui_key() { # [timeout]
           '[6~') TUI_KEY="pgdn" ;;
           '[3~') TUI_KEY="delete" ;;
           '[<'*[Mm]) tui_mouse_parse "$rest" ;;
+          '[200~')
+            # A bracketed paste: everything up to ESC [ 201 ~ is one key (a line break reads as an empty character; the fields drop it).
+            # It ends when the end marker comes, when 4096 characters came or when the terminal stops sending.
+            local _pt="" _pn=0
+            while [ "$_pn" -lt 4096 ] && IFS= read -rsn1 -t 0.2 c; do
+              _pn=$((_pn + 1))
+              [ -n "$c" ] || c=$'\n'
+              _pt+="$c"
+              case "$_pt" in *$'\033[201~') _pt="${_pt%$'\033[201~'}"; break ;; esac
+            done
+            TUI_KEY="paste" TUI_PASTE="$_pt"
+            ;;
           '[M')
             # The old mouse format (a terminal without the SGR mode): three raw bytes follow. They are read and dropped, or a
             # click would type them as keys (a column can be an x, a q, a digit...).

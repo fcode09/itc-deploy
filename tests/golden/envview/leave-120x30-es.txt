@@ -12,17 +12,17 @@
 │ ▾ .env.s0                                                              9 variables ││ como URL de cada sistema (se   │
 │ ● IP_SERVER                  https://x.itc.pe                           modificada ││ ve en Auth, Configuración,     │
 │ ● JWT_SECRET                 ⚿ ••••••••••                                          ││ Sistemas) y como base de las   │
-│ ● MONGO_URI                  ⚿ ••••••••••                                          ││ URLs de backend                │
+│ ● MONGO_URI                  ⚿ mongodb://ana:••••@db.itc.pe:27017/auth             ││ URLs de backend                │
 │ ● IP_INTERNAL_CONNECTION     s1                                                    ││ (`<IP_SERVER>:3000/3100/3200`) │
 │ ▾ .env.s1                                                             27 variables ││ . Tras `init`, revisa esas     │
 │ ● IP_SERVER                  http://h                                              ││ URLs: todas llevan el mismo    │
 │ ● AUTH_URL                   http://s0:3200                                        ││ valor.                         │
 │ ● JWT_SECRET                 ⚿ ••••••••••                                          ││                                │
-│ ● MONGO_DELTA_DISPATCH_URI   ⚿ ••••••••••                                          ││ Por defecto: http://localhost  │
-│ ● MONGO_AUTHSOFTWARE_URI     ⚿ ••••••••••                                          ││                                │
-│ ● MONGO_ROBIN_URI            ⚿ ••••••••••                                          ││                                │
-│ ● FCM_CERT                   /run/secrets/fcm.json                                 ││                                │
-│ ● KEEPER_FCM_CERT            /run/secrets/keeper-fcm.json                          ││                                │
+│ ● MONGO_DELTA_DISPATCH_URI   mongodb://host.docker.internal:27017/deltadispatch_ix ││ Por defecto: http://localhost  │
+│ ● MONGO_AUTHSOFTWARE_URI     mongodb://host.docker.internal:27017/authsoftware_ix- ││                                │
+│ ● MONGO_ROBIN_URI            mongodb://host.docker.internal:27017/robin_ix-lima    ││                                │
+│ ● FCM_CERT                   /run/secrets/fcm.json           archivo no válido (f) ││                                │
+│ ● KEEPER_FCM_CERT            /run/secrets/keeper-fcm.json    archivo no válido (f) ││                                │
 │ ● FEDERATION_ENCRYPTION_KEY  ⚿ ••••••••••                                          ││                                │
 │ ────────────────────────────────────────────────────────────────────────────────── ││                                │
 │ Hay cambios sin guardar (1). ¿Qué hago con ellos?                                  ││                                │

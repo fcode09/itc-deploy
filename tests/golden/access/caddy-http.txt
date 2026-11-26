@@ -3,11 +3,11 @@
 # Without TLS: plain http on port 80.
 
 # s0
-http://auth-backend.ejemplo.pe {
+http://backend-s0.ejemplo.pe {
     reverse_proxy 127.0.0.1:4100
 }
 
 # s1
-http://gueo-back-end.ejemplo.pe {
+http://backend-s1.ejemplo.pe {
     reverse_proxy 127.0.0.1:4101
 }

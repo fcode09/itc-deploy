@@ -25,7 +25,9 @@
 #   navigation: up down (k j) pgup pgdn home end · Enter / Space / right / left on a file fold it · Enter on a variable edits it
 #   g  generate a value (asks first when there is one; the same value in every file that shares the variable)   d  its default value
 #   r  show a secret for a few seconds   a  show / hide the advanced ones   s  save   u  save and deploy   [ ]  other instance   Esc  leave
-#   while a value is typed: the field keys (kit_field_key); Enter accepts it if it validates, Esc cancels
+#   while a value is typed (a MODAL over the list, with the variable's description and the live validation): the field keys (kit_field_key,
+#   a paste included); Enter accepts it if it validates, Esc cancels, Tab shows or hides a secret, Ctrl+G generates one, Ctrl+U clears.
+#   Opening the modal IS asking to see the value: it shows what the variable has now (a secret too; Tab hides it, for a shared screen).
 # Drawing:
 #   kee_render <width> <height> [option=value ...]   -> KEE_BOX (the lines, exactly <width> cells each, <height> lines)
 #     chips=a|b   chips in the top border (default: the instance name)       focus=1   focused look
@@ -38,6 +40,12 @@
 declare -gA KEE_VAL=() KEE_BASE=() KEE_ST=() KEE_MSG=() KEE_FOLD=() KEE_FIDS=() KEE_DEPLOY=()
 KEE_INST="" KEE_DISK=0 KEE_FILES=() KEE_ROWS=() KEE_SEL=0 KEE_SELROW="" KEE_TOP=0 KEE_ADV=0
 KEE_EDIT=0 KEE_EDIT_ID="" KEE_EDIT_ST="pend" KEE_EDIT_MSG=""
+KEE_EDIT_SHOW=1 KEE_EDIT_GEN="" KEE_MODAL=()   # (the modal: is the value of a secret shown, the value Ctrl+G made, its lines)
+# The modal that asks for the path of a file of secrets/ (key `f` on a variable that points to /run/secrets/<name>): KEE_EDIT_KIND=file while it is
+# open; Enter leaves KEE_ACTION=secfile with the name in KEE_FILE_NAME, the path in KEE_FILE_SRC and KEE_FILE_FORCE=1 when a file is there already.
+# KEE_FST[id] is the state of the file of a variable (ok | missing | invalid) on a model with a disk; KEE_FILEWAIT waits for the command that loads it.
+KEE_EDIT_KIND="" KEE_FILE_NAME="" KEE_FILE_SRC="" KEE_FILE_FORCE=0 KEE_FILEWAIT=0 KEE_FILE_CI=-1 KEE_SF_NAME=""
+declare -gA KEE_FST=()
 KEE_PROMPT="" KEE_PROMPT_ID="" KEE_PROMPT_KIND=""
 KEE_REVEAL_ID="" KEE_REVEAL_UNTIL=0 KEE_REVEAL_SECONDS=10
 KEE_N_CHANGED=0 KEE_N_TODO=0 KEE_N_PENDING=0 KEE_N_HIDDEN=0 KEE_N_VISIBLE=0 KEE_REV=0
@@ -61,7 +69,18 @@ kee_reset() {
   KEE_N_CHANGED=0 KEE_N_TODO=0 KEE_N_PENDING=0 KEE_N_HIDDEN=0 KEE_N_VISIBLE=0
   KEE_ACTION="" KEE_NOTE="" KEE_NOTE_KIND="" KEE_COMMIT_BAD=() KEE_COMMIT_FAIL="" KEE_COMMIT_N=0
   KEE_LC=() KEE_LC_KEY=""
+  KEE_EDIT_KIND="" KEE_FILE_FORCE=0 KEE_FILEWAIT=0 KEE_FST=()
   kee_changed
+}
+
+# Does the variable point to a file of secrets/ (the catalog lists it and its value is /run/secrets/<name>)? KEE_SF_NAME is the name of the file.
+kee_secfile_of() { # id
+  local id="$1" svc="${1%%|*}" key="${1#*|}"
+  KEE_SF_NAME=""
+  svc="${svc#.env.}"
+  case " ${CAT_SECRET_FILES[$svc]:-} " in *" $key "*) ;; *) return 1 ;; esac
+  [[ "${KEE_VAL[$id]:-}" == /run/secrets/?* ]] || return 1
+  KEE_SF_NAME="${KEE_VAL[$id]#/run/secrets/}"
 }
 
 # The ids (<file>|<KEY>) of the variables of each file that the editor lists: all but the fixed ones.
@@ -100,6 +119,12 @@ kee_refresh() {
       kee_eval "$id"
       case "${KEE_ST[$id]}" in missing | invalid | example) KEE_N_TODO=$((KEE_N_TODO + 1)) ;; esac
       [ "${KEE_VAL[$id]:-}" = "${KEE_BASE[$id]:-}" ] || KEE_N_CHANGED=$((KEE_N_CHANGED + 1))
+      # (the state of the file a variable points to: only where the folder of the instance exists)
+      unset 'KEE_FST[$id]'
+      if [ "$KEE_DISK" -eq 1 ] && kee_secfile_of "$id"; then
+        sf_state_r "$KEE_INST" "$KEE_SF_NAME" || true
+        KEE_FST[$id]="$SF_ST"
+      fi
     done
   done
   kee_rows
@@ -221,11 +246,11 @@ kee_dirty() { [ "$KEE_N_CHANGED" -gt 0 ]; }
 
 # Hides a revealed secret when its time is up. Returns 0 when something changed (the host redraws).
 kee_tick() {
-  [ -n "$KEE_REVEAL_ID" ] || return 1
-  [ "$SECONDS" -ge "$KEE_REVEAL_UNTIL" ] || return 1
-  KEE_REVEAL_ID=""
-  kee_changed
-  return 0
+  local ch=1
+  # The command that loads a file ended: what the files are is read again.
+  if [ "$KEE_FILEWAIT" -eq 1 ] && declare -F job_running > /dev/null && ! job_running; then KEE_FILEWAIT=0; kee_refresh; ch=0; fi
+  if [ -n "$KEE_REVEAL_ID" ] && [ "$SECONDS" -ge "$KEE_REVEAL_UNTIL" ]; then KEE_REVEAL_ID=""; kee_changed; ch=0; fi
+  return "$ch"
 }
 
 # ---------- what a variable says about itself ----------
@@ -259,12 +284,33 @@ kee_row_note() { # id
     warn) KEE_NOTE_TXT="${KEE_MSG[$id]}" KEE_NOTE_ST=warn ;;
     unset | default) kee_t envview.note.optional; KEE_NOTE_TXT="$KEE_T" ;;
   esac
+  # A variable that points to a file of secrets/: whether the file is there (the key `f` loads it).
+  case "${KEE_FST[$id]:-}" in
+    missing) kee_t envview.note.file_missing; KEE_NOTE_TXT="$KEE_T" KEE_NOTE_ST=warn ;;
+    invalid) kee_t envview.note.file_invalid; KEE_NOTE_TXT="$KEE_T" KEE_NOTE_ST=err ;;
+    ok) kee_t envview.note.file_ok; KEE_NOTE_TXT="$KEE_T" KEE_NOTE_ST=ok ;;
+  esac
   if [ "${KEE_VAL[$id]:-}" != "${KEE_BASE[$id]:-}" ] && [ "$st" != invalid ]; then
     kee_t envview.note.changed; KEE_NOTE_TXT="$KEE_T" KEE_NOTE_ST=info
   fi
 }
 
-# The value of a row as it is shown, into KEE_SHOWN (coloured): a secret is a fixed run of dots (its length says nothing) unless revealed.
+# A Mongo URI with the password hidden (the scheme, the user, the host and the database stay readable) into KEE_URI. Returns 1 when the text
+# is not a URI of Mongo or has no password in it: there is nothing to hide then.
+KEE_URI=""
+kee_uri_masked() { # value
+  local v="$1" rest auth cred
+  [[ "$v" == mongodb://* || "$v" == mongodb+srv://* ]] || return 1
+  rest="${v#*://}"
+  auth="${rest%%[/?]*}"                      # (the part before the first / or ?: a password may hold an @, so the host is after the LAST one)
+  [[ "$auth" == *@* ]] || return 1
+  cred="${auth%@*}"
+  [[ "$cred" == *:* ]] || return 1
+  KEE_URI="${v%%://*}://${cred%%:*}:${UI_S_MASK}${UI_S_MASK}${UI_S_MASK}${UI_S_MASK}@${auth##*@}${rest:${#auth}}"
+}
+
+# The value of a row as it is shown, into KEE_SHOWN (coloured): a secret is a fixed run of dots (its length says nothing) unless revealed. A
+# Mongo URI shows everything but its password, and a URI with no password is not hidden at all.
 KEE_SHOWN=""
 kee_shown() { # id
   local id="$1" v="${KEE_VAL[$1]:-}" run
@@ -275,6 +321,10 @@ kee_shown() { # id
   fi
   if [ "${ENV_SECRET[$id]:-0}" = 1 ]; then
     if [ "$KEE_REVEAL_ID" = "$id" ]; then KEE_SHOWN="${TH[warn]:-}$UI_S_SECRET $v$TH_RESET"; return 0; fi
+    if [ "${ENV_VALIDATOR[$id]:-}" = mongo-uri ]; then
+      if kee_uri_masked "$v"; then KEE_SHOWN="${TH[dim]:-}$UI_S_SECRET$TH_RESET $KEE_URI"; else KEE_SHOWN="$v"; fi
+      return 0
+    fi
     printf -v run '%*s' 10 ''
     KEE_SHOWN="${TH[dim]:-}$UI_S_SECRET ${run// /$UI_S_MASK}$TH_RESET"
     return 0
@@ -306,12 +356,12 @@ kee_cur() {
 
 kee_note() { KEE_NOTE_KIND="$1" KEE_NOTE="$2"; }
 
-# Starts typing the value of the variable under the cursor. A secret starts empty (you type a new one) unless it is revealed.
+# Opens the modal to type the value of the variable under the cursor. It starts with what the variable has now, a secret included (opening it is
+# asking to see it; Tab hides it again). The template's CAMBIAR… is not a value to edit: it starts empty.
 kee_edit_start() { # id
   local id="$1"
-  KEE_EDIT=1 KEE_EDIT_ID="$id"
-  # (the template's CAMBIAR… is not a value to edit: it starts empty too)
-  if { [ "${ENV_SECRET[$id]:-0}" = 1 ] && [ "$KEE_REVEAL_ID" != "$id" ]; } || [[ "${KEE_VAL[$id]:-}" == *CAMBIAR* ]]; then KF_VALUE=""
+  KEE_EDIT=1 KEE_EDIT_ID="$id" KEE_EDIT_SHOW=1 KEE_EDIT_GEN="" KEE_EDIT_KIND=""
+  if [[ "${KEE_VAL[$id]:-}" == *CAMBIAR* ]]; then KF_VALUE=""
   else KF_VALUE="${KEE_VAL[$id]:-}"; fi
   KF_CUR="${#KF_VALUE}"
   kee_edit_check
@@ -333,8 +383,58 @@ kee_edit_check() {
   esac
 }
 
+# `f` on a variable that points to a file of secrets/: asks for the path of the file (a model with a disk) or hands the question to the host (the
+# wizard has no folder yet: it is answered in its step of the files).
+kee_file_open() {
+  local id="$KEE_CUR_ID"
+  [ -n "$id" ] || return 0
+  if ! kee_secfile_of "$id"; then kee_t envview.not_file "${id#*|}"; kee_note info "$KEE_T"; return 0; fi
+  KEE_FILE_NAME="$KEE_SF_NAME" KEE_FILE_SRC="" KEE_FILE_FORCE=0
+  if [ "$KEE_DISK" -eq 0 ]; then KEE_ACTION=secfile; return 0; fi
+  [ "${KEE_FST[$id]:-missing}" = missing ] || KEE_FILE_FORCE=1
+  KEE_EDIT=1 KEE_EDIT_ID="$id" KEE_EDIT_KIND=file KEE_EDIT_GEN="" KEE_FILE_CI=-1 KF_VALUE="" KF_CUR=0
+  kee_file_check
+  kee_touch
+}
+
+# The live look at the path being typed: does a file exist there? (the content is checked when Enter is pressed)
+kee_file_check() {
+  local p
+  KEE_EDIT_MSG=""
+  if [ -z "$KF_VALUE" ]; then KEE_EDIT_ST=pend; return 0; fi
+  sf_expand "$KF_VALUE"; p="$SF_PATH"
+  if [ -f "$p" ]; then KEE_EDIT_ST=ok; kee_t envview.file.found; KEE_EDIT_MSG="$KEE_T"
+  elif [ -d "$p" ]; then KEE_EDIT_ST=err; kee_t envview.file.isdir; KEE_EDIT_MSG="$KEE_T"
+  else KEE_EDIT_ST=warn; kee_t envview.file.nofile; KEE_EDIT_MSG="$KEE_T"; fi
+}
+
+kee_key_file() { # key
+  local k="$1" src n
+  case "$k" in
+    enter)
+      sf_expand "$KF_VALUE"; src="$SF_PATH"
+      if [ -z "$src" ]; then kee_t envview.file.empty; kee_note warn "$KEE_T"; return 0; fi
+      if ! sf_check "$src"; then kee_t "tui.nz.sec.err_$SF_WHY" "$src"; kee_note err "$KEE_T"; return 0; fi
+      KEE_FILE_SRC="$src" KEE_ACTION=secfile KEE_EDIT=0 KEE_EDIT_KIND=""
+      kee_touch
+      ;;
+    esc) KEE_EDIT=0 KEE_EDIT_ID="" KEE_EDIT_KIND=""; kee_touch ;;
+    tab)
+      # (the files that look like a service account in the usual folders, one after the other)
+      sf_candidates
+      n="${#SF_CAND[@]}"
+      if [ "$n" -eq 0 ]; then kee_t tui.nz.sec.nofound; kee_note info "$KEE_T"; return 0; fi
+      KEE_FILE_CI=$(((KEE_FILE_CI + 1) % n))
+      KF_VALUE="${SF_CAND[$KEE_FILE_CI]}" KF_CUR="${#KF_VALUE}"
+      kee_file_check; kee_touch
+      ;;
+    *) if kit_field_key "$k"; then kee_file_check; kee_touch; fi ;;
+  esac
+}
+
 kee_key_edit() { # key
   local id="$KEE_EDIT_ID" k="$1"
+  if [ "$KEE_EDIT_KIND" = file ]; then kee_key_file "$k"; return 0; fi
   case "$k" in
     enter)
       kee_edit_check
@@ -342,11 +442,14 @@ kee_key_edit() { # key
         kee_note warn "$(kee_refused_text "$id")"
         return 0
       fi
-      KEE_VAL[$id]="$KF_VALUE"
       KEE_EDIT=0
-      kee_refresh
+      if [ -n "$KEE_EDIT_GEN" ] && [ "$KF_VALUE" = "$KEE_EDIT_GEN" ]; then kee_generate_apply "$id" "$KF_VALUE"   # (a shared secret goes to every file)
+      else KEE_VAL[$id]="$KF_VALUE"; kee_refresh; fi
+      KEE_EDIT_GEN=""
       ;;
-    esc) KEE_EDIT=0 KEE_EDIT_ID=""; kee_touch ;;
+    esc) KEE_EDIT=0 KEE_EDIT_ID="" KEE_EDIT_GEN=""; kee_touch ;;
+    tab) KEE_EDIT_SHOW=$((1 - KEE_EDIT_SHOW)); kee_touch ;;
+    $'\007') kee_edit_generate ;;
     *)
       if kee_field_key_safe "$k"; then kee_edit_check; kee_touch; fi
       ;;
@@ -362,11 +465,26 @@ kee_refused_text() { # id
   printf '%s' "$KEE_T"
 }
 
-# The staged value of a generated secret into every file of the editor that has the variable with the "shared" generator.
-kee_generate_apply() { # id
+# Ctrl+G in the modal: puts a generated value in the field (it is only the variable's when Enter accepts it).
+kee_edit_generate() {
+  local id="$KEE_EDIT_ID" kind v
+  kind="${ENV_GEN[$id]:-}"
+  if [ -z "$kind" ]; then kee_t env.no_generator "${id#*|}"; kee_note warn "$KEE_T"; return 0; fi
+  v="$(envedit_random "$kind")" || v=""
+  if [ -z "$v" ]; then kee_t env.openssl_missing; kee_note err "$KEE_T"; return 0; fi
+  KF_VALUE="$v" KF_CUR="${#v}" KEE_EDIT_GEN="$v"
+  v=""
+  kee_edit_check
+  kee_touch
+}
+
+# The staged value of a generated secret into every file of the editor that has the variable with the "shared" generator. A value may come in
+# $2 (the one generated in the modal); without it a new one is made.
+kee_generate_apply() { # id [value]
   local id="$1" key="${1#*|}" kind val f n=0
   kind="${ENV_GEN[$id]:-}"
-  val="$(envedit_random "$kind")" || { kee_t env.openssl_missing; kee_note err "$KEE_T"; return 1; }
+  val="${2:-}"
+  if [ -z "$val" ]; then val="$(envedit_random "$kind")" || val=""; fi
   [ -n "$val" ] || { kee_t env.openssl_missing; kee_note err "$KEE_T"; return 1; }
   if [ "$kind" = shared ]; then
     for f in "${KEE_FILES[@]}"; do
@@ -535,6 +653,7 @@ kee_key_nav() { # key
       fi
       ;;
     g) kee_generate ;;
+    f) kee_file_open ;;
     d) kee_default ;;
     r) kee_reveal ;;
     a)
@@ -597,15 +716,18 @@ kee_status() {
 kee_footer_chips() {
   kee_t envview.foot
   KEE_FOOTER="$KEE_T"
-  if [ "$KEE_EDIT" -eq 1 ]; then kee_t envview.foot_edit; KEE_FOOTER="$KEE_T"
-  elif [ -n "$KEE_PROMPT" ]; then KEE_FOOTER=""; fi
+  # (while a value is typed the modal has the actions of its own)
+  if [ "$KEE_EDIT" -eq 1 ] || [ -n "$KEE_PROMPT" ]; then KEE_FOOTER=""; fi
 }
 
 # The hint line (the keys) for what the editor is doing now, fitted to $1 cells, into KEE_HINT as plain text with " · " between items.
 kee_hint() { # width
   local k=envview.keys
   if [ -n "$KEE_PROMPT" ]; then k="envview.keys_ask_$KEE_PROMPT"
-  elif [ "$KEE_EDIT" -eq 1 ]; then k=envview.keys_edit; fi
+  elif [ "$KEE_EDIT" -eq 1 ]; then
+    k=envview.keys_edit
+    [ "$KEE_EDIT_KIND" != file ] || k=envview.keys_file_edit
+  fi
   kee_cur
   if [ "$k" = envview.keys ] && [ -z "$KEE_CUR_ID" ]; then k=envview.keys_file; fi
   kee_t "$k" "$KEE_UD"
@@ -675,14 +797,65 @@ kee_state_icon_of() { # id
   KEE_ICON_OUT="$KIT_ICON"
 }
 
-# The row being typed: the field of the kit, with the live validation.
-kee_line_edit() { # id width kw
-  local id="$1" w="$2" kw="$3" key="${1#*|}" mask=0 rv=0
-  [ "${ENV_SECRET[$id]:-0}" != 1 ] || mask=1
-  [ "$KEE_REVEAL_ID" != "$id" ] || rv=1
-  [ "${#key}" -le "$kw" ] || key="${key:0:$((kw - 1))}$UI_S_ELL"
-  kit_field_render "$key" "$KF_VALUE" "$KF_CUR" $((w - 2)) label_width="$kw" focus=1 mask="$mask" reveal="$rv" state="$KEE_EDIT_ST" msg="$KEE_EDIT_MSG"
-  KEE_LINE="  $KIT_OUT"
+# The modal that edits a value (into KEE_MODAL, $1 cells of screen and $2 lines to work in): the name of the variable, what it is and what it
+# says, the field with the value (a secret is shown unless Tab hid it) and what the validator says about what is typed.
+kee_modal_build() { # width height
+  local w="$1" h="$2" id="$KEE_EDIT_ID" mw type l dmax msg mask=0 body=()
+  mw=$((w - 6)); [ "$mw" -le 76 ] || mw=76; [ "$mw" -ge 24 ] || mw="$w"
+  if [ "$KEE_EDIT_KIND" = file ]; then kee_modal_build_file "$mw" "$h"; return 0; fi
+  if [ "${ENV_TYPE[$id]:-}" = req ]; then kee_t envview.type.req; else kee_t envview.type.opt; fi
+  type="$KEE_T"
+  [ "${ENV_SECRET[$id]:-0}" != 1 ] || { kee_t envview.type.secret; type+=" $UI_S_DOT $KEE_T"; }
+  body=("" "${TH[dim]:-}$type $UI_S_DOT ${id%%|*}$TH_RESET")
+  dmax=$((h - 11)); [ "$dmax" -le 4 ] || dmax=4; [ "$dmax" -ge 0 ] || dmax=0
+  kit_wrap "${ENV_DESC[$id]:-}" $((mw - 4))
+  for l in "${KW_LINES[@]:0:$dmax}"; do body+=("$l"); done
+  body+=("")
+  { [ "${ENV_SECRET[$id]:-0}" = 1 ] && [ "$KEE_EDIT_SHOW" -eq 0 ]; } && mask=1
+  kit_field_render "" "$KF_VALUE" "$KF_CUR" $((mw - 4)) label_width=0 focus=1 mask="$mask" state="$KEE_EDIT_ST"
+  body+=("$KIT_OUT")
+  msg="$KEE_EDIT_MSG"
+  if [ -n "$msg" ]; then
+    kit_state_color "$KEE_EDIT_ST"
+    tui_fit "$KIT_COL$msg$TH_RESET" $((mw - 4)); body+=("$TUI_OUT")
+  else
+    body+=("")
+  fi
+  kee_t envview.foot_edit
+  kit_box "$mw" $((${#body[@]} + 2)) body "chips=${id#*|}" "footer=$KEE_T" focus=1
+  KEE_MODAL=("${KIT_BOX[@]}")
+}
+
+# The modal that asks for the path of a file of secrets/: what the file is for, the path, and what is known of it. $1 cells wide, $2 lines to work in.
+kee_modal_build_file() { # width height
+  local mw="$1" h="$2" id="$KEE_EDIT_ID" l dmax msg body=()
+  kee_t envview.file.what "${id#*|}" "${id%%|*}"; body=("" "${TH[dim]:-}$KEE_T$TH_RESET")
+  dmax=$((h - 9)); [ "$dmax" -le 4 ] || dmax=4; [ "$dmax" -ge 0 ] || dmax=0
+  kee_t envview.file.text "$KEE_FILE_NAME"; kit_wrap "$KEE_T" $((mw - 4))
+  for l in "${KW_LINES[@]:0:$dmax}"; do body+=("$l"); done
+  if [ "$KEE_FILE_FORCE" -eq 1 ]; then kee_t envview.file.replace "$KEE_FILE_NAME"; tui_fit "${TH[warn]:-}$KEE_T$TH_RESET" $((mw - 4)); body+=("$TUI_OUT"); fi
+  body+=("")
+  kee_t envview.file.label
+  kit_field_render "$KEE_T" "$KF_VALUE" "$KF_CUR" $((mw - 4)) label_width=7 focus=1 state="$KEE_EDIT_ST"
+  body+=("$KIT_OUT")
+  msg="$KEE_EDIT_MSG"
+  if [ -n "$msg" ]; then kit_state_color "$KEE_EDIT_ST"; tui_fit "  $KIT_COL$msg$TH_RESET" $((mw - 4)); body+=("$TUI_OUT"); else body+=(""); fi
+  kee_t envview.foot_file
+  kit_box "$mw" $((${#body[@]} + 2)) body "chips=$KEE_FILE_NAME" "footer=$KEE_T" focus=1
+  KEE_MODAL=("${KIT_BOX[@]}")
+}
+
+# Lays the modal over the lines of the array $1 (the drawing of the editor, $2 cells wide) while a value is being typed.
+kee_modal_overlay() { # array width
+  local -n _kmo="$1"
+  local w="$2" i
+  [ "$KEE_EDIT" -eq 1 ] || return 0
+  kee_modal_build "$w" "${#_kmo[@]}"
+  for ((i = 0; i < ${#_kmo[@]}; i++)); do
+    _kmo[i]="${_kmo[$i]#"$TUI_SEL"}"   # (the marker of the selected row does not survive being cut: under a modal nothing is selected)
+    tui_fit "${_kmo[$i]}" "$w"; _kmo[i]="$TUI_OUT"
+  done
+  kit_center "$1" KEE_MODAL
 }
 
 # The description of what is under the cursor, as lines of $1 cells, into KEE_CARD (plain text with colours): used by the card at the right
@@ -816,8 +989,7 @@ kee_body() { # width lines
       F\|*) kee_line_file "${r#F|}" "$w" ;;
       V\|*)
         id="${r#V|}"
-        if [ "$KEE_EDIT" -eq 1 ] && [ "$KEE_EDIT_ID" = "$id" ]; then kee_line_edit "$id" "$w" "$kw"
-        elif [ -n "${KEE_LC[$id]+x}" ]; then KEE_LINE="${KEE_LC[$id]}"
+        if [ -n "${KEE_LC[$id]+x}" ]; then KEE_LINE="${KEE_LC[$id]}"
         else kee_line_var "$id" "$w" "$kw"; KEE_LC[$id]="$KEE_LINE"; fi
         ;;
     esac
@@ -866,6 +1038,7 @@ kee_render() { # width height [option=value ...]
     right=("${KIT_BOX[@]}")
     KEE_BOX=()
     for ((i = 0; i < h; i++)); do KEE_BOX+=("${left[$i]}${right[$i]}"); done
+    kee_modal_overlay KEE_BOX "$w"
     return 0
   fi
   # Narrow: the description goes under the list (three lines when the height allows it, one line of context otherwise).
@@ -893,4 +1066,5 @@ kee_render() { # width height [option=value ...]
   while [ "${#body[@]}" -lt "$inner" ]; do body+=(""); done
   kit_box "$w" "$h" body "chips=$chips" "status=$KEE_STATUS" "footer=$KEE_FOOTER" "focus=$foc"
   KEE_BOX=("${KIT_BOX[@]}")
+  kee_modal_overlay KEE_BOX "$w"
 }

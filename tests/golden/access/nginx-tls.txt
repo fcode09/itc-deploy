@@ -4,15 +4,15 @@
 # s0
 server {
     listen 80;
-    server_name auth-backend.ejemplo.pe;
+    server_name backend-s0.ejemplo.pe;
     return 301 https://$host$request_uri;
 }
 server {
     listen 443 ssl;
-    server_name auth-backend.ejemplo.pe;
-    # the certificate: certbot --nginx -d auth-backend.ejemplo.pe
-    ssl_certificate /etc/letsencrypt/live/auth-backend.ejemplo.pe/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/auth-backend.ejemplo.pe/privkey.pem;
+    server_name backend-s0.ejemplo.pe;
+    # the certificate: certbot --nginx -d backend-s0.ejemplo.pe
+    ssl_certificate /etc/letsencrypt/live/backend-s0.ejemplo.pe/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/backend-s0.ejemplo.pe/privkey.pem;
     location / {
         proxy_pass http://127.0.0.1:4100;
 
@@ -35,15 +35,15 @@ server {
 # s1
 server {
     listen 80;
-    server_name gueo-back-end.ejemplo.pe;
+    server_name backend-s1.ejemplo.pe;
     return 301 https://$host$request_uri;
 }
 server {
     listen 443 ssl;
-    server_name gueo-back-end.ejemplo.pe;
-    # the certificate: certbot --nginx -d gueo-back-end.ejemplo.pe
-    ssl_certificate /etc/letsencrypt/live/gueo-back-end.ejemplo.pe/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/gueo-back-end.ejemplo.pe/privkey.pem;
+    server_name backend-s1.ejemplo.pe;
+    # the certificate: certbot --nginx -d backend-s1.ejemplo.pe
+    ssl_certificate /etc/letsencrypt/live/backend-s1.ejemplo.pe/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/backend-s1.ejemplo.pe/privkey.pem;
     location / {
         proxy_pass http://127.0.0.1:4101;
 

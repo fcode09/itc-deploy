@@ -8,13 +8,13 @@
 │   ●✖ ix-lima  1/2    180M   1.2%   ││ HTTPS     sí   Caddy lo pide y lo renueva solo                                 │
 │   ✖✖ ix-piura 0/2       -      -   ││                                                                                │
 ╰────────────────────────────────────╯│   Servicio Puerto   En este servidor   Nombre público                          │
-╭─ Servidor ─────────────────────────╮│ ▸ ● s0      :4100    responde           auth-backend.ejemplo.pe                │
-│ Memoria █████░░░░░ 5.6/11.5 GB 48% ││   ✖ s1      :4101    sin respuesta      gueo-back-end.ejemplo.pe               │
+╭─ Servidor ─────────────────────────╮│ ▸ ● s0      :4100    responde           backend-s0.ejemplo.pe                  │
+│ Memoria █████░░░░░ 5.6/11.5 GB 48% ││   ✖ s1      :4101    sin respuesta      backend-s1.ejemplo.pe                  │
 │              ▃                     ││                                                                                │
 │              █   ▄                 ││ Bloque de caddy  ○ sin guardar  proxy/Caddyfile                                │
 │  ▁  ▄  ▄  █  ██  █     ▂  ▃  ▂  ▆  ││ Va en tu Caddyfile · caddy reload --config /etc/caddy/Caddyfile · aquí no se es│
 │  █▁ █▂ █▁ █▅ ██▆ █  █  █  █  █▃ █▂ ││ # s0                                                                           │
-│  ██ ██ ██▁██▁███▅█▄ █▄ █▇ █▇ ██ ██ ││ auth-backend.ejemplo.pe {                                                      │
+│  ██ ██ ██▁██▁███▅█▄ █▄ █▇ █▇ ██ ██ ││ backend-s0.ejemplo.pe {                                                        │
 │ ▃██▆██▆████████████ ██▁██▅██▄█████▇││     reverse_proxy 127.0.0.1:4100                                               │
 │ Carga 3.18                         ││ }                                                                              │
 │ contenedores 1.5G                  ││                                                                                │

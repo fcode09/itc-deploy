@@ -2,7 +2,7 @@
 
   1 Servidor  [2 Imágenes]  3 Instancias   4 Recursos   5 Salida   6 Ejecuciones   7 Procesos   8 Consola   9 Variables   0 Actividad                          
 ╭─┐ ▸²imágenes ┌────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐servidor amd64 · 6 versiones┌─╮
-│ ▾ s0 · auth-backend                                                                                                                   5 versiones · ★ 2.14.1 │
+│ ▾ s0 · backend-s0                                                                                                                     5 versiones · ★ 2.14.1 │
 │   En uso: ★ 2.14.1 (ix-lima [parada]) · 2.14.0 (ix-colorado [parada])                                                                                        │
 │   VERSIÓN       CREADA         TAMAÑO ARQ       USO                                                                                                          │
 │   3.0.0-rc1     hace 1 h         300MB arm64 ✖   sin usar                                                                                                    │
@@ -11,7 +11,7 @@
 │   2.14.0        hace 9 días      300MB amd64 ✔   ix-colorado(actual)                                                                                         │
 │   2.13.2        hace 1 mes       300MB amd64 ✔   ix-lima(previa)                                                                                             │
 │                                                                                                                                                              │
-│ ▾ s1 · gueo-back-end                                                                                                                     1 versión · ★ 2.9.0 │
+│ ▾ s1 · backend-s1                                                                                                                        1 versión · ★ 2.9.0 │
 │   En uso: ★ 2.9.0 (ix-colorado [parada], ix-lima [parada])                                                                                                   │
 │   VERSIÓN       CREADA         TAMAÑO ARQ       USO                                                                                                          │
 │   2.9.0 ★       hace 5 días      300MB amd64 ✔   ix-colorado(actual) ix-lima(actual)  ↑ más reciente                                                         │

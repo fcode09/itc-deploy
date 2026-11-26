@@ -12,17 +12,17 @@
 │ ▾ .env.s0                                                              9 variables ││                                │
 │ ● IP_SERVER                  http://h                                              ││                                │
 │ ● JWT_SECRET                 ⚿ ••••••••••                                          ││                                │
-│ ● MONGO_URI                  ⚿ ••••••••••                                          ││                                │
+│ ● MONGO_URI                  ⚿ mongodb://ana:••••@db.itc.pe:27017/auth             ││                                │
 │ ● IP_INTERNAL_CONNECTION     s1                                                    ││                                │
 │ ▾ .env.s1                                                             27 variables ││                                │
 │ ● IP_SERVER                  http://h                                              ││                                │
 │ ● AUTH_URL                   http://s0:3200                                        ││                                │
 │ ● JWT_SECRET                 ⚿ ••••••••••                                          ││                                │
-│ ● MONGO_DELTA_DISPATCH_URI   ⚿ ••••••••••                                          ││                                │
-│ ● MONGO_AUTHSOFTWARE_URI     ⚿ ••••••••••                                          ││                                │
-│ ● MONGO_ROBIN_URI            ⚿ ••••••••••                                          ││                                │
-│ ● FCM_CERT                   /run/secrets/fcm.json                                 ││                                │
-│ ● KEEPER_FCM_CERT            /run/secrets/keeper-fcm.json                          ││                                │
+│ ● MONGO_DELTA_DISPATCH_URI   mongodb://host.docker.internal:27017/deltadispatch_ix ││                                │
+│ ● MONGO_AUTHSOFTWARE_URI     mongodb://host.docker.internal:27017/authsoftware_ix- ││                                │
+│ ● MONGO_ROBIN_URI            mongodb://host.docker.internal:27017/robin_ix-lima    ││                                │
+│ ● FCM_CERT                   /run/secrets/fcm.json           archivo no válido (f) ││                                │
+│ ● KEEPER_FCM_CERT            /run/secrets/keeper-fcm.json    archivo no válido (f) ││                                │
 │ ────────────────────────────────────────────────────────────────────────────────── ││                                │
 │ ¿Desplegar ix-lima ahora? No hay cambios sin guardar.                              ││                                │
 │ El despliegue reinicia los servicios de la instancia.                              ││                                │

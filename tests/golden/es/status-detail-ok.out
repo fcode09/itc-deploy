@@ -9,7 +9,7 @@ Instancia gold-ok
 Servicio s0
   estado         healthy  desde hace <UP>
   versión        configurada 1.0 · corriendo 1.0 · desplegada 1.0
-  imagen         auth-backend:1.0
+  imagen         backend-s0:1.0
   puerto         http://127.0.0.1:4100 (solo local; publícalo con tu proxy)
   recursos       memoria 82MiB/512MiB · cpu 0.2%
   errores 10m    1 línea(s) con ERROR/ECONNREFUSED en los logs (./deltactl logs gold-ok s0)
@@ -17,7 +17,7 @@ Servicio s0
 Servicio s1
   estado         healthy  desde hace <UP>
   versión        configurada 1.0 · corriendo 1.0 · desplegada 1.0
-  imagen         gueo-back-end:1.0
+  imagen         backend-s1:1.0
   puerto         http://127.0.0.1:4101 (solo local; publícalo con tu proxy)
   recursos       memoria 410MiB/1GiB · cpu 1.5%
   errores 10m    1 línea(s) con ERROR/ECONNREFUSED en los logs (./deltactl logs gold-ok s1)

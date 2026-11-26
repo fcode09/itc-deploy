@@ -47,7 +47,7 @@ MSG_es["envview.status.changed"]="{1} sin guardar"
 MSG_es["envview.status.pending"]="{1} sin desplegar"
 MSG_es["envview.status.ok"]="todo en orden"
 MSG_es["envview.foot"]="{Enter} editar|^g generar|^r revelar|^d defecto|^a avanzadas|^s guardar|^u desplegar"
-MSG_es["envview.foot_edit"]="{Enter} aceptar|{Esc} cancelar"
+MSG_es["envview.foot_edit"]="{Enter} aceptar|{Esc} cancelar|{Tab} ver|{Ctrl+G} generar|{Ctrl+U} borrar"
 
 # Mensajes de la línea de estado
 MSG_es["envview.refused"]="{1} no se acepta: {2}"
@@ -68,9 +68,25 @@ MSG_es["envview.ask.deploy_only"]="¿Desplegar {2} ahora? No hay cambios sin gua
 MSG_es["envview.ask.deploy_note"]="El despliegue reinicia los servicios de la instancia."
 
 # La última línea según lo que hace el editor
-MSG_es["envview.keys"]="{1} mover · Enter edita · g generar · r revelar · d defecto · a avanzadas · s guardar · u desplegar · [/] instancia · Esc sale"
+MSG_es["envview.keys"]="{1} mover · Enter edita · g generar · r revelar · f archivo · d defecto · a avanzadas · s guardar · u desplegar · [/] instancia · Esc sale"
 MSG_es["envview.keys_file"]="{1} mover · Enter pliega · a avanzadas · s guardar · u desplegar · [/] instancia · Esc sale"
-MSG_es["envview.keys_edit"]="Enter acepta · Esc cancela · ←→ mueven · Ctrl+U borra · q ? : son letras aquí"
+MSG_es["envview.keys_edit"]="Enter acepta · Esc cancela · Tab ver u ocultar · Ctrl+G genera · Ctrl+U borra · se puede pegar · q ? : son letras aquí"
 MSG_es["envview.keys_ask_gen"]="y reemplazar · otra tecla cancela"
 MSG_es["envview.keys_ask_leave"]="s guardar y salir · d descartar y salir · otra tecla sigue editando"
 MSG_es["envview.keys_ask_deploy"]="y confirmar · otra tecla cancela"
+
+# A variable that points to a file of secrets/ (FCM_CERT=/run/secrets/fcm.json): whether it is there, and the dialog that loads it (key f).
+MSG_es["envview.note.file_missing"]="falta el archivo (f)"
+MSG_es["envview.note.file_invalid"]="archivo no válido (f)"
+MSG_es["envview.note.file_ok"]="archivo cargado"
+MSG_es["envview.not_file"]="{1} no apunta a un archivo de secrets/: su valor se escribe con Enter"
+MSG_es["envview.file.what"]="Variable {1} · {2}"
+MSG_es["envview.file.text"]="Escribe la ruta de este archivo en este servidor. Se copia a secrets/{1} con permisos 600 y su contenido no se muestra."
+MSG_es["envview.file.replace"]="Ya hay un archivo en secrets/{1}: se reemplaza."
+MSG_es["envview.file.label"]="Ruta"
+MSG_es["envview.file.found"]="archivo encontrado"
+MSG_es["envview.file.nofile"]="ese archivo no existe"
+MSG_es["envview.file.isdir"]="es una carpeta, no un archivo"
+MSG_es["envview.file.empty"]="Escribe la ruta del archivo (Tab busca en las carpetas usuales)."
+MSG_es["envview.foot_file"]="{Enter} cargar|{Esc} cancelar|{Tab} buscar"
+MSG_es["envview.keys_file_edit"]="Enter carga el archivo · Esc cancela · Tab busca en las carpetas usuales · se puede pegar la ruta · q ? : son letras aquí"

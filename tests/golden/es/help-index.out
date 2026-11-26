@@ -4,7 +4,7 @@ DELTACTL · ayuda
 
 Despliega y opera una instancia por municipalidad con Docker Compose.
 Cada instancia tiene su propia red privada, puertos, datos, secretos y bases de datos.
-Servicios: `s0` = auth-backend (Auth) y `s1` = gueo-back-end (Gue).
+Servicios: `s0` = backend-s0 (Auth) y `s1` = backend-s1 (Gue).
 
 Uso
   $ ./deltactl <comando> [instancia] [opciones]
@@ -25,6 +25,8 @@ Instancias
                                                     generar secretos sin mostrarlos
   service list|add|remove|set <instancia>           Servicios de una instancia: añadir, quitar
                                                     (conserva datos), versión, puerto, memoria
+  secret list|check|add <instancia>                 Archivos de secrets/ (el JSON de FCM): cuáles
+                                                    faltan y cargar uno con su ruta
 
 Despliegue
   check <instancia> [servicio] [--mongo]            Comprueba todo lo que deploy exigiría, sin
