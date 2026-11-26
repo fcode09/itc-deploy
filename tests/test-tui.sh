@@ -1313,4 +1313,6 @@ section "29. the optional profile of the panel (DELTACTL_PROF=1)"
 check "it is off by default: nothing is counted and no file is written" '[ "$(run_lib "DELTACTL_PROF_FILE=$FIX/prof-off.txt; prof_init; prof_b x; prof_e x; prof_count y; prof_dump; echo \${#PROF_N[@]}; [ -e $FIX/prof-off.txt ] && echo file")" = "0" ]'
 check "on, it counts the phases and writes the report with the biggest first" 'run_lib "DELTACTL_PROF=1; DELTACTL_PROF_FILE=$FIX/prof-on.txt; prof_init; prof_b slow; sleep 0.2; prof_e slow; prof_b fast; prof_e fast; prof_count spawn:ps; prof_dump" >/dev/null; f="$FIX/prof-on.txt"; grep -q "cpu of the panel itself" "$f" && grep -q "^spawn:ps  *1 calls" "$f" && [ "$(grep -n "^slow " "$f" | cut -d: -f1)" -lt "$(grep -n "^fast " "$f" | cut -d: -f1)" ]'
 
+check "leaving the panel with one of its variables not set does not stop the cleanup half way" '[ "$(run_lib "set -u; unset DASH_EV_PID DASH_LOCK_FILE; dash_shutdown 2>&1; echo cleaned" | tail -1)" = cleaned ]'
+
 finish

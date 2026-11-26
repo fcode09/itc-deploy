@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC2034  # PROXY_* are read by lib/cmd/new.sh, the wizard of the panel (lib/screens/newinst/access.sh) and the tests
 # The reverse-proxy block of an instance: the text of an nginx server block or a Caddyfile that puts each service of the instance behind a public
-# name. It GENERATES TEXT and saves it inside the instance (instances/<name>/proxy/); it never writes under /etc, never reloads nginx or Caddy
+# name. It GENERATES TEXT and saves it inside the instance (instances/<name>/proxy/); it writes under /etc/nginx only when access --apply / --remove is asked for, never reloads nginx or Caddy
 # and never runs a command: the person copies the block where it belongs (docs/server-prerequisites.md says where the proxy comes from).
 # Sourced by lib/bootstrap.sh; pure Bash, no fork. Used by `new --domain/--proxy/--tls`, by the access step of the wizard and (later) by the
 # access tab of an instance.
@@ -126,8 +126,8 @@ proxy_nginx() { # tls entry...
     body+="$PROXY_LOC"
     body+="}"$'\n'
   done
-  PROXY_OUT="# nginx: one server block for each service. Put it in /etc/nginx/conf.d/ (or sites-available) and run: nginx -t && systemctl reload nginx"$'\n'
-  PROXY_OUT+="# (deltactl only generates this text: it never writes under /etc and never reloads nginx)"$'\n'
+  PROXY_OUT="# nginx: one server block for each service. ./deltactl access --apply puts each one in /etc/nginx/sites-available/ and links it in sites-enabled/; by hand: nginx -t && systemctl reload nginx"$'\n'
+  PROXY_OUT+="# (this text is only written under /etc/nginx when ./deltactl access --apply is run)"$'\n'
   # The map is only written when a block uses it: two instances on one server would otherwise define it twice, and nginx refuses that.
   # shellcheck disable=SC2016  # (the text of the variable is what is looked for)
   [[ "$body" != *'$connection_upgrade'* ]] || PROXY_OUT+="map \$http_upgrade \$connection_upgrade { default upgrade; '' close; }"$'\n'
@@ -316,17 +316,35 @@ proxy_use_meta() {
 
 # --- Putting the blocks where nginx reads them (only on request: `access --apply` / `--remove`) ----------------------------------------------------
 #
-#   proxy_conf_dir                     where nginx reads its sites: /etc/nginx/conf.d (DELTACTL_NGINX_DIR for the tests)
-#   proxy_conf_file <instance> <svc>   <dir>/<instance>-<svc>.conf: one file per service, so each one is applied or taken out by itself
+#   proxy_nginx_root                   the folder of nginx: /etc/nginx (DELTACTL_NGINX_ROOT for the tests)
+#   proxy_nginx_layout                 PROXY_LAYOUT: sites (Debian and Ubuntu: a file in sites-available/ and a link to it in sites-enabled/, the way a site is
+#                                      enabled with a2ensite) when both folders are there, else confd (a file in conf.d/)
+#   proxy_conf_file <instance> <svc>   the file of a service: sites-available/<instance>-<svc>, or conf.d/<instance>-<svc>.conf
+#   proxy_conf_link <instance> <svc>   its link in sites-enabled/ (the layout sites)
 #   proxy_certs_missing <host>...      PROXY_MISSING: the hosts whose certificate of Let's Encrypt is not there (DELTACTL_LETSENCRYPT_DIR for the tests)
-#   proxy_apply_nginx <instance> <tls> <entry>...   writes the file of each entry (a copy of the one that was there), runs `nginx -t` and, when it fails,
-#                                      puts every file back as it was (0 ok · 1 nginx -t refused it, the text in PROXY_ERR · 2 could not write)
-#   proxy_remove_nginx <instance> <svc>...          takes the files of those services out (kept as <file>.deltactl-removed), with the same test and way back
+#   proxy_apply_nginx <instance> <tls> <entry>...   writes the file of each entry (a copy of the one that was there) and enables it, runs `nginx -t` and, when it
+#                                      fails, puts everything back as it was (0 ok · 1 nginx -t refused it, the text in PROXY_ERR · 2 could not write). The
+#                                      files that an earlier version left in conf.d/ for the same service are set aside (<file>.deltactl-removed) in the layout
+#                                      sites, so the name is not served twice.
+#   proxy_remove_nginx <instance> <svc>...          disables those services (removes the link of sites-enabled/, the file of sites-available/ stays; in conf.d/
+#                                      the file is kept as <file>.deltactl-removed), with the same test and way back (3: nothing was installed)
 #   proxy_reload                       reloads nginx (systemctl, else nginx -s reload); 1 when it could not
 # Nothing here is called by anything that only shows or saves a block: the person asks for it.
-PROXY_MISSING="" PROXY_APPLIED=()
-proxy_conf_dir() { printf '%s' "${DELTACTL_NGINX_DIR:-/etc/nginx/conf.d}"; }
-proxy_conf_file() { printf '%s/%s-%s.conf' "$(proxy_conf_dir)" "$1" "$2"; }
+PROXY_MISSING="" PROXY_APPLIED=() PROXY_UNDO=() PROXY_LAYOUT=confd
+proxy_nginx_root() { printf '%s' "${DELTACTL_NGINX_ROOT:-/etc/nginx}"; }
+
+proxy_nginx_layout() {
+  local r
+  r="$(proxy_nginx_root)"
+  if [ -d "$r/sites-available" ] && [ -d "$r/sites-enabled" ]; then PROXY_LAYOUT=sites; else PROXY_LAYOUT=confd; fi
+}
+
+proxy_conf_file() { # instance svc
+  local r
+  r="$(proxy_nginx_root)"
+  if [ "$PROXY_LAYOUT" = sites ]; then printf '%s/sites-available/%s-%s' "$r" "$1" "$2"; else printf '%s/conf.d/%s-%s.conf' "$r" "$1" "$2"; fi
+}
+proxy_conf_link() { printf '%s/sites-enabled/%s-%s' "$(proxy_nginx_root)" "$1" "$2"; }
 
 proxy_certs_missing() { # host...
   local h d="${DELTACTL_LETSENCRYPT_DIR:-/etc/letsencrypt/live}"
@@ -337,50 +355,96 @@ proxy_certs_missing() { # host...
   [ -z "$PROXY_MISSING" ]
 }
 
-# Puts every file back as it was before (the pairs are "<file>|<copy>"; no copy means the file did not exist).
-proxy_restore() { # pair...
-  local p f b
-  for p in "$@"; do
-    f="${p%%|*}" b="${p#*|}"
-    if [ -n "$b" ] && [ -e "$b" ]; then mv -f "$b" "$f"; else rm -f "$f"; fi
+# Undoes what proxy_apply_nginx / proxy_remove_nginx did, last first. Each step is "<what>|<a>|<b>":
+#   restore  a is a file and b its copy: the copy goes back   rmnew  a is a file or a link that was made: it goes
+#   relink   a is a link that was removed or changed: it points to b again   unrename  a was renamed to b: it gets its name back
+proxy_undo_run() {
+  local i op a b
+  for ((i = ${#PROXY_UNDO[@]} - 1; i >= 0; i--)); do
+    IFS='|' read -r op a b <<< "${PROXY_UNDO[$i]}"
+    case "$op" in
+      restore | unrename) mv -f "$b" "$a" ;;
+      rmnew) rm -f "$a" ;;
+      relink) ln -sfn "$b" "$a" ;;
+    esac
   done
+  PROXY_UNDO=()
 }
 
 proxy_apply_nginx() { # instance tls entry...
-  local name="$1" tls="$2" e svc f dir
-  local -a pairs=()
+  local name="$1" tls="$2" e svc f l lg r tgt step op a b
   shift 2
-  PROXY_ERR="" PROXY_APPLIED=()
-  dir="$(proxy_conf_dir)"
-  [ -d "$dir" ] || return 2
+  PROXY_ERR="" PROXY_APPLIED=() PROXY_UNDO=()
+  proxy_nginx_layout
+  r="$(proxy_nginx_root)"
+  [ -d "$(dirname "$(proxy_conf_file "$name" x)")" ] || return 2
   for e in "$@"; do
     svc="${e##*|}"
     f="$(proxy_conf_file "$name" "$svc")"
-    proxy_render nginx "$tls" "$e" || return 2
-    if [ -e "$f" ]; then cp -p "$f" "$f.deltactl-bak" || { proxy_restore "${pairs[@]}"; return 2; }; pairs+=("$f|$f.deltactl-bak"); else pairs+=("$f|"); fi
-    if ! printf '%s' "$PROXY_OUT" > "$f"; then proxy_restore "${pairs[@]}"; return 2; fi
+    proxy_render nginx "$tls" "$e" || { proxy_undo_run; return 2; }
+    if [ -e "$f" ]; then
+      cp -p "$f" "$f.deltactl-bak" || { proxy_undo_run; return 2; }
+      PROXY_UNDO+=("restore|$f|$f.deltactl-bak")
+    else
+      PROXY_UNDO+=("rmnew|$f|")
+    fi
+    if ! printf '%s' "$PROXY_OUT" > "$f"; then proxy_undo_run; return 2; fi
     chmod 644 "$f"
+    if [ "$PROXY_LAYOUT" = sites ]; then
+      l="$(proxy_conf_link "$name" "$svc")"
+      if [ -L "$l" ]; then
+        tgt="$(readlink "$l")"
+        if [ "$tgt" != "$f" ]; then PROXY_UNDO+=("relink|$l|$tgt"); ln -sfn "$f" "$l" || { proxy_undo_run; return 2; }; fi
+      elif [ -e "$l" ]; then
+        PROXY_ERR="$l"; proxy_undo_run; return 2   # (a file of somebody else is there: it is not replaced)
+      else
+        ln -s "$f" "$l" || { proxy_undo_run; return 2; }
+        PROXY_UNDO+=("rmnew|$l|")
+      fi
+      lg="$r/conf.d/$name-$svc.conf"
+      if [ -e "$lg" ]; then mv -f "$lg" "$lg.deltactl-removed" || { proxy_undo_run; return 2; }; PROXY_UNDO+=("unrename|$lg|$lg.deltactl-removed"); fi
+    fi
   done
-  if ! PROXY_ERR="$(nginx -t 2>&1)"; then proxy_restore "${pairs[@]}"; return 1; fi
+  if ! PROXY_ERR="$(nginx -t 2>&1)"; then proxy_undo_run; return 1; fi
   # (the copies stay only until the test passes: what nginx accepted is the new state)
-  for e in "${pairs[@]}"; do [ -z "${e#*|}" ] || rm -f "${e#*|}"; PROXY_APPLIED+=("${e%%|*}"); done
+  for step in "${PROXY_UNDO[@]}"; do
+    IFS='|' read -r op a b <<< "$step"
+    [ "$op" != restore ] || rm -f "$b"
+  done
+  for e in "$@"; do
+    svc="${e##*|}"
+    if [ "$PROXY_LAYOUT" = sites ]; then PROXY_APPLIED+=("$(proxy_conf_link "$name" "$svc")"); else PROXY_APPLIED+=("$(proxy_conf_file "$name" "$svc")"); fi
+  done
+  PROXY_UNDO=()
   return 0
 }
 
 proxy_remove_nginx() { # instance svc...
-  local name="$1" svc f
-  local -a pairs=()
+  local name="$1" svc f l lg r tgt found=0
   shift
-  PROXY_ERR="" PROXY_APPLIED=()
+  PROXY_ERR="" PROXY_APPLIED=() PROXY_UNDO=()
+  proxy_nginx_layout
+  r="$(proxy_nginx_root)"
   for svc in "$@"; do
-    f="$(proxy_conf_file "$name" "$svc")"
-    [ -e "$f" ] || continue
-    mv -f "$f" "$f.deltactl-removed" || { for f in "${pairs[@]}"; do mv -f "$f.deltactl-removed" "$f"; done; return 2; }
-    pairs+=("$f")
+    if [ "$PROXY_LAYOUT" = sites ]; then
+      l="$(proxy_conf_link "$name" "$svc")"
+      if [ -L "$l" ]; then
+        tgt="$(readlink "$l")"
+        rm -f "$l" || { proxy_undo_run; return 2; }
+        PROXY_UNDO+=("relink|$l|$tgt")
+        PROXY_APPLIED+=("$l")
+        found=1
+      fi
+      lg="$r/conf.d/$name-$svc.conf"
+      if [ -e "$lg" ]; then mv -f "$lg" "$lg.deltactl-removed" || { proxy_undo_run; return 2; }; PROXY_UNDO+=("unrename|$lg|$lg.deltactl-removed"); PROXY_APPLIED+=("$lg"); found=1; fi
+    else
+      f="$(proxy_conf_file "$name" "$svc")"
+      if [ -e "$f" ]; then mv -f "$f" "$f.deltactl-removed" || { proxy_undo_run; return 2; }; PROXY_UNDO+=("unrename|$f|$f.deltactl-removed"); PROXY_APPLIED+=("$f"); found=1; fi
+    fi
   done
-  [ "${#pairs[@]}" -gt 0 ] || return 3
-  if ! PROXY_ERR="$(nginx -t 2>&1)"; then for f in "${pairs[@]}"; do mv -f "$f.deltactl-removed" "$f"; done; return 1; fi
-  PROXY_APPLIED=("${pairs[@]}")
+  if [ "$found" -eq 0 ]; then PROXY_UNDO=(); return 3; fi
+  if ! PROXY_ERR="$(nginx -t 2>&1)"; then proxy_undo_run; PROXY_APPLIED=(); return 1; fi
+  PROXY_UNDO=()
   return 0
 }
 

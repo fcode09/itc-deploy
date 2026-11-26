@@ -157,7 +157,7 @@ check "> opens it with the focus in it: the strip names it, the border says whos
 check "with no domain it says what to do instead of an empty box, and no block is shown" 'f="$(echo "$out" | frame_n 2)"; echo "$f" | grep -q "Escribe el dominio" && ! echo "$f" | grep -q "server_name"'
 check "the services are a table: port, whether they answer here (not checked yet) and the public name column" 'f="$(echo "$out" | frame_n 2)"; echo "$f" | grep -q "Servicio *Puerto" && echo "$f" | grep -q "s0 *:4100" && echo "$f" | grep -q "s1 *:4101" && echo "$f" | grep -q "sin comprobar"'
 check "the last line has the keys of the tab" 'echo "$out" | frame_n 2 | tail -2 | grep -q "Enter dominio . b otro proxy . w https . y copiar . g guardar"'
-check "the border has the keys too (the ones that do not fit are dropped whole)" 'echo "$out" | frame_n 2 | grep -q "\[Enter dominio\]-\[b bloque\]-\[w https\]-\[y copiar\]-\[g guardar\]"'
+check "the border has the keys too (the ones that do not fit are dropped whole)" 'echo "$out" | frame_n 2 | grep -q "\[Enter dominio\]-\[e nombre\]-\[a nginx\]-\[g guardar\]"'
 check "in English the tab says Access, Domain and its keys in English" 'f="$(LANGX=en panel ">" q | frame_n 2)"; echo "$f" | grep -q "Access" && echo "$f" | grep -q "Domain" && echo "$f" | grep -q "Enter domain . b other proxy"'
 check "on a small terminal the first lines are kept and no line is wider than the screen" 'f="$(PANEL_COLS=80 PANEL_ROWS=24 panel ">" ">" q | frame_n 3)"; [ "$(echo "$f" | awk "{ if (length(\$0) > 80) b = 1 } END { print b + 0 }")" = "0" ] && echo "$f" | grep -q "Dominio"'
 check "the column is the tab's: the logs that sit under the summary are not drawn under it" '! echo "$out" | frame_n 2 | grep -q "Logs . s0"'
@@ -232,11 +232,12 @@ check "the tab that is chosen is read when the key arrives and when the loop tur
 printf '#!/bin/sh\necho "nginx $*" >> "$FIX/nginx.log"\nexit 0\n' > "$FIX/bin/nginx"
 printf '#!/bin/sh\necho "systemctl $*" >> "$FIX/systemctl.log"\nexit 0\n' > "$FIX/bin/systemctl"
 chmod +x "$FIX/bin/nginx" "$FIX/bin/systemctl"
-mkdir -p "$FIX/conf.d"
-export DELTACTL_NGINX_DIR="$FIX/conf.d"
+mkdir -p "$FIX/nginx/sites-available" "$FIX/nginx/sites-enabled"
+export DELTACTL_NGINX_ROOT="$FIX/nginx"
 N0="backs0m1.delta-dispatch.com"; N1="backs1m1.delta-dispatch.com"
 
 section "N. the names of the services and nginx, from the tab"
+rm -rf instances/ta-a/proxy   # (what the tests before left remembered is not what these start from)
 f="$(panel '>' e | last_frame)"
 check "e edits the whole name of the selected service: the line says whose name it is, and offers its current one" 'echo "$f" | grep -q "Nombre s0"'
 f="$(PANEL_ROWS=70 panel '>' enter $(typed d.example.com) enter e $(typed "$N0") enter | last_frame)"
@@ -250,19 +251,22 @@ check "with a name for every service no domain is needed: the block is made with
 rm -rf instances/ta-a/proxy
 panel '>' e $(typed "$N0") enter down e $(typed "$N1") enter g q > /dev/null
 check "g saves them (and the domain taken from the names) in what the instance remembers" 'grep -qx "HOST_S0=$N0" instances/ta-a/proxy/access.conf && grep -qx "HOST_S1=$N1" instances/ta-a/proxy/access.conf && grep -qx "DOMAIN=delta-dispatch.com" instances/ta-a/proxy/access.conf'
-f="$(panel '>' e $(typed "$N0") enter down e $(typed "$N1") enter w a | last_frame)"
-check "a asks first and says what goes where: the name of the selected service with its port, and that there is no HTTPS" 'echo "$f" | grep -q "Instala en nginx el bloque de .ta-a." && echo "$f" | grep -q "s0 $N0 :4100" && ! echo "$f" | grep -q "$N1 :4101" && echo "$f" | grep -q "Sin HTTPS"'
-rm -f "$FIX/conf.d"/* "$FIX/nginx.log" "$FIX/systemctl.log"
+rm -rf instances/ta-a/proxy
+f="$(panel '>' e $(typed "$N0") enter down e $(typed "$N1") enter w up a | last_frame)"
+check "a asks first and says what goes where: the name of the selected service with its port, and that there is no HTTPS" 'echo "$f" | grep -q "Instala en nginx el bloque de .ta-a." && echo "$f" | grep -q "$N0 :4100" && ! echo "$f" | grep -q "$N1 :4101" && echo "$f" | grep -q "Sin HTTPS"'
+rm -f "$FIX/nginx/sites-available"/* "$FIX/nginx/sites-enabled"/* "$FIX/nginx.log" "$FIX/systemctl.log"
+rm -rf instances/ta-a/proxy
 panel '>' e $(typed "$N0") enter down e $(typed "$N1") enter w a n > /dev/null
-check "any other key than y cancels: nothing is installed" '[ -z "$(ls "$FIX/conf.d")" ] && [ ! -f "$FIX/nginx.log" ]'
+check "any other key than y cancels: nothing is installed" '[ -z "$(ls "$FIX/nginx/sites-enabled")" ] && [ ! -f "$FIX/nginx.log" ]'
+rm -rf instances/ta-a/proxy
 panel '>' e $(typed "$N0") enter down e $(typed "$N1") enter w A y wait > /dev/null
-check "A and y install the block of every service, one file each, and nginx is tested and reloaded" 'grep -q "server_name $N0;" "$FIX/conf.d/ta-a-s0.conf" && grep -q "server_name $N1;" "$FIX/conf.d/ta-a-s1.conf" && grep -q "nginx -t" "$FIX/nginx.log" && grep -q "reload nginx" "$FIX/systemctl.log"'
+check "A and y install the block of every service, one file each, and nginx is tested and reloaded" 'grep -q "server_name $N0;" "$FIX/nginx/sites-enabled/ta-a-s0" && grep -q "server_name $N1;" "$FIX/nginx/sites-enabled/ta-a-s1" && grep -q "nginx -t" "$FIX/nginx.log" && grep -q "reload nginx" "$FIX/systemctl.log"'
 f="$(panel '>' R | last_frame)"
-check "R asks before taking the selected service out of nginx" 'echo "$f" | grep -q "Quita de nginx el bloque de .ta-a." && echo "$f" | grep -q "s0 $N0 :4100"'
+check "R asks before taking the selected service out of nginx" 'echo "$f" | grep -q "Quita de nginx el bloque de .ta-a." && echo "$f" | grep -q "$N0 :4100"'
 panel '>' R y wait > /dev/null
-check "R and y take out only the selected service, and the other one stays" '[ ! -e "$FIX/conf.d/ta-a-s0.conf" ] && [ -f "$FIX/conf.d/ta-a-s1.conf" ]'
+check "R and y take out only the selected service, and the other one stays" '[ ! -e "$FIX/nginx/sites-enabled/ta-a-s0" ] && [ -f "$FIX/nginx/sites-enabled/ta-a-s1" ]'
 panel '>' X y wait > /dev/null
-check "X and y take out all of them" '[ ! -e "$FIX/conf.d/ta-a-s1.conf" ]'
+check "X and y take out all of them" '[ ! -e "$FIX/nginx/sites-enabled/ta-a-s1" ]'
 f="$(panel '>' b a | last_frame)"
 check "with Caddy it says that installing from here is only for nginx, and asks nothing" 'echo "$f" | grep -q "solo sabe hacerlo con nginx" && ! echo "$f" | grep -q "Instala en nginx"'
 check "the keys of the tab say the new ones" 'panel ">" | last_frame | grep -q "e nombre"'

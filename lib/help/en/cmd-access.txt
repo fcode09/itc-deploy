@@ -12,7 +12,8 @@ $ ./deltactl access <instance> [--domain D] [--host sN=NAME]... [--www | --no-ww
 ## Example (two services, each with its own name)
 $ ./deltactl access colorado --domain deltampa.com \
     --host s0=backlion.deltampa.com --host s1=backguep.deltampa.com --www --proxy nginx --save
-$ sudo cp instances/colorado/proxy/nginx.conf /etc/nginx/conf.d/colorado.conf
+$ sudo cp instances/colorado/proxy/nginx.conf /etc/nginx/sites-available/colorado
+$ sudo ln -s /etc/nginx/sites-available/colorado /etc/nginx/sites-enabled/colorado
 $ sudo nginx -t && sudo systemctl reload nginx
 
 ## Options
@@ -21,10 +22,11 @@ $ sudo nginx -t && sudo systemctl reload nginx
 - `--www` / `--no-www`  the block also answers on `www.<name>` (or stops doing so)
 - `--tls` / `--no-tls`  HTTPS (nginx: port 80 redirects and a 443 block with certbot's paths; Caddy does it by itself)
 - `--proxy nginx|caddy`  which one to make (by default the one the instance already used, or nginx)
-- `--apply`  also installs it in nginx: one file per service in `/etc/nginx/conf.d/<instance>-<service>.conf`, runs `nginx -t` and
-  reloads; when the test fails it puts everything back and reloads nothing. It asks first (`--yes` skips it) and needs root.
-  With HTTPS it requires the certificates of those names to exist already (when missing it shows the `certbot` of each one)
-- `--remove`  takes those files out of nginx (kept as `.deltactl-removed`), tests and reloads
+- `--apply`  also installs it in nginx: one file per service in `/etc/nginx/sites-available/<instance>-<service>`, linked in
+  `sites-enabled/` (or in `conf.d/` when those folders do not exist), runs `nginx -t` and reloads; when the test fails it puts
+  everything back and reloads nothing. It asks first (`--yes` skips it) and needs root. With HTTPS it requires the
+  certificates of those names to exist already (when missing it shows the `certbot` of each one)
+- `--remove`  disables them (removes the link of `sites-enabled/`; the file of `sites-available/` stays), tests and reloads
 - `--service sN`  limits `--apply` or `--remove` to one service (without it, to all)
 - `--yes`  does not ask
 - `--save`  keeps the block in `instances/<instance>/proxy/` and remembers the answers in `access.conf`
