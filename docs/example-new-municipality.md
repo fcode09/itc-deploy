@@ -6,7 +6,7 @@ Cada municipalidad es una **instancia** de este repo (ver el README).
 
 ## 0. Antes de empezar
 
-- Las imágenes `auth-backend` (s0) y `gueo-back-end` (s1) ya están **cargadas en el Docker del servidor**
+- Las imágenes `backend-s0` (s0) y `backend-s1` (s1) ya están **cargadas en el Docker del servidor**
   (`./deltactl load <archivo>` si llegaron como archivo de `docker save`), con la etiqueta que vas a desplegar.
   Compruébalo con `./deltactl images`. Con un registry, déjalas publicadas y pon su ruta en `REGISTRY`.
 - El servidor tiene Docker Compose 2.20 o superior.

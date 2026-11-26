@@ -24,7 +24,7 @@ $ ./deltactl new colorado
 ## 3. Versiones: `.env.instance`
 $ nano instances/colorado/.env.instance
 - `S0_TAG` y `S1_TAG`: las etiquetas del paso 1
-- `S0_IMAGE` y `S1_IMAGE`: solo si construiste las imágenes con otro nombre (por defecto auth-backend y gueo-back-end)
+- `S0_IMAGE` y `S1_IMAGE`: solo si construiste las imágenes con otro nombre (por defecto backend-s0 y backend-s1)
 - `REGISTRY`: déjalo vacío (imágenes cargadas en este servidor)
 > Qué significa cada variable: `./deltactl help variable S0_TAG`
 

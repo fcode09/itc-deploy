@@ -2,7 +2,7 @@
 
 Despliega y opera una instancia por municipalidad con Docker Compose.
 Cada instancia tiene su propia red privada, puertos, datos, secretos y bases de datos.
-Servicios: `s0` = auth-backend (Auth) y `s1` = gueo-back-end (Gue).
+Servicios: `s0` = backend-s0 (Auth) y `s1` = backend-s1 (Gue).
 
 ## Uso
 $ ./deltactl <comando> [instancia] [opciones]

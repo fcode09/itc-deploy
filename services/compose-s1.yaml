@@ -1,9 +1,9 @@
-# s1 = gueo-back-end (NestJS + Chromium para reportes PDF). Puerto interno 3000;
+# s1 = backend-s1 (NestJS + Chromium para reportes PDF). Puerto interno 3000;
 # se publica solo en 127.0.0.1:${S1_PORT}.
 services:
   s1:
-    # REGISTRY vacío = imagen local (gueo-back-end:<tag>); con valor se antepone (<registry>/gueo-back-end:<tag>).
-    image: ${REGISTRY:+${REGISTRY}/}${S1_IMAGE:-gueo-back-end}:${S1_TAG:?define S1_TAG en .env.instance}
+    # REGISTRY vacío = imagen local (backend-s1:<tag>); con valor se antepone (<registry>/backend-s1:<tag>).
+    image: ${REGISTRY:+${REGISTRY}/}${S1_IMAGE:-backend-s1}:${S1_TAG:?define S1_TAG en .env.instance}
     # ./deltactl fija PULL_POLICY=never cuando REGISTRY está vacío (ver compose-s0.yaml).
     pull_policy: ${PULL_POLICY:-missing}
     container_name: s1_${INSTANCE}

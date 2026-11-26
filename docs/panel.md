@@ -111,7 +111,7 @@ avisar (se guarda `TUI_PREREQ=off`; en Opciones, «Aviso de requisitos» lo vuel
 
 ## Imágenes (`2`)
 
-Una caja por **imagen** (`s0 · auth-backend`, `s1 · gueo-back-end`, y las que alguna instancia use con otro nombre) con una tabla de sus versiones, de la
+Una caja por **imagen** (`s0 · backend-s0`, `s1 · backend-s1`, y las que alguna instancia use con otro nombre) con una tabla de sus versiones, de la
 más nueva a la más vieja **por fecha de creación de la imagen** (una etiqueta es solo un nombre): VERSIÓN, CREADA («hace 2 días»), TAMAÑO, ARQ y USO
 (quién la usa, `colorado(actual)`, `colorado(previa)`; o «sin usar»). Las marcas son las de `./deltactl images` ([image-catalog.md](image-catalog.md)):
 **★** la más reciente que este servidor puede usar (la más nueva por fecha entre las etiquetas que son versión y de la arquitectura del servidor; se
@@ -136,7 +136,7 @@ etiqueta se mueve, que es la más reciente).
   vista se actualiza con las versiones nuevas.
 - **Espacio** abre el detalle de la versión (la referencia completa, el id, la fecha exacta en UTC y en palabras, el tamaño, la arquitectura y quién la
   usa); Espacio o Esc lo cierran.
-- **c** copia la referencia (`auth-backend:2.14.1`) como en la vista Servidor. **R** lee Docker de nuevo.
+- **c** copia la referencia (`backend-s0:2.14.1`) como en la vista Servidor. **R** lee Docker de nuevo.
 
 La vista lee el catálogo en segundo plano al elegirla, cuando termina un comando (una carga o un despliegue cambian lo cargado y quién lo usa), cada
 minuto mientras está a la vista y con `R`. Nada de aquí borra una imagen.

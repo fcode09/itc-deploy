@@ -14,8 +14,8 @@ dos. Código: `lib/core/imagecat.sh`. Solo imágenes **cargadas en este Docker**
    mover la instancia de un municipio a un candidato a versión o a una variante. Si solo hay etiquetas con sufijo, no hay ★.
 3. `latest` y las etiquetas que no son versión (`dev`, `a1b2c3d`) se marcan **▲** («se mueve: no sirve para volver atrás») y **nunca** son ★.
 4. Una imagen de otra arquitectura se marca **✖** y no se puede elegir.
-   Una imagen cargada con el nombre de un registry (`reg.io/auth-backend`) entra en el grupo de `auth-backend`, y se guarda el nombre que le da
-   Docker (`IC_FULL`). Una instancia con imágenes locales ejecuta `auth-backend:<etiqueta>` y no descarga nada, así que la ★ se elige entre las
+   Una imagen cargada con el nombre de un registry (`reg.io/backend-s0`) entra en el grupo de `backend-s0`, y se guarda el nombre que le da
+   Docker (`IC_FULL`). Una instancia con imágenes locales ejecuta `backend-s0:<etiqueta>` y no descarga nada, así que la ★ se elige entre las
    cargadas con el nombre sin registry cuando hay alguna; si todas llevan registry, entre ellas.
 5. Si las etiquetas son versiones y el orden por versión **discrepa** del orden por fecha (la 2.13.2 se creó después que la 2.14.0), la ★
    sigue siendo la más nueva por fecha y el grupo lo dice («¿se reconstruyó una versión vieja?»).
@@ -57,7 +57,7 @@ a la vez, se pide de una en una.
 
 - **Que la instancia pueda encontrar la imagen.** Una instancia sin `REGISTRY` necesita `<imagen>:<etiqueta>` cargada con ese nombre; una con
   `REGISTRY=reg.io` necesita `reg.io/<imagen>:<etiqueta>` cargada (si no, Docker la descargaría de allí, y puede no tenerla). Si no, la fila lo
-  dice («solo cargada como reg.io/auth-backend») y `Enter` sobre ella lo explica entero.
+  dice («solo cargada como reg.io/backend-s0») y `Enter` sobre ella lo explica entero.
 - **Que no haya otra operación en curso**, en otra terminal (el candado `instances/.deltactl/locks/mutation.lock` en manos de un proceso
   vivo): ni `y` (cambiar y desplegar) ni `g` (solo guardar la etiqueta) escriben nada, porque el despliegue que corre podría registrar la
   etiqueta nueva sobre el contenedor viejo.
