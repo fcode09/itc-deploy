@@ -29,8 +29,8 @@ bases.
 [1m3. Versiones: `.env.instance`[0m
   [90m$[0m [32mnano instances/colorado/.env.instance[0m
   [90m·[0m [36mS0_TAG[0m y [36mS1_TAG[0m: las etiquetas del paso 1
-  [90m·[0m [36mS0_IMAGE[0m y [36mS1_IMAGE[0m: solo si construiste las imágenes con otro nombre (por defecto auth-backend
-    y gueo-back-end)
+  [90m·[0m [36mS0_IMAGE[0m y [36mS1_IMAGE[0m: solo si construiste las imágenes con otro nombre (por defecto backend-s0 y
+    backend-s1)
   [90m·[0m [36mREGISTRY[0m: déjalo vacío (imágenes cargadas en este servidor)
   [36mℹ[0m Qué significa cada variable: [36m./deltactl help variable S0_TAG[0m
 

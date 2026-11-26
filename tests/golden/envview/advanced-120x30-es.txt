@@ -6,8 +6,8 @@
 │ ● INSTANCE                        ix-colorado                                      ││                                │
 │ ○ REGISTRY                        (vacía)                                 opcional ││ Límite de memoria del          │
 │ ● COMPOSE_PROFILES                s0,s1                                            ││ contenedor de s0. Ajústalo     │
-│ ● S0_IMAGE                        auth-backend                                     ││ según la carga real.           │
-│ ● S1_IMAGE                        gueo-back-end                                    ││                                │
+│ ● S0_IMAGE                        backend-s0                                       ││ según la carga real.           │
+│ ● S1_IMAGE                        backend-s1                                       ││                                │
 │ ● S0_TAG                          2.14.0                                           ││ Por defecto: 512m              │
 │ ● S1_TAG                          2.9.0                                            ││ Ejemplo: 512m                  │
 │ ● S0_PORT                         4100                                             ││                                │

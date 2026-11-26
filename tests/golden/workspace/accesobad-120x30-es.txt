@@ -8,8 +8,8 @@
 │   ●✖ ix-lima  1/2    180M   1.2%   ││ HTTPS     no   http por el puerto 80                                           │
 │   ✖✖ ix-piura 0/2       -      -   ││                                                                                │
 ╰────────────────────────────────────╯│   Servicio Puerto   En este servidor   Nombre público                          │
-╭─ Servidor ─────────────────────────╮│ ▸ ● s0      :4100    responde           auth-backend.ejemplo.pe                │
-│ Memoria █████░░░░░ 5.6/11.5 GB 48% ││   ▲ s1      -        sin puerto         gueo-back-end.ejemplo.pe               │
+╭─ Servidor ─────────────────────────╮│ ▸ ● s0      :4100    responde           backend-s0.ejemplo.pe                  │
+│ Memoria █████░░░░░ 5.6/11.5 GB 48% ││   ▲ s1      -        sin puerto         backend-s1.ejemplo.pe                  │
 │              ▃                     ││                                                                                │
 │              █   ▄                 ││ Bloque de nginx                                                                │
 │  ▁  ▄  ▄  █  ██  █     ▂  ▃  ▂  ▆  ││   Falta el puerto de s1 en .env.instance: no se puede generar el bloque.       │

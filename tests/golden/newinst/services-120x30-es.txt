@@ -10,10 +10,10 @@
 │ ¿Qué servicios lleva? Cada tarjeta dice qué es, el puerto que tendría││   .env.instance                              │
 │ en el servidor y la memoria que se le reserva.                       ││     COMPOSE_PROFILES=s1                      │
 │                                                                      ││     S0_PORT=4100                             │
-│ ▸ [ ] s0 · auth-backend                           ● puerto 4100  512m││     S1_PORT=4101                             │
+│ ▸ [ ] s0 · backend-s0                             ● puerto 4100  512m││     S1_PORT=4101                             │
 │       autenticación, usuarios, municipalidad y URLs de los sistemas  ││     S1_TAG=(la de la plantilla)              │
 │                                                                      ││   .env.s0 .env.s1                            │
-│   [x] s1 · gueo-back-end                            ● puerto 4101  2g││   secrets/  data/                            │
+│   [x] s1 · backend-s1                               ● puerto 4101  2g││   secrets/  data/                            │
 │       NestJS + Chromium para los reportes PDF                        ││     data/ vacía: init la siembra             │
 │     ▲ s1 usa s0, que no está en la instancia: lo que dependa de él no││                                              │
 │                                                                      ││ ≈ ./deltactl new instancia-1                 │

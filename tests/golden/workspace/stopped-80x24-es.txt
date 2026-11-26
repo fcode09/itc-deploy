@@ -10,10 +10,10 @@
 ╰──────────────────────────────────────────────────────────────────────────────╯
 [Resumen] Logs  Acceso  Historial  Servicios  Variables  Datos                  
 ╭─┐ix-sullana · 0/2┌────────────────────────────────────────────────┐○ parada┌─╮
-│ ▸ s0 auth-backend:2.14.1  ○ no creado                                        │
+│ ▸ s0 backend-s0:2.14.1  ○ no creado                                          │
 │     :4130                                                                    │
 │                                                                              │
-│   s1 gueo-back-end:2.9.0  ○ no creado                                        │
+│   s1 backend-s1:2.9.0  ○ no creado                                           │
 ╰─┘u desplegar└─┘c comprobar└─┘s estado└─┘l logs└─┘< > pestaña└─┘Enter más└────╯
 ╭─ Consola ────────────────────────────────────────────────────────────────────╮
 │                                                                              │

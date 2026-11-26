@@ -8,26 +8,26 @@
 │   ●✖ ix-lima     1/2    180M   1.2%    ││ HTTPS     sí   con certificado (certbot)                                       ││                                  │
 │   ✖✖ ix-piura    0/2       -      -    ││                                                                                ││                                  │
 │   ○○ ix-sullana  0/2       -      -    ││   Servicio Puerto   En este servidor   Nombre público                          ││                                  │
-╰────────────────────────────────────────╯│ ▸ ● s0      :4100    responde           auth-backend.ejemplo.pe                ││                                  │
-╭─ Servidor ─────────────────────────────╮│   ✖ s1      :4101    sin respuesta      gueo-back-end.ejemplo.pe               ││                                  │
+╰────────────────────────────────────────╯│ ▸ ● s0      :4100    responde           backend-s0.ejemplo.pe                  ││                                  │
+╭─ Servidor ─────────────────────────────╮│   ✖ s1      :4101    sin respuesta      backend-s1.ejemplo.pe                  ││                                  │
 │ Memoria █████░░░░░ 5.6/11.5 GB 48%     ││                                                                                ││                                  │
 │                  ▃                     ││ Bloque de nginx  ○ sin guardar  proxy/nginx.conf                               ││                                  │
 │                  █   ▄                 ││ Va en /etc/nginx/conf.d/ · nginx -t && systemctl reload nginx · aquí no se escr││                                  │
 │   ▁  ▁  ▄  ▄  █  ██  █     ▂  ▃  ▂  ▆  ││ # s0                                                                           ││                                  │
 │   █  █▁ █▂ █▁ █▅ ██▆ █  █  █  █  █▃ █▂ ││ server {                                                                       ││                                  │
 │ ▆ █▅ ██ ██ ██▁██▁███▅█▄ █▄ █▇ █▇ ██ ██ ││     listen 80;                                                                 ││                                  │
-│ █▃██▃██▆██▆████████████ ██▁██▅██▄█████▇││     server_name auth-backend.ejemplo.pe;                                       ││                                  │
+│ █▃██▃██▆██▆████████████ ██▁██▅██▄█████▇││     server_name backend-s0.ejemplo.pe;                                         ││                                  │
 │ Carga 3.18                             ││     return 301 https://$host$request_uri;                                      ││                                  │
 │ contenedores 1.5G                      ││ }                                                                              ││                                  │
 │ Docker 27.0.0                          ││ server {                                                                       ││                                  │
 │                                        ││     listen 443 ssl;                                                            ││                                  │
-│                                        ││     server_name auth-backend.ejemplo.pe;                                       ││                                  │
-│                                        ││     # the certificate: certbot --nginx -d auth-backend.ejemplo.pe              ││                                  │
-│                                        ││     ssl_certificate /etc/letsencrypt/live/auth-backend.ejemplo.pe/fullchain.pem││                                  │
-│                                        ││     ssl_certificate_key /etc/letsencrypt/live/auth-backend.ejemplo.pe/privkey.p││                                  │
-│                                        ││     location / {                                                               ││                                  │
-│                                        ││         proxy_pass http://127.0.0.1:4100;                                      ││                                  │
-│                                        ││                                                                                ││                                  │
+│                                        ││     server_name backend-s0.ejemplo.pe;                                         ││                                  │
+│                                        ││     # the certificate: certbot --nginx -d backend-s0.ejemplo.pe                ││                                  │
+│                                        ││     ssl_certificate /etc/letsencrypt/live/backend-s0.ejemplo.pe/fullchain.pem; ││                                  │
+│                                        ││     ssl_certificate_key /etc/letsencrypt/live/backend-s0.ejemplo.pe/privkey.pem││                                  │
+│                                        ││     location / {                                                              ││                                  │
+│                                        ││         proxy_pass http://127.0.0.1:4100;                                     ││                                  │
+│                                        ││                                                                               ││                                  │
 ╰────────────────────────────────────────╯╰─┘Enter dominio└─┘b bloque└─┘w https└─┘y copiar└─┘g guardar└─┘< > pestaña└──────╯╰──────────────────────────────────╯
 ╭─ Consola ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
 │                                                                                                                                                              │

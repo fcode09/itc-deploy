@@ -3,7 +3,7 @@
  1 Servidor 2 Imágenes [3 Instancias] 4 Recursos 5 Salida 6 Ejecuciones 7 Procesos 8 Consola 9 Variables 0 Actividad   
 ╭─ ▸Instancias ──────────────────────╮[Resumen] Acceso  Historial  Servicios  Variables  Datos                          
 │   + Nueva instancia                │╭─┐ix-lima · 1/2┌────────────────────────────────────────────────────┐▲ parcial┌─╮
-│               n/m      mem    cpu  ││ ▸ s0 auth-backend:2.14.1  ● healthy                                            │
+│               n/m      mem    cpu  ││ ▸ s0 backend-s0:2.14.1  ● healthy                                              │
 │   ●● ix-colorado 2/2    1.3G  25.1%││     activo 6h12m  ·  :4110                                                     │
 │ ▸ ●✖ ix-lima  1/2    180M   1.2%   ││     mem  ████░░░░░░░░ 180M/512M  35%  ▂▅▃▂▁▄▂▁▄▂▁▄▃▁                           │
 │   ✖✖ ix-piura 0/2       -      -   ││     cpu  ░░░░░░░░░░░░ 1.2%  █▅▂▁▆▃▁▆▃▁▆▄▁▆                                     │

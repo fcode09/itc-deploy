@@ -3,9 +3,9 @@ Servicios: s0, s1 y COMPOSE_PROFILES
 --------------------------------------
 
 Los servicios
-  . `s0` auth-backend (NestJS): autenticación, usuarios, municipalidad y URLs de los sistemas.
-    Puerto interno 3200.
-  . `s1` gueo-back-end (NestJS + Chromium para los reportes PDF). Puerto interno 3000.
+  . `s0` backend-s0 (NestJS): autenticación, usuarios, municipalidad y URLs de los sistemas. Puerto
+    interno 3200.
+  . `s1` backend-s1 (NestJS + Chromium para los reportes PDF). Puerto interno 3000.
   . puertos en el host: bloques de 10 desde 4100; `s0` usa el puerto base y `s1` el siguiente
     (4100/4101, 4110/4111...)
 

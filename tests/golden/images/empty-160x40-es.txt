@@ -2,13 +2,13 @@
 
   1 Servidor  [2 Imágenes]  3 Instancias   4 Recursos   5 Salida   6 Ejecuciones   7 Procesos   8 Consola   9 Variables   0 Actividad                          
 ╭─┐ ▸²imágenes ┌────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐servidor amd64 · 0 versiones┌─╮
-│ ▾ s0 · auth-backend                                                                                                                             sin imágenes │
+│ ▾ s0 · backend-s0                                                                                                                               sin imágenes │
 │   En uso: 2.14.0 (ix-colorado [parada]) · 2.14.1 (ix-lima [parada])                                                                                          │
 │   ✖ ix-colorado: la versión configurada 2.14.0 no está cargada; cárgala antes de desplegar                                                                   │
 │   ✖ ix-lima: la versión configurada 2.14.1 no está cargada; cárgala antes de desplegar                                                                       │
 │   No hay versiones cargadas de esta imagen. Pulsa l para cargar un archivo (.tar o .tar.gz).                                                                 │
 │                                                                                                                                                              │
-│ ▾ s1 · gueo-back-end                                                                                                                            sin imágenes │
+│ ▾ s1 · backend-s1                                                                                                                               sin imágenes │
 │   En uso: 2.9.0 (ix-colorado [parada], ix-lima [parada])                                                                                                     │
 │   ✖ ix-colorado: la versión configurada 2.9.0 no está cargada; cárgala antes de desplegar                                                                    │
 │   ✖ ix-lima: la versión configurada 2.9.0 no está cargada; cárgala antes de desplegar                                                                        │

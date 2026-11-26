@@ -5,8 +5,8 @@ Comprobación de 'gold-ok'
 
   * Configuración completa (variables obligatorias, nombres de imagen y secretos)
   * El compose de la instancia es válido
-  * s0: imagen auth-backend:1.0 cargada (aaaaaaaaaaaa, amd64)
-  * s1: imagen gueo-back-end:1.0 cargada (bbbbbbbbbbbb, amd64)
+  * s0: imagen backend-s0:1.0 cargada (aaaaaaaaaaaa, amd64)
+  * s1: imagen backend-s1:1.0 cargada (bbbbbbbbbbbb, amd64)
   * s0: puerto 4100 libre
   * s1: puerto 4101 libre
   * Datos: init (marcador .initialized presente)

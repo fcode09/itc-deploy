@@ -9,13 +9,13 @@ Instancia gold-new
 Servicio s0
   estado         no creado
   versión        configurada 1.0 · corriendo - · desplegada -
-  imagen         auth-backend:1.0
+  imagen         backend-s0:1.0
   puerto         http://127.0.0.1:4120 (solo local; publícalo con tu proxy)
 
 Servicio s1
   estado         no creado
   versión        configurada 1.0 · corriendo - · desplegada -
-  imagen         gueo-back-end:1.0
+  imagen         backend-s1:1.0
   puerto         http://127.0.0.1:4121 (solo local; publícalo con tu proxy)
 
   * 1 instancia(s) · 2 servicio(s) · todo en orden

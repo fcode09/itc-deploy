@@ -21,19 +21,19 @@
 │ # s0                                                                                         ││                                                              │
 │ server {                                                                                     ││ ≈ ./deltactl new instancia-1                                 │
 │     listen 80;                                                                               ││     --services s0,s1 --s0-tag 2.14.1 --s1-tag 2.9.0          │
-│     server_name auth-backend.muni.example.com;                                               ││     --env-file <respuestas> --domain muni.example.com --tls  │
+│     server_name backend-s0.muni.example.com;                                                 ││     --env-file <respuestas> --domain muni.example.com --tls  │
 │     return 301 https://$host$request_uri;                                                    ││                                                              │
 │ }                                                                                            ││                                                              │
 │ server {                                                                                     ││                                                              │
 │     listen 443 ssl;                                                                          ││                                                              │
-│     server_name auth-backend.muni.example.com;                                               │╰──────────────────────────────────────────────────────────────╯
-│     # the certificate: certbot --nginx -d auth-backend.muni.example.com                      │╭─┐pasos┌──────────────────────────────────────────────────────╮
-│     ssl_certificate /etc/letsencrypt/live/auth-backend.muni.example.com/fullchain.pem;       ││ ● Nombre      instancia-1                                    │
-│     ssl_certificate_key /etc/letsencrypt/live/auth-backend.muni.example.com/privkey.pem;     ││ ● Servicios   s0 s1                                          │
-│     location / {                                                                             ││ ● Versiones   2.14.1 2.9.0                                   │
-│         proxy_pass http://127.0.0.1:4100;                                                    ││ ● Datos       nueva                                          │
-│                                                                                              ││ ▲ Variables   faltan 3                                       │
-│         # Requerido para WebSockets                                                          ││ ▲ Secretos    0 de 2                                         │
+│     server_name backend-s0.muni.example.com;                                                 │╰──────────────────────────────────────────────────────────────╯
+│     # the certificate: certbot --nginx -d backend-s0.muni.example.com                        │╭─┐pasos┌──────────────────────────────────────────────────────╮
+│     ssl_certificate /etc/letsencrypt/live/backend-s0.muni.example.com/fullchain.pem;         ││ ● Nombre      instancia-1                                    │
+│     ssl_certificate_key /etc/letsencrypt/live/backend-s0.muni.example.com/privkey.pem;       ││ ● Servicios   s0 s1                                          │
+│     location / {                                                                            ││ ● Versiones   2.14.1 2.9.0                                   │
+│         proxy_pass http://127.0.0.1:4100;                                                   ││ ● Datos       nueva                                          │
+│                                                                                             ││ ▲ Variables   faltan 3                                       │
+│         # Requerido para WebSockets                                                         ││ ▲ Secretos    0 de 2                                         │
 │ … y 51 líneas más (se guardan enteras en la instancia)                                       ││ ◐ Acceso      muni.example.com                               │
 │                                                                                              ││ ○ Revisión                                                   │
 ╰─┘Esc atrás└─┘Enter siguiente└────────────────────────────────────────────────────────────────╯╰──────────────────────────────────────────────────────────────╯
