@@ -13,7 +13,7 @@
 
 Despliega y opera una instancia por municipalidad con Docker Compose.
 Cada instancia tiene su propia red privada, puertos, datos, secretos y bases de datos.
-Servicios: [36ms0[0m = auth-backend (Auth) y [36ms1[0m = gueo-back-end (Gue).
+Servicios: [36ms0[0m = backend-s0 (Auth) y [36ms1[0m = backend-s1 (Gue).
 
 [1mUso[0m
   [90m$[0m [32m./deltactl <comando> [instancia] [opciones][0m
@@ -34,6 +34,8 @@ Servicios: [36ms0[0m = auth-backend (Auth) y [36ms1[0m = gueo-back-end (Gue)
                                                     generar secretos sin mostrarlos
   [32mservice list|add|remove|set <instancia>[0m           Servicios de una instancia: añadir, quitar
                                                     (conserva datos), versión, puerto, memoria
+  [32msecret list|check|add <instancia>[0m                 Archivos de secrets/ (el JSON de FCM): cuáles
+                                                    faltan y cargar uno con su ruta
 
 [1mDespliegue[0m
   [32mcheck <instancia> [servicio] [--mongo][0m            Comprueba todo lo que deploy exigiría, sin

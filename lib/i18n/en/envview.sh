@@ -47,7 +47,7 @@ MSG_en["envview.status.changed"]="{1} unsaved"
 MSG_en["envview.status.pending"]="{1} not deployed"
 MSG_en["envview.status.ok"]="all in order"
 MSG_en["envview.foot"]="{Enter} edit|^g generate|^r reveal|^d default|^a advanced|^s save|^u deploy"
-MSG_en["envview.foot_edit"]="{Enter} accept|{Esc} cancel"
+MSG_en["envview.foot_edit"]="{Enter} accept|{Esc} cancel|{Tab} show|{Ctrl+G} generate|{Ctrl+U} clear"
 
 # Status line messages
 MSG_en["envview.refused"]="{1} is not accepted: {2}"
@@ -68,9 +68,25 @@ MSG_en["envview.ask.deploy_only"]="Deploy {2} now? There are no unsaved changes.
 MSG_en["envview.ask.deploy_note"]="Deploying restarts the services of the instance."
 
 # The last line, by what the editor is doing
-MSG_en["envview.keys"]="{1} move · Enter edits · g generate · r reveal · d default · a advanced · s save · u deploy · [/] instance · Esc leaves"
+MSG_en["envview.keys"]="{1} move · Enter edits · g generate · r reveal · f file · d default · a advanced · s save · u deploy · [/] instance · Esc leaves"
 MSG_en["envview.keys_file"]="{1} move · Enter folds · a advanced · s save · u deploy · [/] instance · Esc leaves"
-MSG_en["envview.keys_edit"]="Enter accepts · Esc cancels · ←→ move · Ctrl+U deletes · q ? : are letters here"
+MSG_en["envview.keys_edit"]="Enter accepts · Esc cancels · Tab shows or hides · Ctrl+G generates · Ctrl+U clears · you can paste · q ? : are letters here"
 MSG_en["envview.keys_ask_gen"]="y replace · any other key cancels"
 MSG_en["envview.keys_ask_leave"]="s save and leave · d discard and leave · any other key keeps editing"
 MSG_en["envview.keys_ask_deploy"]="y confirm · any other key cancels"
+
+# A variable that points to a file of secrets/ (FCM_CERT=/run/secrets/fcm.json): whether it is there, and the dialog that loads it (key f).
+MSG_en["envview.note.file_missing"]="file missing (f)"
+MSG_en["envview.note.file_invalid"]="invalid file (f)"
+MSG_en["envview.note.file_ok"]="file loaded"
+MSG_en["envview.not_file"]="{1} does not point to a file of secrets/: its value is typed with Enter"
+MSG_en["envview.file.what"]="Variable {1} · {2}"
+MSG_en["envview.file.text"]="Type the path of this file on this server. It is copied to secrets/{1} with mode 600 and its content is not shown."
+MSG_en["envview.file.replace"]="There is a file in secrets/{1} already: it is replaced."
+MSG_en["envview.file.label"]="Path"
+MSG_en["envview.file.found"]="file found"
+MSG_en["envview.file.nofile"]="that file does not exist"
+MSG_en["envview.file.isdir"]="it is a folder, not a file"
+MSG_en["envview.file.empty"]="Type the path of the file (Tab looks in the usual folders)."
+MSG_en["envview.foot_file"]="{Enter} load|{Esc} cancel|{Tab} search"
+MSG_en["envview.keys_file_edit"]="Enter loads the file · Esc cancels · Tab looks in the usual folders · you can paste the path · q ? : are letters here"

@@ -3,11 +3,11 @@
 # Caddy gets and renews the certificates by itself.
 
 # s0
-auth-backend.ejemplo.pe {
+backend-s0.ejemplo.pe {
     reverse_proxy 127.0.0.1:4100
 }
 
 # s1
-gueo-back-end.ejemplo.pe {
+backend-s1.ejemplo.pe {
     reverse_proxy 127.0.0.1:4101
 }

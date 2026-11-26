@@ -28,7 +28,7 @@ MSG_en["tui.nz.help.data"]="Does the municipality start from scratch, or does it
 MSG_en["tui.nz.keys.name"]="Enter next · Esc back · Tab preview"
 MSG_en["tui.nz.keys.services"]="{1} move · Enter next · Space marks · a all · 1-9 step · Esc back · Tab preview"
 MSG_en["tui.nz.keys.versions"]="{1} choose · Enter chooses and goes on · R reread Docker · 1-9 step · Esc back · Tab preview"
-MSG_en["tui.nz.keys.data"]="{1} choose · Enter goes on · Space switches · 1-9 step · Esc back · Tab preview"
+MSG_en["tui.nz.keys.data"]="{1} choose · Enter goes on · Space switches · u Mongo user · c password · 1-9 step · Esc back · Tab preview"
 
 MSG_en["tui.nz.pv.noname"]="name"
 MSG_en["tui.nz.pv.notag"]="(the template's)"
@@ -74,7 +74,7 @@ MSG_en["tui.nz.step.variables"]="Variables"
 MSG_en["tui.nz.step.secrets"]="Secrets"
 MSG_en["tui.nz.step.access"]="Access"
 
-MSG_en["tui.nz.help.variables"]="What values do its files carry? The required ones come first; the unique secrets are already generated and are not shown. What you do not change stays as the template."
+MSG_en["tui.nz.help.variables"]="What values do its files carry? The required ones come first; the unique secrets are already generated: the list shows dots, Enter opens the value and r shows it for a few seconds. What you do not change stays as the template."
 MSG_en["tui.nz.help.secrets"]="Files the services read from secrets/ (the Firebase JSON of the notifications). They are copied when the instance is created, with mode 600; if you do not have them yet, copy them later."
 MSG_en["tui.nz.help.access"]="With what name is it reached from the internet? With a domain the nginx or Caddy block is prepared; it is text only: nothing is installed or reloaded."
 
@@ -145,3 +145,14 @@ MSG_en["tui.nz.rev.n_check"]="Creates instances/{1} and runs ./deltactl check {1
 MSG_en["tui.nz.rev.n_deploy"]="Creates instances/{1} and runs ./deltactl deploy {1}: it starts containers on this server."
 MSG_en["tui.nz.rev.confirm"]="This starts containers on this server. Press Enter again to create and deploy; any other key cancels it."
 MSG_en["tui.nz.failed"]="{1} could not be created (code {2}): the Output view says why. Your answers are still here: fix and create again."
+
+# Step 4 (data): the user of Mongo of a new instance.
+MSG_en["tui.nz.data.m_title"]="Mongo user of this instance"
+MSG_en["tui.nz.data.m_note"]="One per instance, with access only to the databases of this instance. The password is optional: left empty, one is generated. The Mongo URIs of the Variables step carry it, and ./deltactl init creates the user."
+MSG_en["tui.nz.data.m_user"]="User"
+MSG_en["tui.nz.data.m_pass"]="Password"
+MSG_en["tui.nz.data.m_gen"]="(generated)"
+MSG_en["tui.nz.data.m_typed"]="(the one you typed)"
+MSG_en["tui.nz.data.m_key_u"]="u changes"
+MSG_en["tui.nz.data.m_key_c"]="c changes"
+MSG_en["tui.nz.data.m_bad_user"]="The user only has letters, digits, dot, hyphen and underscore (up to 64)."

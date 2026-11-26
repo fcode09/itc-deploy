@@ -3,7 +3,7 @@
   1 Server   2 Images  [3 Instances]  4 Resources   5 Output   6 Runs   7 Processes   8 Console   9 Variables   0 Activity                                     
 ╭─ ▸Instances ───────────────────────────╮[Summary] Access  History  Services  Variables  Data                              ╭─ Events ─────────────────────────╮
 │   + New instance                       │╭─┐ix-colorado · 2/2┌────────────────────────────────────────────────┐● running┌─╮│ No events yet                    │
-│                  n/m      mem    cpu   ││ ╭─┐s0┌─┐auth-backend:2.14.1┌──────────╮╭─┐s1┌─┐gueo-back-end:2.9.0┌───────────╮││                                  │
+│                  n/m      mem    cpu   ││ ╭─┐s0┌─┐backend-s0:2.14.1┌┐● healthy┌─╮╭─┐s1┌─┐backend-s1:2.9.0┌──┐● healthy┌─╮││                                  │
 │ ▸ ●● ix-colorado 2/2    1.3G  25.1%    ││ │ up 2d04h  ·  :4100                  ││ up 2d04h  ·  :4101  ·  restarts 3    │││                                  │
 │   ●✖ ix-lima     1/2    180M   1.2%    ││ │ mem ······················ 196M/512M││ mem ······················· 1.1G/2.0G│││                                  │
 │   ✖✖ ix-piura    0/2       -      -    ││ │ 38%                                 ││ 59%                                  │││                                  │

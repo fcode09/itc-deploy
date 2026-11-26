@@ -3,11 +3,11 @@ Imágenes de este servidor
 ---------------------------
 Arquitectura de este servidor: amd64
 
-s0 = auth-backend
+s0 = backend-s0
 ETIQUETA            ID             ARQ       CREADA          TAMAÑO     USADA_POR
 1.0                 aaaaaaaaaaaa   amd64     1 hour ago      300MB      gold-drift(actual) gold-new(actual) gold-ok(actual)
 
-s1 = gueo-back-end
+s1 = backend-s1
 ETIQUETA            ID             ARQ       CREADA          TAMAÑO     USADA_POR
 1.0                 bbbbbbbbbbbb   amd64     1 hour ago      300MB      gold-drift(actual) gold-new(actual) gold-ok(actual)
 0.9                 cccccccccccc   amd64     1 hour ago      300MB      sin uso (candidata a borrar)

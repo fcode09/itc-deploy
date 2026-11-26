@@ -16,7 +16,7 @@
 │ # s0                                                                         │
 │ server {                                                                     │
 │     listen 80;                                                               │
-│     server_name auth-backend.muni.example.com;                               │
+│     server_name backend-s0.muni.example.com;                                 │
 │     return 301 https://$host$request_uri;                                    │
 │ … y 62 líneas más (se guardan enteras en la instancia)                       │
 │                                                                              │

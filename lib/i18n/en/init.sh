@@ -30,3 +30,12 @@ MSG_en["init.done"]="instance '{1}' initialized (Auth users={2}, Gue users={3}).
 MSG_en["init.fixed_passwords"]="The root/superuser users have fixed passwords in the Auth code: change them after the first login."
 MSG_en["adopt.already"]="'{1}' is already marked ({2}): nothing to do"
 MSG_en["adopt.done"]="instance '{1}' marked as existing: ./deltactl init can no longer run on it (nothing was seeded)"
+
+# The Mongo user of the instance (a new municipality has one of its own, created before anything is seeded).
+MSG_en["init.mongo_user_created"]="Mongo user '{1}' created (readWrite on: {2})"
+MSG_en["init.mongo_user_exists"]="the Mongo user '{1}' already exists: it is left alone"
+MSG_en["init.mongo_user_failed"]="the Mongo user '{1}' could not be created: {2}"
+MSG_en["init.mongo_user_conflict"]="the Mongo URIs of the instance carry two different passwords for the user '{1}'"
+MSG_en["init.mongo_admin_bad"]="DELTACTL_MONGO_ADMIN_URI must be a Mongo URI: mongodb://… or mongodb+srv://…"
+MSG_en["init.mongo_user_script"]="The Mongo user '{1}' is created by whoever has the Mongo administration account (or set DELTACTL_MONGO_ADMIN_URI and run init again):"
+MSG_en["init.mongo_user_script_note"]="(in mongosh, with the administration account; the password is the one in the MONGO_* URIs of instances/<instance>/.env.s0 and .env.s1)"

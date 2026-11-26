@@ -3,10 +3,10 @@
  1 Servidor 2 Imágenes [3 Instancias] 4 Recursos 5 Salida 6 Ejecuciones 7 Procesos 8 Consola 9 Variables 0 Actividad   
 ╭─ ▸Instancias · /ix-s ──────────────╮[Resumen] Acceso  Historial  Servicios  Variables  Datos                          
 │   + Nueva instancia                │╭─┐ix-sullana · 0/2┌──────────────────────────────────────────────────┐○ parada┌─╮
-│               n/m      mem    cpu  ││ ▸ s0 auth-backend:2.14.1  ○ no creado                                          │
+│               n/m      mem    cpu  ││ ▸ s0 backend-s0:2.14.1  ○ no creado                                            │
 │ ▸ ○○ ix-sullana 0/2       -      - ││     :4130                                                                      │
 │                                    ││                                                                                │
-│                                    ││   s1 gueo-back-end:2.9.0  ○ no creado                                          │
+│                                    ││   s1 backend-s1:2.9.0  ○ no creado                                             │
 ╰────────────────────────────────────╯│     :4131                                                                      │
 ╭─ Servidor ─────────────────────────╮│                                                                                │
 │ Memoria █████░░░░░ 5.6/11.5 GB 48% ││   Total  datos: existentes                                                     │

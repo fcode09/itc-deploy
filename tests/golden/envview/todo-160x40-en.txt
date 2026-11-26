@@ -6,17 +6,17 @@
 │ ▾ .env.s0                                                                               9 variables · 2 to fill in ││                                        │
 │ ▲ IP_SERVER                  http://CAMBIAR-direccion-del-servidor                                      to fill in ││ The mark is made when the next deploy  │
 │ ▲ JWT_SECRET                 (empty)                                                                      required ││ ends; until then there is no telling   │
-│ ● MONGO_URI                  ⚿ ••••••••••                                                                          ││ what changed.                          │
+│ ● MONGO_URI                  mongodb://host.docker.internal:27017/authsoftware_ix-colorado                         ││ what changed.                          │
 │ ● IP_INTERNAL_CONNECTION     s1                                                                                    ││                                        │
 │ ▾ .env.s1                                                                              27 variables · 4 to fill in ││ 27 optional variables are hidden: a    │
 │ ▲ IP_SERVER                  http://CAMBIAR-direccion-del-servidor                                      to fill in ││ shows them.                            │
 │ ● AUTH_URL                   http://s0:3200                                                                        ││                                        │
 │ ▲ JWT_SECRET                 (empty)                                                                      required ││                                        │
-│ ● MONGO_DELTA_DISPATCH_URI   ⚿ ••••••••••                                                                          ││                                        │
-│ ● MONGO_AUTHSOFTWARE_URI     ⚿ ••••••••••                                                                          ││                                        │
-│ ● MONGO_ROBIN_URI            ⚿ ••••••••••                                                                          ││                                        │
-│ ● FCM_CERT                   /run/secrets/fcm.json                                                                 ││                                        │
-│ ● KEEPER_FCM_CERT            /run/secrets/keeper-fcm.json                                                          ││                                        │
+│ ● MONGO_DELTA_DISPATCH_URI   mongodb://host.docker.internal:27017/deltadispatch_ix-colorado                        ││                                        │
+│ ● MONGO_AUTHSOFTWARE_URI     mongodb://host.docker.internal:27017/authsoftware_ix-colorado                         ││                                        │
+│ ● MONGO_ROBIN_URI            mongodb://host.docker.internal:27017/robin_ix-colorado                                ││                                        │
+│ ● FCM_CERT                   /run/secrets/fcm.json                                                file missing (f) ││                                        │
+│ ● KEEPER_FCM_CERT            /run/secrets/keeper-fcm.json                                         file missing (f) ││                                        │
 │ ▲ FEDERATION_ENCRYPTION_KEY  (empty)                                                                      required ││                                        │
 │ ● SERVERS_CONFIG             ⚿ ••••••••••                                                                          ││                                        │
 │ ▲ DEEPGRAM_API_KEY           (empty)                                                                      required ││                                        │

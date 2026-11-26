@@ -2,7 +2,7 @@
 
   1  [2 Imágenes]  3   4   5   6   7   8   9   0                               
 ╭─┐ ▸²imágenes ┌────────────────────────────────┐servidor amd64 · 6 versiones┌─╮
-│ ▾ s0 · auth-backend                                   5 versiones · ★ 2.14.1 │
+│ ▾ s0 · backend-s0                                     5 versiones · ★ 2.14.1 │
 │   En uso: ★ 2.14.1 (ix-lima) · 2.13.2 (ix-colorado) · 9.9.9 (ix-nuevo [parad │
 │   ▲ ix-colorado: corre 2.13.2 pero está configurada 2.14.0; falta desplegar  │
 │   ✖ ix-nuevo: la versión configurada 9.9.9 no está cargada; cárgala antes de │
@@ -13,7 +13,7 @@
 │   2.14.0        hace 9 días      300MB amd64 ✔   ix-colorado(actual)         │
 │   2.13.2        hace 1 mes       300MB amd64 ✔   ix-lima(previa)             │
 │                                                                              │
-│ ▾ s1 · gueo-back-end                                     1 versión · ★ 2.9.0 │
+│ ▾ s1 · backend-s1                                        1 versión · ★ 2.9.0 │
 │   En uso: ★ 2.9.0 (ix-colorado, ix-lima [parada])                            │
 │   VERSIÓN       CREADA         TAMAÑO ARQ       USO                          │
 │   2.9.0 ★       hace 5 días      300MB amd64 ✔   ix-colorado(actual) ix-lima │

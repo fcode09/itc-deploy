@@ -23,7 +23,7 @@
 │ # s0                                                                 ││     --services s0,s1 --s0-tag 2.14.1         │
 │ server {                                                             ││     --s1-tag 2.9.0 --env-file <answers>      │
 │     listen 80;                                                       ││     --domain muni.example.com --tls          │
-│     server_name auth-backend.muni.example.com;                       ││                                              │
+│     server_name backend-s0.muni.example.com;                         ││                                              │
 │ … and 63 more lines (the whole block is saved in the instance)       ││                                              │
 │                                                                      ││                                              │
 ╰─┘Esc back└─┘Enter next└──────────────────────────────────────────────╯╰──────────────────────────────────────────────╯

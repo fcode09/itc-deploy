@@ -88,6 +88,91 @@ check_seed() { # step minimum_steps [required_phrase]
   info "$(t init.step_ok "$step" "$steps")"
 }
 
+# --- The Mongo user of the instance -----------------------------------------------------------------------------------------------------------
+
+# A text of a URI with its %XX turned back into characters, into MU_D (a backslash that is not an escape of a URI stays a backslash).
+MU_D=""
+mu_dec() { # text
+  local bs='\' s
+  s="${1//$bs/$bs$bs}"
+  printf -v MU_D '%b' "${s//%/${bs}x}"
+}
+
+# The credentials and the database of a URI of Mongo, into MU_USER, MU_PASS (decoded) and MU_DB. Returns 1 when it has no user and password.
+MU_USER="" MU_PASS="" MU_DB=""
+mu_parse() { # uri
+  local rest auth cred path
+  MU_USER="" MU_PASS="" MU_DB=""
+  [[ "$1" == mongodb://* || "$1" == mongodb+srv://* ]] || return 1
+  rest="${1#*://}"
+  auth="${rest%%[/?]*}"
+  [[ "$auth" == *@* ]] || return 1
+  cred="${auth%@*}"
+  [[ "$cred" == *:* ]] || return 1
+  path="${rest:${#auth}}"; path="${path#/}"; path="${path%%\?*}"
+  mu_dec "${cred%%:*}"; MU_USER="$MU_D"
+  mu_dec "${cred#*:}"; MU_PASS="$MU_D"
+  MU_DB="$path"
+  [ -n "$MU_USER" ] && [ -n "$MU_PASS" ] && [ -n "$MU_DB" ]
+}
+
+# Creates in Mongo the user that the URIs of the instance carry (a new municipality has one of its own, with readWrite on its databases only), BEFORE
+# anything is read or seeded: with it missing, the first look at the databases could not log in. It needs an account of Mongo that can create users:
+# its URI comes in DELTACTL_MONGO_ADMIN_URI (an environment variable: a secret is never in a command line). Without it the script to run by whoever
+# has that account is shown, and init goes on (it says by itself if the user is not there). An existing user is not touched.
+init_mongo_user() { # instance
+  local name="$1" dir s var uri user ref out
+  local -A pw=() dbs=()
+  dir="$(instance_dir "$name")"
+  for s in "${ENABLED[@]}"; do
+    for var in ${CAT_MONGO[$s]:-}; do
+      uri="$(get_var "$dir/.env.$s" "$var")"
+      mu_parse "$uri" || continue
+      if [ -n "${pw[$MU_USER]+x}" ] && [ "${pw[$MU_USER]}" != "$MU_PASS" ]; then die "$(t init.mongo_user_conflict "$MU_USER")"; fi
+      pw[$MU_USER]="$MU_PASS"
+      case " ${dbs[$MU_USER]:-} " in *" $MU_DB "*) ;; *) dbs[$MU_USER]+=" $MU_DB" ;; esac
+    done
+  done
+  [ "${#pw[@]}" -gt 0 ] || return 0
+  for user in "${!pw[@]}"; do
+    if [ -z "${DELTACTL_MONGO_ADMIN_URI:-}" ]; then
+      init_mongo_user_script "$user" "${dbs[$user]# }"
+      continue
+    fi
+    [[ "$DELTACTL_MONGO_ADMIN_URI" == mongodb://* || "$DELTACTL_MONGO_ADMIN_URI" == mongodb+srv://* ]] || die "$(t init.mongo_admin_bad)"
+    ref="$(service_image_ref "$name" s0)"
+    out="$(MU_USER="$user" MU_PASS="${pw[$user]}" MU_DBS="${dbs[$user]# }" dk_run_once "$dir/.env.s0" "$ref" \
+      -e DELTACTL_MONGO_ADMIN_URI -e MU_USER -e MU_PASS -e MU_DBS -- node -e '
+      const m = require("mongoose");
+      (async () => {
+        await m.connect(process.env.DELTACTL_MONGO_ADMIN_URI, { serverSelectionTimeoutMS: 8000 });
+        const adm = (m.connection.getClient ? m.connection.getClient() : m.connection.client).db("admin");
+        const u = process.env.MU_USER;
+        const found = await adm.command({ usersInfo: { user: u, db: "admin" } });
+        if (found.users && found.users.length) { console.log("EXISTS=" + u); }
+        else {
+          const roles = process.env.MU_DBS.split(" ").map((d) => ({ role: "readWrite", db: d }));
+          await adm.command({ createUser: u, pwd: process.env.MU_PASS, roles });
+          console.log("CREATED=" + u);
+        }
+        await m.disconnect();
+      })().catch((e) => { console.log("ERR=" + e.message); process.exit(2); });
+    ' 2>&1)" || true
+    if [[ "$out" == *CREATED=* ]]; then ok "$(t init.mongo_user_created "$user" "${dbs[$user]# }")"
+    elif [[ "$out" == *EXISTS=* ]]; then info "$(t init.mongo_user_exists "$user")"
+    else die "$(t init.mongo_user_failed "$user" "$(printf '%s' "$out" | grep -a 'ERR=' | head -1)")"; fi
+  done
+}
+
+# What whoever has the admin account of Mongo runs (the password is asked, never printed: it is in the URIs of the instance's .env files).
+init_mongo_user_script() { # user "db1 db2..."
+  local d roles=""
+  for d in $2; do roles+="${roles:+, }{ role: \"readWrite\", db: \"$d\" }"; done
+  info "$(t init.mongo_user_script "$1")"
+  printf '    use admin\n    db.createUser({ user: "%s", pwd: passwordPrompt(), roles: [ %s ] })\n' "$1" "$roles"
+  info "$(t init.mongo_user_script_note)"
+}
+
 cmd_init() {
   parse_yes "$@"
   local name="${ARGS[0]:-}"
@@ -115,6 +200,8 @@ cmd_init() {
   check_docker
   preflight "$name" s0 s1
   check_images "$name" s0 s1
+
+  init_mongo_user "$name"
 
   info "$(t init.checking_empty)"
   local n_auth n_gue
