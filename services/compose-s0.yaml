@@ -26,7 +26,7 @@ services:
     # Para llegar a servicios que corren en el host (por ejemplo MongoDB).
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    mem_limit: ${S0_MEM_LIMIT:-512m}
+    mem_limit: ${S0_MEM_LIMIT:-110m}
     logging:
       driver: json-file
       options:

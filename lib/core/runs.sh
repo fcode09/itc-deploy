@@ -45,6 +45,7 @@ runs_is_mutation() { # command [args...]
     deploy | rollback | load | init | adopt | stop | down) return 0 ;;
     service) case "${1:-}" in add | remove | set) return 0 ;; esac; return 1 ;;
     secret) case "${1:-}" in add) return 0 ;; esac; return 1 ;;
+    mongo) case " $* " in *" --apply "*) return 0 ;; esac; return 1 ;;
     new)
       [ "$#" -gt 0 ] || return 1
       case " $* " in *" --wizard "*) return 1 ;; esac
@@ -58,6 +59,7 @@ runs_is_mutation() { # command [args...]
 runs_instance_of() { # command [args...]
   local c="$1" a
   shift
+  if [ "$c" = "mongo" ]; then printf '%s' "-"; return 0; fi   # (it is about the server, not an instance)
   if [ "$c" = "service" ] || [ "$c" = "secret" ]; then shift; fi   # (service <add|remove|set> <instance> ... and secret add <instance> ...)
   if [ "$c" != "load" ]; then
     for a in "$@"; do

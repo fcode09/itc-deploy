@@ -34,7 +34,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     # Cada instancia puede abrir hasta 2 Chromium a la vez: ajusta según la carga real.
-    mem_limit: ${S1_MEM_LIMIT:-2g}
+    mem_limit: ${S1_MEM_LIMIT:-400m}
     logging:
       driver: json-file
       options:

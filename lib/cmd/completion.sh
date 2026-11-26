@@ -32,6 +32,7 @@ COMPLETION_FLAGS=(
   "service:--tag --port --generate-secrets --yes"
   "access:--domain --host --www --no-www --tls --no-tls --proxy --save"
   "secret:--force"
+  "mongo:--apply --yes"
 )
 
 cmd_completion() {
@@ -100,6 +101,8 @@ _deltactl_complete() {
       if [ "$COMP_CWORD" -eq 2 ]; then COMPREPLY=($(compgen -W "list check add" -- "$cur"))
       elif [ "$COMP_CWORD" -eq 3 ]; then COMPREPLY=($(compgen -W "$insts" -- "$cur"))
       elif [ "$COMP_CWORD" -eq 5 ] && [ "${COMP_WORDS[2]}" = add ]; then COMPREPLY=($(compgen -f -- "$cur")); fi ;;
+    mongo)
+      [ "$COMP_CWORD" -eq 2 ] && COMPREPLY=($(compgen -W "setup" -- "$cur")) ;;
     runs)
       if [ "$COMP_CWORD" -eq 2 ]; then COMPREPLY=($(compgen -W "list show logs stats resolve prune" -- "$cur")); fi ;;
     completion)

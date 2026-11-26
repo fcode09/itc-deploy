@@ -52,7 +52,7 @@ check "its texts exist in both languages" 'for k in $(grep -o "MSG_es\[\"tui\.sv
 
 section "2. what the tab draws"
 check "> opens it: a row per service of the catalog, the active ones with version, port and memory" '
-  f="$(panel "${SV[@]}" | last_frame)"; echo "$f" | grep -q "\[Servicios\]" && echo "$f" | grep -qE "s0 backend-s0 .* 2.14.1 +:[0-9]+ +mem 512m" && echo "$f" | grep -qE "s1 backend-s1 .* 2.9.0 +:[0-9]+ +mem 2g"'
+  f="$(panel "${SV[@]}" | last_frame)"; echo "$f" | grep -q "\[Servicios\]" && echo "$f" | grep -qE "s0 backend-s0 .* 2.14.1 +:[0-9]+ +mem 110m" && echo "$f" | grep -qE "s1 backend-s1 .* 2.9.0 +:[0-9]+ +mem 400m"'
 check "the keys of the footer and of the last line are the tab’s" '
   f="$(panel "${SV[@]}" | last_frame)"; echo "$f" | grep -q "a añadir" && echo "$f" | tail -1 | grep -q "a añadir · X quitar · v versión · P puerto"'
 check "the cursor is on the first service and down moves it" '
@@ -92,7 +92,7 @@ check "X on a service that is not active says to activate it first" 'panel "${SV
 
 section "5. version, port and memory: checked while they are typed, and then the command"
 check "m opens the prompt with the memory it has now and says it applies when deployed" '
-  f="$(panel "${SV[@]}" m | last_frame)"; echo "$f" | grep -q "Límite de memoria de s0 en .sw-a. (ahora 512m)" && echo "$f" | grep -q "512m"'
+  f="$(panel "${SV[@]}" m | last_frame)"; echo "$f" | grep -q "Límite de memoria de s0 en .sw-a. (ahora 110m)" && echo "$f" | grep -q "110m"'
 check "a memory that is not valid says why, and Enter does not write it" '
   panel "${SV[@]}" m backspace backspace backspace backspace a b c enter > /dev/null; [ -z "$(val sw-a .env.instance S0_MEM_LIMIT)" ] || [ "$(val sw-a .env.instance S0_MEM_LIMIT)" != "abc" ]
   panel "${SV[@]}" m backspace backspace backspace backspace a b c | last_frame | grep -q "no es un límite de memoria válido"'

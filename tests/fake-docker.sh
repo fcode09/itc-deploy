@@ -18,7 +18,8 @@ case "$1" in
   network)
     # `network ls`: $FIX/networks.txt (optional), one name per line. Any other network command answers the gateway of the bridge.
     if [ "${2:-}" = ls ]; then cat "$FIX/networks.txt" 2> /dev/null; exit 0; fi
-    echo 127.0.0.1; exit 0 ;;
+    cat "$FIX/gateway" 2> /dev/null || echo 127.0.0.1   # ($FIX/gateway: the address of the bridge, for the tests of mongo setup)
+    exit 0 ;;
   ps)
     # `ps -a --format ...com.docker.compose.project...`: the project of every row of containers.txt, one per line.
     case "$*" in *'--format'*'com.docker.compose.project'*) cut -d'|' -f1 "$FIX/containers.txt" 2> /dev/null; exit 0 ;; esac

@@ -131,7 +131,7 @@ check "muestra las etiquetas ya cargadas" 'echo "$out" | grep -q "Etiquetas carg
 check "aplica las etiquetas" 'grep -qx "S0_TAG=1.5" $d/.env.instance && grep -qx "S1_TAG=2.5" $d/.env.instance'
 check "aplica la URL pública a los dos servicios" 'grep -qx "IP_SERVER=http://10.0.0.5" $d/.env.s0 && grep -qx "IP_SERVER=http://10.0.0.5" $d/.env.s1'
 check "nombra las bases con la instancia" \
-  'grep -q "authsoftware_wz-test" $d/.env.s0 && grep -q "deltadispatch_wz-test" $d/.env.s1 && grep -q "robin_wz-test" $d/.env.s1 && ! grep -q "CAMBIAR" $d/.env.s0'
+  'grep -q "s0_wz-test" $d/.env.s0 && grep -q "s1_wz-test" $d/.env.s1 && grep -q "robin_wz-test" $d/.env.s1 && ! grep -q "CAMBIAR" $d/.env.s0'
 jwt0="$(get_var_t() { grep -E "^$2=" "$1" | cut -d= -f2-; }; get_var_t $d/.env.s0 JWT_SECRET)"
 jwt1="$(grep -E '^JWT_SECRET=' $d/.env.s1 | cut -d= -f2-)"
 check "genera un JWT_SECRET de 64 caracteres, igual en s0 y s1" '[ "${#jwt0}" -eq 64 ] && [ "$jwt0" = "$jwt1" ]'
@@ -153,7 +153,7 @@ out="$(printf '%s\n' "wz-ex" "s0,s1" "s" "s0" "" "s1" "" "http://h" "s" | bash .
 d=instances/wz-ex
 check "una municipalidad existente queda marcada" 'grep -qx "SOURCE=existing" $d/.initialized'
 check "en una existente no se generan secretos ni se renombran las bases" \
-  '[ -z "$(grep -E "^JWT_SECRET=" $d/.env.s0 | cut -d= -f2-)" ] && grep -q "CAMBIAR_authsoftware_INSTANCIA" $d/.env.s0'
+  '[ -z "$(grep -E "^JWT_SECRET=" $d/.env.s0 | cut -d= -f2-)" ] && grep -q "CAMBIAR_s0_INSTANCIA" $d/.env.s0'
 check "usa el nombre de imagen indicado" 'grep -qx "S0_IMAGE=s0" $d/.env.instance && grep -qx "S1_IMAGE=s1" $d/.env.instance'
 rm -rf instances/wz-ex
 out="$(printf '%s\n' "wz-no" "s1" "n" "backend-s1" "" "" "n" "s" | bash ./deltactl new --wizard 2>&1)"

@@ -17,6 +17,7 @@ $ ./deltactl help <topic>          full step-by-step guide
 | adopt <instance> | Marks as already initialized an instance that ALREADY has data
 | env <instance> list|get|set|generate | See, validate and change the environment variables; generate secrets without showing them
 | service list|add|remove|set <instance> | Services of an instance: add, remove (keeps the data), version, port, memory
+| mongo setup [--apply] | Make the Mongo of this server reachable from containers (bindIp, systemd, ufw); no --apply: only shows
 | secret list|check|add <instance> | Files of secrets/ (the FCM JSON): which are missing, and load one by its path
 
 ## Deployment

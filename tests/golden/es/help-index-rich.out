@@ -34,6 +34,9 @@ Servicios: [36ms0[0m = backend-s0 (Auth) y [36ms1[0m = backend-s1 (Gue).
                                                     generar secretos sin mostrarlos
   [32mservice list|add|remove|set <instancia>[0m           Servicios de una instancia: añadir, quitar
                                                     (conserva datos), versión, puerto, memoria
+  [32mmongo setup [--apply][0m                             Mongo de este servidor accesible desde los
+                                                    contenedores (bindIp, systemd, ufw); sin --apply
+                                                    solo muestra
   [32msecret list|check|add <instancia>[0m                 Archivos de secrets/ (el JSON de FCM): cuáles
                                                     faltan y cargar uno con su ruta
 
