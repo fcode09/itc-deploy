@@ -15,7 +15,7 @@ trap 'rm -rf "$FIX"' EXIT
 mkdir -p "$FIX/bin" "$FIX/systemd"
 : > "$FIX/images.txt"; : > "$FIX/calls.log"
 cp tests/fake-docker.sh "$FIX/bin/docker"
-printf '#!/bin/sh\necho "ufw $*" >> "$FIX/ufw.log"\ncase "$1" in status) cat "$FIX/ufw.status" 2>/dev/null ;; allow) printf "27017/tcp   ALLOW   %%s\\n" "$3" >> "$FIX/ufw.status" ;; esac\nexit 0\n' > "$FIX/bin/ufw"
+printf '#!/bin/sh\necho "ufw $*" >> "$FIX/ufw.log"\ncase "$1" in status) if [ "${LC_ALL:-}" = C ]; then cat "$FIX/ufw.status" 2>/dev/null; else sed "s/^Status: active/Estado: activo/; s/^Status: inactive/Estado: inactivo/" "$FIX/ufw.status" 2>/dev/null; fi ;; allow) printf "27017/tcp   ALLOW   %%s\\n" "$3" >> "$FIX/ufw.status" ;; esac\nexit 0\n' > "$FIX/bin/ufw"
 printf '#!/bin/sh\necho "systemctl $*" >> "$FIX/systemctl.log"\nexit 0\n' > "$FIX/bin/systemctl"
 chmod +x "$FIX/bin/"*
 export PATH="$FIX/bin:$PATH"
