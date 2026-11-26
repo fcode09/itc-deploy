@@ -324,3 +324,10 @@ MSG_es["tui.con.alias_usage"]="Uso: alias · alias nombre · alias nombre=orden 
 MSG_es["tui.con.alias_bad_name"]="Nombre no válido: {1} (minúsculas, números, - y _; ni un comando ni una orden del panel)"
 MSG_es["tui.con.alias_bad_cmd"]="Orden no válida (vacía, más de {1} caracteres, caracteres de control o ! al inicio)"
 MSG_es["tui.con.alias_not_saved"]="No se pudo guardar: el alias dura hasta salir del panel"
+
+# The actions of an instance that put its block in nginx, and the ones that open its tabs.
+MSG_es["tui.act.access_all"]="Acceso: instalar en nginx (todos los servicios)"
+MSG_es["tui.act.access_svc"]="Acceso: instalar en nginx solo {1}"
+MSG_es["tui.act.access_off"]="Acceso: quitar de nginx (todos los servicios)"
+MSG_es["tui.act.edit_access"]="Editar nombres y acceso…"
+MSG_es["tui.act.edit_vars"]="Editar variables…"

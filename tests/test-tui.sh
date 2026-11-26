@@ -336,6 +336,7 @@ out="$(panel enter q q)"
 check "Enter opens the actions with the instance and its n/m" 'echo "$out" | frame_n 2 | grep -q "Acciones de tui-a (2/2)"'
 check "the actions name the selected service" 'echo "$out" | frame_n 2 | grep -q "Desplegar solo s0" && echo "$out" | frame_n 2 | grep -q "Logs en vivo de s0" && echo "$out" | frame_n 2 | grep -q "Detener s0"'
 check "the other actions are listed" 'echo "$out" | frame_n 2 | grep -q "Ver el estado detallado" && echo "$out" | frame_n 2 | grep -q "Volver a la versión anterior" && echo "$out" | frame_n 2 | grep -q "Bajar la instancia"'
+check "the actions also open the tabs of the instance (names and access, variables), and offer to install the block in nginx only when a domain is remembered" 'echo "$out" | frame_n 2 | grep -q "Editar nombres y acceso" && echo "$out" | frame_n 2 | grep -q "Editar variables" && ! echo "$out" | frame_n 2 | grep -q "instalar en nginx"'
 check "a seeded instance does not offer to seed" '! echo "$out" | frame_n 2 | grep -q "Sembrar datos iniciales"'
 out="$(panel right down enter q q)"
 check "the actions follow the selected service" 'echo "$out" | frame_n 4 | grep -q "Desplegar solo s1"'

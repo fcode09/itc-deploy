@@ -9,9 +9,60 @@
 
 access_usage() { die "$(t access.usage)"; }
 
+# --apply: the block of each service asked for goes to /etc/nginx/conf.d (one file per service), nginx tests it and is reloaded; with a test that fails
+# everything is put back as it was and nothing is reloaded. The certificates of HTTPS must be there already (the block of 443 would not load without).
+# It asks first (--yes skips it) and needs root: it changes /etc and reloads a service.
+access_apply() { # instance flavor tls svc...
+  local name="$1" flavor="$2" tls="$3" e svc host rc=0 shown
+  local -a entries=() hosts=()
+  shift 3
+  [ "$flavor" = nginx ] || die "$(t access.apply_caddy)"
+  command -v nginx > /dev/null 2>&1 || die "$(t access.apply_no_nginx)"
+  if [ "$(host_uid)" != 0 ] && [ "${DELTACTL_TEST_ISOLATED:-0}" != 1 ]; then die "$(t access.apply_need_root)"; fi
+  for e in "${PROXY_ENTRIES[@]}"; do
+    svc="${e##*|}"
+    case " $* " in *" $svc "*) entries+=("$e"); hosts+=("${e%%|*}") ;; esac
+  done
+  if [ "$tls" -eq 1 ] && ! proxy_certs_missing "${hosts[@]}"; then
+    warn "$(t access.apply_certs "$PROXY_MISSING")"
+    for host in $PROXY_MISSING; do proxy_names "$host"; info "  certbot certonly --nginx $PROXY_CERT_ARGS"; done
+    die "$(t access.apply_certs_hint "$name")"
+  fi
+  shown="$*"
+  confirm "$(t access.apply_confirm "$name" "$shown")" || die "$(t err.cancelled)"
+  proxy_apply_nginx "$name" "$tls" "${entries[@]}" || rc=$?
+  case "$rc" in
+    0) ;;
+    1) printf '%s\n' "$PROXY_ERR" | head -5 >&2; die "$(t access.apply_test_failed)" ;;
+    *) die "$(t access.apply_write_failed "$(proxy_conf_dir)")" ;;
+  esac
+  proxy_reload || die "$(t access.apply_reload_failed)"
+  ok "$(t access.applied "${PROXY_APPLIED[*]}")"
+  info "$(t access.apply_reloaded)"
+}
+
+# --remove: takes the files of those services out of nginx's folder (kept as <file>.deltactl-removed), tests, reloads; a test that fails puts them back.
+access_remove() { # instance svc...
+  local name="$1" rc=0
+  shift
+  command -v nginx > /dev/null 2>&1 || die "$(t access.apply_no_nginx)"
+  if [ "$(host_uid)" != 0 ] && [ "${DELTACTL_TEST_ISOLATED:-0}" != 1 ]; then die "$(t access.apply_need_root)"; fi
+  confirm "$(t access.remove_confirm "$name" "$*")" || die "$(t err.cancelled)"
+  proxy_remove_nginx "$name" "$@" || rc=$?
+  case "$rc" in
+    0) ;;
+    1) printf '%s\n' "$PROXY_ERR" | head -5 >&2; die "$(t access.apply_test_failed)" ;;
+    3) info "$(t access.remove_none "$name")"; return 0 ;;
+    *) die "$(t access.apply_write_failed "$(proxy_conf_dir)")" ;;
+  esac
+  proxy_reload || die "$(t access.apply_reload_failed)"
+  ok "$(t access.removed "${PROXY_APPLIED[*]}")"
+}
+
 cmd_access() {
-  local name="" dom="" flavor="" tls="" www="" save=0 a spec s h e host port label first=1
-  local -a act=() hostspec=()
+  local name="" dom="" flavor="" tls="" www="" save=0 a spec s h e host port label first=1 apply=0 remove=0 only=""
+  local -a act=() hostspec=() sel=() hosts=()
+  ASSUME_YES=0
   while [ "$#" -gt 0 ]; do
     a="$1"
     case "$a" in
@@ -23,6 +74,10 @@ cmd_access() {
       --no-tls) tls=0; shift ;;
       --proxy) [ "$#" -ge 2 ] || die "$(t new.opt_value "$a")"; case "$2" in nginx | caddy) flavor="$2" ;; *) die "$(t access.proxy_opt "$2")" ;; esac; shift 2 ;;
       --save) save=1; shift ;;
+      --apply) apply=1; shift ;;
+      --remove) remove=1; shift ;;
+      --service) [ "$#" -ge 2 ] || die "$(t new.opt_value "$a")"; only="$2"; shift 2 ;;
+      --yes | -y) ASSUME_YES=1; shift ;;
       -*) die "$(t new.unknown_option "$a")" ;;
       *) [ -z "$name" ] || access_usage; name="$a"; shift ;;
     esac
@@ -32,6 +87,14 @@ cmd_access() {
   svc_active_r "$name"
   act=("${SVC_ACTIVE[@]}")
   [ "${#act[@]}" -gt 0 ] || die "$(t access.no_services "$name")"
+  if [ -n "$only" ]; then
+    valid_service "$only" && [[ " ${act[*]} " == *" $only "* ]] || die "$(t access.bad_service "$only" "$name" "${act[*]}")"
+    sel=("$only")
+  else
+    sel=("${act[@]}")
+  fi
+  [ "$apply" -eq 0 ] || [ "$remove" -eq 0 ] || access_usage
+  if [ "$remove" -eq 1 ]; then access_remove "$name" "${sel[@]}"; return; fi
 
   # What the instance remembered, then what the options say over it.
   proxy_meta_load "$name"
@@ -39,6 +102,8 @@ cmd_access() {
   [ -n "$dom" ] || dom="$PROXY_M_DOMAIN"
   [ -n "$flavor" ] || flavor="${PROXY_M_FLAVOR:-nginx}"
   [ -n "$tls" ] || tls="$PROXY_M_TLS"
+  # (checked before anything is saved: a refused --apply must not leave another proxy remembered)
+  [ "$apply" -eq 0 ] || [ "$flavor" = nginx ] || die "$(t access.apply_caddy)"
   [ -z "$www" ] || PROXY_WWW="$www"
   for spec in "${hostspec[@]}"; do
     s="${spec%%=*}" h="${spec#*=}"
@@ -64,6 +129,7 @@ cmd_access() {
   done
   printf '\n%s' "$PROXY_OUT"
 
+  [ "$apply" -eq 0 ] || save=1   # (putting it in nginx saves it in the instance first)
   if [ "$save" -eq 0 ]; then
     printf '\n'
     info "$(t access.hint_save "$name")"
@@ -75,6 +141,7 @@ cmd_access() {
   proxy_meta_save "$name" "$dom" "$flavor" "$tls" || die "$(t new.proxy_write "$flavor")"
   printf '\n'
   ok "$(t access.saved "$INSTANCES_DIR/$name/proxy/$(proxy_file "$flavor")")"
+  if [ "$apply" -eq 1 ]; then access_apply "$name" "$flavor" "$tls" "${sel[@]}"; return; fi
   info "$(t access.install_title)"
   if [ "$flavor" = nginx ]; then
     info "  sudo cp $INSTANCES_DIR/$name/proxy/nginx.conf /etc/nginx/conf.d/$name.conf"

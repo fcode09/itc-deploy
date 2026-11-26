@@ -324,3 +324,10 @@ MSG_en["tui.con.alias_usage"]="Usage: alias · alias name · alias name=command 
 MSG_en["tui.con.alias_bad_name"]="Invalid name: {1} (lowercase, digits, - and _; not a command or one of the panel)"
 MSG_en["tui.con.alias_bad_cmd"]="Invalid command (empty, over {1} characters, control characters or a leading !)"
 MSG_en["tui.con.alias_not_saved"]="Could not save it: the alias lasts until the panel ends"
+
+# The actions of an instance that put its block in nginx, and the ones that open its tabs.
+MSG_en["tui.act.access_all"]="Access: install in nginx (all the services)"
+MSG_en["tui.act.access_svc"]="Access: install in nginx only {1}"
+MSG_en["tui.act.access_off"]="Access: take out of nginx (all the services)"
+MSG_en["tui.act.edit_access"]="Edit names and access…"
+MSG_en["tui.act.edit_vars"]="Edit variables…"

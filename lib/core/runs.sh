@@ -46,6 +46,7 @@ runs_is_mutation() { # command [args...]
     service) case "${1:-}" in add | remove | set) return 0 ;; esac; return 1 ;;
     secret) case "${1:-}" in add) return 0 ;; esac; return 1 ;;
     mongo) case " $* " in *" --apply "*) return 0 ;; esac; return 1 ;;
+    access) case " $* " in *" --apply "* | *" --remove "*) return 0 ;; esac; return 1 ;;
     new)
       [ "$#" -gt 0 ] || return 1
       case " $* " in *" --wizard "*) return 1 ;; esac

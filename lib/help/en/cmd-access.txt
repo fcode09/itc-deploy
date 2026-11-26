@@ -21,6 +21,12 @@ $ sudo nginx -t && sudo systemctl reload nginx
 - `--www` / `--no-www`  the block also answers on `www.<name>` (or stops doing so)
 - `--tls` / `--no-tls`  HTTPS (nginx: port 80 redirects and a 443 block with certbot's paths; Caddy does it by itself)
 - `--proxy nginx|caddy`  which one to make (by default the one the instance already used, or nginx)
+- `--apply`  also installs it in nginx: one file per service in `/etc/nginx/conf.d/<instance>-<service>.conf`, runs `nginx -t` and
+  reloads; when the test fails it puts everything back and reloads nothing. It asks first (`--yes` skips it) and needs root.
+  With HTTPS it requires the certificates of those names to exist already (when missing it shows the `certbot` of each one)
+- `--remove`  takes those files out of nginx (kept as `.deltactl-removed`), tests and reloads
+- `--service sN`  limits `--apply` or `--remove` to one service (without it, to all)
+- `--yes`  does not ask
 - `--save`  keeps the block in `instances/<instance>/proxy/` and remembers the answers in `access.conf`
 
 What you do not say is taken from what the instance remembered (`access.conf`), as the Access tab of the panel does.

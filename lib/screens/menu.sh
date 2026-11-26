@@ -11,6 +11,11 @@ dash_open_actions() { # instance
   DASH_MENU_INST="$inst" DASH_MENU_SVC="$svc"
   DASH_MENU_IDS=(status check deploy_all deploy_svc rollback logs_live logs_recent stop_svc down)
   [ "${DASH_DATA[$inst]:-}" != "unseeded" ] || DASH_MENU_IDS+=(init)
+  # The access: the block goes to nginx only when the instance already remembers a domain and this server has nginx (the tab asks for them
+  # otherwise); editing names, domain, proxy and HTTPS, and the variables, is the tab's.
+  proxy_meta_load "$inst"
+  if [ -n "$PROXY_M_DOMAIN" ] && command -v nginx > /dev/null 2>&1; then DASH_MENU_IDS+=(access_all access_svc access_off); fi
+  DASH_MENU_IDS+=(edit_access edit_vars)
   DASH_MENU_IDS+=(help)
   DASH_MENU_ITEMS=()
   for id in "${DASH_MENU_IDS[@]}"; do DASH_MENU_ITEMS+=("$(t "tui.act.$id" "$svc")"); done
@@ -33,6 +38,11 @@ dash_menu_run() {
     stop_svc) dash_confirm "$(t tui.confirm_stop "$svc" "$inst")" stay stop "$inst" "$svc" ;;
     down) dash_confirm "$(t menu.confirm_down "$inst")" stay down "$inst" --yes ;;
     init) DASH_NAME_TARGET="$inst" DASH_BUF="" DASH_CUR=0 DASH_MODE=name ;;
+    access_all) dash_confirm "$(t menu.confirm_access "$inst" "$(t menu.all_the_services)")" stay access "$inst" --apply --yes ;;
+    access_svc) dash_confirm "$(t menu.confirm_access "$inst" "$svc")" stay access "$inst" --apply --yes --service "$svc" ;;
+    access_off) dash_confirm "$(t menu.confirm_access_off "$inst")" stay access "$inst" --remove --yes ;;
+    edit_access) dash_ws_tab_go acceso ;;
+    edit_vars) dash_ws_tab_go variables ;;
     help) dash_start_job output help status ;;
   esac
 }
