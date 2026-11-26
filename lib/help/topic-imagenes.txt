@@ -1,8 +1,8 @@
 # Imágenes: nombres, etiquetas y de dónde salen
 
 ## Referencia completa
-`[REGISTRY/]NOMBRE:ETIQUETA`, por ejemplo `auth-backend:1.2.0`
-- `NOMBRE`: `S0_IMAGE` / `S1_IMAGE` en `.env.instance` (por defecto auth-backend y gueo-back-end)
+`[REGISTRY/]NOMBRE:ETIQUETA`, por ejemplo `backend-s0:1.2.0`
+- `NOMBRE`: `S0_IMAGE` / `S1_IMAGE` en `.env.instance` (por defecto backend-s0 y backend-s1)
 - `ETIQUETA`: `S0_TAG` / `S1_TAG`
 - `REGISTRY`: vacío = imágenes locales
 
@@ -11,7 +11,7 @@
 - si la imagen no está cargada, se detiene con error: así Docker no baja de Docker Hub una imagen homónima que no es la nuestra
 
 ## Con registry
-`REGISTRY=registry.ejemplo.com/itc` hace que `deploy` baje `registry.ejemplo.com/itc/auth-backend:1.2.0`.
+`REGISTRY=registry.ejemplo.com/itc` hace que `deploy` baje `registry.ejemplo.com/itc/backend-s0:1.2.0`.
 
 ## Etiquetas
 - usa una etiqueta por versión o por commit; `latest` genera un aviso

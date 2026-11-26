@@ -11,8 +11,8 @@ instancias conviven en el mismo servidor con un único `compose.yaml`.
 
 | Clave | Servicio | Puerto interno | Contenedor |
 |---|---|---|---|
-| `s0` | auth-backend | 3200 | `s0_<instancia>` |
-| `s1` | gueo-back-end | 3000 | `s1_<instancia>` |
+| `s0` | backend-s0 | 3200 | `s0_<instancia>` |
+| `s1` | backend-s1 | 3000 | `s1_<instancia>` |
 
 Walle, Robin y Link todavía no están dockerizados: ver [`docs/services-catalog.md`](docs/services-catalog.md).
 
@@ -183,12 +183,12 @@ repo empieza cuando la imagen ya está en el Docker del servidor.
 
 **Cómo funciona.** Docker lee las imágenes de su propio almacén (normalmente `/var/lib/docker`),
 no de una carpeta. Con `REGISTRY` vacío en `.env.instance`, el compose usa `<S0_IMAGE>:<S0_TAG>` y
-`<S1_IMAGE>:<S1_TAG>` tal cual están en ese almacén (por defecto `auth-backend` y `gueo-back-end`), y
+`<S1_IMAGE>:<S1_TAG>` tal cual están en ese almacén (por defecto `backend-s0` y `backend-s1`), y
 **no descarga nada**. Cada instancia elige su versión con sus etiquetas, así que pueden convivir versiones
 distintas en el mismo servidor.
 
 **Nombre de la imagen.** El nombre (sin etiqueta ni registry) se define en `.env.instance` con `S0_IMAGE` y
-`S1_IMAGE`; si no existen, valen `auth-backend` y `gueo-back-end`. Si construiste las imágenes con otro
+`S1_IMAGE`; si no existen, valen `backend-s0` y `backend-s1`. Si construiste las imágenes con otro
 nombre (por ejemplo `s0` y `s1`), ponlo ahí: `S0_IMAGE=s0`, `S1_IMAGE=s1`. Debe construirse con ese mismo
 nombre: `docker build -t s1:1.0.0 .`. Formato: minúsculas, números y `. _ - `; admite `/` para rutas; **sin
 `:`** (la etiqueta va en `S1_TAG`). Cada instancia puede usar nombres distintos. Con un `REGISTRY` se
@@ -326,6 +326,6 @@ con el código, `check`, `doctor`, el asistente, el menú y el autocompletado.
   depende de que la imagen de Gue incluya ese cambio, que hoy está en una rama local de su repo.
 - **Mongo en el host:** los contenedores lo alcanzan con `host.docker.internal` (el compose añade
   `extra_hosts` con `host-gateway`). Si Mongo está en otra máquina, usa su dirección en las URI.
-- **Chromium:** cada gueo-back-end puede abrir hasta 2 Chromium a la vez; ajusta `S1_MEM_LIMIT`.
+- **Chromium:** cada backend-s1 puede abrir hasta 2 Chromium a la vez; ajusta `S1_MEM_LIMIT`.
 - **Sin probar con imágenes reales.** Este repo se validó con `docker compose config` y valores
   de prueba; falta un despliegue real con imágenes publicadas.

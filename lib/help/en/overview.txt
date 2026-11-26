@@ -2,7 +2,7 @@
 
 Deploys and operates one instance per municipality with Docker Compose.
 Each instance has its own private network, ports, data, secrets and databases.
-Services: `s0` = auth-backend (Auth) and `s1` = gueo-back-end (Gue).
+Services: `s0` = backend-s0 (Auth) and `s1` = backend-s1 (Gue).
 
 ## Usage
 $ ./deltactl <command> [instance] [options]

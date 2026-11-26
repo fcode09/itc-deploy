@@ -1,8 +1,8 @@
 # Images: names, tags and where they come from
 
 ## Full reference
-`[REGISTRY/]NAME:TAG`, for example `auth-backend:1.2.0`
-- `NAME`: `S0_IMAGE` / `S1_IMAGE` in `.env.instance` (auth-backend and gueo-back-end by default)
+`[REGISTRY/]NAME:TAG`, for example `backend-s0:1.2.0`
+- `NAME`: `S0_IMAGE` / `S1_IMAGE` in `.env.instance` (backend-s0 and backend-s1 by default)
 - `TAG`: `S0_TAG` / `S1_TAG`
 - `REGISTRY`: empty = local images
 
@@ -12,7 +12,7 @@
   not ours
 
 ## With a registry
-`REGISTRY=registry.example.com/itc` makes `deploy` pull `registry.example.com/itc/auth-backend:1.2.0`.
+`REGISTRY=registry.example.com/itc` makes `deploy` pull `registry.example.com/itc/backend-s0:1.2.0`.
 
 ## Tags
 - use one tag per version or per commit; `latest` produces a warning

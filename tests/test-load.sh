@@ -40,21 +40,21 @@ export PATH="$FIX/bin:$PATH"
 : > "$FIX/calls.log"
 
 section "1. a plain archive"
-printf 'auth-backend:3.0\ngueo-back-end:3.0\n' > "$FIX/plain.tar"
+printf 'backend-s0:3.0\nbackend-s1:3.0\n' > "$FIX/plain.tar"
 out="$(bash ./deltactl load "$FIX/plain.tar" 2>&1)"; rc=$?
 check "exits with 0" '[ "$rc" -eq 0 ]'
-check "lists every loaded image" 'echo "$out" | grep -q "auth-backend:3.0" && echo "$out" | grep -q "gueo-back-end:3.0"'
+check "lists every loaded image" 'echo "$out" | grep -q "backend-s0:3.0" && echo "$out" | grep -q "backend-s1:3.0"'
 check "reports how many were loaded" 'echo "$out" | grep -q "2 imagen(es) disponibles"'
 check "a plain archive is read with docker load -i" 'grep -q "^load load -i $FIX/plain.tar" "$FIX/calls.log"'
 
 section "2. a gzip archive"
-printf 'auth-backend:4.0\n' | gzip > "$FIX/packed.tar.gz"
+printf 'backend-s0:4.0\n' | gzip > "$FIX/packed.tar.gz"
 out="$(bash ./deltactl load "$FIX/packed.tar.gz" 2>&1)"; rc=$?
 check "exits with 0" '[ "$rc" -eq 0 ]'
-check "the image inside is loaded" 'echo "$out" | grep -q "auth-backend:4.0" && echo "$out" | grep -q "1 imagen(es) disponibles"'
+check "the image inside is loaded" 'echo "$out" | grep -q "backend-s0:4.0" && echo "$out" | grep -q "1 imagen(es) disponibles"'
 check "a .gz archive is decompressed and sent through stdin" 'tail -n1 "$FIX/calls.log" | grep -qx "load load"'
-printf 'gueo-back-end:4.0\n' | gzip > "$FIX/packed.tgz"
-check "a .tgz archive works too" 'bash ./deltactl load "$FIX/packed.tgz" 2>&1 | grep -q "gueo-back-end:4.0"'
+printf 'backend-s1:4.0\n' | gzip > "$FIX/packed.tgz"
+check "a .tgz archive works too" 'bash ./deltactl load "$FIX/packed.tgz" 2>&1 | grep -q "backend-s1:4.0"'
 
 section "3. errors"
 check "without a file it prints the usage" 'bash ./deltactl load 2>&1 | grep -q "^ERROR uso: ./deltactl load"'
@@ -68,13 +68,13 @@ out="$(bash ./deltactl load "$FIX/empty.tar" 2>&1)"; rc=$?
 check "an archive without named images is an error" '[ "$rc" -ne 0 ] && echo "$out" | grep -q "no contiene imágenes con nombre"'
 
 section "4. the architecture of the image"
-printf 'auth-backend:3.0\n' > "$FIX/one.tar"
+printf 'backend-s0:3.0\n' > "$FIX/one.tar"
 printf 'arm64\n' > "$FIX/arch"
 check "load warns when the image does not match the server" 'bash ./deltactl load "$FIX/one.tar" 2>&1 | grep -q "es arm64 y este servidor es"'
 printf 'amd64\n' > "$FIX/arch"
 check "load does not warn when they match" '! bash ./deltactl load "$FIX/one.tar" 2>&1 | grep -q "no podrá arrancar"'
 rm -f "$FIX/arch"
-printf 'auth-backend|3.0|sha256:eeeeeeeeeeeeeeee|1 hour ago|350MB\n' > "$FIX/images.txt"
+printf 'backend-s0|3.0|sha256:eeeeeeeeeeeeeeee|1 hour ago|350MB\n' > "$FIX/images.txt"
 check "images shows ? when the architecture is unknown" 'bash ./deltactl images 2>&1 | grep "^3.0 " | grep -q " ? "'
 check "images --json uses ? as well" 'bash ./deltactl images --json 2>&1 | grep -q "\"architecture\":\"?\""'
 check "load does not warn when the architecture is unknown" '! bash ./deltactl load "$FIX/one.tar" 2>&1 | grep -q "no podrá arrancar"'

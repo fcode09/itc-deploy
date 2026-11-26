@@ -51,15 +51,15 @@ check "todas las opciones del 1 al 14 tienen ayuda" \
 section "2. sin instancias"
 check "avisa que no hay instancias y sugiere crearlas" 'menu 4 0 | grep -q "no hay instancias todavía: crea una con la opción 2"'
 
-image auth-backend:1.0 sha256:aaaa1111; image gueo-back-end:2.0 sha256:bbbb2222
-image gueo-back-end:1.5 sha256:cccc3333; image gueo-back-end:3.0 sha256:dddd4444
+image backend-s0:1.0 sha256:aaaa1111; image backend-s1:2.0 sha256:bbbb2222
+image backend-s1:1.5 sha256:cccc3333; image backend-s1:3.0 sha256:dddd4444
 newinst mn-one 1.0 2.0
 newinst mn-two 1.0 2.0
 
 section "3. selección de instancia y servicio"
 out="$(menu 4 1 1 0)"
 check "lista las instancias numeradas con sus servicios" 'echo "$out" | grep -q "1) mn-one" && echo "$out" | grep -q "2) mn-two" && echo "$out" | grep -q "(s0,s1)"'
-check "lista los servicios con su imagen y la opción todos" 'echo "$out" | grep -q "1) s0 (auth-backend)" && echo "$out" | grep -q "0) todos"'
+check "lista los servicios con su imagen y la opción todos" 'echo "$out" | grep -q "1) s0 (backend-s0)" && echo "$out" | grep -q "0) todos"'
 check "se puede elegir la instancia por nombre" 'clearcalls; o="$(menu 4 mn-two 0 0)"; echo "$o" | grep -q "./deltactl deploy mn-two$" && calls | grep -q "COMPOSE up"'
 check "una instancia inválida avisa y vuelve al menú" 'menu 4 zzz 0 | grep -q "instancia no válida: .zzz."'
 check "un servicio inválido avisa y vuelve al menú" 'menu 4 1 s9 0 | grep -q "servicio no válido: .s9."'
@@ -85,7 +85,7 @@ check "logs en vivo añade -f" 'echo "$out" | grep -q "./deltactl logs mn-one -f
 clearcalls; out="$(menu 9 1 1 0)"
 check "detener un servicio" 'echo "$out" | grep -q "./deltactl stop mn-one s0" && calls | grep -q "COMPOSE stop"'
 out="$(menu 11 0)"
-check "versiones de imágenes" 'echo "$out" | grep -q "./deltactl images" && echo "$out" | grep -q "auth-backend"'
+check "versiones de imágenes" 'echo "$out" | grep -q "./deltactl images" && echo "$out" | grep -q "backend-s0"'
 out="$(menu 13 0)"
 check "diagnóstico del servidor" 'echo "$out" | grep -q "./deltactl doctor" && echo "$out" | grep -q "Diagnóstico del servidor"'
 out="$(menu 14 "" 0)"
@@ -117,7 +117,7 @@ check "rollback: confirmado, vuelve a la etiqueta anterior" 'echo "$out" | grep 
 
 section "6. actualizar a una versión nueva"
 clearcalls; out="$(menu 5 1 2 3.0 s 0)"
-check "muestra la etiqueta actual y las cargadas" 'echo "$out" | grep -q "etiqueta actual 2.0" && echo "$out" | grep -q "Cargadas de gueo-back-end:.* 3.0"'
+check "muestra la etiqueta actual y las cargadas" 'echo "$out" | grep -q "etiqueta actual 2.0" && echo "$out" | grep -q "Cargadas de backend-s1:.* 3.0"'
 check "cambia la etiqueta en .env.instance" 'grep -qx "S1_TAG=3.0" instances/mn-one/.env.instance'
 check "comprueba y luego despliega solo ese servicio" \
   'echo "$out" | grep -q "./deltactl check mn-one s1" && echo "$out" | grep -q "./deltactl deploy mn-one s1" && calls | grep -q "COMPOSE up"'
@@ -139,7 +139,7 @@ clearcalls; out="$(menu 5 mn-three 2 9.9 s s n 0)"
 check "sin restaurar, la etiqueta nueva se conserva" 'grep -qx "S1_TAG=9.9" instances/mn-three/.env.instance'
 
 section "7. crear una instancia desde el menú"
-out="$(menu 2 mn-wz s1 n gueo-back-end 3.0 http://h n s 0)"
+out="$(menu 2 mn-wz s1 n backend-s1 3.0 http://h n s 0)"
 check "el asistente corre dentro del menú y crea la instancia" \
   'echo "$out" | grep -q "./deltactl new --wizard" && [ -f instances/mn-wz/.env.instance ] && grep -qx "S1_TAG=3.0" instances/mn-wz/.env.instance'
 check "después de crear vuelve al menú" '[ "$(echo "$out" | grep -c "Menú")" -ge 2 ]'

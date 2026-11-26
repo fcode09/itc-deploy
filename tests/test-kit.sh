@@ -538,7 +538,7 @@ section "13. cost of the forms components"
 out="$(kr "$NC" <<'EOS'
 sep=$'\x1f'
 cols=("SVC|5|l" "IMAGE|*|l" "STATE|10|l" "MEM|7|r|num" "TREND|12|l|spark")
-rows=(); for i in $(seq 1 24); do rows+=("s$i${sep}auth-backend:$i${sep}healthy${sep}$((i * 37 % 900))${sep}1 5 9 20 40 30 20 10"); done
+rows=(); for i in $(seq 1 24); do rows+=("s$i${sep}backend-s0:$i${sep}healthy${sep}$((i * 37 % 900))${sep}1 5 9 20 40 30 20 10"); done
 t0="${EPOCHREALTIME/./}"
 for i in 1 2 3 4 5 6 7 8 9 10; do kit_table 120 20 cols rows sel=3 sort=3:desc; done
 t1="${EPOCHREALTIME/./}"

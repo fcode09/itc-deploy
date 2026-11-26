@@ -18,11 +18,11 @@ nothing is pulled. With a value (for example `registry.example.com/itc`) `deploy
 Active services of the instance, separated by commas: `s0,s1`, `s1` or `s0`. Only the listed ones are
 validated, pulled and started. See `./deltactl help services`.
 
-@ S0_IMAGE | .env.instance | optional | auth-backend
+@ S0_IMAGE | .env.instance | optional | backend-s0
 Name of the s0 image, WITHOUT a tag or registry. Change it only if you built the image with another
 name (for example `s0`). Lowercase letters, digits, `.` `_` `-`; `/` is allowed.
 
-@ S1_IMAGE | .env.instance | optional | gueo-back-end
+@ S1_IMAGE | .env.instance | optional | backend-s1
 Name of the s1 image, WITHOUT a tag or registry. Same as `S0_IMAGE`.
 
 @ S0_TAG | .env.instance | required | none

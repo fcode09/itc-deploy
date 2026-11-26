@@ -28,7 +28,7 @@ chmod +x "$FIX/bin/docker" "$FIX/bin/ss"
 export DELTACTL_MEMINFO="$FIX/meminfo" DELTACTL_LOADAVG="$FIX/loadavg" DELTACTL_PROC_ROOT="$FIX/proc" DELTACTL_CGROUP_ROOT="$FIX/cg"
 printf 'MemTotal:        8388608 kB\nMemAvailable:    3145728 kB\n' > "$FIX/meminfo"
 printf '0.82 0.50 0.40 1/200 1234\n' > "$FIX/loadavg"
-printf 'auth-backend:1.0|sha256:aaa111|amd64\ngueo-back-end:1.0|sha256:bbb222|amd64\n' > "$FIX/images.txt"
+printf 'backend-s0:1.0|sha256:aaa111|amd64\nbackend-s1:1.0|sha256:bbb222|amd64\n' > "$FIX/images.txt"
 # shellcheck source=tests/tools/outsum_scenes.sh
 source tests/tools/outsum_scenes.sh
 

@@ -18,11 +18,11 @@ no se descarga nada. Con valor (por ejemplo `registry.ejemplo.com/itc`) `deploy`
 Servicios activos de la instancia, separados por coma: `s0,s1`, `s1` o `s0`. Solo los listados se
 validan, se descargan y se levantan. Ver `./deltactl help servicios`.
 
-@ S0_IMAGE | .env.instance | opcional | auth-backend
+@ S0_IMAGE | .env.instance | opcional | backend-s0
 Nombre de la imagen de s0, SIN etiqueta ni registry. Cámbialo solo si construiste la imagen con otro
 nombre (por ejemplo `s0`). Minúsculas, números, `.` `_` `-`; admite `/`.
 
-@ S1_IMAGE | .env.instance | opcional | gueo-back-end
+@ S1_IMAGE | .env.instance | opcional | backend-s1
 Nombre de la imagen de s1, SIN etiqueta ni registry. Igual que `S0_IMAGE`.
 
 @ S0_TAG | .env.instance | obligatoria | ninguno

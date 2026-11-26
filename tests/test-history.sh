@@ -52,7 +52,7 @@ mkrun() { # id op args instance state rc started ms output-file [user]
   cp "$9" "$STATE/runs/$1/out.log"
   printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$1" "$7" "$2" "$4" "$5" "$6" "$8" >> "$STATE/runs.idx"
 }
-printf 'Rolling back auth-backend to 2.13.0\nDone\n' > "$FIX/plain.txt"
+printf 'Rolling back backend-s0 to 2.13.0\nDone\n' > "$FIX/plain.txt"
 mkrun 20261031T150000Z-3 rollback "th-a s0" th-a succeeded 0 2026-10-31T15:00:00Z 5300 "$FIX/plain.txt"
 mkrun 20261101T090000Z-2 check th-a th-a failed 1 2026-11-01T09:00:00Z 2100 tests/golden/outsum/in/check-fail-es.txt
 mkrun 20261101T095000Z-4 deploy th-b th-b succeeded 0 2026-11-01T09:50:00Z 30100 tests/golden/outsum/in/deploy-es.txt
@@ -86,7 +86,7 @@ check "in English: History, operations and its keys in English" 'f="$(LANGX=en p
 
 section "3. the keys"
 check "down chooses the run before (a check that failed): its detail changes, and it is the summary of a check" 'f="$(panel ">" ">" down q | frame_n 4)"; echo "$f" | grep -q "comando *./deltactl check th-a" && echo "$f" | grep -qE "estado *x fallida . c.digo 1" && echo "$f" | grep -qE "^.*> x 11-01 09:00 check"'
-check "the next one has no shape: the end of what it printed" 'f="$(panel ">" ">" down down q | frame_n 5)"; echo "$f" | grep -q "comando *./deltactl rollback th-a s0" && echo "$f" | grep -q "Salida (.ltimas 2 l.neas)" && echo "$f" | grep -q "Rolling back auth-backend"'
+check "the next one has no shape: the end of what it printed" 'f="$(panel ">" ">" down down q | frame_n 5)"; echo "$f" | grep -q "comando *./deltactl rollback th-a s0" && echo "$f" | grep -q "Salida (.ltimas 2 l.neas)" && echo "$f" | grep -q "Rolling back backend-s0"'
 check "up from the first one stays on it; End goes to the oldest and Home to the newest" '[ "$(panel ">" ">" up q | frame_n 4 | grep -c "> \* 11-01 10:00 deploy")" -eq 1 ] && panel ">" ">" end q | frame_n 4 | grep -qE "> \* 10-31 15:00 rollback" && panel ">" ">" end home q | frame_n 5 | grep -qE "> \* 11-01 10:00 deploy"'
 check "j and k do what down and up do" 'panel ">" ">" j q | frame_n 4 | grep -q "comando *./deltactl check th-a" && panel ">" ">" j k q | frame_n 5 | grep -q "comando *./deltactl deploy th-a"'
 check "Enter opens the whole saved output in the viewer of the Runs view, on that run" 'f="$(panel ">" ">" enter q | last_frame)"; echo "$f" | grep -q "\[6 Ejecuciones\]" && echo "$f" | grep -q "Validando compose"'

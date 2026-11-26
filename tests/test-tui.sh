@@ -93,12 +93,12 @@ newinst tui-a 1.0 1.0; seeded tui-a
 mkdir -p instances/tui-a/proxy; printf 'DOMAIN=itc.pe\nFLAVOR=nginx\nTLS=0\n' > instances/tui-a/proxy/access.conf
 newinst tui-b 1.0 1.0
 newinst tui-c 1.0 1.0; seeded tui-c
-image auth-backend:1.0 sha256:aaa; image gueo-back-end:1.0 sha256:bbb
+image backend-s0:1.0 sha256:aaa; image backend-s1:1.0 sha256:bbb
 deployed tui-a s0 1.0 sha256:aaa; deployed tui-a s1 1.0 sha256:bbb
-container tui-a s0 running healthy auth-backend:1.0 "2 days" 1234 0
-container tui-a s1 running healthy gueo-back-end:1.0 "2 days" 1235 3
-container tui-c s0 running healthy auth-backend:1.0 "1 hour" 1236 0
-container tui-c s1 exited none gueo-back-end:1.0 "1 hour" 0 0
+container tui-a s0 running healthy backend-s0:1.0 "2 days" 1234 0
+container tui-a s1 running healthy backend-s1:1.0 "2 days" 1235 3
+container tui-c s0 running healthy backend-s0:1.0 "1 hour" 1236 0
+container tui-c s1 exited none backend-s1:1.0 "1 hour" 0 0
 cgroup 1234 104857600 536870912 5000000
 cgroup 1235 629145600 2147483648 9000000
 cgroup 1236 52428800 max 100
@@ -110,7 +110,7 @@ check "the host line shows what the containers use" 'echo "$out" | grep -q "cont
 check "every instance is a row with its n/m" 'echo "$out" | grep -q "tui-a  *2/2" && echo "$out" | grep -q "tui-b  *0/2" && echo "$out" | grep -q "tui-c  *1/2"'
 check "a row shows the memory its services use" 'echo "$out" | grep "tui-a  *2/2" | grep -q "7[0-9][0-9]M" && echo "$out" | grep "tui-c  *1/2" | grep -q " 50M"'
 check "the first instance is selected (the New button is above it)" 'echo "$out" | grep -q "^| > .. tui-a" && echo "$out" | grep -q "+ Nueva instancia"'
-check "the detail shows each service with its image, state, uptime and port" 'echo "$out" | grep -q "s0 auth-backend:1.0  . healthy" && echo "$out" | grep -q "s1 gueo-back-end:1.0  . healthy" && echo "$out" | grep -q "activo 2d00h  \.  :4100" && echo "$out" | grep -q "activo 2d00h  \.  :4101"'
+check "the detail shows each service with its image, state, uptime and port" 'echo "$out" | grep -q "s0 backend-s0:1.0  . healthy" && echo "$out" | grep -q "s1 backend-s1:1.0  . healthy" && echo "$out" | grep -q "activo 2d00h  \.  :4100" && echo "$out" | grep -q "activo 2d00h  \.  :4101"'
 check "the detail shows memory used, limit and percentage" 'echo "$out" | grep -q "mem  ##\.* 100M/512M  19%" && echo "$out" | grep -q "mem  ###\.* 600M/2.0G  29%"'
 check "the CPU has no figure until the second sample" 'echo "$out" | grep -q "cpu  sin lectura aún"'
 check "restarts are shown only when there are some" '[ "$(echo "$out" | grep -c "reinicios 3")" -eq 1 ] && ! echo "$out" | grep "activo 2d00h . :4100" | grep -q "reinicios"'
@@ -120,7 +120,7 @@ check "the console shows its prompt with a hint" 'echo "$out" | grep -q "Consola
 section "3. moving around"
 out="$(panel down q)"
 check "down selects the next instance and its detail" 'echo "$out" | frame_n 2 | grep -q "^| > .. tui-b" && echo "$out" | frame_n 2 | grep -q "tui-b . 0/2"'
-check "an instance that does not run shows its services as not created" 'echo "$out" | frame_n 2 | grep -q "s0 auth-backend:1.0  . no creado"'
+check "an instance that does not run shows its services as not created" 'echo "$out" | frame_n 2 | grep -q "s0 backend-s0:1.0  . no creado"'
 out="$(panel up q)"
 check "up from the first instance selects the New button" 'echo "$out" | frame_n 2 | grep -q "^| > + Nueva instancia"'
 out="$(panel up up q)"
@@ -194,7 +194,7 @@ out="$(panel n backspace)"
 check "an empty name is a pending section" 'echo "$out" | last_frame | grep -q "Escribe un nombre" && echo "$out" | last_frame | grep -q "| . 1 Nombre    -"'
 out="$(panel n enter)"
 check "Enter accepts the proposed name and goes on to the services" 'echo "$out" | last_frame | grep -q ">Servicios a desplegar" && echo "$out" | last_frame | grep -q "\[x\] s0  Auth" && echo "$out" | last_frame | grep -q "\[x\] s1  Gue"'
-check "the services show their image, port and memory" 'echo "$out" | last_frame | grep -q "s0  Auth  auth-backend" && echo "$out" | last_frame | grep -q ":41[0-9]0" && echo "$out" | last_frame | grep -q "512m" && echo "$out" | last_frame | grep -q "2g"'
+check "the services show their image, port and memory" 'echo "$out" | last_frame | grep -q "s0  Auth  backend-s0" && echo "$out" | last_frame | grep -q ":41[0-9]0" && echo "$out" | last_frame | grep -q "512m" && echo "$out" | last_frame | grep -q "2g"'
 check "the services say what they lack to be deployed" 'echo "$out" | last_frame | grep -q "ESTADO PARA DESPLEGAR" && echo "$out" | last_frame | grep -q "puerto 41[0-9]0 libre" && echo "$out" | last_frame | grep -q "puerto 41[0-9]1 libre"'
 check "the services not yet in Docker are listed, switched off" 'echo "$out" | last_frame | grep -q "walle . robin . link: aún sin Docker"'
 out="$(panel n enter space)"
@@ -202,9 +202,9 @@ check "Space unchecks a service: the list and its state follow" 'echo "$out" | l
 out="$(panel n enter space down space)"
 check "with no service the section is marked and says so" 'echo "$out" | last_frame | grep -q "Marca al menos un servicio" && echo "$out" | last_frame | grep -q "| x 2 Servicios ninguno"'
 out="$(panel n enter space pgdn pgdn)"
-check "the images are asked only for the services that stay" 'echo "$out" | last_frame | grep -q ">Imagen y versión" && echo "$out" | last_frame | grep -q "s1  Gue" && echo "$out" | last_frame | grep -q "gueo-back-end" && ! echo "$out" | last_frame | grep -q "auth-backend"'
+check "the images are asked only for the services that stay" 'echo "$out" | last_frame | grep -q ">Imagen y versión" && echo "$out" | last_frame | grep -q "s1  Gue" && echo "$out" | last_frame | grep -q "backend-s1" && ! echo "$out" | last_frame | grep -q "backend-s0"'
 out="$(panel n pgdn pgdn pgdn)"
-check "PgDn changes section; the default image name is proposed" 'echo "$out" | last_frame | grep -q "Imagen   *auth-backend" && echo "$out" | last_frame | grep -q "Versión"'
+check "PgDn changes section; the default image name is proposed" 'echo "$out" | last_frame | grep -q "Imagen   *backend-s0" && echo "$out" | last_frame | grep -q "Versión"'
 check "the section with no version is a warning" 'echo "$out" | last_frame | grep -q "| ! 4 Imágenes  sin versión"'
 out="$(panel n pgdn pgdn)"
 check "the data section is a choice between new and existing" 'echo "$out" | last_frame | grep -q "(o) Nueva" && echo "$out" | last_frame | grep -q "( ) Ya tiene datos" && echo "$out" | last_frame | grep -q "Se sembrará con ./deltactl init"'
@@ -247,7 +247,7 @@ check "typing new in the command line opens the form too" 'echo "$out" | last_fr
 # The whole form: it creates the instance with the answers (and openssl, when there is one, generates the secrets).
 if command -v openssl > /dev/null 2>&1; then GEN=(down); else GEN=(); fi
 out="$(panel n $(typed tui-wz) enter pgdn pgdn down $(typed 1.5) enter enter $(typed 2.5) enter $(typed http://h) enter "${GEN[@]}" enter wait)"
-check "creating runs the command of the panel with the answers as options" '[ -f instances/tui-wz/.env.instance ] && echo "$out" | grep -q "./deltactl new tui-wz --services s0,s1 --s0-image auth-backend --s0-tag 1.5"'
+check "creating runs the command of the panel with the answers as options" '[ -f instances/tui-wz/.env.instance ] && echo "$out" | grep -q "./deltactl new tui-wz --services s0,s1 --s0-image backend-s0 --s0-tag 1.5"'
 check "the answers are applied" 'grep -qx "S0_TAG=1.5" instances/tui-wz/.env.instance && grep -qx "S1_TAG=2.5" instances/tui-wz/.env.instance && grep -qx "IP_SERVER=http://h" instances/tui-wz/.env.s0'
 if command -v openssl > /dev/null 2>&1; then
   check "and the secrets are generated" '[ "$(grep -E "^JWT_SECRET=" instances/tui-wz/.env.s0 | cut -d= -f2- | wc -c)" -eq 65 ]'
@@ -485,7 +485,7 @@ check "the test mode takes the size from DELTACTL_TUI_ROWS and COLUMNS" '[ "$(DE
 section "11. wide layout and the new data"
 check "the overview fills every wide size exactly: each body line is as wide as the screen and its border closes" 'for s in 120x30 150x40 200x60 300x90; do c=${s%x*}; r=${s#*x}; run_lib "COLUMNS=$c; DELTACTL_TUI_ROWS=$r; tui_size; $CPU_SCRIPT; dash_render" | last_frame | awk -v c=$c -v r=$r "NR>=4 && NR<=r-1 { if (length(\$0) != c || (substr(\$0, length(\$0), 1) !~ /[|+]/ && \$0 !~ /Resumen/)) { bad = 1; print s, NR, length(\$0) > \"/dev/stderr\" } } END { exit bad }" || exit 1; done'
 check "below 120 columns the compact view is kept" 'run_lib "COLUMNS=119; tui_size; $CPU_SCRIPT; dash_render" | last_frame | grep -q "Instancias" && ! run_lib "COLUMNS=119; tui_size; $CPU_SCRIPT; dash_render" | last_frame | grep -q -- "- Servidor "'
-check "the wide overview has the server box and the services as cards (one per service, with its image and its state in the border)" 'run_lib "COLUMNS=160; DELTACTL_TUI_ROWS=40; tui_size; $CPU_SCRIPT; dash_render" | last_frame | grep -q "Servidor" && run_lib "COLUMNS=160; DELTACTL_TUI_ROWS=40; tui_size; $CPU_SCRIPT; dash_render" | last_frame | grep -q "\[s0\]-\[auth-backend:1.0\]-\[. healthy\]" && run_lib "COLUMNS=160; DELTACTL_TUI_ROWS=40; tui_size; $CPU_SCRIPT; dash_render" | last_frame | grep -q "\[s1\]-\[gueo-back-end:1.0\]"'
+check "the wide overview has the server box and the services as cards (one per service, with its image and its state in the border)" 'run_lib "COLUMNS=160; DELTACTL_TUI_ROWS=40; tui_size; $CPU_SCRIPT; dash_render" | last_frame | grep -q "Servidor" && run_lib "COLUMNS=160; DELTACTL_TUI_ROWS=40; tui_size; $CPU_SCRIPT; dash_render" | last_frame | grep -q "\[s0\]-\[backend-s0:1.0\]-\[. healthy\]" && run_lib "COLUMNS=160; DELTACTL_TUI_ROWS=40; tui_size; $CPU_SCRIPT; dash_render" | last_frame | grep -q "\[s1\]-\[backend-s1:1.0\]"'
 check "a wide screen shows the events box from 150 columns" 'run_lib "COLUMNS=150; DELTACTL_TUI_ROWS=40; tui_size; $CPU_SCRIPT; dash_render" | last_frame | grep -q "Eventos" && ! run_lib "COLUMNS=149; DELTACTL_TUI_ROWS=40; tui_size; $CPU_SCRIPT; dash_render" | last_frame | grep -q "Eventos"'
 check "an event is kept as epoch|name|action" '[ "$(run_lib "dash_event_add \"1700000000|s0_x|die\"; echo \"\${DASH_EVENTS[0]}\"")" = "1700000000|s0_x|die" ]'
 check "a bare action becomes an event of an unknown container" '[ "$(run_lib "dash_event_add start; r=\"\${DASH_EVENTS[0]#*|}\"; echo \"\$r\"")" = "-|start" ]'

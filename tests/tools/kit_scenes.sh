@@ -166,10 +166,10 @@ scene_fields() { # width
 scene_table() { # width
   local w="$1" cols=() rows=() sep=$'\x1f' tw=$(($1 - 4)) body
   cols=("SVC|5|l" "IMAGEN|*|l" "ESTADO|10|l" "MEM MB|7|r|num" "CPU|5|r|num" "TENDENCIA|12|l|spark")
-  rows=("s0${sep}auth-backend:2.14.1${sep}healthy${sep}196${sep}3%${sep}5 12 8 20 33 41 30 22 18 25 31 28"
-        "s1${sep}gueo-back-end:2.9.0${sep}healthy${sep}1230${sep}21%${sep}60 70 80 90 85 70 60 65 75 80 88 92"
-        "s0${sep}auth-backend:2.13.2${sep}unhealthy${sep}180${sep}1%${sep}1 1 2 1 1 3 2 1 1 2 1 1"
-        "s1${sep}gueo-back-end:2.8.0${sep}stopped${sep}-${sep}-${sep}0 0 0")
+  rows=("s0${sep}backend-s0:2.14.1${sep}healthy${sep}196${sep}3%${sep}5 12 8 20 33 41 30 22 18 25 31 28"
+        "s1${sep}backend-s1:2.9.0${sep}healthy${sep}1230${sep}21%${sep}60 70 80 90 85 70 60 65 75 80 88 92"
+        "s0${sep}backend-s0:2.13.2${sep}unhealthy${sep}180${sep}1%${sep}1 1 2 1 1 3 2 1 1 2 1 1"
+        "s1${sep}backend-s1:2.8.0${sep}stopped${sep}-${sep}-${sep}0 0 0")
   kit_table "$tw" 6 cols rows sel=1 sort=3:desc mag=cpu
   body=("${KTB_LINES[@]}")
   kit_box "$w" 8 body "chips=2:servicios|^filtro" "status=$KTB_COUNT" 'footer={↑} elegir|{Enter} abrir|^s ordenar'
@@ -228,34 +228,34 @@ scene_vpick() { # width
   # the star, with the hint of the most recent one
   kit_vpick "$tw" 9 rec sel=0 server_arch=amd64
   body=("${KVP_LINES[@]}")
-  kit_box "$w" 11 body "chips=3:versions of auth-backend|filter" "status=$KVP_COUNT" 'footer={Enter} choose|^t write another|^l load|{Esc} cancel' focus=1
+  kit_box "$w" 11 body "chips=3:versions of backend-s0|filter" "status=$KVP_COUNT" 'footer={Enter} choose|^t write another|^l load|{Esc} cancel' focus=1
   printf '%s\n' "${KIT_BOX[@]}"
   # an image that cannot run says why; the tag that moves warns
   kit_vpick "$tw" 8 rec sel=3 server_arch=amd64
   body=("${KVP_LINES[@]}")
-  kit_box "$w" 10 body "chips=3:versions of auth-backend" "status=$KVP_COUNT"
+  kit_box "$w" 10 body "chips=3:versions of backend-s0" "status=$KVP_COUNT"
   printf '%s\n' "${KIT_BOX[@]}"
   kit_vpick "$tw" 8 rec sel=4 server_arch=amd64
   body=("${KVP_LINES[@]}")
-  kit_box "$w" 10 body "chips=3:versions of auth-backend" "status=$KVP_COUNT"
+  kit_box "$w" 10 body "chips=3:versions of backend-s0" "status=$KVP_COUNT"
   printf '%s\n' "${KIT_BOX[@]}"
   # typing a version that is not loaded; filter; loading a file; nothing loaded
   kit_vpick "$tw" 8 rec sel=5 typing=1 typed=2.15.0 cursor=6 server_arch=amd64
   body=("${KVP_LINES[@]}")
-  kit_box "$w" 10 body "chips=3:versions of auth-backend" "status=$KVP_COUNT" focus=1
+  kit_box "$w" 10 body "chips=3:versions of backend-s0" "status=$KVP_COUNT" focus=1
   printf '%s\n' "${KIT_BOX[@]}"
   kit_vpick "$tw" 6 rec sel=0 filter=colorado note="2.13.2 was created after 2.14.0" server_arch=amd64
   body=("${KVP_LINES[@]}")
-  kit_box "$w" 8 body "chips=3:versions of auth-backend|filter: colorado" "status=$KVP_COUNT"
+  kit_box "$w" 8 body "chips=3:versions of backend-s0|filter: colorado" "status=$KVP_COUNT"
   printf '%s\n' "${KIT_BOX[@]}"
   kit_vpick "$tw" 6 rec sel=6 status="loading app.tar" server_arch=amd64
   body=("${KVP_LINES[@]}")
-  kit_box "$w" 8 body "chips=3:versions of auth-backend" "status=$KVP_COUNT"
+  kit_box "$w" 8 body "chips=3:versions of backend-s0" "status=$KVP_COUNT"
   printf '%s\n' "${KIT_BOX[@]}"
   rec=()
   kit_vpick "$tw" 5 rec sel=0
   body=("${KVP_LINES[@]}")
-  kit_box "$w" 7 body "chips=3:versions of auth-backend" "status=$KVP_COUNT"
+  kit_box "$w" 7 body "chips=3:versions of backend-s0" "status=$KVP_COUNT"
   printf '%s\n' "${KIT_BOX[@]}"
 }
 

@@ -11,8 +11,8 @@ Hoy solo `s0` y `s1` tienen `services/compose-sN.yaml`.
 
 | Clave | Servicio | Repo | Puerto interno | Compose |
 |---|---|---|---|---|
-| `s0` | auth-backend | AuthSoftwareUpdateV1 | 3200 | `services/compose-s0.yaml` |
-| `s1` | gueo-back-end | gueosoftwareupdatev1 | 3000 | `services/compose-s1.yaml` |
+| `s0` | backend-s0 | AuthSoftwareUpdateV1 | 3200 | `services/compose-s0.yaml` |
+| `s1` | backend-s1 | gueosoftwareupdatev1 | 3000 | `services/compose-s1.yaml` |
 
 ## Servicios pendientes de dockerizar
 

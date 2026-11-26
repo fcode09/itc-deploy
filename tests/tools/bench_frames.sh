@@ -14,14 +14,14 @@ sim_build "$TMP/sim" "${BENCH_INSTANCES:-12}"
 sim_host "$TMP/host"
 # The Images view needs something to list: 14 versions of the image of s0 (one for another architecture, one latest) and 6 of s1, with dates.
 for _i in $(seq 1 12); do
-  printf 'auth-backend:2.%d.0|sha256:%012d|amd64\n' "$_i" "$_i" >> "$SIM_FIX/images.txt"
-  printf 'auth-backend:2.%d.0|%s\n' "$_i" "$(date -u -d "$((_i + 1)) days ago" '+%Y-%m-%d %H:%M:%S +0000 UTC')" >> "$SIM_FIX/image_dates.txt"
+  printf 'backend-s0:2.%d.0|sha256:%012d|amd64\n' "$_i" "$_i" >> "$SIM_FIX/images.txt"
+  printf 'backend-s0:2.%d.0|%s\n' "$_i" "$(date -u -d "$((_i + 1)) days ago" '+%Y-%m-%d %H:%M:%S +0000 UTC')" >> "$SIM_FIX/image_dates.txt"
 done
-printf 'auth-backend:3.0.0-rc1|sha256:%012d|arm64\nauth-backend:latest|sha256:%012d|amd64\n' 91 92 >> "$SIM_FIX/images.txt"
-printf 'auth-backend:3.0.0-rc1|%s\nauth-backend:latest|%s\n' "$(date -u '+%Y-%m-%d %H:%M:%S +0000 UTC')" "$(date -u -d '3 days ago' '+%Y-%m-%d %H:%M:%S +0000 UTC')" >> "$SIM_FIX/image_dates.txt"
+printf 'backend-s0:3.0.0-rc1|sha256:%012d|arm64\nbackend-s0:latest|sha256:%012d|amd64\n' 91 92 >> "$SIM_FIX/images.txt"
+printf 'backend-s0:3.0.0-rc1|%s\nbackend-s0:latest|%s\n' "$(date -u '+%Y-%m-%d %H:%M:%S +0000 UTC')" "$(date -u -d '3 days ago' '+%Y-%m-%d %H:%M:%S +0000 UTC')" >> "$SIM_FIX/image_dates.txt"
 for _i in 1 2 3 4 5 6; do
-  printf 'gueo-back-end:1.%d.0|sha256:%012d|amd64\n' "$_i" $((100 + _i)) >> "$SIM_FIX/images.txt"
-  printf 'gueo-back-end:1.%d.0|%s\n' "$_i" "$(date -u -d "$((_i * 3)) days ago" '+%Y-%m-%d %H:%M:%S +0000 UTC')" >> "$SIM_FIX/image_dates.txt"
+  printf 'backend-s1:1.%d.0|sha256:%012d|amd64\n' "$_i" $((100 + _i)) >> "$SIM_FIX/images.txt"
+  printf 'backend-s1:1.%d.0|%s\n' "$_i" "$(date -u -d "$((_i * 3)) days ago" '+%Y-%m-%d %H:%M:%S +0000 UTC')" >> "$SIM_FIX/image_dates.txt"
 done
 cd "$SIM_REPO" || exit 1
 ms() { # label n command...
