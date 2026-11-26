@@ -25,9 +25,9 @@
 │                                        ││     # the certificate: certbot --nginx -d backend-s0.ejemplo.pe                ││                                  │
 │                                        ││     ssl_certificate /etc/letsencrypt/live/backend-s0.ejemplo.pe/fullchain.pem; ││                                  │
 │                                        ││     ssl_certificate_key /etc/letsencrypt/live/backend-s0.ejemplo.pe/privkey.pem││                                  │
-│                                        ││     location / {                                                              ││                                  │
-│                                        ││         proxy_pass http://127.0.0.1:4100;                                     ││                                  │
-│                                        ││                                                                               ││                                  │
+│                                        ││     location / {                                                               ││                                  │
+│                                        ││         proxy_pass http://127.0.0.1:4100;                                      ││                                  │
+│                                        ││                                                                                ││                                  │
 ╰────────────────────────────────────────╯╰─┘Enter dominio└─┘b bloque└─┘w https└─┘y copiar└─┘g guardar└─┘< > pestaña└──────╯╰──────────────────────────────────╯
 ╭─ Consola ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
 │                                                                                                                                                              │

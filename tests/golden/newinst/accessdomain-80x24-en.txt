@@ -18,7 +18,7 @@
 │ # s0                                                                         │
 │ server {                                                                     │
 │     listen 80;                                                               │
-│ … and 64 more lines (the whole block is saved in the instance)               │
+│ … and 70 more lines (the whole block is saved in the instance)               │
 │                                                                              │
 ╰─┘Esc back└─┘Enter next└─┘Tab preview└────────────────────────────────────────╯
 

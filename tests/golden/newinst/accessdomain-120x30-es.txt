@@ -24,7 +24,7 @@
 │ Bloque de nginx → instances/instancia-1/proxy/nginx.conf             ││ ≈ ./deltactl new instancia-1                 │
 │                                                                      ││     --services s0,s1 --s0-tag 2.14.1         │
 │ # s0                                                                 ││     --s1-tag 2.9.0 --env-file <respuestas>   │
-│ … y 66 líneas más (se guardan enteras en la instancia)               ││     --domain muni.example.com --tls          │
+│ … y 72 líneas más (se guardan enteras en la instancia)               ││     --domain muni.example.com --tls          │
 │                                                                      ││                                              │
 ╰─┘Esc atrás└─┘Enter siguiente└────────────────────────────────────────╯╰──────────────────────────────────────────────╯
 
