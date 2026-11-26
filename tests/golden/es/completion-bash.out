@@ -28,7 +28,7 @@ _deltactl_complete() {
     runs) flags="--instance -n --json --tail --raw" ;;
     env) flags="--reveal --json --stdin --force --yes" ;;
     service) flags="--tag --port --generate-secrets --yes" ;;
-    access) flags="--domain --host --www --no-www --tls --no-tls --proxy --save" ;;
+    access) flags="--domain --host --www --no-www --tls --no-tls --proxy --save --apply --remove --service --yes" ;;
     secret) flags="--force" ;;
     mongo) flags="--apply --yes" ;;
   esac

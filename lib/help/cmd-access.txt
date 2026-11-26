@@ -22,6 +22,12 @@ $ sudo nginx -t && sudo systemctl reload nginx
 - `--tls` / `--no-tls`  HTTPS (nginx: redirección del 80 y bloque 443 con las rutas de certbot; Caddy lo hace solo)
 - `--proxy nginx|caddy`  cuál generar (por defecto el que ya usaba la instancia, o nginx)
 - `--save`  guarda el bloque en `instances/<instancia>/proxy/` y recuerda las respuestas en `access.conf`
+- `--apply`  además lo instala en nginx: un archivo por servicio en `/etc/nginx/conf.d/<instancia>-<servicio>.conf`, prueba
+  `nginx -t` y recarga; si la prueba falla devuelve todo como estaba y no recarga. Pide confirmación (`--yes` la omite) y
+  necesita root. Con HTTPS exige que ya existan los certificados de esos nombres (si faltan, muestra el `certbot` de cada uno)
+- `--remove`  quita esos archivos de nginx (se guardan como `.deltactl-removed`), prueba y recarga
+- `--service sN`  limita `--apply` o `--remove` a un servicio (sin ella, a todos)
+- `--yes`  no pregunta
 
 Lo que no indicas se toma de lo que la instancia recordó (`access.conf`), igual que hace la pestaña Acceso del panel.
 

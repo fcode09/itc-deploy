@@ -310,3 +310,78 @@ proxy_use_meta() {
   PROXY_HOSTS=() PROXY_WWW="$PROXY_M_WWW"
   for s in "${!PROXY_M_HOSTS[@]}"; do PROXY_HOSTS[$s]="${PROXY_M_HOSTS[$s]}"; done
 }
+
+# --- Putting the blocks where nginx reads them (only on request: `access --apply` / `--remove`) ----------------------------------------------------
+#
+#   proxy_conf_dir                     where nginx reads its sites: /etc/nginx/conf.d (DELTACTL_NGINX_DIR for the tests)
+#   proxy_conf_file <instance> <svc>   <dir>/<instance>-<svc>.conf: one file per service, so each one is applied or taken out by itself
+#   proxy_certs_missing <host>...      PROXY_MISSING: the hosts whose certificate of Let's Encrypt is not there (DELTACTL_LETSENCRYPT_DIR for the tests)
+#   proxy_apply_nginx <instance> <tls> <entry>...   writes the file of each entry (a copy of the one that was there), runs `nginx -t` and, when it fails,
+#                                      puts every file back as it was (0 ok · 1 nginx -t refused it, the text in PROXY_ERR · 2 could not write)
+#   proxy_remove_nginx <instance> <svc>...          takes the files of those services out (kept as <file>.deltactl-removed), with the same test and way back
+#   proxy_reload                       reloads nginx (systemctl, else nginx -s reload); 1 when it could not
+# Nothing here is called by anything that only shows or saves a block: the person asks for it.
+PROXY_MISSING="" PROXY_APPLIED=()
+proxy_conf_dir() { printf '%s' "${DELTACTL_NGINX_DIR:-/etc/nginx/conf.d}"; }
+proxy_conf_file() { printf '%s/%s-%s.conf' "$(proxy_conf_dir)" "$1" "$2"; }
+
+proxy_certs_missing() { # host...
+  local h d="${DELTACTL_LETSENCRYPT_DIR:-/etc/letsencrypt/live}"
+  PROXY_MISSING=""
+  for h in "$@"; do
+    { [ -f "$d/$h/fullchain.pem" ] && [ -f "$d/$h/privkey.pem" ]; } || PROXY_MISSING+="${PROXY_MISSING:+ }$h"
+  done
+  [ -z "$PROXY_MISSING" ]
+}
+
+# Puts every file back as it was before (the pairs are "<file>|<copy>"; no copy means the file did not exist).
+proxy_restore() { # pair...
+  local p f b
+  for p in "$@"; do
+    f="${p%%|*}" b="${p#*|}"
+    if [ -n "$b" ] && [ -e "$b" ]; then mv -f "$b" "$f"; else rm -f "$f"; fi
+  done
+}
+
+proxy_apply_nginx() { # instance tls entry...
+  local name="$1" tls="$2" e svc f dir
+  local -a pairs=()
+  shift 2
+  PROXY_ERR="" PROXY_APPLIED=()
+  dir="$(proxy_conf_dir)"
+  [ -d "$dir" ] || return 2
+  for e in "$@"; do
+    svc="${e##*|}"
+    f="$(proxy_conf_file "$name" "$svc")"
+    proxy_render nginx "$tls" "$e" || return 2
+    if [ -e "$f" ]; then cp -p "$f" "$f.deltactl-bak" || { proxy_restore "${pairs[@]}"; return 2; }; pairs+=("$f|$f.deltactl-bak"); else pairs+=("$f|"); fi
+    if ! printf '%s' "$PROXY_OUT" > "$f"; then proxy_restore "${pairs[@]}"; return 2; fi
+    chmod 644 "$f"
+  done
+  if ! PROXY_ERR="$(nginx -t 2>&1)"; then proxy_restore "${pairs[@]}"; return 1; fi
+  # (the copies stay only until the test passes: what nginx accepted is the new state)
+  for e in "${pairs[@]}"; do [ -z "${e#*|}" ] || rm -f "${e#*|}"; PROXY_APPLIED+=("${e%%|*}"); done
+  return 0
+}
+
+proxy_remove_nginx() { # instance svc...
+  local name="$1" svc f
+  local -a pairs=()
+  shift
+  PROXY_ERR="" PROXY_APPLIED=()
+  for svc in "$@"; do
+    f="$(proxy_conf_file "$name" "$svc")"
+    [ -e "$f" ] || continue
+    mv -f "$f" "$f.deltactl-removed" || { for f in "${pairs[@]}"; do mv -f "$f.deltactl-removed" "$f"; done; return 2; }
+    pairs+=("$f")
+  done
+  [ "${#pairs[@]}" -gt 0 ] || return 3
+  if ! PROXY_ERR="$(nginx -t 2>&1)"; then for f in "${pairs[@]}"; do mv -f "$f.deltactl-removed" "$f"; done; return 1; fi
+  PROXY_APPLIED=("${pairs[@]}")
+  return 0
+}
+
+proxy_reload() {
+  if command -v systemctl > /dev/null 2>&1 && systemctl reload nginx > /dev/null 2>&1; then return 0; fi
+  nginx -s reload > /dev/null 2>&1
+}

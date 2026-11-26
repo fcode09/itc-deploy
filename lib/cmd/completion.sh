@@ -30,7 +30,7 @@ COMPLETION_FLAGS=(
   "runs:--instance -n --json --tail --raw"
   "env:--reveal --json --stdin --force --yes"
   "service:--tag --port --generate-secrets --yes"
-  "access:--domain --host --www --no-www --tls --no-tls --proxy --save"
+  "access:--domain --host --www --no-www --tls --no-tls --proxy --save --apply --remove --service --yes"
   "secret:--force"
   "mongo:--apply --yes"
 )
