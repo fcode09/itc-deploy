@@ -12,7 +12,8 @@ $ ./deltactl access <instancia> [--domain D] [--host sN=NOMBRE]... [--www | --no
 ## Ejemplo (dos servicios, cada uno con su nombre)
 $ ./deltactl access colorado --domain deltampa.com \
     --host s0=backlion.deltampa.com --host s1=backguep.deltampa.com --www --proxy nginx --save
-$ sudo cp instances/colorado/proxy/nginx.conf /etc/nginx/conf.d/colorado.conf
+$ sudo cp instances/colorado/proxy/nginx.conf /etc/nginx/sites-available/colorado
+$ sudo ln -s /etc/nginx/sites-available/colorado /etc/nginx/sites-enabled/colorado
 $ sudo nginx -t && sudo systemctl reload nginx
 
 ## Opciones
@@ -22,10 +23,11 @@ $ sudo nginx -t && sudo systemctl reload nginx
 - `--tls` / `--no-tls`  HTTPS (nginx: redirección del 80 y bloque 443 con las rutas de certbot; Caddy lo hace solo)
 - `--proxy nginx|caddy`  cuál generar (por defecto el que ya usaba la instancia, o nginx)
 - `--save`  guarda el bloque en `instances/<instancia>/proxy/` y recuerda las respuestas en `access.conf`
-- `--apply`  además lo instala en nginx: un archivo por servicio en `/etc/nginx/conf.d/<instancia>-<servicio>.conf`, prueba
-  `nginx -t` y recarga; si la prueba falla devuelve todo como estaba y no recarga. Pide confirmación (`--yes` la omite) y
-  necesita root. Con HTTPS exige que ya existan los certificados de esos nombres (si faltan, muestra el `certbot` de cada uno)
-- `--remove`  quita esos archivos de nginx (se guardan como `.deltactl-removed`), prueba y recarga
+- `--apply`  además lo instala en nginx: un archivo por servicio en `/etc/nginx/sites-available/<instancia>-<servicio>`, enlazado
+  en `sites-enabled/` (o en `conf.d/` si esas carpetas no existen), prueba `nginx -t` y recarga; si la prueba falla devuelve
+  todo como estaba y no recarga. Pide confirmación (`--yes` la omite) y necesita root. Con HTTPS exige que ya existan los
+  certificados de esos nombres (si faltan, muestra el `certbot` de cada uno)
+- `--remove`  los desactiva (quita el enlace de `sites-enabled/`; el archivo de `sites-available/` se queda), prueba y recarga
 - `--service sN`  limita `--apply` o `--remove` a un servicio (sin ella, a todos)
 - `--yes`  no pregunta
 

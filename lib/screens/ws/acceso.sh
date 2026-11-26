@@ -250,7 +250,8 @@ dash_acc_install() { # apply|remove one|all
   if [ "${DASH_ACC_TLS[$name]:-1}" -eq 1 ]; then note="$(t tui.acc.confirm_tls)"; else note="$(t tui.acc.confirm_notls)"; fi
   args=(access "$name" "--$action" --yes)
   [ "$scope" = all ] || args+=(--service "$s")
-  dash_confirm "$(t "tui.acc.confirm_$action" "$name" "$list" "$note")" output "${args[@]}"
+  t_r "tui.acc.confirm_$action" "$name" "$list" "$note"   # (t_r: the key depends on the action)
+  dash_confirm "$T_OUT" output "${args[@]}"
 }
 
 # --- Keys -----------------------------------------------------------------------------------------------------------------------
@@ -480,7 +481,7 @@ ws_acceso_box() { # instance width height
   if [ -n "$DASH_ACC_DET" ]; then kit_state_icon ok; dash_ws_t tui.acc.detected "$DASH_ACC_DET"; else kit_state_icon dim; dt tui.acc.not_detected_short; DASH_T="$DTV"; fi
   st="$KIT_ICON $DASH_T"
   foot=""
-  for i in domain block https copy save name nginx off; do dt "tui.acc.foot.$i"; foot+="${foot:+|}$DTV"; done
+  for i in domain name nginx save block https copy off; do dt "tui.acc.foot.$i"; foot+="${foot:+|}$DTV"; done
   if dash_ws_has_strip; then dt tui.ws.foot.tabs; foot+="|$DTV"; fi
   opts=("chips=$chip" "status=$st" "footer=$foot")
   if [ "$DASH_FOCUS" = "tab" ]; then opts+=(focus=1); fi
