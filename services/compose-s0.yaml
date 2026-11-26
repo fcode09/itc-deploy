@@ -1,8 +1,8 @@
-# s0 = auth-backend (NestJS). Puerto interno 3200; se publica solo en 127.0.0.1:${S0_PORT}.
+# s0 = backend-s0 (NestJS). Puerto interno 3200; se publica solo en 127.0.0.1:${S0_PORT}.
 services:
   s0:
-    # REGISTRY vacío = imagen local (auth-backend:<tag>); con valor se antepone (<registry>/auth-backend:<tag>).
-    image: ${REGISTRY:+${REGISTRY}/}${S0_IMAGE:-auth-backend}:${S0_TAG:?define S0_TAG en .env.instance}
+    # REGISTRY vacío = imagen local (backend-s0:<tag>); con valor se antepone (<registry>/backend-s0:<tag>).
+    image: ${REGISTRY:+${REGISTRY}/}${S0_IMAGE:-backend-s0}:${S0_TAG:?define S0_TAG en .env.instance}
     # ./deltactl fija PULL_POLICY=never cuando REGISTRY está vacío: si falta la imagen local, Docker no
     # debe bajar de Docker Hub una imagen homónima que no es la nuestra.
     pull_policy: ${PULL_POLICY:-missing}

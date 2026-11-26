@@ -45,7 +45,7 @@ Copia `ORIGEN` a `instances/<instancia>/secrets/<NOMBRE>` con modo 600 (por ejem
 Genera el texto del proxy inverso de cada servicio de la instancia y lo guarda **dentro de la instancia**: `instances/<instancia>/proxy/nginx.conf` y/o
 `proxy/Caddyfile`.
 
-- **Qué genera** (`lib/core/proxy.sh`): un servidor por servicio, con el nombre `<nombre del servicio>.<dominio>` (por ejemplo `auth-backend.muni.example.com`) hacia
+- **Qué genera** (`lib/core/proxy.sh`): un servidor por servicio, con el nombre `<nombre del servicio>.<dominio>` (por ejemplo `backend-s0.muni.example.com`) hacia
   `127.0.0.1:<puerto de la instancia>`. Con `--tls`, nginx redirige el 80 y escucha el 443 con las rutas de certbot (`/etc/letsencrypt/live/<nombre>/…`, solo como texto) y Caddy
   consigue el certificado solo; sin `--tls`, solo http. nginx lleva los encabezados de un proxy y el *upgrade* de websocket.
 - **Más tarde**: la pestaña *Acceso* del espacio de trabajo de la instancia (vista Instancias) muestra, copia y vuelve a guardar el mismo bloque (cambiando el

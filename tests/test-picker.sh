@@ -188,9 +188,9 @@ printf '#!/usr/bin/env bash\nexport FIX="%s"\nexec bash "%s/bin/docker-fake" "$@
 chmod +x "$F2/bin/docker"
 NOW="$(date +%s)"
 iso() { date -u -d "@$1" '+%Y-%m-%d %H:%M:%S +0000 UTC'; }
-printf '%s\n' "auth-backend:2.14.1|sha256:a1|amd64" "auth-backend:2.14.0|sha256:a2|amd64" "auth-backend:3.0.0|sha256:a3|arm64" "auth-backend:latest|sha256:a4|amd64" > "$F2/images.txt"
-printf '%s\n' "auth-backend:2.14.1|$(iso $((NOW - 2 * 86400)))" "auth-backend:2.14.0|$(iso $((NOW - 40 * 86400)))" \
-  "auth-backend:3.0.0|$(iso $((NOW - 3600)))" "auth-backend:latest|$(iso $((NOW - 86400 * 400)))" > "$F2/image_dates.txt"
+printf '%s\n' "backend-s0:2.14.1|sha256:a1|amd64" "backend-s0:2.14.0|sha256:a2|amd64" "backend-s0:3.0.0|sha256:a3|arm64" "backend-s0:latest|sha256:a4|amd64" > "$F2/images.txt"
+printf '%s\n' "backend-s0:2.14.1|$(iso $((NOW - 2 * 86400)))" "backend-s0:2.14.0|$(iso $((NOW - 40 * 86400)))" \
+  "backend-s0:3.0.0|$(iso $((NOW - 3600)))" "backend-s0:latest|$(iso $((NOW - 86400 * 400)))" > "$F2/image_dates.txt"
 bash ./deltactl new pk-uno > /dev/null 2>&1
 fill_instance instances/pk-uno 2.14.0 1.0
 lib3() { # language function
@@ -198,9 +198,9 @@ lib3() { # language function
   FIX="$F2" PATH="$F2/bin:$PATH" ROOT="$PWD" DELTACTL_LANG="$lang" DELTACTL_CONFIG="$F2/none" DELTACTL_UI=rich DELTACTL_COLOR=never \
     bash -c 'source lib/bootstrap.sh; source lib/ui/tui.sh; source lib/ui/kit/kit.sh; theme_apply matrix; '"$(declare -f "$fn")"'; '"$fn" 2>&1
 }
-t_rows() { ic_load; ic_picker_rows "s0|auth-backend" R; local r; for r in "${R[@]}"; do echo "${r//$'\x1f'/|}"; done; }
+t_rows() { ic_load; ic_picker_rows "s0|backend-s0" R; local r; for r in "${R[@]}"; do echo "${r//$'\x1f'/|}"; done; }
 t_texts() { declare -A TX=(); ic_picker_texts TX; echo "${TX[col_version]}|${TX[col_use]}|${TX[unused]}|${TX[latest_hint]}|${TX[other]}|${TX[load]}|${TX[why_arch]}"; }
-t_draw() { ic_load; ic_picker_rows "s0|auth-backend" R; declare -A TX=(); ic_picker_texts TX; ic_note "s0|auth-backend"
+t_draw() { ic_load; ic_picker_rows "s0|backend-s0" R; declare -A TX=(); ic_picker_texts TX; ic_note "s0|backend-s0"
   kit_vpick 100 8 R sel=1 texts=TX server_arch="$IC_SERVER_ARCH" "note=$IC_NOTE"; printf '%s\n' "${KVP_LINES[@]}" | sed 's/\x1b\[[0-9;]*m//g' | tr -d '\001'; }
 rows="$(lib3 en t_rows)"
 check "newest first: the tag, how long ago in words, the size, the architecture, who uses it and the flags" '

@@ -26,7 +26,7 @@ ws_historial_data() {
     cp "$9" "$d/.deltactl/runs/$1/out.log"
     printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$1" "$7" "$2" "$4" "$5" "$6" "$8" >> "$d/.deltactl/runs.idx"
   }
-  printf 'Rolling back auth-backend to 2.13.0\nDone\n' > "$d/plain.txt"
+  printf 'Rolling back backend-s0 to 2.13.0\nDone\n' > "$d/plain.txt"
   ws_run 20261031T150000Z-3 rollback "ix-colorado s0" ix-colorado succeeded 0 2026-10-31T15:00:00Z 5300 "$d/plain.txt"
   ws_run 20261101T090000Z-2 check ix-colorado ix-colorado failed 1 2026-11-01T09:00:00Z 2100 "tests/golden/outsum/in/check-fail-$lang.txt"
   ws_run 20261101T095000Z-4 deploy ix-lima ix-lima succeeded 0 2026-11-01T09:50:00Z 30100 "tests/golden/outsum/in/deploy-$lang.txt"
@@ -73,7 +73,7 @@ ws_fill() {
   DSV_KIND=([ix-colorado/s0]=ok [ix-colorado/s1]=ok [ix-lima/s0]=ok [ix-lima/s1]=err [ix-piura/s0]=err [ix-piura/s1]=err [ix-sullana/s0]=dim [ix-sullana/s1]=dim)
   DSV_TEXT=([ix-colorado/s0]=healthy [ix-colorado/s1]=healthy [ix-lima/s0]=healthy [ix-lima/s1]=exited [ix-piura/s0]=exited [ix-piura/s1]=exited [ix-sullana/s0]="no creado" [ix-sullana/s1]="no creado")
   for key in ix-colorado ix-lima ix-piura ix-sullana; do
-    DSV_REF[$key/s0]="auth-backend:2.14.1" DSV_REF[$key/s1]="gueo-back-end:2.9.0"
+    DSV_REF[$key/s0]="backend-s0:2.14.1" DSV_REF[$key/s1]="backend-s1:2.9.0"
   done
   DSV_UP=([ix-colorado/s0]=2d04h [ix-colorado/s1]=2d04h [ix-lima/s0]=6h12m)
   DSV_PORT=([ix-colorado/s0]=4100 [ix-colorado/s1]=4101 [ix-lima/s0]=4110 [ix-lima/s1]=4111 [ix-piura/s0]=4120 [ix-piura/s1]=4121 [ix-sullana/s0]=4130 [ix-sullana/s1]=4131)
@@ -99,10 +99,10 @@ ws_todo_data() {
   st_hint_t "./deltactl init ix-piura" status.hint.no_data ix-piura
   DASH_WS_ENVPEND=([ix-lima]="s0 instance") DASH_WS_ENVMISS=([ix-lima]="s1: 2") DASH_WS_ENVMISSN=([ix-lima]=2)
   DASH_IMG_STATE=ready
-  IC_N=2 IC_GROUPS=("s0|auth-backend")
+  IC_N=2 IC_GROUPS=("s0|backend-s0")
   IC_TAG=(2.14.1 2.15.0) IC_ID=(aaaa bbbb) IC_EPOCH=(1700000000 1710000000) IC_KIND=(ver ver) IC_VNUM=(2.14.1 2.15.0) IC_VPRE=("" "") IC_OK=(1 1) IC_STAR=(0 1)
   IC_USE=("ix-lima(current) ix-colorado(current) " "")
-  IC_ORDER=(["s0|auth-backend"]="1 0") IC_STARIDX=(["s0|auth-backend"]=1) IC_DISC=()
+  IC_ORDER=(["s0|backend-s0"]="1 0") IC_STARIDX=(["s0|backend-s0"]=1) IC_DISC=()
   DASH_SRV_STATE=ready DASH_SRV_BAD=1 DASH_SRV_BAD_NAMES="docker compose"
 }
 

@@ -56,7 +56,7 @@ check "the tab has a name in both languages" '[ "$(run_lib "t tui.tab.images")" 
 
 section "2. the catalog is applied: where the cursor starts and where it stays"
 t_apply() { dash_img_apply "$(dash_img_dump)"; printf '%s ' "$DASH_IMG_STATE" "${#DASH_IMG_ITEMS[@]}" "$DASH_IMG_SEL"; dash_img_cur; echo "${IC_TAG[$DASH_IMG_CI]} $DASH_IMG_G"; }
-check "the first read leaves 6 versions and the cursor on the star of the first image" '[ "$(run_lib "$(declare -f t_apply); t_apply")" = "ready 6 1 2.14.1 s0|auth-backend" ]'
+check "the first read leaves 6 versions and the cursor on the star of the first image" '[ "$(run_lib "$(declare -f t_apply); t_apply")" = "ready 6 1 2.14.1 s0|backend-s0" ]'
 t_keep() { dash_img_apply "$(dash_img_dump)"; DASH_IMG_SEL=3; dash_img_cur; a="${IC_TAG[$DASH_IMG_CI]}"; dash_img_apply "$(dash_img_dump)"; dash_img_cur; echo "$a ${IC_TAG[$DASH_IMG_CI]} $DASH_IMG_SEL"; }
 check "a new read keeps the cursor on the same version (image and tag)" '[ "$(run_lib "$(declare -f t_keep); t_keep")" = "2.14.0 2.14.0 3" ]'
 t_items() { dash_img_apply "$(dash_img_dump)"; local it; for it in "${DASH_IMG_ITEMS[@]}"; do printf '%s ' "${IC_TAG[${it##*|}]}"; done; }
@@ -129,7 +129,7 @@ check "under each image it says which versions the instances run and who runs ea
 check "a service that runs another version than the configured one is warned: it needs a deploy" 'grep -q "ix-colorado: corre 2.13.2 pero está configurada 2.14.0; falta desplegar" "$F"'
 check "a configured version that is not loaded is an error, with what to do" 'grep -q "ix-nuevo: la versión configurada 9.9.9 no está cargada; cárgala antes de desplegar" "$F"'
 check "a stopped service counts with its configured version and says it is stopped" 'grep -qF "En uso: ★ 2.9.0 (ix-colorado, ix-lima [parada])" "$F"'
-check "an image that no instance has says so" 'run_lib "dash_img_apply \"\$(dash_img_dump)\"; DASH_NAMES=(); dash_img_current \"s0|auth-backend\" 80; echo \"\${DASH_IMG_CUR[0]}\"" | grep -q "En uso: ninguna instancia"'
+check "an image that no instance has says so" 'run_lib "dash_img_apply \"\$(dash_img_dump)\"; DASH_NAMES=(); dash_img_current \"s0|backend-s0\" 80; echo \"\${DASH_IMG_CUR[0]}\"" | grep -q "En uso: ninguna instancia"'
 check "in English the lines are translated too" 'grep -q "In use: ★ 2.14.1" "$FIX/frames/current-160x40-en.txt" && grep -q "runs 2.13.2 but 2.14.0 is configured; it needs a deploy" "$FIX/frames/current-160x40-en.txt" && grep -q "configured version 9.9.9 is not loaded; load it before deploying" "$FIX/frames/current-160x40-en.txt"'
 
 section "4. the shape of every frame"
@@ -143,11 +143,11 @@ images_fixture "$FIX"
 check "no line is wider than the screen, in any scene and size" 'for f in "$FIX"/frames/*-es.txt; do sz="${f%-es.txt}"; sz="${sz##*-}"; c="${sz%x*}"; awk -v c="$c" "{ if (length(\$0) > c) bad = 1 } END { exit bad }" "$f" || { echo "$f"; exit 1; }; done'
 check "a frame has exactly the rows of the screen (the header, the tabs, the body, the message and the keys)" 'for f in "$FIX"/frames/*-es.txt; do sz="${f%-es.txt}"; sz="${sz##*-}"; r="${sz#*x}"; c="${sz%x*}"; [ "$c" -ge 60 ] && [ "$r" -ge 14 ] || continue; [ "$(grep -c "" "$f")" -eq "$((r + 1))" ] || { echo "$f $(grep -c "" "$f") $r"; exit 1; }; done'
 check "the box has its title chip with the number of the view, and the server architecture and number of versions" 'for sz in 80x24 120x30 160x40; do sed -n 4p "$FIX/frames/ok-$sz-es.txt" | grep -q "²imágenes" && sed -n 4p "$FIX/frames/ok-$sz-es.txt" | grep -q "servidor amd64 · 6 versiones" || exit 1; done'
-check "each image has a heading with its service, its name, how many versions it has and which is the star" 'grep -q "▾ s0 · auth-backend .*5 versiones · ★ 2.14.1" "$FIX/frames/ok-120x30-es.txt" && grep -q "▾ s1 · gueo-back-end .*1 versión · ★ 2.9.0" "$FIX/frames/ok-120x30-es.txt"'
+check "each image has a heading with its service, its name, how many versions it has and which is the star" 'grep -q "▾ s0 · backend-s0 .*5 versiones · ★ 2.14.1" "$FIX/frames/ok-120x30-es.txt" && grep -q "▾ s1 · backend-s1 .*1 versión · ★ 2.9.0" "$FIX/frames/ok-120x30-es.txt"'
 check "every table has the columns and the marks: ★ the most recent, ▲ the tag that moves, ✖ the image of another architecture" 'f="$FIX/frames/ok-120x30-es.txt"; grep -q "VERSIÓN .*CREADA .*TAMAÑO ARQ .*USO" "$f" && grep -q "2.14.1 ★" "$f" && grep -q "latest ▲" "$f" && grep -q "3.0.0-rc1 .*arm64 ✖" "$f"'
 check "an image of another architecture says why on the last line of the box, with both architectures" 'grep -q "imagen de arquitectura arm64; este servidor es amd64: no arrancaría" "$FIX/frames/foreign-120x30-es.txt"'
 check "the star says it is the most recent one the server can use" 'grep -q "La más reciente que este servidor puede usar" "$FIX/frames/ok-120x30-es.txt"'
-check "the detail shows the reference, the id, the date (ISO and in words), the size, the architecture and who uses it" 'f="$FIX/frames/detail-120x30-es.txt"; grep -q "auth-backend:2.14.1" "$f" && grep -q "ID a1aaaaaaaaaa · creada 2026-11-22T12:00:00Z (hace 2 días) · 300MB · amd64" "$f" && grep -q "la usan: ix-lima(actual)" "$f"'
+check "the detail shows the reference, the id, the date (ISO and in words), the size, the architecture and who uses it" 'f="$FIX/frames/detail-120x30-es.txt"; grep -q "backend-s0:2.14.1" "$f" && grep -q "ID a1aaaaaaaaaa · creada 2026-11-22T12:00:00Z (hace 2 días) · 300MB · amd64" "$f" && grep -q "la usan: ix-lima(actual)" "$f"'
 check "while it reads, the box says so and nothing is listed as if it were loaded" 'f="$FIX/frames/loading-120x30-es.txt"; grep -q "leyendo…" "$f" && ! grep -q "▾ s0" "$f"'
 check "without Docker the box says it does not answer" 'grep -q "Docker no responde" "$FIX/frames/nodocker-120x30-es.txt" && grep -q "sin Docker" "$FIX/frames/nodocker-120x30-es.txt"'
 check "with nothing loaded every image says so and how to load one" 'f="$FIX/frames/empty-120x30-es.txt"; [ "$(grep -c "No hay versiones cargadas de esta imagen" "$f")" -eq 2 ] && grep -q "sin imágenes" "$f"'
@@ -178,12 +178,12 @@ check "a second Esc goes to the first view (the Server view)" 'panel 2 esc | las
 check "home and end go to the first and the last version" 'panel 2 end | last_frame | grep -q "2.9.0 ★" && panel 2 end home | last_frame | grep -q "arquitectura arm64"'
 check "the digit reaches the view from the others" 'panel 9 2 | last_frame | grep -q "\[2 Imágenes\]" && panel 3 2 | last_frame | grep -q "²imágenes"'
 rm -f "$FIX/clip.txt"
-check "c copies the reference (image:tag) of the version, and says so" 'o="$(DELTACTL_CLIP="cat > $FIX/clip.txt" panel 2 c)"; [ "$(cat "$FIX/clip.txt")" = "auth-backend:2.14.1" ] && echo "$o" | last_frame | grep -q "Copiado: auth-backend:2.14.1"'
-check "c with no clipboard says what to copy by hand" 'o="$(DELTACTL_CLIP=false panel 2 c)"; echo "$o" | last_frame | grep -q "No se pudo copiar.*auth-backend:2.14.1"'
+check "c copies the reference (image:tag) of the version, and says so" 'o="$(DELTACTL_CLIP="cat > $FIX/clip.txt" panel 2 c)"; [ "$(cat "$FIX/clip.txt")" = "backend-s0:2.14.1" ] && echo "$o" | last_frame | grep -q "Copiado: backend-s0:2.14.1"'
+check "c with no clipboard says what to copy by hand" 'o="$(DELTACTL_CLIP=false panel 2 c)"; echo "$o" | last_frame | grep -q "No se pudo copiar.*backend-s0:2.14.1"'
 check "R reads the catalog again and says so" 'panel 2 R | last_frame | grep -q "Leyendo las imágenes"'
 
 # The fixture's 3.0.0-rc1 is an arm64 image: it never competes for the star. Made amd64 and the newest, it must still not be the star.
-sed -i 's/^auth-backend:3.0.0-rc1|sha256:a4aaaaaaaaaaaa|arm64$/auth-backend:3.0.0-rc1|sha256:a4aaaaaaaaaaaa|amd64/' "$FIX/images.txt"
+sed -i 's/^backend-s0:3.0.0-rc1|sha256:a4aaaaaaaaaaaa|arm64$/backend-s0:3.0.0-rc1|sha256:a4aaaaaaaaaaaa|amd64/' "$FIX/images.txt"
 check "a pre-release that this server can run and that is the newest of its image is not the star: the star stays on the newest stable version" '
   f="$(panel 2 | last_frame)"; echo "$f" | grep -q "2.14.1 ★" && ! echo "$f" | grep -q "3.0.0-rc1 ★"'
 images_fixture "$FIX"
@@ -193,7 +193,7 @@ tag_of() { grep "^S0_TAG=" "instances/$1/.env.instance" | cut -d= -f2; }
 : > "$FIX/calls.log"
 cp instances/ix-colorado/.env.instance "$FIX/env.instance.before"; cksum < instances/ix-colorado/.env.s0 > "$FIX/env.s0.sum"
 stat -c %a instances/ix-colorado/.env.instance > "$FIX/env.mode"; stat -c %a instances/ix-colorado/.env.s0 > "$FIX/env.s0.mode"
-check "Enter opens the dialog with the instances that have the service (and what they would change)" 'o="$(panel 2 enter)"; f="$(echo "$o" | last_frame)"; echo "$f" | grep -q "Elige la instancia donde usar auth-backend:2.14.1 (servicio s0)" && echo "$f" | grep -q "ix-colorado  ahora 2.14.0 → 2.14.1" && echo "$f" | grep -q "ix-lima .*ya usa esta versión"'
+check "Enter opens the dialog with the instances that have the service (and what they would change)" 'o="$(panel 2 enter)"; f="$(echo "$o" | last_frame)"; echo "$f" | grep -q "Elige la instancia donde usar backend-s0:2.14.1 (servicio s0)" && echo "$f" | grep -q "ix-colorado  ahora 2.14.0 → 2.14.1" && echo "$f" | grep -q "ix-lima .*ya usa esta versión"'
 check "the cursor of the dialog starts on the first instance that can take it, and moves" 'o="$(panel 2 enter)"; echo "$o" | last_frame | grep -q "▸ ix-colorado"'
 check "Esc cancels, says so, and nothing is written" 'panel 2 enter esc | last_frame | grep -q "Cancelado" && [ "$(tag_of ix-colorado)" = 2.14.0 ] && [ ! -s "$FIX/calls.log" ] && [ "$(grep -c "" "instances/ix-colorado/.env.instance")" -gt 0 ]'
 check "an instance that already uses the version cannot be chosen: Enter says why and stays" 'o="$(panel 2 enter down enter)"; f="$(echo "$o" | last_frame)"; echo "$f" | grep -q "ya usa esta versión" && ! echo "$f" | grep -q "Cambiar la versión de"'
@@ -258,36 +258,36 @@ check "with no instance that has the service nothing opens and the message says 
   mkdir -p "$FIX/off"; mv instances/ix-colorado instances/ix-lima "$FIX/off/"
   o="$(panel 2 enter)"; mv "$FIX/off/ix-colorado" "$FIX/off/ix-lima" instances/
   echo "$o" | last_frame | grep -q "Ninguna instancia tiene activo el servicio s0"'
-check "the dialog of using a version is in English too" 'LANGX=en panel 2 enter enter | last_frame | grep -q "Change the version of s0 in .ix-colorado.: 2.14.0 → 2.14.1" && LANGX=en panel 2 enter | last_frame | grep -q "Choose the instance where to use auth-backend:2.14.1"'
+check "the dialog of using a version is in English too" 'LANGX=en panel 2 enter enter | last_frame | grep -q "Change the version of s0 in .ix-colorado.: 2.14.0 → 2.14.1" && LANGX=en panel 2 enter | last_frame | grep -q "Choose the instance where to use backend-s0:2.14.1"'
 
 section "7c. an instance can only use a version it can find: the name of its images"
-# A local instance runs auth-backend:<tag> and never pulls (pull policy never); one with a REGISTRY runs <registry>/auth-backend:<tag>, which
+# A local instance runs backend-s0:<tag> and never pulls (pull policy never); one with a REGISTRY runs <registry>/backend-s0:<tag>, which
 # Docker pulls when it is not loaded. A tag that is loaded under another name is not the image of the instance: the tag would be written and
 # the deploy would fail, or pull something else.
-printf '%s\n' "reg.io/auth-backend:2.12.0|sha256:ra1aaaaaaaaaaa|amd64" >> "$FIX/images.txt"
-printf '%s\n' "reg.io/auth-backend:2.12.0|2026-10-01 12:00:00 +0000 UTC" >> "$FIX/image_dates.txt"
+printf '%s\n' "reg.io/backend-s0:2.12.0|sha256:ra1aaaaaaaaaaa|amd64" >> "$FIX/images.txt"
+printf '%s\n' "reg.io/backend-s0:2.12.0|2026-10-01 12:00:00 +0000 UTC" >> "$FIX/image_dates.txt"
 : > "$FIX/calls.log"
 o="$(panel 2 end up enter)"
-check "a local instance cannot use a tag that is only loaded as reg.io/auth-backend: it says what it needs and what there is" '
-  f="$(echo "$o" | last_frame)"; echo "$f" | grep -q "ix-colorado .*solo cargada como reg.io/auth-backend"'
+check "a local instance cannot use a tag that is only loaded as reg.io/backend-s0: it says what it needs and what there is" '
+  f="$(echo "$o" | last_frame)"; echo "$f" | grep -q "ix-colorado .*solo cargada como reg.io/backend-s0"'
 o="$(panel 2 end up enter enter)"
-check "Enter on it says why and writes nothing" '[ "$(tag_of ix-colorado)" = 2.14.0 ] && echo "$o" | last_frame | grep -q "ix-colorado usa imágenes locales: necesita auth-backend:2.12.0, solo cargada como reg.io/auth-backend" && echo "$o" | last_frame | grep -q "Elige la instancia"'
+check "Enter on it says why and writes nothing" '[ "$(tag_of ix-colorado)" = 2.14.0 ] && echo "$o" | last_frame | grep -q "ix-colorado usa imágenes locales: necesita backend-s0:2.12.0, solo cargada como reg.io/backend-s0" && echo "$o" | last_frame | grep -q "Elige la instancia"'
 sed -i 's/^REGISTRY=.*/REGISTRY=reg.io/' instances/ix-lima/.env.instance
 grep -q '^REGISTRY=reg.io$' instances/ix-lima/.env.instance || echo 'REGISTRY=reg.io' >> instances/ix-lima/.env.instance
 o="$(panel 2 end up enter)"
-check "an instance with the registry reg.io can use the version loaded as reg.io/auth-backend" '
+check "an instance with the registry reg.io can use the version loaded as reg.io/backend-s0" '
   f="$(echo "$o" | last_frame)"; echo "$f" | grep -q "ix-lima .*ahora 2.14.1 → 2.12.0"'
 o="$(panel 2 down down enter)"
 check "and cannot use one that is only loaded under the bare name: it would be pulled from the registry, which may not have it" '
-  f="$(echo "$o" | last_frame)"; echo "$f" | grep -q "ix-lima .*no cargada como reg.io/auth-backend" && echo "$f" | grep -q "ix-colorado .*ya usa esta versión"'
+  f="$(echo "$o" | last_frame)"; echo "$f" | grep -q "ix-lima .*no cargada como reg.io/backend-s0" && echo "$f" | grep -q "ix-colorado .*ya usa esta versión"'
 o="$(LANGX=en panel 2 down down enter)"
-check "the reasons are in English too" 'echo "$o" | last_frame | grep -q "ix-lima .*not loaded as reg.io/auth-backend"'
+check "the reasons are in English too" 'echo "$o" | last_frame | grep -q "ix-lima .*not loaded as reg.io/backend-s0"'
 sed -i 's/^REGISTRY=.*/REGISTRY=/' instances/ix-lima/.env.instance
 images_fixture "$FIX"
 
 section "8. keys: loading an archive"
 printf 'x' > "$FIX/app.tar"
-printf 'Loaded image: auth-backend:2.15.0\n' > "$FIX/load_result"
+printf 'Loaded image: backend-s0:2.15.0\n' > "$FIX/load_result"
 printf '2026-11-24 10:00:00 +0000 UTC' > "$FIX/load_date"
 check "l opens the dialog for the path, and says when the file is not there" 'o="$(panel 2 l n o p e)"; f="$(echo "$o" | last_frame)"; echo "$f" | grep -q "cargar imágenes" && echo "$f" | grep -q "ese archivo no existe"'
 check "Enter on a path that does not exist keeps the dialog and says so" 'panel 2 l n o p e enter | last_frame | grep -q "ese archivo no existe" && panel 2 l n o p e enter | last_frame | grep -q "cargar imágenes"'
@@ -307,7 +307,7 @@ check "while it loads, the last frame says which file, that the panel keeps work
   echo "$o" | grep -q "cargando app.tar… (el panel sigue funcionando; x cancela)" && echo "$o" | grep -q "x cancelar"'
 
 section "9. the scene with a long list: window and cost"
-for ((i = 1; i <= 30; i++)); do printf 'auth-backend:1.%d.0|sha256:z%02d00000000000|amd64\n' "$i" "$i" >> "$FIX/images.txt"; printf 'auth-backend:1.%d.0|2026-10-%02d 12:00:00 +0000 UTC\n' "$i" "$i" >> "$FIX/image_dates.txt"; done
+for ((i = 1; i <= 30; i++)); do printf 'backend-s0:1.%d.0|sha256:z%02d00000000000|amd64\n' "$i" "$i" >> "$FIX/images.txt"; printf 'backend-s0:1.%d.0|2026-10-%02d 12:00:00 +0000 UTC\n' "$i" "$i" >> "$FIX/image_dates.txt"; done
 check "with 30 more versions the list scrolls: the cursor stays in view and the box keeps its size" '
   o="$(panel 2 end)"; f="$(echo "$o" | last_frame)"
   [ "$(echo "$f" | grep -c "")" -eq 31 ] && echo "$f" | grep -q "2.9.0 ★"'

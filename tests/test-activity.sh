@@ -53,7 +53,7 @@ mkrun() { # id op args instance state rc started ms output-file [extra lines of 
   cp "$9" "$STATE/runs/$1/out.log"
   printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$1" "$7" "$2" "$4" "$5" "$6" "$8" >> "$STATE/runs.idx"
 }
-printf 'Rolling back auth-backend to 2.13.0\nDone\n' > "$FIX/plain.txt"
+printf 'Rolling back backend-s0 to 2.13.0\nDone\n' > "$FIX/plain.txt"
 mkrun 20261030T100000Z-0 deploy ax-a ax-a succeeded 0 2026-10-30T10:00:00Z 38000 tests/golden/outsum/in/deploy-es.txt $'CPU_MS=8000\nDOCKER_MS=28000\nDOCKER_CALLS=12\nPEAK_RSS_KB=40000\nPEAK_PROCS=5\nOUT_BYTES=2100\nOUT_LINES=38'
 mkrun 20261031T150000Z-3 rollback "ax-a s0" ax-a succeeded 0 2026-10-31T15:00:00Z 5300 "$FIX/plain.txt"
 mkrun 20261101T090000Z-2 check ax-a ax-a failed 1 2026-11-01T09:00:00Z 2100 tests/golden/outsum/in/check-fail-es.txt
@@ -98,7 +98,7 @@ out="$(panel 0 down q | frame_n 3)"
 check "the detail has the command, the state with its code, when, how long and who" 'echo "$out" | grep -q "comando *./deltactl deploy ax-a" && echo "$out" | grep -qE "estado *\* correcta . c.digo 0" && echo "$out" | grep -q "2026-11-01 10:00:00Z" && echo "$out" | grep -q "41.2 s" && echo "$out" | grep -q "ana@testhost"'
 check "what a deploy printed is its summary (the one of the Output view), not the raw text" 'echo "$out" | grep -q "Lo que imprimi. (resumen)" && echo "$out" | grep -q "Validando compose"'
 check "a run that failed says so, with its code" 'panel 0 down down down q | frame_n 5 | grep -qE "estado *x fallida . c.digo 1"'
-check "a command with no shape shows the end of what it printed" 'panel 0 down down down down q | frame_n 6 | grep -q "Salida (.ltimas 2 l.neas)" && panel 0 down down down down q | frame_n 6 | grep -q "Rolling back auth-backend"'
+check "a command with no shape shows the end of what it printed" 'panel 0 down down down down q | frame_n 6 | grep -q "Salida (.ltimas 2 l.neas)" && panel 0 down down down down q | frame_n 6 | grep -q "Rolling back backend-s0"'
 check "the command of this panel says how it ended and keeps the note that it is not in the history" 'f="$(panel i wait 0 q | last_frame)"; echo "$f" | grep -q "comando *./deltactl images" && echo "$f" | grep -qE "estado *\* correcto" && echo "$f" | grep -q "no se guardan en el historial"'
 check "PgDn moves the detail and PgUp brings it back, where it is longer than the box (100 x 20)" 'a="$(PANEL_COLS=100 PANEL_ROWS=20 panel 0 down q | frame_n 3 | sed 1d | md5sum)"; b="$(PANEL_COLS=100 PANEL_ROWS=20 panel 0 down pgdn q | frame_n 4 | sed 1d | md5sum)"; c="$(PANEL_COLS=100 PANEL_ROWS=20 panel 0 down pgdn pgup q | frame_n 5 | sed 1d | md5sum)"; [ "$a" != "$b" ] && [ "$a" = "$c" ]'
 check "what a file says is data: the escape sequences that clear the screen or move the cursor, in the output of a run, do not reach the screen" '! panel 0 q | frame_n 2 | grep -q "$ESC\[2J\|$ESC\[H" && panel 0 q | frame_n 2 | grep -q "line with clear and"'

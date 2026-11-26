@@ -26,8 +26,8 @@ mkdir -p "$FIX/bin"
 cp tests/fake-docker.sh "$FIX/bin/docker"
 chmod +x "$FIX/bin/docker"
 export PATH="$FIX/bin:$PATH"
-printf 'auth-backend:1.0|sha256:aaaa1111|amd64\ngueo-back-end:2.0|sha256:bbbb2222|amd64\ngueo-back-end:2.1|sha256:bbbb2223|amd64\n' > "$FIX/images.txt"
-printf '%s\n' "auth-backend:1.0|2026-11-20 12:00:00 +0000 UTC" "gueo-back-end:2.0|2026-11-20 12:00:00 +0000 UTC" "gueo-back-end:2.1|2026-11-23 12:00:00 +0000 UTC" > "$FIX/image_dates.txt"
+printf 'backend-s0:1.0|sha256:aaaa1111|amd64\nbackend-s1:2.0|sha256:bbbb2222|amd64\nbackend-s1:2.1|sha256:bbbb2223|amd64\n' > "$FIX/images.txt"
+printf '%s\n' "backend-s0:1.0|2026-11-20 12:00:00 +0000 UTC" "backend-s1:2.0|2026-11-20 12:00:00 +0000 UTC" "backend-s1:2.1|2026-11-23 12:00:00 +0000 UTC" > "$FIX/image_dates.txt"
 
 D() { DELTACTL_NO_RUNS=1 bash ./deltactl "$@"; }
 run() { ROOT="$PWD" bash -c "source lib/bootstrap.sh; $1"; }
@@ -55,7 +55,7 @@ check "add, remove y set sí son operaciones registradas, con su instancia" '
 
 section "2. add: crea lo que falta y no toca el resto"
 check "añadir s1 a una instancia que solo tenía s0 lo activa y dice el puerto" '
-  out="$(D service add sv-a s1 --tag 2.0 2>&1)"; echo "$out" | grep -q "s1 (gueo-back-end) activado en .sv-a." && [ "$(prof sv-a)" = "s0,s1" ]'
+  out="$(D service add sv-a s1 --tag 2.0 2>&1)"; echo "$out" | grep -q "s1 (backend-s1) activado en .sv-a." && [ "$(prof sv-a)" = "s0,s1" ]'
 check "su .env.s1 sale de la plantilla con modo 600" '[ -f instances/sv-a/.env.s1 ] && [ "$(mode instances/sv-a/.env.s1)" = "600" ]'
 check "el nombre de la instancia entra en el marcador de sus bases de datos" '! grep -q "CAMBIAR_[a-z]*_INSTANCIA" instances/sv-a/.env.s1'
 check "crea sus carpetas de data/" 'for d in media uploads fileIncidentsResolved imageIncidentsResolved; do [ -d "instances/sv-a/data/s1/$d" ] || exit 1; done'

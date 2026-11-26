@@ -19,8 +19,8 @@
 # What loading leaves (index i is one tag of one image; the groups are service + image name):
 #   IC_N                     how many tags
 #   IC_SVC IC_REPO IC_TAG IC_ID IC_ARCH IC_SINCE IC_SIZE      as Docker said them (IC_ARCH is ? when it is not known)
-#   IC_FULL[i]               the name Docker gives the image, with its registry if it has one ("reg.io/auth-backend"); IC_REPO is the name of
-#                            the group ("auth-backend"), which also holds the tags loaded as "<registry>/auth-backend"
+#   IC_FULL[i]               the name Docker gives the image, with its registry if it has one ("reg.io/backend-s0"); IC_REPO is the name of
+#                            the group ("backend-s0"), which also holds the tags loaded as "<registry>/backend-s0"
 #   IC_EPOCH[i]              creation date in seconds since 1970 (0 when Docker gave none)
 #   IC_KIND[i]               ver | latest | other
 #   IC_VNUM[i] IC_VPRE[i]    the version of a "ver" tag: its dotted numbers and its pre-release ("rc1"), both without the leading v

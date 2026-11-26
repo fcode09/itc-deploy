@@ -26,7 +26,7 @@ chmod +x "$FIX/bin/docker" "$FIX/bin/ss"
 export DELTACTL_MEMINFO="$FIX/meminfo" DELTACTL_LOADAVG="$FIX/loadavg" DELTACTL_PROC_ROOT="$FIX/proc" DELTACTL_CGROUP_ROOT="$FIX/cg"
 printf 'MemTotal:        8388608 kB\nMemAvailable:    3145728 kB\n' > "$FIX/meminfo"
 printf '0.82 0.50 0.40 1/200 1234\n' > "$FIX/loadavg"
-printf 'auth-backend:2.14.1|sha256:aaaa1111|amd64\ngueo-back-end:2.9.0|sha256:bbbb2222|amd64\n' > "$FIX/images.txt"
+printf 'backend-s0:2.14.1|sha256:aaaa1111|amd64\nbackend-s1:2.9.0|sha256:bbbb2222|amd64\n' > "$FIX/images.txt"
 
 bash ./deltactl new wt-a --s0-tag 2.14.1 --s1-tag 2.9.0 > /dev/null 2>&1
 bash ./deltactl new wt-b --s0-tag 2.14.1 --s1-tag 2.9.0 > /dev/null 2>&1

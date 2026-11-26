@@ -17,7 +17,7 @@ OUT="$HERE/tests/golden/outsum/in"
 mkdir -p "$OUT"
 
 # The images of the three instances (1.0 of each service) and one newer of s0 that nobody uses.
-printf 'auth-backend:1.0|sha256:aaa111|amd64\ngueo-back-end:1.0|sha256:bbb222|amd64\nauth-backend:1.1|sha256:aaa112|amd64\n' > "$SIM_FIX/images.txt"
+printf 'backend-s0:1.0|sha256:aaa111|amd64\nbackend-s1:1.0|sha256:bbb222|amd64\nbackend-s0:1.1|sha256:aaa112|amd64\n' > "$SIM_FIX/images.txt"
 
 norm() { # stdin -> stdout: the machine-dependent parts fixed
   sed -e "s#$SIM_REPO#/srv/deltactl#g" \

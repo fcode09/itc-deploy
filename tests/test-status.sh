@@ -59,10 +59,10 @@ status() { bash ./deltactl status "$@" 2>&1; }
 
 section "1. instancia sana"
 newinst st-ok 1.0 1.0
-image auth-backend:1.0 sha256:aaa; image gueo-back-end:1.0 sha256:bbb
+image backend-s0:1.0 sha256:aaa; image backend-s1:1.0 sha256:bbb
 deployed st-ok s0 1.0 sha256:aaa; deployed st-ok s1 1.0 sha256:bbb
-container st-ok s0 running healthy auth-backend:1.0 "2 hours"
-container st-ok s1 running healthy gueo-back-end:1.0 "3 days"
+container st-ok s0 running healthy backend-s0:1.0 "2 hours"
+container st-ok s1 running healthy backend-s1:1.0 "3 days"
 out="$(status)"
 check "muestra la instancia con sus dos servicios" 'echo "$out" | grep -v "^  Instancias:" | grep -c "st-ok" | grep -qx 2'
 check "ambos servicios healthy" '[ "$(echo "$out" | grep "st-ok" | grep -c healthy)" -eq 2 ]'
@@ -74,10 +74,10 @@ check "la salida plana no lleva escapes" '! echo "$out" | has_ansi'
 
 section "2. etiqueta configurada distinta de la que corre"
 newinst st-drift 1.0 2.0
-image auth-backend:1.0 sha256:a1; image gueo-back-end:2.0 sha256:b2; image gueo-back-end:1.0 sha256:b1
+image backend-s0:1.0 sha256:a1; image backend-s1:2.0 sha256:b2; image backend-s1:1.0 sha256:b1
 deployed st-drift s0 1.0 sha256:a1; deployed st-drift s1 1.0 sha256:b1
-container st-drift s0 running healthy auth-backend:1.0 "1 hour"
-container st-drift s1 running healthy gueo-back-end:1.0 "1 hour"
+container st-drift s0 running healthy backend-s0:1.0 "1 hour"
+container st-drift s1 running healthy backend-s1:1.0 "1 hour"
 out="$(status)"
 check "detecta el desajuste de s1" 'echo "$out" | grep -q "configurada 2.0 pero corre 1.0"'
 check "sugiere desplegar solo ese servicio" 'echo "$out" | grep -q "./deltactl deploy st-drift s1"'
@@ -87,10 +87,10 @@ check "--strict devuelve exactamente 2 si hay avisos" '[ "$rc" -eq 2 ]'
 
 section "3. imagen reconstruida con la misma etiqueta"
 newinst st-rebuilt 3.0 3.0
-image auth-backend:3.0 sha256:NEW; image gueo-back-end:3.0 sha256:g3
+image backend-s0:3.0 sha256:NEW; image backend-s1:3.0 sha256:g3
 deployed st-rebuilt s0 3.0 sha256:OLD; deployed st-rebuilt s1 3.0 sha256:g3
-container st-rebuilt s0 running healthy auth-backend:3.0 "1 hour"
-container st-rebuilt s1 running healthy gueo-back-end:3.0 "1 hour"
+container st-rebuilt s0 running healthy backend-s0:3.0 "1 hour"
+container st-rebuilt s1 running healthy backend-s1:3.0 "1 hour"
 out="$(status st-rebuilt)"
 check "avisa que la etiqueta apunta a otra imagen" 'echo "$out" | grep -q "apunta a otra imagen"'
 check "solo s0 queda marcado" '! echo "$out" | grep -A3 "Servicio s1" | grep -q "otra imagen"'
@@ -98,16 +98,16 @@ check "solo s0 queda marcado" '! echo "$out" | grep -A3 "Servicio s1" | grep -q 
 section "4. imagen que falta en este servidor"
 newinst st-noimg 9.9 9.9
 out="$(status)"
-check "avisa de la imagen faltante" 'echo "$out" | grep -q "falta la imagen auth-backend:9.9"'
+check "avisa de la imagen faltante" 'echo "$out" | grep -q "falta la imagen backend-s0:9.9"'
 check "sugiere ./deltactl load" 'echo "$out" | grep -q "./deltactl load"'
 check "sin contenedor se muestra como no creado" 'echo "$out" | grep "st-noimg" | grep -q "no creado"'
 
 section "5. estados de salud y contenedores detenidos"
 newinst st-health 4.0 4.0
-image auth-backend:4.0 sha256:h0; image gueo-back-end:4.0 sha256:h1
+image backend-s0:4.0 sha256:h0; image backend-s1:4.0 sha256:h1
 deployed st-health s0 4.0 sha256:h0; deployed st-health s1 4.0 sha256:h1
-container st-health s0 running unhealthy auth-backend:4.0 "10 minutes"
-container st-health s1 exited none gueo-back-end:4.0 "10 minutes"
+container st-health s0 running unhealthy backend-s0:4.0 "10 minutes"
+container st-health s1 exited none backend-s1:4.0 "10 minutes"
 out="$(status st-health)"
 check "s0 unhealthy" 'echo "$out" | grep -q "unhealthy"'
 check "s1 detenido" 'echo "$out" | grep -q "detenido"'
@@ -116,10 +116,10 @@ check "sugiere levantar s1" 'echo "$out" | grep -q "./deltactl deploy st-health 
 
 section "6. servicio que corre fuera de COMPOSE_PROFILES"
 newinst st-orph 5.0 5.0 s0
-image auth-backend:5.0 sha256:o0
+image backend-s0:5.0 sha256:o0
 deployed st-orph s0 5.0 sha256:o0
-container st-orph s0 running healthy auth-backend:5.0 "1 hour"
-container st-orph s1 running healthy gueo-back-end:5.0 "1 hour"
+container st-orph s0 running healthy backend-s0:5.0 "1 hour"
+container st-orph s1 running healthy backend-s1:5.0 "1 hour"
 out="$(status)"
 check "detecta el servicio fuera de perfil" 'echo "$out" | grep -q "fuera de perfil"'
 check "sugiere detenerlo" 'echo "$out" | grep -q "./deltactl stop st-orph s1"'
@@ -174,10 +174,10 @@ printf 'MemTotal:        8388608 kB\nMemFree:         1048576 kB\nMemAvailable: 
 printf '0.82 0.50 0.40 1/200 1234\n' > "$FIX/loadavg"
 printf 'MemTotal:        8388608 kB\n' > "$FIX/meminfo-no-available"
 newinst st-hd 1.0 1.0
-image auth-backend:1.0 sha256:aaa; image gueo-back-end:1.0 sha256:bbb
+image backend-s0:1.0 sha256:aaa; image backend-s1:1.0 sha256:bbb
 deployed st-hd s0 1.0 sha256:aaa; deployed st-hd s1 1.0 sha256:bbb
-container st-hd s0 running healthy auth-backend:1.0 "1 hour"
-container st-hd s1 exited none gueo-back-end:1.0 "1 hour"
+container st-hd s0 running healthy backend-s0:1.0 "1 hour"
+container st-hd s1 exited none backend-s1:1.0 "1 hour"
 hdr() { DELTACTL_MEMINFO="$FIX/meminfo" DELTACTL_LOADAVG="$FIX/loadavg" bash ./deltactl "$@" 2>&1; }
 out="$(hdr status)"
 check "the header shows the memory with its bar, the figures and the percentage" 'echo "$out" | grep -qE "Memoria \[######\.\.\.\.\] 5\.0/8\.0 GB 62%"'
@@ -231,9 +231,9 @@ check "a date that is not Docker's form still goes through date" 'same_secs "202
 check "a container that never started, a future date or garbage give no uptime" '! lib st_uptime_secs 0001-01-01T00:00:00Z >/dev/null && ! lib st_uptime_secs 2999-01-01T00:00:00Z >/dev/null && ! lib st_uptime_secs garbage >/dev/null 2>&1'
 check "st_duration keeps its forms" '[ "$(lib st_duration 3725)" = "1h02m" ] && [ "$(lib st_duration 90061)" = "1d01h" ] && [ "$(lib st_duration 59)" = "59s" ] && [ "$(lib st_duration 120)" = "2m" ] && [ "$(lib st_duration x)" = "-" ] && [ "$(lib st_duration 08)" = "8s" ]'
 check "t_r gives what t prints, with arguments, and ??key?? for an unknown key" '[ "$(lib eval "t_r status.note.drift 1.0 2.0; printf %s \"\$T_OUT\"")" = "$(lib t status.note.drift 1.0 2.0)" ] && [ "$(lib eval "t_r no.such.key; printf %s \"\$T_OUT\"")" = "??no.such.key??" ]'
-check "service_repo: the default, the instance's own image, and an unknown service fails" '[ "$(lib service_repo s0)" = "auth-backend" ] && [ "$(lib service_repo s1 st-orph)" = "gueo-back-end" ] && ! lib service_repo s9 >/dev/null'
+check "service_repo: the default, the instance's own image, and an unknown service fails" '[ "$(lib service_repo s0)" = "backend-s0" ] && [ "$(lib service_repo s1 st-orph)" = "backend-s1" ] && ! lib service_repo s9 >/dev/null'
 newinst st-future 1.0 1.0
-printf 'st-future|s0|running|healthy|auth-backend:1.0|2999-01-01T00:00:00.000000000Z|/s0_st-future\nst-future|s1|running|healthy|gueo-back-end:1.0|garbage|/s1_st-future\n' >> "$FIX/containers.txt"
+printf 'st-future|s0|running|healthy|backend-s0:1.0|2999-01-01T00:00:00.000000000Z|/s0_st-future\nst-future|s1|running|healthy|backend-s1:1.0|garbage|/s1_st-future\n' >> "$FIX/containers.txt"
 out="$(status st-future)"; rc=$?
 check "a container that says it started in the future (or cannot say when) does not end status: it just has no uptime" '[ "$rc" -eq 0 ] && echo "$out" | grep -q "Servicio s1" && bash ./deltactl status --json >/dev/null 2>&1 && bash ./deltactl status >/dev/null 2>&1'
 mkdir -p "$FIX/cg"; echo 1000 > "$FIX/cg/memory.current"; echo max > "$FIX/cg/memory.max"; printf 'anon 1\ninactive_file 200\n' > "$FIX/cg/memory.stat"

@@ -26,8 +26,8 @@ chmod +x "$FIX/bin/docker" "$FIX/bin/ss"
 export DELTACTL_MEMINFO="$FIX/meminfo" DELTACTL_LOADAVG="$FIX/loadavg" DELTACTL_PROC_ROOT="$FIX/proc" DELTACTL_CGROUP_ROOT="$FIX/cg"
 printf 'MemTotal:        8388608 kB\nMemAvailable:    3145728 kB\n' > "$FIX/meminfo"
 printf '0.82 0.50 0.40 1/200 1234\n' > "$FIX/loadavg"
-printf 'auth-backend:2.14.1|sha256:aaaa1111|amd64\ngueo-back-end:2.9.0|sha256:bbbb2222|amd64\ngueo-back-end:2.10.0|sha256:bbbb2223|amd64\n' > "$FIX/images.txt"
-printf '%s\n' "auth-backend:2.14.1|2026-11-22 12:00:00 +0000 UTC" "gueo-back-end:2.9.0|2026-11-19 12:00:00 +0000 UTC" "gueo-back-end:2.10.0|2026-11-23 12:00:00 +0000 UTC" > "$FIX/image_dates.txt"
+printf 'backend-s0:2.14.1|sha256:aaaa1111|amd64\nbackend-s1:2.9.0|sha256:bbbb2222|amd64\nbackend-s1:2.10.0|sha256:bbbb2223|amd64\n' > "$FIX/images.txt"
+printf '%s\n' "backend-s0:2.14.1|2026-11-22 12:00:00 +0000 UTC" "backend-s1:2.9.0|2026-11-19 12:00:00 +0000 UTC" "backend-s1:2.10.0|2026-11-23 12:00:00 +0000 UTC" > "$FIX/image_dates.txt"
 touch "$FIX/log_all"
 
 bash ./deltactl new sw-a --services s0,s1 --s0-tag 2.14.1 --s1-tag 2.9.0 --generate-secrets > /dev/null 2>&1
@@ -52,13 +52,13 @@ check "its texts exist in both languages" 'for k in $(grep -o "MSG_es\[\"tui\.sv
 
 section "2. what the tab draws"
 check "> opens it: a row per service of the catalog, the active ones with version, port and memory" '
-  f="$(panel "${SV[@]}" | last_frame)"; echo "$f" | grep -q "\[Servicios\]" && echo "$f" | grep -qE "s0 auth-backend .* 2.14.1 +:[0-9]+ +mem 512m" && echo "$f" | grep -qE "s1 gueo-back-end .* 2.9.0 +:[0-9]+ +mem 2g"'
+  f="$(panel "${SV[@]}" | last_frame)"; echo "$f" | grep -q "\[Servicios\]" && echo "$f" | grep -qE "s0 backend-s0 .* 2.14.1 +:[0-9]+ +mem 512m" && echo "$f" | grep -qE "s1 backend-s1 .* 2.9.0 +:[0-9]+ +mem 2g"'
 check "the keys of the footer and of the last line are the tab’s" '
   f="$(panel "${SV[@]}" | last_frame)"; echo "$f" | grep -q "a añadir" && echo "$f" | tail -1 | grep -q "a añadir · X quitar · v versión · P puerto"'
 check "the cursor is on the first service and down moves it" '
   panel "${SV[@]}" | last_frame | grep -q "▸ . s0" && panel "${SV[@]}" down | last_frame | grep -q "▸ . s1"'
 check "an instance with one service shows the other as not active" '
-  f="$(panel down "${SV[@]}" | last_frame)"; echo "$f" | grep -qE "s1 gueo-back-end +. sin activar"'
+  f="$(panel down "${SV[@]}" | last_frame)"; echo "$f" | grep -qE "s1 backend-s1 +. sin activar"'
 check "what is under the cursor says what the keys do" 'panel "${SV[@]}" | last_frame | grep -q "Cambia su versión (v)"'
 check "in English" 'LANGX=en panel "${SV[@]}" | last_frame | grep -q "\[Services\]" && LANGX=en panel "${SV[@]}" | last_frame | grep -q "Change its version (v)"'
 check "Esc and the left arrow go back to the list (the summary is the tab of the services pane)" '
@@ -69,7 +69,7 @@ section "3. add: it asks first, and then it is the command"
 sed -i 's/^JWT_SECRET=.*/JWT_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef/' instances/sw-b/.env.s0
 sed -i 's/^JWT_SECRET=.*/JWT_SECRET=/' instances/sw-b/.env.s1
 check "a on a service that is not active asks, saying what will be done; nothing changes yet" '
-  f="$(panel down "${SV[@]}" down a | last_frame)"; echo "$f" | grep -q "Activa s1 (gueo-back-end) en .sw-b." && [ "$(prof sw-b)" = "s0" ]'
+  f="$(panel down "${SV[@]}" down a | last_frame)"; echo "$f" | grep -q "Activa s1 (backend-s1) en .sw-b." && [ "$(prof sw-b)" = "s0" ]'
 check "n cancels: nothing changes" 'panel down "${SV[@]}" down a n | last_frame | grep -q "Cancelado" && [ "$(prof sw-b)" = "s0" ]'
 check "a on a service that is already active says so and asks nothing" 'panel "${SV[@]}" a | last_frame | grep -q "s0 ya está activo"'
 check "y runs service add: the service is active, its file exists, with the most recent loaded version" '

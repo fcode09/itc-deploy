@@ -1,7 +1,7 @@
 # Glossary
 
 - **instance**: a deployed municipality. It has its `instances/<name>/` folder, its network, its ports and its databases
-- **service**: an application of the ecosystem. Today `s0` (auth-backend) and `s1` (gueo-back-end)
+- **service**: an application of the ecosystem. Today `s0` (backend-s0) and `s1` (backend-s1)
 - **profile** (`COMPOSE_PROFILES`): list of active services in an instance
 - **tag**: the version of an image, for example `1.2.0`
 - **image**: the package with the application; it is built on your PC and loaded on the server with `./deltactl load`

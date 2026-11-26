@@ -84,14 +84,14 @@ seeded() { printf 'SOURCE=init\nINITIALIZED_AT=2026-01-01T00:00:00Z\n' > "instan
 newinst gold-ok 1.0 1.0; seeded gold-ok
 newinst gold-drift 1.0 1.0; seeded gold-drift
 newinst gold-new 1.0 1.0
-image auth-backend:1.0 sha256:aaaaaaaaaaaa1111; image gueo-back-end:1.0 sha256:bbbbbbbbbbbb2222
-image gueo-back-end:0.9 sha256:cccccccccccc3333
+image backend-s0:1.0 sha256:aaaaaaaaaaaa1111; image backend-s1:1.0 sha256:bbbbbbbbbbbb2222
+image backend-s1:0.9 sha256:cccccccccccc3333
 deployed gold-ok s0 1.0 sha256:aaaaaaaaaaaa1111; deployed gold-ok s1 1.0 sha256:bbbbbbbbbbbb2222
 deployed gold-drift s0 1.0 sha256:aaaaaaaaaaaa1111; deployed gold-drift s1 0.9 sha256:cccccccccccc3333
-container gold-ok s0 running healthy auth-backend:1.0 "2 days"
-container gold-ok s1 running healthy gueo-back-end:1.0 "3 days"
-container gold-drift s0 running unhealthy auth-backend:1.0 "5 hours"
-container gold-drift s1 running healthy gueo-back-end:0.9 "5 hours"
+container gold-ok s0 running healthy backend-s0:1.0 "2 days"
+container gold-ok s1 running healthy backend-s1:1.0 "3 days"
+container gold-drift s0 running unhealthy backend-s0:1.0 "5 hours"
+container gold-drift s1 running healthy backend-s1:0.9 "5 hours"
 printf 's0_gold-ok|82MiB / 512MiB|0.2%%\ns1_gold-ok|410MiB / 1GiB|1.5%%\n' > "$FIX/stats.txt"
 
 # --- Normalization: remove everything that changes between runs or machines -------------------------
