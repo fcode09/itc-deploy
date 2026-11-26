@@ -12,13 +12,13 @@
 │ Memoria █████░░░░░ 5.6/11.5 GB 48% ││   ✖ s1      :4101    sin respuesta      backend-s1.ejemplo.pe                  │
 │              ▃                     ││                                                                                │
 │              █   ▄                 ││ Bloque de nginx  ○ sin guardar  proxy/nginx.conf                               │
-│  ▁  ▄  ▄  █  ██  █     ▂  ▃  ▂  ▆  ││ Va en /etc/nginx/conf.d/ · nginx -t && systemctl reload nginx · aquí no se escr│
+│  ▁  ▄  ▄  █  ██  █     ▂  ▃  ▂  ▆  ││ Va en /etc/nginx/sites-available/ y se enlaza en sites-enabled/ · a lo instala │
 │  █▁ █▂ █▁ █▅ ██▆ █  █  █  █  █▃ █▂ ││ # s0                                                                           │
 │  ██ ██ ██▁██▁███▅█▄ █▄ █▇ █▇ ██ ██ ││ server {                                                                       │
 │ ▃██▆██▆████████████ ██▁██▅██▄█████▇││     listen 80;                                                                 │
 │ Carga 3.18                         ││     server_name backend-s0.ejemplo.pe;                                         │
 │ contenedores 1.5G                  ││     return 301 https://$host$request_uri;                                      │
-╰────────────────────────────────────╯╰─┘Enter dominio└─┘b bloque└─┘w https└─┘y copiar└─┘g guardar└─┘< > pestaña└──────╯
+╰────────────────────────────────────╯╰─┘Enter dominio└─┘e nombre└─┘a nginx└─┘g guardar└─┘R quitar└─┘< > pestaña└──────╯
 ╭─ Consola ────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
 │                                                                                                                      │
 │                                                                                                                      │
@@ -28,4 +28,4 @@
 │ ix-colorado ❯ : escribe un comando · ! en el terminal · Tab completa · ↑ historial · help                            │
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 
- ↑↓ servicio · Enter dominio · b otro proxy · w https · y copiar · g guardar · z ampliar · ? ayuda · q salir
+ ↑↓ servicio · Enter dominio · b otro proxy · w https · y copiar · g guardar · e nombre · a/A nginx · ? ayuda · q salir
