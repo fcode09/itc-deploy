@@ -69,3 +69,6 @@ MSG_es["menu.ask_help"]="Tema o comando (Enter = índice)"
 MSG_es["menu.bad_option"]="opción no válida: '{1}' (elige un número del menú o 0 para salir)"
 MSG_es["menu.args"]="menu no recibe argumentos (ver ./deltactl help menu)"
 MSG_es["menu.prompt"]="Elige una opción (con ? delante, ayuda: ?4):"
+
+MSG_es["menu.confirm_access"]="Instala el bloque de nginx de '{1}' ({2}), prueba nginx -t y recarga nginx; si la prueba falla se devuelve todo como estaba. ¿Continuar?"
+MSG_es["menu.confirm_access_off"]="Quita de nginx los bloques de '{1}', prueba nginx -t y recarga nginx. ¿Continuar?"
