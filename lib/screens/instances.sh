@@ -605,8 +605,8 @@ dash_key_instances() {
     z) dash_toggle_zoom ;;
     '/') DASH_MODE=lfilter DASH_BUF="$DASH_LIST_FILTER" DASH_CUR="${#DASH_LIST_FILTER}" ;;
     S) dash_list_sort_next ;;
-    '<') [ "$have" -eq 0 ] || dash_ws_tab_step -1 ;;
-    '>') [ "$have" -eq 0 ] || dash_ws_tab_step 1 ;;
+    '<' | ',') [ "$have" -eq 0 ] || dash_ws_tab_step -1 ;;   # (the comma and the dot are the same keys without Shift: some terminals do not send < and > well)
+    '>' | '.') [ "$have" -eq 0 ] || dash_ws_tab_step 1 ;;
     t) [ "$have" -eq 0 ] || dash_focus_todo ;;
     up | k) if [ "$DASH_FOCUS" = "svc" ] || [ "$DASH_FOCUS" = "tab" ]; then dash_select_service -1; else dash_select -1; fi ;;
     down | j) if [ "$DASH_FOCUS" = "svc" ] || [ "$DASH_FOCUS" = "tab" ]; then dash_select_service 1; else dash_select 1; fi ;;
