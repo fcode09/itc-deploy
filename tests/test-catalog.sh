@@ -25,7 +25,7 @@ check "variables de URI de Mongo de cada servicio" \
   '[ "$(run "source lib/cmd/check.sh; ck_mongo_vars s0; ck_mongo_vars s1" | tr "\n" ",")" = "MONGO_URI,MONGO_DELTA_DISPATCH_URI MONGO_AUTHSOFTWARE_URI MONGO_ROBIN_URI," ]'
 check "s1 depende de s0 y s0 de nadie" '[ "$(run "catalog_depends s1; echo --; catalog_depends s0" | tr "\n" " ")" = "s0 -- " ]'
 check "límite de memoria por defecto = el del compose" \
-  '[ "$(run "echo \${CAT_MEM[s0]} \${CAT_MEM[s1]}")" = "512m 2g" ] && grep -q "S0_MEM_LIMIT:-512m" services/compose-s0.yaml && grep -q "S1_MEM_LIMIT:-2g" services/compose-s1.yaml'
+  '[ "$(run "echo \${CAT_MEM[s0]} \${CAT_MEM[s1]}")" = "110m 400m" ] && grep -q "S0_MEM_LIMIT:-110m" services/compose-s0.yaml && grep -q "S1_MEM_LIMIT:-400m" services/compose-s1.yaml'
 check "puerto interno y desplazamiento de puerto" '[ "$(run "echo \${CAT_PORT[s0]} \${CAT_PORT[s1]} \${CAT_OFFSET[s0]} \${CAT_OFFSET[s1]}")" = "3200 3000 0 1" ]'
 check "cada plantilla del catálogo existe" 'run "for s in \${KNOWN_SERVICES[@]}; do [ -f templates/\${CAT_TEMPLATE[\$s]} ] || exit 1; done"'
 check "el archivo de datos no tiene filas con otro número de campos" \
@@ -60,7 +60,7 @@ check "JWT_SECRET compartido entre s0 y s1" \
   'a="$(grep ^JWT_SECRET= instances/ct-uno/.env.s0)"; [ "$a" = "$(grep ^JWT_SECRET= instances/ct-uno/.env.s1)" ] && [ ${#a} -gt 20 ]'
 check "s1 recibe sus secretos generados" \
   'for k in FEDERATION_ENCRYPTION_KEY DELTA_UNIVERSITY_HANDOFF_SECRET SHIFT_UPDATE_BASELINE_SECRET; do v="$(grep "^$k=" instances/ct-uno/.env.s1 | cut -d= -f2)"; [ -n "$v" ] && [[ "$v" != *CAMBIAR* ]] || exit 1; done'
-check "las bases de datos llevan el nombre de la instancia" 'grep -q "^MONGO_URI=.*authsoftware_ct-uno$" instances/ct-uno/.env.s0'
+check "las bases de datos llevan el nombre de la instancia" 'grep -q "^MONGO_URI=.*s0_ct-uno$" instances/ct-uno/.env.s0'
 check "una opción --sN-tag de un servicio que no existe falla" '! bash ./deltactl new ct-dos --s9-tag 1 >/dev/null 2>&1 && [ ! -e instances/ct-dos ]'
 check "--s1-tag y --s0-image siguen funcionando" \
   'bash ./deltactl new ct-tres --s1-tag 2.5 --s0-image otra-imagen >/dev/null 2>&1; grep -q "^S1_TAG=2.5" instances/ct-tres/.env.instance && grep -q "^S0_IMAGE=otra-imagen" instances/ct-tres/.env.instance'

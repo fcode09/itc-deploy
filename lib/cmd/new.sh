@@ -132,7 +132,7 @@ new_apply_wizard() { # instance existing
   # New municipality: databases named after the instance (for an existing one the user sets the URIs).
   # CAMBIAR_<db>_INSTANCIA is the placeholder written in the Spanish .env templates.
   if [ "$existing" -eq 0 ]; then
-    sed -i "s/CAMBIAR_\\([a-z]\\+\\)_INSTANCIA/\\1_$name/g" "${files[@]}"
+    sed -i "s/CAMBIAR_\\([a-z0-9]\\+\\)_INSTANCIA/\\1_$name/g" "${files[@]}"
   fi
   if [ "$W_GEN" -eq 1 ]; then
     # A "shared" secret (JWT_SECRET) has the same value in every service: it is safe inside one instance and avoids rejections

@@ -1,0 +1,27 @@
+# mongo · make the Mongo of this server reachable from the containers
+
+The containers reach the Mongo of the server through Docker's gateway (`host.docker.internal`, almost always
+`172.17.0.1`, but it is read from Docker, not assumed). If mongod listens only on `127.0.0.1`, or the firewall closes
+the port, the doctor says "MongoDB alcanzable ✖". `mongo setup` finds out and fixes it.
+
+## Usage
+$ ./deltactl mongo setup              # only shows what would change
+$ sudo ./deltactl mongo setup --apply [--yes]
+
+## What it looks at and what it changes
+- `bindIp` of `/etc/mongod.conf`: it adds the gateway (`127.0.0.1,172.17.0.1`); it does not open Mongo to the network
+- a systemd drop-in so that mongod starts after Docker (the address does not exist before Docker creates the network)
+- ufw, when it is active: it lets only the networks of the containers (`172.16.0.0/12`) reach port 27017
+
+## How it does it
+- without `--apply` it writes nothing: it shows the diff of `mongod.conf`, the drop-in and the rule
+- with `--apply` it asks first (`--yes` skips it) and needs root
+- it keeps a copy of `mongod.conf`, checks the result, restarts mongod and tests the connection from outside
+- if `mongod.conf` does not have the usual format it leaves it alone and says which line to write by hand
+
+## What it does not do
+- It does not turn Mongo authentication on: that comes at the end, once the administrator and the users of the
+  instances exist (`./deltactl init` creates the one of each instance). Turning it on earlier locks out what works.
+
+## Related
+- `./deltactl doctor`, `./deltactl help data`, `./deltactl help troubleshooting`

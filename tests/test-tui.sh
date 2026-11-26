@@ -133,17 +133,17 @@ out="$(panel q)"
 check "the keys of the list are in the last line" 'echo "$out" | grep -q "Up/Dn instancia . Rt servicios . Enter acciones . u desplegar"'
 out="$(panel right q)"
 check "inside the services the last line shows the keys of the services" 'echo "$out" | frame_n 2 | grep -q "Up/Dn servicio . Lt volver . Enter acciones . l logs"'
-check "right enters the services without moving the marker" 'echo "$out" | frame_n 2 | grep -q "|| > s0 auth" && echo "$out" | frame_n 2 | grep -q ">tui-a"'
+check "right enters the services without moving the marker" 'echo "$out" | frame_n 2 | grep -q "|| > s0 backend" && echo "$out" | frame_n 2 | grep -q ">tui-a"'
 out="$(panel right down q)"
-check "inside the services down chooses the next service" 'echo "$out" | frame_n 3 | grep -q "|| > s1 gueo" && ! echo "$out" | frame_n 3 | grep -q "|| > s0 auth"'
+check "inside the services down chooses the next service" 'echo "$out" | frame_n 3 | grep -q "|| > s1 backend" && ! echo "$out" | frame_n 3 | grep -q "|| > s0 backend"'
 out="$(panel right down down q)"
-check "the service marker wraps" 'echo "$out" | frame_n 4 | grep -q "|| > s0 auth"'
+check "the service marker wraps" 'echo "$out" | frame_n 4 | grep -q "|| > s0 backend"'
 out="$(panel right left q)"
 check "left goes back to the list of instances" 'echo "$out" | frame_n 3 | grep -q ">Instancias" && ! echo "$out" | frame_n 3 | grep -q ">tui-a"'
 out="$(panel right esc q)"
 check "Esc inside the services goes back to the list instead of quitting" 'echo "$out" | frame_n 3 | grep -q ">Instancias"'
 out="$(panel down right down q)"
-check "changing instance resets the service and gives the focus back to the list" 'out="$(panel right down down q)" && echo "$out" | frame_n 4 | grep -q "|| > s0 auth"'
+check "changing instance resets the service and gives the focus back to the list" 'out="$(panel right down down q)" && echo "$out" | frame_n 4 | grep -q "|| > s0 backend"'
 out="$(panel up right q)"
 check "right does nothing on the New button" 'echo "$out" | frame_n 3 | grep -q ">Instancias"'
 out="$(panel up q)"
@@ -194,7 +194,7 @@ out="$(panel n backspace)"
 check "an empty name is a pending section" 'echo "$out" | last_frame | grep -q "Escribe un nombre" && echo "$out" | last_frame | grep -q "| . 1 Nombre    -"'
 out="$(panel n enter)"
 check "Enter accepts the proposed name and goes on to the services" 'echo "$out" | last_frame | grep -q ">Servicios a desplegar" && echo "$out" | last_frame | grep -q "\[x\] s0  Auth" && echo "$out" | last_frame | grep -q "\[x\] s1  Gue"'
-check "the services show their image, port and memory" 'echo "$out" | last_frame | grep -q "s0  Auth  backend-s0" && echo "$out" | last_frame | grep -q ":41[0-9]0" && echo "$out" | last_frame | grep -q "512m" && echo "$out" | last_frame | grep -q "2g"'
+check "the services show their image, port and memory" 'echo "$out" | last_frame | grep -q "s0  Auth  backend-s0" && echo "$out" | last_frame | grep -q ":41[0-9]0" && echo "$out" | last_frame | grep -q "110m" && echo "$out" | last_frame | grep -q "400m"'
 check "the services say what they lack to be deployed" 'echo "$out" | last_frame | grep -q "ESTADO PARA DESPLEGAR" && echo "$out" | last_frame | grep -q "puerto 41[0-9]0 libre" && echo "$out" | last_frame | grep -q "puerto 41[0-9]1 libre"'
 check "the services not yet in Docker are listed, switched off" 'echo "$out" | last_frame | grep -q "walle . robin . link: aún sin Docker"'
 out="$(panel n enter space)"
@@ -270,7 +270,7 @@ check "s sorts by memory, the biggest first" 'echo "$out" | frame_n 3 | grep -q 
 out="$(panel 4 s s q)"
 check "s again sorts by CPU and a third time by name" 'echo "$out" | frame_n 4 | grep -q "orden: cpu" && out="$(panel 4 s s s q)" && echo "$out" | frame_n 5 | grep -q "orden: nombre"'
 out="$(panel 4 down enter q)"
-check "Enter jumps to the instance and service of the row" 'echo "$out" | frame_n 4 | grep -q "\[3 Instancias\]" && echo "$out" | frame_n 4 | grep -q "^| > .. tui-a" && echo "$out" | frame_n 4 | grep -q "|| > s1 gueo"'
+check "Enter jumps to the instance and service of the row" 'echo "$out" | frame_n 4 | grep -q "\[3 Instancias\]" && echo "$out" | frame_n 4 | grep -q "^| > .. tui-a" && echo "$out" | frame_n 4 | grep -q "|| > s1 backend"'
 out="$(panel 4 down down down down enter q)"
 check "the row of another instance selects that instance" 'echo "$out" | frame_n 7 | grep -q "^| > .. tui-c"'
 

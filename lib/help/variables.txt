@@ -39,10 +39,10 @@ Puerto del host donde se publica s0 (solo en 127.0.0.1). Cada instancia usa un b
 @ S1_PORT | .env.instance | obligatoria | 4101
 Puerto del host donde se publica s1 (solo en 127.0.0.1). Normalmente `S0_PORT` + 1.
 
-@ S0_MEM_LIMIT | .env.instance | opcional | 512m
+@ S0_MEM_LIMIT | .env.instance | opcional | 110m
 Límite de memoria del contenedor de s0. Ajústalo según la carga real.
 
-@ S1_MEM_LIMIT | .env.instance | opcional | 2g
+@ S1_MEM_LIMIT | .env.instance | opcional | 400m
 Límite de memoria del contenedor de s1. Cada instancia puede abrir hasta 2 Chromium a la vez para los
 reportes PDF; con menos memoria pueden fallar.
 

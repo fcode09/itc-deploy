@@ -54,7 +54,7 @@ dash_nzv_template() {
     v="${ENV_EXAMPLE[$id]:-}"
     [ -n "$v" ] || continue
     if [ "$DASH_NZ_DATA" -eq 0 ]; then
-      while [[ "$v" =~ CAMBIAR_([a-z]+)_INSTANCIA ]]; do v="${v/"${BASH_REMATCH[0]}"/"${BASH_REMATCH[1]}_$DASH_NZ_NAME"}"; done
+      while [[ "$v" =~ CAMBIAR_([a-z0-9]+)_INSTANCIA ]]; do v="${v/"${BASH_REMATCH[0]}"/"${BASH_REMATCH[1]}_$DASH_NZ_NAME"}"; done
     fi
     [[ "$v" != *CAMBIAR* ]] || continue
     [ -z "${KEE_VAL[$id]}" ] || continue
@@ -156,19 +156,20 @@ dash_nzs_variables_enter() {
 }
 
 # The ids that changed against what the files will already say (what `new` has to be told), in the order of the files.
-DASH_NZV_CHANGED=() DASH_NZV_CREV=-1
+DASH_NZV_CHANGED=() DASH_NZV_CREV=-1 DASH_NZV_MGEN=0   # (DASH_NZV_MGEN: how many of the changes are the URIs of Mongo composed with the user and the password: they are not put by the person)
 dash_nzv_changed() {
   local f id
   local -a ids=()
   # (the bar, the preview and the form ask for it in every frame: it is made again only when the model changed)
   [ "$DASH_NZV_CREV" != "$KEE_REV" ] || return 0
   DASH_NZV_CREV="$KEE_REV"
-  DASH_NZV_CHANGED=()
+  DASH_NZV_CHANGED=() DASH_NZV_MGEN=0
   for f in "${KEE_FILES[@]}"; do
     read -ra ids <<< "${KEE_FIDS[$f]:-}"
     for id in "${ids[@]}"; do
       [ "${KEE_VAL[$id]:-}" != "${KEE_BASE[$id]:-}" ] && [ -n "${KEE_VAL[$id]:-}" ] || continue
       DASH_NZV_CHANGED+=("$id")
+      [ "${KEE_VAL[$id]}" != "${DASH_NZV_MONGO[$id]:-}" ] || DASH_NZV_MGEN=$((DASH_NZV_MGEN + 1))
     done
   done
 }
@@ -237,7 +238,7 @@ dash_nzs_variables_state() {
   if [ "$KEE_N_TODO" -gt 0 ]; then
     DASH_NZ_ST=warn; t_r tui.nz.var.v_todo "$KEE_N_TODO"
   else
-    DASH_NZ_ST=ok; t_r tui.nz.var.v_ok "$((${#DASH_NZV_CHANGED[@]} - DASH_NZV_GENIDN))"
+    DASH_NZ_ST=ok; t_r tui.nz.var.v_ok "$((${#DASH_NZV_CHANGED[@]} - DASH_NZV_GENIDN - DASH_NZV_MGEN))"
   fi
   DASH_NZ_VAL="$T_OUT"
 }
@@ -300,7 +301,7 @@ dash_nzs_variables_preview() { # width
   dash_nzv_changed
   n="${#DASH_NZV_CHANGED[@]}"
   [ "$n" -gt 0 ] || return 0
-  t_r tui.nz.pv.vars "$((n - DASH_NZV_GENIDN))" "$DASH_NZV_GENN"   # (put by the person, generated)
+  t_r tui.nz.pv.vars "$((n - DASH_NZV_GENIDN - DASH_NZV_MGEN))" "$DASH_NZV_GENN"   # (put by the person, generated)
   DASH_NZ_P+=("  ${TH[dim]:-}$T_OUT$TH_RESET")
 }
 
@@ -313,7 +314,7 @@ dash_nzs_variables_render() { # width height
   DASH_NZ_B=()
   # The count: what still has to be put, what changed and what was generated.
   dash_nzv_changed
-  n=$((${#DASH_NZV_CHANGED[@]} - DASH_NZV_GENIDN))   # (the values the person put: the generated ones are counted apart)
+  n=$((${#DASH_NZV_CHANGED[@]} - DASH_NZV_GENIDN - DASH_NZV_MGEN))   # (the values the person put: the generated ones are counted apart)
   if [ "$KEE_N_TODO" -gt 0 ]; then col="${TH[warn]:-}"; t_r tui.nz.var.status "$KEE_N_TODO" "$n" "$DASH_NZV_GENN"
   else col="${TH[ok]:-}"; t_r tui.nz.var.status_ok "" "$n" "$DASH_NZV_GENN"; fi
   tui_fit "$col$C_BLD$T_OUT$r" "$iw"
