@@ -62,6 +62,8 @@ dr_instances() {
     uid="$(host_owner_uid "$dir/data" "$RUNTIME_UID")"
     if [ -n "$bad" ]; then
       ck warn "$(t doctor.secrets_readable "$name" "$bad")" "$(t doctor.secrets_readable_hint "$dir")"
+    elif [ -d "$dir/secrets" ] && [ "$(host_owner_uid "$dir/secrets" "$RUNTIME_UID")" != "$RUNTIME_UID" ]; then
+      ck warn "$(t doctor.secrets_uid "$name" "$(host_owner_uid "$dir/secrets" "$RUNTIME_UID")" "$RUNTIME_UID")" "$(t doctor.secrets_uid_hint "$RUNTIME_UID" "$dir")"
     elif [ "$uid" != "$RUNTIME_UID" ]; then
       ck warn "$(t doctor.data_uid "$name" "$uid" "$RUNTIME_UID")" \
         "$(t doctor.data_uid_hint "$RUNTIME_UID" "$dir")"
