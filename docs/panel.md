@@ -10,13 +10,13 @@ se está ejecutando, actualizado solo. Fuera de una terminal (una tubería, `TER
 | Tecla | Vista | Para qué |
 | --- | --- | --- |
 | `1` | Servidor | Qué necesita el servidor para funcionar (con el comando para instalarlo) y cómo va: una tira con las constantes vitales y los avisos, y cajas de CPU, memoria, discos, red, contenedores (y, en pantallas muy altas, procesos y puertos) |
-| `2` | Instancias | La lista de instancias, el detalle de la seleccionada (servicios, memoria, CPU, errores), sus gráficos y sus logs en vivo, y la consola debajo |
-| `3` | Recursos | Todos los servicios de todas las instancias en una tabla; `s` ordena por nombre, memoria o CPU |
-| `4` | Salida | El resultado del último comando: de `new`, `check`, `deploy`, `init`, `doctor`, `images` y `env` un resumen con iconos, secciones y veredicto (`v` pasa a la salida cruda); de cualquier otro, la salida completa |
-| `5` | Ejecuciones | El historial de operaciones (deploy, init, rollback...) con su consumo, la comparación con las anteriores y sus logs guardados |
-| `6` | Procesos | De qué está hecho el comando que se está ejecutando y cuánto cuesta el propio panel |
-| `7` | Consola | La consola a pantalla completa, lista para escribir |
-| `8` | Imágenes | Qué versiones de cada servicio hay cargadas en este Docker, cuál es la más reciente, quién usa cuál; usar una versión en una instancia y cargar un archivo |
+| `2` | Imágenes | Qué versiones de cada servicio hay cargadas en este Docker, cuál es la más reciente, quién usa cuál; usar una versión en una instancia y cargar un archivo |
+| `3` | Instancias | La lista de instancias, el detalle de la seleccionada (servicios, memoria, CPU, errores), sus gráficos y sus logs en vivo, y la consola debajo |
+| `4` | Recursos | Todos los servicios de todas las instancias en una tabla; `s` ordena por nombre, memoria o CPU |
+| `5` | Salida | El resultado del último comando: de `new`, `check`, `deploy`, `init`, `doctor`, `images` y `env` un resumen con iconos, secciones y veredicto (`v` pasa a la salida cruda); de cualquier otro, la salida completa |
+| `6` | Ejecuciones | El historial de operaciones (deploy, init, rollback...) con su consumo, la comparación con las anteriores y sus logs guardados |
+| `7` | Procesos | De qué está hecho el comando que se está ejecutando y cuánto cuesta el propio panel |
+| `8` | Consola | La consola a pantalla completa, lista para escribir |
 | `9` | Variables | Las variables de una instancia, con su esquema (ver [env-variables.md](env-variables.md)) |
 | `0` | Actividad | Todo lo que se ha ejecutado en una lista (el comando de este panel, lo que está en marcha en cualquier terminal y lo reciente de todas las instancias) y, de la elegida, cuatro pestañas: Resumen, Salida, Consumo y Procesos. Junta las vistas 3, 4 y 5, que siguen un tiempo |
 
@@ -40,7 +40,7 @@ Tab y Mayús+Tab recorren las vistas (en Instancias, los paneles: lista, servici
   opciones y la salida queda en la consola; si falta algo obligatorio (nombre, servicios o imagen válida), te lleva a esa sección.
   Con `!` delante (`!new --wizard`) el asistente sigue disponible en el terminal.
 - **Escribir un comando**: `:` da el teclado a la consola; escribe cualquier comando de deltactl sin el prefijo
-  (`status colorado`, `logs colorado s0 -f`). `!` delante lo ejecuta en la terminal; `!` solo abre una shell. En la vista `7` la
+  (`status colorado`, `logs colorado s0 -f`). `!` delante lo ejecuta en la terminal; `!` solo abre una shell. En la vista `8` la
   línea siempre está lista.
 - **Cancelar**: `x` (o Ctrl+C) para el comando en curso.
 - **Logs de un servicio**: con el foco en ellos, Espacio pausa, `f` vuelve a seguir el final, `e` deja solo errores y avisos, `/`
@@ -106,7 +106,7 @@ sola y el panel lo dice en la línea de mensajes; las demás vistas siguen dispo
 (`n`, el botón o `new`) pregunta antes mientras falte algo obligatorio: `y` crea igualmente, `v` muestra los requisitos, `n` no vuelve a
 avisar (se guarda `TUI_PREREQ=off`; en Opciones, «Aviso de requisitos» lo vuelve a activar) y Esc cancela.
 
-## Imágenes (`8`)
+## Imágenes (`2`)
 
 Una caja por **imagen** (`s0 · auth-backend`, `s1 · gueo-back-end`, y las que alguna instancia use con otro nombre) con una tabla de sus versiones, de la
 más nueva a la más vieja **por fecha de creación de la imagen** (una etiqueta es solo un nombre): VERSIÓN, CREADA («hace 2 días»), TAMAÑO, ARQ y USO
