@@ -34,6 +34,8 @@ Servicios: [36ms0[0m = backend-s0 (Auth) y [36ms1[0m = backend-s1 (Gue).
                                                     generar secretos sin mostrarlos
   [32mservice list|add|remove|set <instancia>[0m           Servicios de una instancia: añadir, quitar
                                                     (conserva datos), versión, puerto, memoria
+  [32msecret list|check|add <instancia>[0m                 Archivos de secrets/ (el JSON de FCM): cuáles
+                                                    faltan y cargar uno con su ruta
 
 [1mDespliegue[0m
   [32mcheck <instancia> [servicio] [--mongo][0m            Comprueba todo lo que deploy exigiría, sin

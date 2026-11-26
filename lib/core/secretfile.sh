@@ -11,6 +11,9 @@
 #                               current folder, the root of the repository) whose name looks like a service account; SF_DIRS (a list separated by
 #                               ":") replaces the folders, and DELTACTL_SECRET_DIRS does the same inside the tests
 #   sf_install <src> <instance dir> <name>   copies it to <dir>/secrets/<name> with mode 600 (the folder must exist)
+#   sf_needs_r <instance>       fills SF_NEED with "<service>|<VARIABLE>|<name>": the files the instance needs in secrets/
+#   sf_state_r <instance> <name>  SF_ST = ok | missing | invalid (SF_WHY says why) for secrets/<name> of the instance
+#   sf_expand <path>            SF_PATH = the path with a leading ~ turned into the home folder
 
 SF_MAX_BYTES=131072
 SF_WHY="" SF_CAND=()
@@ -172,4 +175,42 @@ sf_install() { # src instance-dir name
   if ! cat -- "$src" > "$dir/secrets/$name"; then umask "$old"; return 1; fi
   umask "$old"
   chmod 600 "$dir/secrets/$name"
+}
+
+# --- What an instance needs, and whether it has it ---------------------------------------------------------------------------------------------
+
+# The files an instance has to have in secrets/: one row "<service>|<VARIABLE>|<name in secrets/>" in SF_NEED for each variable of an active service
+# that the catalog says points to a file (CAT_SECRET_FILES) and whose value is /run/secrets/<name> (that is how the container sees the file).
+SF_NEED=()
+sf_needs_r() { # instance
+  local s var
+  SF_NEED=()
+  svc_active_r "$1"
+  for s in "${SVC_ACTIVE[@]}"; do
+    for var in ${CAT_SECRET_FILES[$s]:-}; do
+      get_var_r "$INSTANCES_DIR/$1/.env.$s" "$var"
+      [[ "$GV" == /run/secrets/?* ]] || continue
+      SF_NEED+=("$s|$var|${GV#/run/secrets/}")
+    done
+  done
+}
+
+# Does the instance have the file <name> in secrets/? SF_ST is ok, or missing, or invalid (then SF_WHY says why, as sf_check does). A name that is not
+# a valid name for a file there is missing: nothing can be installed with it.
+SF_ST=""
+sf_state_r() { # instance name
+  SF_ST=missing SF_WHY=""
+  sf_valid_name "$2" || return 1
+  [ -e "$INSTANCES_DIR/$1/secrets/$2" ] || return 1
+  if sf_check "$INSTANCES_DIR/$1/secrets/$2"; then SF_ST=ok; return 0; fi
+  SF_ST=invalid
+  return 1
+}
+
+# A path as the person types it: ~ is the home folder, into SF_PATH.
+SF_PATH=""
+sf_expand() { # path
+  SF_PATH="$1"
+  # shellcheck disable=SC2088  # (the tilde is the text the person types, not a path to expand)
+  case "$SF_PATH" in "~") SF_PATH="${HOME:-}" ;; "~/"*) SF_PATH="${HOME:-}/${SF_PATH#\~/}" ;; esac
 }
