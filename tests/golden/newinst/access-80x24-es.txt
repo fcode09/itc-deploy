@@ -7,6 +7,8 @@
 ╰──────────────────────────────────────────────────────────────────────────────╯
 ╭─┐ ▸7 · Acceso ┌──────────────────────────────────────────────────────────────╮
 │ Dominio   ○  opcional · p. ej. muni.example.com                              │
+│ Nombre s0 (Enter: escribe su nombre completo, o pon el dominio base)         │
+│ Nombre s1 (Enter: escribe su nombre completo, o pon el dominio base)         │
 │ Proxy     ( nginx)  ( Caddy)  ▸ (los dos)                                    │
 │ HTTPS     [x]                                                                │
 │ ℹ No se detectó nginx ni Caddy en este servidor (el bloque se puede generar  │
@@ -18,8 +20,6 @@
 │                                                                              │
 │                                                                              │
 │                                                                              │
-│                                                                              │
-│                                                                              │
 ╰─┘Esc atrás└─┘Enter siguiente└─┘Tab vista previa└─────────────────────────────╯
 
- ↑↓ mover · ←→ espacio cambia · c copia el bloque · Esc atrás · Tab vista previa
+ ↑↓ mover · Enter edita el nombre · s sigue · Esc atrás · Tab vista previa

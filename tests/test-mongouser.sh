@@ -58,8 +58,12 @@ D new mu-b --generate-secrets > /dev/null 2>&1
 check "the credentials are in the files of the instance (the way the wizard sends them)" 'grep -q "^MONGO_URI=mongodb://mu-a:Pw%401%3Ax@host.docker.internal:27017/authsoftware_mu-a?authSource=admin$" instances/mu-a/.env.s0 && grep -q "^MONGO_ROBIN_URI=mongodb://mu-a:" instances/mu-a/.env.s1'
 iu() { : > "$FIX/calls.log"; lib "select_services $1; init_mongo_user $1"; }
 out="$(iu mu-a)"
-check "without an admin account it shows the script: the user, the three databases once each, and asks for the password (it is not printed)" 'echo "$out" | grep -q "db.createUser({ user: \"mu-a\", pwd: passwordPrompt()" && [ "$(echo "$out" | grep -o "role: \"readWrite\", db: \"[a-z_-]*\"" | sort | tr "\n" " ")" = "role: \"readWrite\", db: \"authsoftware_mu-a\" role: \"readWrite\", db: \"deltadispatch_mu-a\" role: \"readWrite\", db: \"robin_mu-a\" " ] && ! echo "$out" | grep -q "Pw@1"'
-check "…and runs nothing in Docker" '! grep -q "^run " "$FIX/calls.log"'
+check "with no admin account it tries once without one (a Mongo with no authentication lets a user be created) and the user is created" 'echo "$out" | grep -q "usuario de Mongo .mu-a. creado (readWrite en: authsoftware_mu-a deltadispatch_mu-a robin_mu-a)" && [ "$(grep -c "^run " "$FIX/calls.log")" -eq 1 ]'
+check "…with nothing secret in the command line of docker (the URI goes as an environment variable too)" 'c="$(grep "^run " "$FIX/calls.log")"; echo "$c" | grep -q -- "-e DELTACTL_MONGO_ADMIN_URI -e MU_USER -e MU_PASS -e MU_DBS" && ! echo "$c" | grep -q "Pw@1\|Pw%401\|mongodb://host.docker.internal:27017/admin"'
+touch "$FIX/mongouser_fail"
+out="$(iu mu-a)"
+check "when Mongo asks for authentication it says so and shows the script: the user, the three databases once each, and asks for the password (it is not printed)" 'echo "$out" | grep -q "sin cuenta de administración" && echo "$out" | grep -q "db.createUser({ user: \"mu-a\", pwd: passwordPrompt()" && [ "$(echo "$out" | grep -o "role: \"readWrite\", db: \"[a-z0-9_-]*\"" | sort | tr "\n" " ")" = "role: \"readWrite\", db: \"authsoftware_mu-a\" role: \"readWrite\", db: \"deltadispatch_mu-a\" role: \"readWrite\", db: \"robin_mu-a\" " ] && ! echo "$out" | grep -q "Pw@1"'
+rm -f "$FIX/mongouser_fail"
 out="$(DELTACTL_MONGO_ADMIN_URI='mongodb://root:AdminSecret9@db.itc.pe:27017/admin' iu mu-a)"
 check "with an admin account the user is created, and it says for which databases" 'echo "$out" | grep -q "usuario de Mongo .mu-a. creado (readWrite en: authsoftware_mu-a deltadispatch_mu-a robin_mu-a)"'
 check "no secret is in the command line of docker: the admin URI and the password go as environment variables (-e NAME)" 'c="$(grep "^run " "$FIX/calls.log")"; echo "$c" | grep -q -- "-e DELTACTL_MONGO_ADMIN_URI -e MU_USER -e MU_PASS -e MU_DBS" && ! echo "$c" | grep -q "AdminSecret9\|Pw@1\|Pw%401"'
