@@ -13,11 +13,11 @@
 │              ▃                     ││                                                                                │
 │              █   ▄                 ││ Bloque de nginx  ○ sin guardar  proxy/nginx.conf                               │
 │  ▁  ▄  ▄  █  ██  █     ▂  ▃  ▂  ▆  ││ Va en /etc/nginx/conf.d/ · nginx -t && systemctl reload nginx · aquí no se escr│
-│  █▁ █▂ █▁ █▅ ██▆ █  █  █  █  █▃ █▂ ││ map $http_upgrade $connection_upgrade { default upgrade; '' close; }           │
-│  ██ ██ ██▁██▁███▅█▄ █▄ █▇ █▇ ██ ██ ││                                                                                │
-│ ▃██▆██▆████████████ ██▁██▅██▄█████▇││ # s0                                                                           │
-│ Carga 3.18                         ││ server {                                                                       │
-│ contenedores 1.5G                  ││     listen 80;                                                                 │
+│  █▁ █▂ █▁ █▅ ██▆ █  █  █  █  █▃ █▂ ││ # s0                                                                           │
+│  ██ ██ ██▁██▁███▅█▄ █▄ █▇ █▇ ██ ██ ││ server {                                                                       │
+│ ▃██▆██▆████████████ ██▁██▅██▄█████▇││     listen 80;                                                                 │
+│ Carga 3.18                         ││     server_name auth-backend.ejemplo.pe;                                       │
+│ contenedores 1.5G                  ││     return 301 https://$host$request_uri;                                      │
 ╰────────────────────────────────────╯╰─┘Enter dominio└─┘b bloque└─┘w https└─┘y copiar└─┘g guardar└─┘< > pestaña└──────╯
 ╭─ Consola ────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
 │                                                                                                                      │

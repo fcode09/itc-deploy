@@ -9,7 +9,7 @@ answer, the instance is still created and the tag stays `latest` (with a warning
 $ ./deltactl new <instance> [--services s0,s1] [--existing]
 $ ./deltactl new <instance> [--s0-image X] [--s0-tag X] [--s1-image X] [--s1-tag X] [--ip URL] [--generate-secrets]
 $ ./deltactl new <instance> [--env-file FILE] [--secret-file SOURCE[:NAME]]
-$ ./deltactl new <instance> --domain DOMAIN [--proxy nginx|caddy|both] [--tls]
+$ ./deltactl new <instance> --domain DOMAIN [--host sN=NAME] [--www] [--proxy nginx|caddy|both] [--tls]
 $ ./deltactl new --wizard
 
 ## Wizard
@@ -45,7 +45,12 @@ terminal, and on confirmation it starts `new` with the answers as options.
   instance's port) and saves it **inside the instance**, in `instances/<instance>/proxy/`.
   `--proxy nginx|caddy|both` chooses which one (both by default) and `--tls` turns on HTTPS (nginx: port 80
   redirects and a 443 block with certbot's paths; Caddy does it by itself). It is text only: `new` writes
-  nothing under `/etc` and reloads nothing; you copy it where your proxy reads it.
+  nothing under `/etc` and reloads nothing; you copy it where your proxy reads it. Each service comes from the template in
+  `templates/nginx/<service>.location.conf` (s0 and s1 have their own; edit it to change timeouts or headers).
+- `--host <sN>=<name>` gives a service a name of its own instead of `<service name>.<domain>`
+  (`--host s0=backlion.deltampa.com --host s1=backguep.deltampa.com`; it can be repeated) and `--www` makes each block
+  answer on `www.<name>` too. Both need `--domain` and are remembered in `instances/<instance>/proxy/access.conf`
+  (`./deltactl access` reads and changes them).
 
 ## What it creates
 - `.env.instance`  variables of the instance: versions, ports, active services, memory

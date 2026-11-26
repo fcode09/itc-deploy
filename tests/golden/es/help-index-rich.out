@@ -50,6 +50,10 @@ Servicios: [36ms0[0m = auth-backend (Auth) y [36ms1[0m = gueo-back-end (Gue)
   [32mimages [servicio] [--json][0m                        Versiones de imagen disponibles y qué instancias
                                                     las usan (alias: versions)
 
+[1mAcceso desde fuera[0m
+  [32maccess <instancia> [--domain D] [--host sN=NOMBRE] [--save][0m Bloque nginx/Caddy por servicio, con
+                                                              su nombre, desde plantillas
+
 [1mInformación[0m
   [32mstatus [instancia] [--json|--stats][0m               Panel de estado: versiones, salud, desajustes y
                                                     siguientes pasos

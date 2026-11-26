@@ -12,7 +12,7 @@ source "$ROOT/lib/cmd/deploy.sh"
 
 declare -gA W_IMG=() W_TAG=()   # image name and tag the wizard (or the flags) chose, by service
 W_IP="" W_GEN=0
-W_DOMAIN="" W_PROXY="" W_TLS=0
+W_DOMAIN="" W_PROXY="" W_TLS=0 W_WWW=0 W_HOSTS=()
 W_ENVF=() W_ENVK=() W_ENVV=()   # --env-file: file word (instance | s0...), key and value of each line
 W_SECSRC=() W_SECNAME=()        # --secret-file: the source path and the name in secrets/
 declare -gA W_ENVPORT=()        # --env-file: the port it gives to a service (checked like the one that is proposed)
@@ -273,6 +273,11 @@ new_write_proxy() { # instance services-csv
     # shellcheck disable=SC2034  # (read by proxy_domain_names, in lib/core/proxy.sh)
     PROXY_PORTS[$s]="$(get_var "$dir/.env.instance" "${s^^}_PORT")"
   done
+  PROXY_HOSTS=() PROXY_WWW="$W_WWW"
+  for s in "${W_HOSTS[@]}"; do
+    [[ " ${act[*]} " == *" ${s%%=*} "* ]] || die "$(t access.bad_service "${s%%=*}" "$name" "${act[*]}")"
+    PROXY_HOSTS[${s%%=*}]="${s#*=}"
+  done
   proxy_domain_names "$W_DOMAIN" "${act[@]}" || die "$(t new.domain_invalid "$W_DOMAIN")"
   case "${W_PROXY:-both}" in both) flavors=(nginx caddy) ;; *) flavors=("$W_PROXY") ;; esac
   for fl in "${flavors[@]}"; do
@@ -282,6 +287,10 @@ new_write_proxy() { # instance services-csv
     [ "$rc" -eq 0 ] || die "$(t new.proxy_write "$fl")"
     info "$(t new.proxy_written "proxy/$(proxy_file "$fl")" "$dir/proxy/$(proxy_file "$fl")")"
   done
+  # A name of its own for a service or the www alias is not something the block can be read back from: it is remembered (access.conf).
+  if [ "$W_WWW" -eq 1 ] || [ "${#W_HOSTS[@]}" -gt 0 ]; then
+    proxy_meta_save "$name" "$W_DOMAIN" "${flavors[0]}" "$W_TLS" || die "$(t new.proxy_write "${flavors[0]}")"
+  fi
 }
 
 # Writes what the answers say once the instance exists: the variables, the files of secrets/ and the proxy block.
@@ -365,6 +374,18 @@ cmd_new() {
         W_TLS=1
         shift
         ;;
+      --www)
+        W_WWW=1
+        shift
+        ;;
+      --host)
+        [ "$#" -ge 2 ] || die "$(t new.opt_value "$a")"
+        [[ "$2" == *=* ]] || die "$(t access.bad_spec "$2")"
+        valid_service "${2%%=*}" || die "$(t err.service_unknown "${2%%=*}" "${KNOWN_SERVICES[*]}")"
+        proxy_host_ok "${2#*=}" || die "$(t access.bad_host "${2#*=}")"
+        W_HOSTS+=("${2%%=*}=${2#*=}")
+        shift 2
+        ;;
       -*) die "$(t new.unknown_option "$a")" ;;
       *)
         [ -z "$name" ] || die "$(t new.extra_arg "$a")"
@@ -406,7 +427,7 @@ cmd_new() {
 
   # What the extra answers say is checked before anything is created (a value, a file, a domain that is not valid stops here, with nothing left).
   if [ -n "$W_DOMAIN" ]; then proxy_host_ok "$W_DOMAIN" || die "$(t new.domain_invalid "$W_DOMAIN")"; fi
-  if [ -z "$W_DOMAIN" ] && { [ -n "$W_PROXY" ] || [ "$W_TLS" -eq 1 ]; }; then die "$(t new.proxy_needs_domain)"; fi
+  if [ -z "$W_DOMAIN" ] && { [ -n "$W_PROXY" ] || [ "$W_TLS" -eq 1 ] || [ "$W_WWW" -eq 1 ] || [ "${#W_HOSTS[@]}" -gt 0 ]; }; then die "$(t new.proxy_needs_domain)"; fi
   new_check_secretfiles
   new_check_envfile "$name" "$services"
 

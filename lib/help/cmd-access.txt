@@ -1,0 +1,36 @@
+# access · el acceso de una instancia desde fuera (nginx / Caddy)
+
+Genera el bloque de proxy inverso de cada servicio de una instancia (nginx o Caddy) a partir de las plantillas de
+`templates/nginx/`, con el nombre al que responde cada servicio y su puerto en este servidor. Es **solo texto**:
+sin `--save` lo muestra; con `--save` lo guarda dentro de la instancia y dice qué comandos ejecutar. No escribe nada
+en `/etc` ni recarga nginx: eso lo haces tú.
+
+## Uso
+$ ./deltactl access <instancia> [--domain D] [--host sN=NOMBRE]... [--www | --no-www]
+    [--tls | --no-tls] [--proxy nginx|caddy] [--save]
+
+## Ejemplo (dos servicios, cada uno con su nombre)
+$ ./deltactl access colorado --domain deltampa.com \
+    --host s0=backlion.deltampa.com --host s1=backguep.deltampa.com --www --proxy nginx --save
+$ sudo cp instances/colorado/proxy/nginx.conf /etc/nginx/conf.d/colorado.conf
+$ sudo nginx -t && sudo systemctl reload nginx
+
+## Opciones
+- `--domain <D>`   el dominio base. Sin `--host`, el servicio responde en `<nombre-del-servicio>.<D>`
+- `--host sN=NOMBRE`  nombre propio de un servicio (se puede repetir; `--host s0=` lo quita)
+- `--www` / `--no-www`  el bloque responde también en `www.<nombre>` (o deja de hacerlo)
+- `--tls` / `--no-tls`  HTTPS (nginx: redirección del 80 y bloque 443 con las rutas de certbot; Caddy lo hace solo)
+- `--proxy nginx|caddy`  cuál generar (por defecto el que ya usaba la instancia, o nginx)
+- `--save`  guarda el bloque en `instances/<instancia>/proxy/` y recuerda las respuestas en `access.conf`
+
+Lo que no indicas se toma de lo que la instancia recordó (`access.conf`), igual que hace la pestaña Acceso del panel.
+
+## Plantillas
+Cada servicio sale de `templates/nginx/<servicio>.location.conf` (si no existe, de `default.location.conf`). Dentro,
+`@PORT@` es el puerto del servicio. `s0` lleva WebSockets y `s1` además timeouts de 10 minutos y sin buffering;
+edita el archivo para cambiarlo. La carpeta se puede cambiar con `DELTACTL_NGINX_TEMPLATES`. `nginx -t` es quien
+comprueba lo que escribas en una plantilla.
+
+## Relacionado
+- `./deltactl new <instancia> --domain D --host sN=NOMBRE --www` hace lo mismo al crear
+- `./deltactl help instancia-existente`

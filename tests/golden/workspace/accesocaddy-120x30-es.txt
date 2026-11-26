@@ -13,11 +13,11 @@
 │              ▃                     ││                                                                                │
 │              █   ▄                 ││ Bloque de caddy  ○ sin guardar  proxy/Caddyfile                                │
 │  ▁  ▄  ▄  █  ██  █     ▂  ▃  ▂  ▆  ││ Va en tu Caddyfile · caddy reload --config /etc/caddy/Caddyfile · aquí no se es│
-│  █▁ █▂ █▁ █▅ ██▆ █  █  █  █  █▃ █▂ ││                                                                                │
-│  ██ ██ ██▁██▁███▅█▄ █▄ █▇ █▇ ██ ██ ││ # s0                                                                           │
-│ ▃██▆██▆████████████ ██▁██▅██▄█████▇││ auth-backend.ejemplo.pe {                                                      │
-│ Carga 3.18                         ││     reverse_proxy 127.0.0.1:4100                                               │
-│ contenedores 1.5G                  ││ }                                                                              │
+│  █▁ █▂ █▁ █▅ ██▆ █  █  █  █  █▃ █▂ ││ # s0                                                                           │
+│  ██ ██ ██▁██▁███▅█▄ █▄ █▇ █▇ ██ ██ ││ auth-backend.ejemplo.pe {                                                      │
+│ ▃██▆██▆████████████ ██▁██▅██▄█████▇││     reverse_proxy 127.0.0.1:4100                                               │
+│ Carga 3.18                         ││ }                                                                              │
+│ contenedores 1.5G                  ││                                                                                │
 ╰────────────────────────────────────╯╰─┘Enter dominio└─┘b bloque└─┘w https└─┘y copiar└─┘g guardar└─┘< > pestaña└──────╯
 ╭─ Consola ────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
 │                                                                                                                      │
