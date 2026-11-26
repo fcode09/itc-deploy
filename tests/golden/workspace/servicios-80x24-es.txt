@@ -10,7 +10,7 @@
 ╰──────────────────────────────────────────────────────────────────────────────╯
  Resumen  Logs  Acceso  Historial [Servicios] Variables  Datos                  
 ╭─┐ ▸ix-colorado ┌───────────────────────────────────────────────┐● en marcha┌─╮
-│   ● s0 backend-s0  · 2.14.1  :4100  mem 512m  · healthy                      │
+│   ● s0 backend-s0  · 2.14.1  :4100  mem 110m  · healthy                      │
 │ ▸ ● s1 backend-s1  · 2.9.0  :4101  mem 2g  · healthy                         │
 │                                                                              │
 │ (NestJS + Chromium para los reportes PDF)                                    │

@@ -15,17 +15,17 @@
 │        primera vez (administrador, municipalidad). Genera los        ││     S1_TAG=2.9.0                             │
 │        secretos.                                                     ││   .env.s0 .env.s1                            │
 │                                                                      ││   secrets/  data/                            │
-│   ( ) Ya tiene datos: viene de otro despliegue                       ││     data/ vacía: init la siembra             │
+│        Usuario de Mongo de esta instancia                            ││     data/ vacía: init la siembra             │
+│        Uno por instancia, con acceso solo a las bases de esta        ││                                              │
+│        instancia. La contraseña es opcional: vacía, se genera una.   ││ ≈ ./deltactl new instancia-1                 │
+│        Las URIs de Mongo del paso Variables la llevan, y ./deltactl  ││     --services s0,s1 --s0-tag 2.14.1         │
+│        init crea el usuario.                                         ││     --s1-tag 2.9.0 --generate-secrets        │
+│        Usuario      instancia-1  u cambia                            ││                                              │
+│        Contraseña  (se genera sola)  c cambia                        ││                                              │
+│                                                                      ││                                              │
+│   ( ) Ya tiene datos: viene de otro despliegue                       ││                                              │
 │        Usa sus mismas bases y secretos. La instancia queda marcada   ││                                              │
-│        como existente: init no podrá sembrarla.                      ││ ≈ ./deltactl new instancia-1                 │
-│                                                                      ││     --services s0,s1 --s0-tag 2.14.1         │
-│                                                                      ││     --s1-tag 2.9.0 --generate-secrets        │
-│                                                                      ││                                              │
-│                                                                      ││                                              │
-│                                                                      ││                                              │
-│                                                                      ││                                              │
-│                                                                      ││                                              │
-│                                                                      ││                                              │
+│        como existente: init no podrá sembrarla.                      ││                                              │
 ╰─┘Esc atrás└─┘Enter siguiente└────────────────────────────────────────╯╰──────────────────────────────────────────────╯
 
- ↑↓ elegir · Enter sigue · Espacio cambia · 1-9 paso · Esc atrás · Tab vista previa
+ ↑↓ elegir · Enter sigue · Espacio cambia · u usuario de Mongo · c contraseña · 1-9 paso · Esc atrás · Tab vista previa

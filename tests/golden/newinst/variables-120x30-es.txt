@@ -8,20 +8,20 @@
 ╭─┐ ▸5 · Variables ┌───────────────────────────────────────────────────╮╭─┐vista previa┌───────────────────────────────╮
 │ 3 obligatorias por poner · 0 puestos · 4 generados                   ││ instances/instancia-1/                       │
 │ ¿Qué valores llevan sus archivos? Lo obligatorio va arriba; los      ││   .env.instance                              │
-│ secretos únicos ya están generados y no se muestran. Lo que no       ││     COMPOSE_PROFILES=s0,s1                   │
-│ cambies queda como la plantilla.                                     ││     S0_PORT=4100                             │
-│ ▸ .env.instance                                          12 variables││     S0_TAG=2.14.1                            │
-│ ▾ .env.s0                               9 variables · 1 sin completar││     S1_PORT=4101                             │
-│ ▲ IP_SERVER                    (vacía)                    obligatoria││     S1_TAG=2.9.0                             │
-│ ● JWT_SECRET                   ⚿ ••••••••••                modificada││   .env.s0 .env.s1                            │
-│ ● MONGO_URI                    ⚿ ••••••••••                          ││   secrets/  data/                            │
-│ ● IP_INTERNAL_CONNECTION       s1                                    ││     data/ vacía: init la siembra             │
-│ ▾ .env.s1                              27 variables · 2 sin completar││   variables: 0 puestas · 4 generadas         │
-│ ▲ IP_SERVER                    (vacía)                    obligatoria││                                              │
-│ ● AUTH_URL                     http://s0:3200                        ││ ≈ ./deltactl new instancia-1                 │
-│ ● JWT_SECRET                   ⚿ ••••••••••                modificada││     --services s0,s1 --s0-tag 2.14.1         │
-│ ● DELTA_UNIVERSITY_HANDOFF_S…  ⚿ ••••••••••                modificada││     --s1-tag 2.9.0 --env-file <respuestas>   │
-│ ● MONGO_DELTA_DISPATCH_URI     ⚿ ••••••••••                          ││                                              │
+│ secretos únicos ya están generados: en la lista son puntos, Enter    ││     COMPOSE_PROFILES=s0,s1                   │
+│ abre su valor y r lo muestra unos segundos. Lo que no cambies queda  ││     S0_PORT=4100                             │
+│ como la plantilla.                                                   ││     S0_TAG=2.14.1                            │
+│ ▸ .env.instance                                          12 variables││     S1_PORT=4101                             │
+│ ▾ .env.s0                               9 variables · 1 sin completar││     S1_TAG=2.9.0                             │
+│ ▲ IP_SERVER                    (vacía)                    obligatoria││   .env.s0 .env.s1                            │
+│ ● JWT_SECRET                   ⚿ ••••••••••                modificada││   secrets/  data/                            │
+│ ● MONGO_URI                    ⚿ mongodb://instancia-1:••  modificada││     data/ vacía: init la siembra             │
+│ ● IP_INTERNAL_CONNECTION       s1                                    ││   variables: 0 puestas · 4 generadas         │
+│ ▾ .env.s1                              27 variables · 2 sin completar││                                              │
+│ ▲ IP_SERVER                    (vacía)                    obligatoria││ ≈ ./deltactl new instancia-1                 │
+│ ● AUTH_URL                     http://s0:3200                        ││     --services s0,s1 --s0-tag 2.14.1         │
+│ ● JWT_SECRET                   ⚿ ••••••••••                modificada││     --s1-tag 2.9.0 --env-file <respuestas>   │
+│ ● DELTA_UNIVERSITY_HANDOFF_S…  ⚿ ••••••••••                modificada││                                              │
 │ ─────────────────────────────────────────────────────────────────────││                                              │
 │ .env.instance  se crea con la instancia                              ││                                              │
 │ Este archivo aún no existe: se hace desde su plantilla al crear la   ││                                              │

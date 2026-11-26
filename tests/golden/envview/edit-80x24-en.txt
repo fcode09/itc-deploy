@@ -6,14 +6,14 @@
 │ ▾ .env.s0                                         9 variables · 2 to fill in │
 │ ▲ IP_SERVER                  http://CAMBIAR-direccion-del-servid  to fill in │
 │ ▲╭─┐ ▸IP_SERVER ┌─────────────────────────────────────────────────────────╮d │
-│ ●│                                                                        │a │
+│ ●│                                                                        │o │
 │ ●│ Required · .env.s0                                                     │  │
 │ ▾│ Base public URL of the system, with a scheme (`http://` or             │n │
 │ ▲│ `https://`), without a port or trailing slash. The seeds use it:       │n │
 │ ●│ `url_systems` stores it as the URL of each system (seen in Auth,       │  │
 │ ▲│ Settings, Systems) and as the base of the backend URLs                 │d │
-│ ●│                                                                        │a │
-│ ●│ ● https://colorado.itc.pe                                              │a │
+│ ●│                                                                        │o │
+│ ●│ ● https://colorado.itc.pe                                              │o │
 │ ●│                                                                        │c │
 │ ●╰─┘Enter accept└─┘Esc cancel└─┘Tab show└─┘Ctrl+G generate└─┘Ctrl+U clear└╯) │
 │ ──────────────────────────────────────────────────────────────────────────── │

@@ -8,8 +8,8 @@
 │ ▲ IP_SERVER                  http://CAMBIAR-direccion-del-servidor                                   por completar ││ próximo deploy; hasta entonces no se   │
 │ ● AUTH_URL                   http://s0:3200                                                                        ││ sabe qué cambió.                       │
 │ ▲ JWT_SECRET                 (vacía)                                                                   obligatoria ││                                        │
-│ ● MONGO_DELTA_DISPATCH_URI   mongodb://host.docker.internal:27017/deltadispatch_ix-colorado                        ││ 27 variables opcionales ocultas: a las │
-│ ● MONGO_AUTHSOFTWARE_URI     mongodb://host.docker.internal:27017/authsoftware_ix-colorado                         ││ muestra.                               │
+│ ● MONGO_DELTA_DISPATCH_URI   mongodb://host.docker.internal:27017/s1_ix-colorado                                   ││ 27 variables opcionales ocultas: a las │
+│ ● MONGO_AUTHSOFTWARE_URI     mongodb://host.docker.internal:27017/s0_ix-colorado                                   ││ muestra.                               │
 │ ● MONGO_ROBIN_URI            mongodb://host.docker.internal:27017/robin_ix-colorado                                ││                                        │
 │ ● FCM_CERT                   /run/secrets/fcm.json                                            falta el archivo (f) ││                                        │
 │ ● KEEPER_FCM_CERT            /run/secrets/keeper-fcm.json                                     falta el archivo (f) ││                                        │

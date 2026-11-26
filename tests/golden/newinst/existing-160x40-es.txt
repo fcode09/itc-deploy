@@ -38,4 +38,4 @@
 │                                                                                              ││ ○ Revisión                                                   │
 ╰─┘Esc atrás└─┘Enter siguiente└────────────────────────────────────────────────────────────────╯╰──────────────────────────────────────────────────────────────╯
 
- ↑↓ elegir · Enter sigue · Espacio cambia · 1-9 paso · Esc atrás · Tab vista previa
+ ↑↓ elegir · Enter sigue · Espacio cambia · u usuario de Mongo · c contraseña · 1-9 paso · Esc atrás · Tab vista previa

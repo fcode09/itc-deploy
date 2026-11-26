@@ -18,8 +18,8 @@
 │ ● IP_SERVER                  http://h                                              ││                                │
 │ ● AUTH_URL                   http://s0:3200                                        ││                                │
 │ ● JWT_SECRET                 ⚿ ••••••••••                                          ││                                │
-│ ● MONGO_DELTA_DISPATCH_URI   mongodb://host.docker.internal:27017/deltadispatch_ix ││                                │
-│ ● MONGO_AUTHSOFTWARE_URI     mongodb://host.docker.internal:27017/authsoftware_ix- ││                                │
+│ ● MONGO_DELTA_DISPATCH_URI   mongodb://host.docker.internal:27017/s1_ix-lima       ││                                │
+│ ● MONGO_AUTHSOFTWARE_URI     mongodb://host.docker.internal:27017/s0_ix-lima       ││                                │
 │ ● MONGO_ROBIN_URI            mongodb://host.docker.internal:27017/robin_ix-lima    ││                                │
 │ ● FCM_CERT                   /run/secrets/fcm.json                invalid file (f) ││                                │
 │ ────────────────────────────────────────────────────────────────────────────────── ││                                │

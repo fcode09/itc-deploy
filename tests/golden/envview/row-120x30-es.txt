@@ -6,14 +6,14 @@
 │ ▾ .env.s0                                            9 variables · 2 sin completar ││                                │
 │ ▲ IP_SERVER                  http://CAMBIAR-direccion-del-servidor   por completar ││ URL pública base del sistema,  │
 │ ▲ JWT_SECRET                 (vacía)                                   obligatoria ││ con esquema (`http://` o       │
-│ ● MONGO_URI                  mongodb://host.docker.internal:27017/authsoftware_ix- ││ `https://`), sin puerto ni     │
+│ ● MONGO_URI                  mongodb://host.docker.internal:27017/s0_ix-colorado   ││ `https://`), sin puerto ni     │
 │ ● IP_INTERNAL_CONNECTION     s1                                                    ││ barra final. Los seeds la      │
 │ ▾ .env.s1                                           27 variables · 4 sin completar ││ usan: `url_systems` la guarda  │
 │ ▲ IP_SERVER                  http://CAMBIAR-direccion-del-servidor   por completar ││ como URL de cada sistema (se   │
 │ ● AUTH_URL                   http://s0:3200                                        ││ ve en Auth, Configuración,     │
 │ ▲ JWT_SECRET                 (vacía)                                   obligatoria ││ Sistemas) y como base de las   │
-│ ● MONGO_DELTA_DISPATCH_URI   mongodb://host.docker.internal:27017/deltadispatch_ix ││ URLs de backend                │
-│ ● MONGO_AUTHSOFTWARE_URI     mongodb://host.docker.internal:27017/authsoftware_ix- ││ (`<IP_SERVER>:3000/3100/3200`) │
+│ ● MONGO_DELTA_DISPATCH_URI   mongodb://host.docker.internal:27017/s1_ix-colorado   ││ URLs de backend                │
+│ ● MONGO_AUTHSOFTWARE_URI     mongodb://host.docker.internal:27017/s0_ix-colorado   ││ (`<IP_SERVER>:3000/3100/3200`) │
 │ ● MONGO_ROBIN_URI            mongodb://host.docker.internal:27017/robin_ix-colorad ││ . Tras `init`, revisa esas     │
 │ ● FCM_CERT                   /run/secrets/fcm.json            falta el archivo (f) ││ URLs: todas llevan el mismo    │
 │ ● KEEPER_FCM_CERT            /run/secrets/keeper-fcm.json     falta el archivo (f) ││ valor.                         │
