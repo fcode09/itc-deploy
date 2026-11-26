@@ -237,9 +237,32 @@ dash_state_dump() {
     DSV_NOTE DASH_DOCKER_VER
 }
 
-# Loads the `declare -p` lines into the global tables.
+# What the panel runs in the background to read the state: the dump and, under it, a signature of its content. Bash lists the entries of an
+# associative array in an order that changes from one process to the next, so two dumps of the same state are not the same text; sorting the
+# words first gives a signature that only changes when the state does. It is computed here, off the loop of the panel.
+dash_state_job() {
+  local txt
+  txt="$(dash_state_dump)"
+  printf '%s\n' "$txt"
+  printf '#sig %s\n' "$(printf '%s\n' "$txt" | tr ' ' '\n' | LC_ALL=C sort | cksum)"
+}
+
+# Loads the `declare -p` lines into the global tables. A state with the signature of the one already loaded changes nothing: it is not loaded
+# again, the figures are not asked for again and nothing is drawn (DASH_STATE_SAME=1; a Docker that has nothing new to say was a redraw of the
+# whole body and a new sample of the host at every check).
+DASH_STATE_SIG="" DASH_STATE_SAME=0
 dash_state_apply() { # text
-  local line
+  local line sig=""
+  case "$1" in *$'\n#sig '*) sig="${1##*$'\n#sig '}"; sig="${sig%%$'\n'*}" ;; esac
+  if [ -n "$sig" ] && [ "$sig" = "$DASH_STATE_SIG" ]; then
+    DASH_STATE_SAME=1
+    prof_count state.same
+    DASH_REFRESH_AT="$SECONDS" DASH_FORCE_REFRESH=0
+    [ "$ST_DOCKER" -ne 1 ] || DK_READY_AT="$SECONDS"
+    return 0
+  fi
+  DASH_STATE_SAME=0 DASH_STATE_SIG="$sig"
+  prof_count state.changed
   while IFS= read -r line; do
     case "$line" in declare\ *) eval "declare -g${line#declare}" ;; esac
   done <<< "$1"
@@ -264,9 +287,12 @@ dash_async_tick() {
   local changed=1
   if [ "$DASH_REFRESH_WANT" -eq 1 ] && [ -z "${DASH_AS_PID[state]:-}" ]; then
     DASH_REFRESH_WANT=0 DASH_EV_PENDING=0
-    dash_async state "" dash_state_dump
+    dash_async state "" dash_state_job
   fi
-  if dash_async_take state; then prof_b state_apply; dash_state_apply "$DASH_AS_TEXT"; prof_e state_apply; changed=0; fi
+  if dash_async_take state; then
+    prof_b state_apply; dash_state_apply "$DASH_AS_TEXT"; prof_e state_apply
+    [ "$DASH_STATE_SAME" -eq 1 ] || changed=0
+  fi
   if dash_async_take errors; then dash_errors_apply "${DASH_AS_ARG[errors]}" "$DASH_AS_TEXT"; changed=0; fi
   if dash_async_take logs; then dash_logs_apply "${DASH_AS_ARG[logs]}" "$DASH_AS_TEXT"; changed=0; fi
   if dash_async_take rvidx; then dash_runs_log_index "${DASH_AS_ARG[rvidx]}" "$DASH_AS_TEXT"; changed=0; fi
