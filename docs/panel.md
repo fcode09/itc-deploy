@@ -138,6 +138,21 @@ etiqueta se mueve, que es la más reciente).
 La vista lee el catálogo en segundo plano al elegirla, cuando termina un comando (una carga o un despliegue cambian lo cargado y quién lo usa), cada
 minuto mientras está a la vista y con `R`. Nada de aquí borra una imagen.
 
+## Acceso desde fuera: nginx y Caddy
+
+La sección **Acceso** de una instancia (y `./deltactl access <instancia>` en la terminal) genera el bloque de proxy inverso de cada servicio. Es **solo
+texto**: se muestra, se copia (`y`) y se guarda dentro de la instancia (`g`, `instances/<instancia>/proxy/`); nunca se escribe en `/etc` ni se recarga
+nginx: el comando para ponerlo en marcha (`sudo cp … /etc/nginx/conf.d/…`, `sudo nginx -t && sudo systemctl reload nginx`) lo ejecuta quien administra el servidor.
+
+- **Una plantilla por servicio**, en `templates/nginx/<servicio>.location.conf` (`@PORT@` es el puerto de `.env.instance`). `s0` lleva WebSockets y cabeceras de
+  proxy; `s1` además timeouts de 10 minutos y `proxy_buffering off`. Si un servicio no tiene la suya, usa `default.location.conf`; la carpeta se cambia con
+  `DELTACTL_NGINX_TEMPLATES`. Las de `s0` y `s1` llevan `Connection 'upgrade'` literal y no necesitan el `map`, así que varias instancias conviven en un
+  servidor sin definirlo dos veces (nginx lo rechaza). `nginx -t` comprueba lo que se escriba en una plantilla.
+- **El nombre de cada servicio**: por defecto `<nombre-del-servicio>.<dominio>`; con `--host s0=backlion.deltampa.com --host s1=backguep.deltampa.com` cada
+  uno responde en el suyo, y con `--www` también en `www.<nombre>` (el certificado se pide para los dos). Se recuerda en `proxy/access.conf`
+  (`HOST_S0=…`, `WWW=1`), que la pestaña Acceso lee y conserva al guardar.
+- `new --domain D --host sN=NOMBRE --www` lo hace al crear la instancia; `access` lo cambia después (`--save` guarda; sin él es una vista previa).
+
 ## Alias de la consola
 
 Para las órdenes que repites:
