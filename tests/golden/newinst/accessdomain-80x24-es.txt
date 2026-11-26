@@ -18,7 +18,7 @@
 │ # s0                                                                         │
 │ server {                                                                     │
 │     listen 80;                                                               │
-│ … y 64 líneas más (se guardan enteras en la instancia)                       │
+│ … y 70 líneas más (se guardan enteras en la instancia)                       │
 │                                                                              │
 ╰─┘Esc atrás└─┘Enter siguiente└─┘Tab vista previa└─────────────────────────────╯
 
