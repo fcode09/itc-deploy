@@ -6,20 +6,20 @@
 │ Name     Services Versions Data     Variable Secrets  Access   Review        │
 ╰──────────────────────────────────────────────────────────────────────────────╯
 ╭─┐ ▸4 · Data ┌────────────────────────────────────────────────────────────────╮
-│                                                                              │
 │ Does the municipality start from scratch, or does it already have data (it   │
 │ comes from PM2 or another deployment)?                                       │
-│                                                                              │
 │ ▸ (o) New: starts from scratch                                               │
 │        The databases stay empty and ./deltactl init seeds them the first time│
 │        (administrator, municipality). Secrets are generated.                 │
-│                                                                              │
+│        Mongo user of this instance                                           │
+│        One per instance, with access only to the databases of this instance. │
+│        The password is optional: left empty, one is generated. The Mongo URIs│
+│        of the Variables step carry it, and ./deltactl init creates the user. │
+│        User         instancia-1  u changes                                   │
+│        Password     (generated)  c changes                                   │
 │   ( ) Has data: it comes from another deployment                             │
 │        It uses the same databases and secrets. The instance is marked as     │
 │        existing: init will not be able to seed it.                           │
-│                                                                              │
-│                                                                              │
-│                                                                              │
 ╰─┘Esc back└─┘Enter next└─┘Tab preview└────────────────────────────────────────╯
 
- ↑↓ choose · Enter goes on · Space switches · 1-9 step · Esc back · Tab preview
+ ↑↓ choose · Enter goes on · Space switches · Esc back · Tab preview

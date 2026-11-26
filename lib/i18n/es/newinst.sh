@@ -76,11 +76,11 @@ MSG_es["tui.nz.step.access"]="Acceso"
 
 MSG_es["tui.nz.help.variables"]="¿Qué valores llevan sus archivos? Lo obligatorio va arriba; los secretos únicos ya están generados: en la lista son puntos, Enter abre su valor y r lo muestra unos segundos. Lo que no cambies queda como la plantilla."
 MSG_es["tui.nz.help.secrets"]="Archivos que los servicios leen de secrets/ (el JSON de Firebase de las notificaciones). Se copian al crear, con permisos 600; si aún no los tienes, los copias después."
-MSG_es["tui.nz.help.access"]="¿Con qué nombre se entra desde internet? Con un dominio se prepara el bloque de nginx o Caddy; es solo texto: no se instala ni se recarga nada."
+MSG_es["tui.nz.help.access"]="¿Con qué nombre se entra desde internet? Escribe el nombre completo de cada servicio (Enter en su fila) o un dominio base que da nombre a los que dejes vacíos. Se prepara el bloque de nginx o Caddy; es solo texto: no se instala ni se recarga nada."
 
 MSG_es["tui.nz.keys.variables"]="{1} mover · Enter edita · g genera · r muestra · d por defecto · a avanzadas · s sigue · Esc atrás · Tab vista previa"
 MSG_es["tui.nz.keys.secrets"]="{1} mover · e escribe la ruta · b busca · x quita · Enter sigue · 1-9 paso · Esc atrás · Tab vista previa"
-MSG_es["tui.nz.keys.access"]="{1} mover · ←→ espacio cambia · c copia el bloque · v nginx/Caddy · Enter revisa · Esc atrás · Tab vista previa"
+MSG_es["tui.nz.keys.access"]="{1} mover · Enter edita el nombre · s sigue · ←→ espacio cambia · c copia el bloque · v nginx/Caddy · Esc atrás · Tab vista previa"
 
 MSG_es["tui.nz.pv.envfile"]="<respuestas>"
 MSG_es["tui.nz.pv.vars"]="variables: {1} puestas · {2} generadas"
@@ -156,3 +156,14 @@ MSG_es["tui.nz.data.m_typed"]="(la que escribiste)"
 MSG_es["tui.nz.data.m_key_u"]="u cambia"
 MSG_es["tui.nz.data.m_key_c"]="c cambia"
 MSG_es["tui.nz.data.m_bad_user"]="El usuario solo lleva letras, números, punto, guion y guion bajo (hasta 64)."
+
+# Step 7 (access): the name of each service, typed whole in a modal.
+MSG_es["tui.nz.acc.name"]="Nombre {1}"
+MSG_es["tui.nz.acc.name_none"]="(Enter: escribe su nombre completo, o pon el dominio base)"
+MSG_es["tui.nz.acc.bad_host"]="El nombre de {1} (\"{2}\") no es válido: minúsculas, números, guion y puntos."
+MSG_es["tui.nz.acc.dup"]="{1} y {2} no pueden tener el mismo nombre."
+MSG_es["tui.nz.acc.need_hosts"]="Falta el nombre de {1}: pon el dominio base (da nombre a los que falten) o el nombre completo de cada servicio."
+MSG_es["tui.nz.acc.m_text"]="Escribe o pega el nombre completo (DNS) con el que se entra a {1}, por ejemplo backs0m1.delta-dispatch.com. Vacío: su nombre sale del dominio base ({2})."
+MSG_es["tui.nz.acc.m_bad"]="No es un nombre válido: minúsculas, números, guion y puntos."
+MSG_es["tui.nz.acc.m_dup"]="Ya lo usa {1}."
+MSG_es["tui.nz.acc.m_foot"]="{Enter} aceptar|{Esc} cancelar|{Ctrl+U} borrar"

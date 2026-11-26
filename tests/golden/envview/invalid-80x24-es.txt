@@ -6,14 +6,14 @@
 │ ▾ .env.s0                                      9 variables · 2 sin completar │
 │ ▲ IP_SERVER                  http://CAMBIAR-direccion-del-ser  por completar │
 │ ▲╭─┐ ▸IP_SERVER ┌─────────────────────────────────────────────────────────╮a │
-│ ●│                                                                        │a │
+│ ●│                                                                        │o │
 │ ●│ Obligatoria · .env.s0                                                  │  │
 │ ▾│ URL pública base del sistema, con esquema (`http://` o `https://`),    │r │
 │ ▲│ sin puerto ni barra final. Los seeds la usan: `url_systems` la guarda  │r │
 │ ●│ como URL de cada sistema (se ve en Auth, Configuración, Sistemas) y    │  │
 │ ▲│ como base de las URLs de backend (`<IP_SERVER>:3000/3100/3200`). Tras  │a │
-│ ●│                                                                        │a │
-│ ●│ ✖ colorado                                                             │a │
+│ ●│                                                                        │o │
+│ ●│ ✖ colorado                                                             │o │
 │ ●│ debe ser una URL con esquema y host: http://host o https://host        │c │
 │ ●╰─┘Enter aceptar└─┘Esc cancelar└─┘Ctrl+G generar└─┘Ctrl+U borrar└────────╯) │
 │ ──────────────────────────────────────────────────────────────────────────── │

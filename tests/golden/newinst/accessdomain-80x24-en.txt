@@ -7,6 +7,8 @@
 ╰──────────────────────────────────────────────────────────────────────────────╯
 ╭─┐ ▸7 · Access ┌──────────────────────────────────────────────────────────────╮
 │ Domain    ● muni.example.com                                                 │
+│ Name s0   backend-s0.muni.example.com                                        │
+│ Name s1   backend-s1.muni.example.com                                        │
 │ Proxy     ( nginx)  ( Caddy)  ▸ (both)                                       │
 │ HTTPS     [x]                                                                │
 │ ℹ Neither nginx nor Caddy was detected on this server (the block can be      │
@@ -16,10 +18,8 @@
 │ # s0                                                                         │
 │ server {                                                                     │
 │     listen 80;                                                               │
-│     server_name backend-s0.muni.example.com;                                 │
-│     return 301 https://$host$request_uri;                                    │
-│ … and 62 more lines (the whole block is saved in the instance)               │
+│ … and 64 more lines (the whole block is saved in the instance)               │
 │                                                                              │
 ╰─┘Esc back└─┘Enter next└─┘Tab preview└────────────────────────────────────────╯
 
- ↑↓ move · ←→ space changes · c copies the block · Esc back · Tab preview
+ ↑↓ move · Enter edits the name · s goes on · Esc back · Tab preview

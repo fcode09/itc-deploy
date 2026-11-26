@@ -68,9 +68,12 @@ mongo_new_conf() { # file gateway
   [ "$done_line" -eq 1 ]
 }
 
+# What ufw says, in English whatever the language of the server (it translates "Status: active" and the words of its table).
+mongo_ufw_status() { LC_ALL=C ufw status 2> /dev/null; }
+
 # Is the rule of the firewall there already? (ufw writes "27017/tcp  ALLOW  172.16.0.0/12")
 mongo_ufw_has() { # source port
-  ufw status 2> /dev/null | grep -E "^$2(/tcp)?[[:space:]]+ALLOW" | grep -qF "$1"
+  mongo_ufw_status | grep -E "^$2(/tcp)?[[:space:]]+ALLOW" | grep -qF "$1"
 }
 
 mongo_plan() { # gateway
@@ -107,9 +110,9 @@ mongo_plan() { # gateway
     fi
   fi
   # 3. the firewall
-  if command -v ufw > /dev/null 2>&1 && [ -z "$(ufw status 2> /dev/null)" ]; then
+  if command -v ufw > /dev/null 2>&1 && [ -z "$(mongo_ufw_status)" ]; then
     info "$(t mongo.ufw_unknown)"   # (ufw answers only to root)
-  elif command -v ufw > /dev/null 2>&1 && ufw status 2> /dev/null | grep -qi "^Status: active"; then
+  elif command -v ufw > /dev/null 2>&1 && mongo_ufw_status | grep -qi "^Status: active"; then
     if mongo_ufw_has "$MG_SRC" "$MG_PORT"; then ok "$(t mongo.ufw_ok "$MG_SRC" "$MG_PORT")"
     else MG_UFW_RULE="ufw allow from $MG_SRC to any port $MG_PORT proto tcp"; info "$(t mongo.ufw_new "$MG_UFW_RULE")"; MG_NEED=1; fi
   else

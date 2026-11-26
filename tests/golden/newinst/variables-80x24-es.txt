@@ -11,7 +11,7 @@
 │ ▾ .env.s0                                       9 variables · 1 sin completar│
 │ ▲ IP_SERVER                       (vacía)                         obligatoria│
 │ ● JWT_SECRET                      ⚿ ••••••••••                     modificada│
-│ ● MONGO_URI                       ⚿ ••••••••••                               │
+│ ● MONGO_URI                       ⚿ mongodb://instancia-1:••••@ho  modificada│
 │ ● IP_INTERNAL_CONNECTION          s1                                         │
 │ ▾ .env.s1                                      27 variables · 2 sin completar│
 │ ▲ IP_SERVER                       (vacía)                         obligatoria│

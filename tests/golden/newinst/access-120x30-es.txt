@@ -7,25 +7,25 @@
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 ╭─┐ ▸7 · Acceso ┌──────────────────────────────────────────────────────╮╭─┐vista previa┌───────────────────────────────╮
 │                                                                      ││ instances/instancia-1/                       │
-│ ¿Con qué nombre se entra desde internet? Con un dominio se prepara el││   .env.instance                              │
-│ bloque de nginx o Caddy; es solo texto: no se instala ni se recarga  ││     COMPOSE_PROFILES=s0,s1                   │
-│ nada.                                                                ││     S0_PORT=4100                             │
-│                                                                      ││     S0_TAG=2.14.1                            │
-│ Dominio   ○  opcional · p. ej. muni.example.com                      ││     S1_PORT=4101                             │
-│ Proxy     ( nginx)  ( Caddy)  ▸ (los dos)                            ││     S1_TAG=2.9.0                             │
-│ HTTPS     [x]                                                        ││   .env.s0 .env.s1                            │
-│                                                                      ││   secrets/  data/                            │
-│ ℹ No se detectó nginx ni Caddy en este servidor (el bloque se puede  ││     data/ vacía: init la siembra             │
-│   generar igual).                                                    ││   variables: 0 puestas · 4 generadas         │
+│ ¿Con qué nombre se entra desde internet? Escribe el nombre completo  ││   .env.instance                              │
+│ de cada servicio (Enter en su fila) o un dominio base que da nombre a││     COMPOSE_PROFILES=s0,s1                   │
+│ los que dejes vacíos. Se prepara el bloque de nginx o Caddy; es solo ││     S0_PORT=4100                             │
+│ texto: no se instala ni se recarga nada.                             ││     S0_TAG=2.14.1                            │
+│                                                                      ││     S1_PORT=4101                             │
+│ Dominio   ○  opcional · p. ej. muni.example.com                      ││     S1_TAG=2.9.0                             │
+│ Nombre s0 (Enter: escribe su nombre completo, o pon el dominio base) ││   .env.s0 .env.s1                            │
+│ Nombre s1 (Enter: escribe su nombre completo, o pon el dominio base) ││   secrets/  data/                            │
+│ Proxy     ( nginx)  ( Caddy)  ▸ (los dos)                            ││     data/ vacía: init la siembra             │
+│ HTTPS     [x]                                                        ││   variables: 0 puestas · 4 generadas         │
 │                                                                      ││                                              │
-│ Sin dominio no se genera ningún bloque de proxy. Podrás hacerlo      ││ ≈ ./deltactl new instancia-1                 │
-│ después, en la pestaña Acceso de la instancia. Nada se escribe en    ││     --services s0,s1 --s0-tag 2.14.1         │
-│ /etc.                                                                ││     --s1-tag 2.9.0 --env-file <respuestas>   │
-│                                                                      ││                                              │
-│                                                                      ││                                              │
-│                                                                      ││                                              │
+│ ℹ No se detectó nginx ni Caddy en este servidor (el bloque se puede  ││ ≈ ./deltactl new instancia-1                 │
+│   generar igual).                                                    ││     --services s0,s1 --s0-tag 2.14.1         │
+│                                                                      ││     --s1-tag 2.9.0 --env-file <respuestas>   │
+│ Sin dominio no se genera ningún bloque de proxy. Podrás hacerlo      ││                                              │
+│ después, en la pestaña Acceso de la instancia. Nada se escribe en    ││                                              │
+│ /etc.                                                                ││                                              │
 │                                                                      ││                                              │
 │                                                                      ││                                              │
 ╰─┘Esc atrás└─┘Enter siguiente└────────────────────────────────────────╯╰──────────────────────────────────────────────╯
 
- ↑↓ mover · ←→ espacio cambia · c copia el bloque · v nginx/Caddy · Enter revisa · Esc atrás · Tab vista previa
+ ↑↓ mover · Enter edita el nombre · s sigue · ←→ espacio cambia · c copia el bloque · Esc atrás · Tab vista previa

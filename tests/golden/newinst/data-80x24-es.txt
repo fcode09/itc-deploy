@@ -6,20 +6,20 @@
 │ Nombre   Servicio Versione Datos    Variable Secretos Acceso   Revisión      │
 ╰──────────────────────────────────────────────────────────────────────────────╯
 ╭─┐ ▸4 · Datos ┌───────────────────────────────────────────────────────────────╮
-│                                                                              │
 │ ¿La municipalidad empieza de cero o ya tiene datos (viene de PM2 u otro      │
 │ despliegue)?                                                                 │
-│                                                                              │
 │ ▸ (o) Nueva: empieza de cero                                                 │
 │        Las bases quedan vacías y ./deltactl init las siembra la primera vez  │
 │        (administrador, municipalidad). Genera los secretos.                  │
-│                                                                              │
+│        Usuario de Mongo de esta instancia                                    │
+│        Uno por instancia, con acceso solo a las bases de esta instancia. La  │
+│        contraseña es opcional: vacía, se genera una. Las URIs de Mongo del   │
+│        paso Variables la llevan, y ./deltactl init crea el usuario.          │
+│        Usuario      instancia-1  u cambia                                    │
+│        Contraseña  (se genera sola)  c cambia                                │
 │   ( ) Ya tiene datos: viene de otro despliegue                               │
 │        Usa sus mismas bases y secretos. La instancia queda marcada como      │
 │        existente: init no podrá sembrarla.                                   │
-│                                                                              │
-│                                                                              │
-│                                                                              │
 ╰─┘Esc atrás└─┘Enter siguiente└─┘Tab vista previa└─────────────────────────────╯
 
  ↑↓ elegir · Enter sigue · Espacio cambia · Esc atrás · Tab vista previa

@@ -271,11 +271,11 @@ runs_sampler() { # root_pid dir
         i=$((i + 1))
         for c in /proc/"$p"/task/*/children; do
           line=""
-          read -r line < "$c" 2> /dev/null || true   # no trailing newline: read fails but still fills `line`
+          read -r line 2> /dev/null < "$c" || true   # no trailing newline: read fails but still fills `line`
           for k in $line; do [ "$k" = "$me" ] || queue+=("$k"); done
         done
         [ "$p" != "$root" ] || continue   # the wrapper itself waits: its own memory is not the command's
-        read -r _ k _ < "/proc/$p/statm" 2> /dev/null || continue
+        read -r _ k _ 2> /dev/null < "/proc/$p/statm" || continue   # (the 2> goes first: a file that vanished is reported by the redirection itself)
         sum=$((sum + k * pagekb)) n=$((n + 1))
       done
     else

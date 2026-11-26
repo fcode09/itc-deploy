@@ -6,13 +6,13 @@
 │ ▾ .env.s0                                                                               9 variables · 2 to fill in ││                                        │
 │ ▲ IP_SERVER                  http://CAMBIAR-direccion-del-servidor                                      to fill in ││ Base public URL of the system, with a  │
 │ ▲ JWT_SECRET                 (empty)                                                                      required ││ scheme (`http://` or `https://`),      │
-│ ● MONGO_URI                  mongodb://host.docker.internal:27017/authsoftware_ix-colorado                         ││ without a port or trailing slash. The  │
+│ ● MONGO_URI                  mongodb://host.docker.internal:27017/s0_ix-colorado                                   ││ without a port or trailing slash. The  │
 │ ● IP_INTERNAL_CONNECTION     s1                                                                                    ││ seeds use it: `url_systems` stores it  │
 │ ▾ .env.s1                                                                              27 variables · 4 to fill in ││ as the URL of each system (seen in     │
 │ ▲ IP_SERVER                  http://CAMBIAR-direccion-del-servidor                                      to fill in ││ Auth, Settings, Systems) and as the    │
 │ ● AUTH_URL                   http://s0:3200                                                                        ││ base of the backend URLs               │
 │ ▲ JWT_SECRET                 (empty)                                                                      required ││ (`<IP_SERVER>:3000/3100/3200`). After  │
-│ ● MONGO_DELTA_DISPATCH_URI   mongodb://host.docker.internal:27017/deltadispatch_ix-colorado                        ││ `init`, check those URLs: they all     │
+│ ● MONGO_DELTA_DISPATCH_URI   mongodb://host.docker.internal:27017/s1_ix-colorado                                   ││ `init`, check those URLs: they all     │
 │ ● MONGO_AUTHSOFTWARE_URI     mongodb://h╭─┐ ▸IP_SERVER ┌───────────────────────────────────────────────────────────╮│ carry the same value.                  │
 │ ● MONGO_ROBIN_URI            mongodb://h│                                                                          ││                                        │
 │ ● FCM_CERT                   /run/secret│ Required · .env.s0                                                       ││ Default: http://localhost              │

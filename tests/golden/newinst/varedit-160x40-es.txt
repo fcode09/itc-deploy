@@ -8,28 +8,28 @@
 ╭─┐ ▸5 · Variables ┌───────────────────────────────────────────────────────────────────────────╮╭─┐vista previa┌───────────────────────────────────────────────╮
 │ 3 obligatorias por poner · 0 puestos · 4 generados                                           ││ instances/instancia-1/                                       │
 │ ¿Qué valores llevan sus archivos? Lo obligatorio va arriba; los secretos únicos ya están     ││   .env.instance                                              │
-│ generados y no se muestran. Lo que no cambies queda como la plantilla.                       ││     COMPOSE_PROFILES=s0,s1                                   │
-│ ▸ .env.instance                                                                  12 variables││     S0_PORT=4100                                             │
-│ ▾ .env.s0                                                       9 variables · 1 sin completar││     S0_TAG=2.14.1                                            │
-│   IP_SERVER                     ● http://m.ex                                                ││     S1_PORT=4101                                             │
-│ ● JWT_SECRET                      ⚿ ••••••••••                                     modificada││     S1_TAG=2.9.0                                             │
-│ ● MONGO_URI                       ⚿ ••••••••••                                               ││   .env.s0 .env.s1                                            │
-│ ● IP_INTERNAL_CONNECTION          s1                                                         ││   secrets/  data/                                            │
-│ ▾ .env.s1                                                      27 variables · 2 sin completar││     data/ vacía: init la siembra                             │
-│ ▲ IP_SERVER                       (vacía)                                         obligatoria││   variables: 0 puestas · 4 generadas                         │
-│ ● AUTH_URL                        http://s0:3200                                             ││                                                              │
-│ ● JWT_SECRET                      ⚿ ••••••••••                                     modificada││ ≈ ./deltactl new instancia-1                                 │
-│ ● DELTA_UNIVERSITY_HANDOFF_SECR…  ⚿ ••••••••••                                     modificada││     --services s0,s1 --s0-tag 2.14.1 --s1-tag 2.9.0          │
-│ ● MONGO_DELTA_DISPATCH_URI        ⚿ ••••••••••                                               ││     --env-file <respuestas>                                  │
-│ ● MONGO_AUTHSOFTWARE_URI          ⚿ ••••••••••                                               ││                                                              │
-│ ● MONGO_ROBIN_URI                 ⚿ ••••••••••                                               ││                                                              │
-│ ● FCM_CERT                        /run/secrets/fcm.json                                      ││                                                              │
-│ ● KEEPER_FCM_CERT                 /run/secrets/keeper-fcm.json                               ││                                                              │
-│ ● FEDERATION_ENCRYPTION_KEY       ⚿ ••••••••••                                     modificada││                                                              │
-│ ● SERVERS_CONFIG                  ⚿ ••••••••••                                               │╰──────────────────────────────────────────────────────────────╯
-│ ▲ DEEPGRAM_API_KEY                (vacía)                                         obligatoria│╭─┐pasos┌──────────────────────────────────────────────────────╮
-│ ● SHIFT_UPDATE_BASELINE_SECRET    ⚿ ••••••••••                                     modificada││ ● Nombre      instancia-1                                    │
-│                                                                                              ││ ● Servicios   s0 s1                                          │
+│ generados: en la lista son puntos, Enter abre su valor y r lo muestra unos segundos. Lo que  ││     COMPOSE_PROFILES=s0,s1                                   │
+│ no cambies queda como la plantilla.                                                          ││     S0_PORT=4100                                             │
+│ ▸ .env.instance                                                                  12 variables││     S0_TAG=2.14.1                                            │
+│ ▾ .env.s0                                                       9 variables · 1 sin completar││     S1_PORT=4101                                             │
+│ ▲ IP_SERVER                       (vacía)                                         obligatoria││     S1_TAG=2.9.0                                             │
+│ ● JWT_SECRET                      ⚿ ••••••••••                                     modificada││   .env.s0 .env.s1                                            │
+│ ● MONGO_URI                       ⚿ mongodb://instancia-1:••••@host.docker.intern  modificada││   secrets/  data/                                            │
+│ ● IP_INT╭─┐ ▸IP_SERVER ┌───────────────────────────────────────────────────────────╮         ││     data/ vacía: init la siembra                             │
+│ ▾ .env.s│                                                                          │completar││   variables: 0 puestas · 4 generadas                         │
+│ ▲ IP_SER│ Obligatoria · .env.s0                                                    │ligatoria││                                                              │
+│ ● AUTH_U│ URL pública base del sistema, con esquema (`http://` o `https://`), sin  │         ││ ≈ ./deltactl new instancia-1                                 │
+│ ● JWT_SE│ puerto ni barra final. Los seeds la usan: `url_systems` la guarda como   │odificada││     --services s0,s1 --s0-tag 2.14.1 --s1-tag 2.9.0          │
+│ ● DELTA_│ URL de cada sistema (se ve en Auth, Configuración, Sistemas) y como base │odificada││     --env-file <respuestas>                                  │
+│ ● MONGO_│ de las URLs de backend (`<IP_SERVER>:3000/3100/3200`). Tras `init`,      │odificada││                                                              │
+│ ● MONGO_│                                                                          │odificada││                                                              │
+│ ● MONGO_│ ● http://m.ex                                                            │odificada││                                                              │
+│ ● FCM_CE│                                                                          │         ││                                                              │
+│ ● KEEPER╰─┘Enter aceptar└─┘Esc cancelar└─┘Tab ver└─┘Ctrl+G generar└─┘Ctrl+U borrar└╯         ││                                                              │
+│ ● FEDERATION_ENCRYPTION_KEY       ⚿ ••••••••••                                     modificada│╰──────────────────────────────────────────────────────────────╯
+│ ● SERVERS_CONFIG                  ⚿ ••••••••••                                               │╭─┐pasos┌──────────────────────────────────────────────────────╮
+│ ▲ DEEPGRAM_API_KEY                (vacía)                                         obligatoria││ ● Nombre      instancia-1                                    │
+│ ● SHIFT_UPDATE_BASELINE_SECRET    ⚿ ••••••••••                                     modificada││ ● Servicios   s0 s1                                          │
 │                                                                                              ││ ● Versiones   2.14.1 2.9.0                                   │
 │                                                                                              ││ ● Datos       nueva                                          │
 │ ─────────────────────────────────────────────────────────────────────────────────────────────││ ◐ Variables   faltan 3                                       │
