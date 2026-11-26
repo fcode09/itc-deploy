@@ -4,21 +4,21 @@
 ╭─┐ ▸⁹variables ┌─┐ix-colorado┌───────────────────────────────────────┐6 to fill in┌─╮╭─┐IP_SERVER┌────────────────────╮
 │ ▸ .env.instance                                                       12 variables ││ Required · .env.s0             │
 │ ▾ .env.s0                                               9 variables · 2 to fill in ││                                │
-│   IP_SERVER                ● https://colorado.itc.pe                               ││ Base public URL of the system, │
+│ ▲ IP_SERVER                  http://CAMBIAR-direccion-del-servidor      to fill in ││ Base public URL of the system, │
 │ ▲ JWT_SECRET                 (empty)                                      required ││ with a scheme (`http://` or    │
-│ ● MONGO_URI                  ⚿ ••••••••••                                          ││ `https://`), without a port or │
+│ ● MONGO_URI                  mongodb://host.docker.internal:27017/authsoftware_ix- ││ `https://`), without a port or │
 │ ● IP_INTERNAL_CONNECTION     s1                                                    ││ trailing slash. The seeds use  │
-│ ▾ .env.s1                                              27 variables · 4 to fill in ││ it: `url_systems` stores it as │
-│ ▲ IP_SERVER                  http://CAMBIAR-direccion-del-servidor      to fill in ││ the URL of each system (seen   │
-│ ● AUTH_URL                   http://s0:3200                                        ││ in Auth, Settings, Systems)    │
-│ ▲ JWT_SECRET                 (empty)                                      required ││ and as the base of the backend │
-│ ● MONGO_DELTA_DISPATCH_URI   ⚿ ••••••••••                                          ││ URLs                           │
-│ ● MONGO_AUTHSOFTWARE_URI     ⚿ ••••••••••                                          ││ (`<IP_SERVER>:3000/3100/3200`) │
-│ ● MONGO_ROBIN_URI            ⚿ ••••••••••                                          ││ . After `init`, check those    │
-│ ● FCM_CERT                   /run/secrets/fcm.json                                 ││ URLs: they all carry the same  │
-│ ● KEEPER_FCM_CERT            /run/secrets/keeper-fcm.json                          ││ value.                         │
-│ ▲ FEDERATION_ENCRYPTION_KEY  (empty)                                      required ││                                │
-│ ● SERVERS_CONFIG             ⚿ ••••••••••                                          ││ Default: http://localhost      │
+│ ▾ .env.s1           ╭─┐ ▸IP_SERVER ┌───────────────────────────────────────────────────────────╮ystems` stores it as │
+│ ▲ IP_SERVER         │                                                                          │ each system (seen   │
+│ ● AUTH_URL          │ Required · .env.s0                                                       │ettings, Systems)    │
+│ ▲ JWT_SECRET        │ Base public URL of the system, with a scheme (`http://` or `https://`),  │ base of the backend │
+│ ● MONGO_DELTA_DISPAT│ without a port or trailing slash. The seeds use it: `url_systems` stores │                     │
+│ ● MONGO_AUTHSOFTWARE│ it as the URL of each system (seen in Auth, Settings, Systems) and as    │ER>:3000/3100/3200`) │
+│ ● MONGO_ROBIN_URI   │ the base of the backend URLs (`<IP_SERVER>:3000/3100/3200`). After       │nit`, check those    │
+│ ● FCM_CERT          │                                                                          │ all carry the same  │
+│ ● KEEPER_FCM_CERT   │ ● https://colorado.itc.pe                                                │                     │
+│ ▲ FEDERATION_ENCRYPT│                                                                          │                     │
+│ ● SERVERS_CONFIG    ╰─┘Enter accept└─┘Esc cancel└─┘Tab show└─┘Ctrl+G generate└─┘Ctrl+U clear└──╯ttp://localhost      │
 │ ▲ DEEPGRAM_API_KEY           (empty)                                      required ││                                │
 │                                                                                    ││                                │
 │                                                                                    ││                                │
@@ -26,6 +26,6 @@
 │                                                                                    ││                                │
 │                                                                                    ││                                │
 │                                                                                    ││                                │
-╰─┘Enter accept└─┘Esc cancel└────────────────────────────────────────────────────────╯╰────────────────────────────────╯
+╰────────────────────────────────────────────────────────────────────────────────────╯╰────────────────────────────────╯
 
- Enter accepts · Esc cancels · ←→ move · Ctrl+U deletes · q ? : are letters here
+ Enter accepts · Esc cancels · Tab shows or hides · Ctrl+G generates · you can paste · q ? : are letters here

@@ -4,22 +4,22 @@
 ╭─┐ ▸⁹variables ┌─┐ix-colorado┌──────────────────────────────┐6 sin completar┌─╮
 │ ▸ .env.instance                                                 12 variables │
 │ ▾ .env.s0                                      9 variables · 2 sin completar │
-│   IP_SERVER                ● https://colorado.itc.pe                         │
-│ ▲ JWT_SECRET                 (vacía)                             obligatoria │
-│ ● MONGO_URI                  ⚿ ••••••••••                                    │
-│ ● IP_INTERNAL_CONNECTION     s1                                              │
-│ ▾ .env.s1                                     27 variables · 4 sin completar │
 │ ▲ IP_SERVER                  http://CAMBIAR-direccion-del-ser  por completar │
-│ ● AUTH_URL                   http://s0:3200                                  │
-│ ▲ JWT_SECRET                 (vacía)                             obligatoria │
-│ ● MONGO_DELTA_DISPATCH_URI   ⚿ ••••••••••                                    │
-│ ● MONGO_AUTHSOFTWARE_URI     ⚿ ••••••••••                                    │
-│ ● MONGO_ROBIN_URI            ⚿ ••••••••••                                    │
-│ ● FCM_CERT                   /run/secrets/fcm.json                           │
+│ ▲╭─┐ ▸IP_SERVER ┌─────────────────────────────────────────────────────────╮a │
+│ ●│                                                                        │a │
+│ ●│ Obligatoria · .env.s0                                                  │  │
+│ ▾│ URL pública base del sistema, con esquema (`http://` o `https://`),    │r │
+│ ▲│ sin puerto ni barra final. Los seeds la usan: `url_systems` la guarda  │r │
+│ ●│ como URL de cada sistema (se ve en Auth, Configuración, Sistemas) y    │  │
+│ ▲│ como base de las URLs de backend (`<IP_SERVER>:3000/3100/3200`). Tras  │a │
+│ ●│                                                                        │a │
+│ ●│ ● https://colorado.itc.pe                                              │a │
+│ ●│                                                                        │c │
+│ ●╰─┘Enter aceptar└─┘Esc cancelar└─┘Ctrl+G generar└─┘Ctrl+U borrar└────────╯) │
 │ ──────────────────────────────────────────────────────────────────────────── │
 │ IP_SERVER  Obligatoria · .env.s0                                             │
 │ URL pública base del sistema, con esquema (`http://` o `https://`), sin      │
 │ puerto ni barra final. Los seeds la usan: `url_systems` la guarda como URL   │
-╰─┘Enter aceptar└─┘Esc cancelar└───────────────────────────────────────────────╯
+╰──────────────────────────────────────────────────────────────────────────────╯
 
- Enter acepta · Esc cancela · ←→ mueven · Ctrl+U borra · q ? : son letras aquí
+ Enter acepta · Esc cancela · se puede pegar · q ? : son letras aquí

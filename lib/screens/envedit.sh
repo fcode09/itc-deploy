@@ -21,6 +21,14 @@ dash_env_after() {
       if job_running; then dash_msg warn "$(t tui.msg.busy)"; return 0; fi
       dash_start_job stay deploy "$inst"
       ;;
+    secfile)
+      # A file of secrets/ given by its path: `secret add` copies it (in the background, as the load of an image: the panel keeps working) and the
+      # editor reads what the files are again when the command ends (kee_tick).
+      if job_running; then dash_msg warn "$(t tui.msg.busy)"; return 0; fi
+      if [ "$KEE_FILE_FORCE" -eq 1 ]; then dash_start_job stay secret add "$inst" "$KEE_FILE_NAME" "$KEE_FILE_SRC" --force
+      else dash_start_job stay secret add "$inst" "$KEE_FILE_NAME" "$KEE_FILE_SRC"; fi
+      KEE_FILEWAIT=1
+      ;;
     prev | next)
       # In the tab the instance is the one chosen in the list: another one is chosen there.
       [ "$DASH_VIEW" != instances ] || return 0

@@ -12,17 +12,17 @@
 │ ▾ .env.s0                                                                                              9 variables ││ Configuración, Sistemas) y como base   │
 │ ● IP_SERVER                  https://x.itc.pe                                                           modificada ││ de las URLs de backend                 │
 │ ● JWT_SECRET                 ⚿ ••••••••••                                                                          ││ (`<IP_SERVER>:3000/3100/3200`). Tras   │
-│ ● MONGO_URI                  ⚿ ••••••••••                                                                          ││ `init`, revisa esas URLs: todas llevan │
+│ ● MONGO_URI                  ⚿ mongodb://ana:••••@db.itc.pe:27017/auth                                             ││ `init`, revisa esas URLs: todas llevan │
 │ ● IP_INTERNAL_CONNECTION     s1                                                                                    ││ el mismo valor.                        │
 │ ▾ .env.s1                                                                                             27 variables ││                                        │
 │ ● IP_SERVER                  http://h                                                                              ││ Por defecto: http://localhost          │
 │ ● AUTH_URL                   http://s0:3200                                                                        ││                                        │
 │ ● JWT_SECRET                 ⚿ ••••••••••                                                                          ││                                        │
-│ ● MONGO_DELTA_DISPATCH_URI   ⚿ ••••••••••                                                                          ││                                        │
-│ ● MONGO_AUTHSOFTWARE_URI     ⚿ ••••••••••                                                                          ││                                        │
-│ ● MONGO_ROBIN_URI            ⚿ ••••••••••                                                                          ││                                        │
-│ ● FCM_CERT                   /run/secrets/fcm.json                                                                 ││                                        │
-│ ● KEEPER_FCM_CERT            /run/secrets/keeper-fcm.json                                                          ││                                        │
+│ ● MONGO_DELTA_DISPATCH_URI   mongodb://host.docker.internal:27017/deltadispatch_ix-lima                            ││                                        │
+│ ● MONGO_AUTHSOFTWARE_URI     mongodb://host.docker.internal:27017/authsoftware_ix-lima                             ││                                        │
+│ ● MONGO_ROBIN_URI            mongodb://host.docker.internal:27017/robin_ix-lima                                    ││                                        │
+│ ● FCM_CERT                   /run/secrets/fcm.json                                           archivo no válido (f) ││                                        │
+│ ● KEEPER_FCM_CERT            /run/secrets/keeper-fcm.json                                    archivo no válido (f) ││                                        │
 │ ● FEDERATION_ENCRYPTION_KEY  ⚿ ••••••••••                                                                          ││                                        │
 │ ● SERVERS_CONFIG             ⚿ ••••••••••                                                                          ││                                        │
 │ ● DEEPGRAM_API_KEY           ⚿ ••••••••••                                                                          ││                                        │

@@ -7,7 +7,7 @@
 # 0..length). kit_field_key <key> edits them with the key names tui_key produces and returns 0 when it used the key, 1 when the
 # caller must handle it (enter, esc, tab, up, down, ...). kit_field_insert <text> pastes: control characters and newlines are dropped.
 #   keys: characters, space, backspace, delete, left, right, home, end, Ctrl+A / Ctrl+E (start, end), Ctrl+U (to the start),
-#         Ctrl+K (to the end), Ctrl+W (the word before the cursor)
+#         Ctrl+K (to the end), Ctrl+W (the word before the cursor), paste (the key "paste": the text is in TUI_PASTE)
 #
 #   kit_field_render <label> <value> <cursor> <width> [option=value ...]   -> KIT_OUT (exactly <width> cells)
 #     label_width=N   cells of the label column (default: the label's length + 2)
@@ -51,6 +51,7 @@ kit_field_key() { # key
       KF_VALUE="$b${KF_VALUE:$KF_CUR}" KF_CUR="${#b}"
       ;;
     space) kit_field_insert " " ;;
+    paste) kit_field_insert "${TUI_PASTE:-}" ;;
     *)
       if [ "${#k}" -eq 1 ] && [[ "$k" != [[:cntrl:]] ]]; then kit_field_insert "$k"; else return 1; fi
       ;;

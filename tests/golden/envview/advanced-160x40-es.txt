@@ -19,7 +19,7 @@
 │ ▲ IP_SERVER                       http://CAMBIAR-direccion-del-servidor                              por completar ││                                        │
 │ ▲ JWT_SECRET                      (vacía)                                                              obligatoria ││                                        │
 │ ● JWT_EXPIRES_IN                  8h                                                                               ││                                        │
-│ ● MONGO_URI                       ⚿ ••••••••••                                                                     ││                                        │
+│ ● MONGO_URI                       mongodb://host.docker.internal:27017/authsoftware_ix-colorado                    ││                                        │
 │ ● IP_INTERNAL_CONNECTION          s1                                                                               ││                                        │
 │ ○ GOOGLE_KEY                      (vacía)                                                                 opcional ││                                        │
 │ ● PROFILE_PROPAGATION_ENABLED     true                                                                             ││                                        │
@@ -30,12 +30,12 @@
 │ ● AUTH_URL                        http://s0:3200                                                                   ││                                        │
 │ ▲ JWT_SECRET                      (vacía)                                                              obligatoria ││                                        │
 │ ○ DELTA_UNIVERSITY_HANDOFF_SECR…  (vacía)                                                                 opcional ││                                        │
-│ ● MONGO_DELTA_DISPATCH_URI        ⚿ ••••••••••                                                                     ││                                        │
-│ ● MONGO_AUTHSOFTWARE_URI          ⚿ ••••••••••                                                                     ││                                        │
-│ ● MONGO_ROBIN_URI                 ⚿ ••••••••••                                                                     ││                                        │
+│ ● MONGO_DELTA_DISPATCH_URI        mongodb://host.docker.internal:27017/deltadispatch_ix-colorado                   ││                                        │
+│ ● MONGO_AUTHSOFTWARE_URI          mongodb://host.docker.internal:27017/authsoftware_ix-colorado                    ││                                        │
+│ ● MONGO_ROBIN_URI                 mongodb://host.docker.internal:27017/robin_ix-colorado                           ││                                        │
 │ ● IP_INTERNAL_CONNECTION          127.0.0.1                                                                        ││                                        │
 │ ● PORT_INTERNAL_CONNECTION        5020                                                                             ││                                        │
 │ ● TCP_LISTEN_HOST                 0.0.0.0                                                                          ││                                        │
 ╰─┘Enter editar└─┘g generar└─┘r revelar└─┘d defecto└─┘a avanzadas└─┘s guardar└─┘u desplegar└─────────────────────────╯╰────────────────────────────────────────╯
 
- ↑↓ mover · Enter edita · g generar · r revelar · d defecto · a avanzadas · s guardar · u desplegar · [/] instancia · Esc sale
+ ↑↓ mover · Enter edita · g generar · r revelar · f archivo · d defecto · a avanzadas · s guardar · u desplegar · [/] instancia · Esc sale
