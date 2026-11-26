@@ -12,13 +12,13 @@
 │ ℹ No se detectó nginx ni Caddy en este servidor (el bloque se puede generar  │
 │   igual).                                                                    │
 │ Bloque de nginx → instances/instancia-1/proxy/nginx.conf                     │
-│ map $http_upgrade $connection_upgrade { default upgrade; '' close; }         │
 │                                                                              │
 │ # s0                                                                         │
 │ server {                                                                     │
 │     listen 80;                                                               │
 │     server_name auth-backend.muni.example.com;                               │
-│ … y 42 líneas más (se guardan enteras en la instancia)                       │
+│     return 301 https://$host$request_uri;                                    │
+│ … y 62 líneas más (se guardan enteras en la instancia)                       │
 │                                                                              │
 ╰─┘Esc atrás└─┘Enter siguiente└─┘Tab vista previa└─────────────────────────────╯
 

@@ -9,7 +9,7 @@ la instancia se crea igual y la etiqueta se queda en `latest` (con un aviso).
 $ ./deltactl new <instancia> [--services s0,s1] [--existing]
 $ ./deltactl new <instancia> [--s0-image X] [--s0-tag X] [--s1-image X] [--s1-tag X] [--ip URL] [--generate-secrets]
 $ ./deltactl new <instancia> [--env-file ARCHIVO] [--secret-file ORIGEN[:NOMBRE]]
-$ ./deltactl new <instancia> --domain DOMINIO [--proxy nginx|caddy|both] [--tls]
+$ ./deltactl new <instancia> --domain DOMINIO [--host sN=NOMBRE] [--www] [--proxy nginx|caddy|both] [--tls]
 $ ./deltactl new --wizard
 
 ## Asistente
@@ -46,7 +46,12 @@ confirmar lanza `new` con las respuestas como opciones.
   hacia el puerto de la instancia) y lo guarda **dentro de la instancia**, en `instances/<instancia>/proxy/`.
   `--proxy nginx|caddy|both` elige cuál (por defecto los dos) y `--tls` pone HTTPS (nginx: redirección del 80 y
   bloque 443 con las rutas de certbot; Caddy lo hace solo). Es solo texto: `new` no escribe nada en `/etc` ni
-  recarga nada; lo copias tú donde tu proxy lo lea.
+  recarga nada; lo copias tú donde tu proxy lo lea. Cada servicio sale de la plantilla de
+  `templates/nginx/<servicio>.location.conf` (s0 y s1 tienen la suya; edítala para cambiar timeouts o cabeceras).
+- `--host <sN>=<nombre>` pone a un servicio un nombre propio en vez de `<nombre-del-servicio>.<dominio>`
+  (`--host s0=backlion.deltampa.com --host s1=backguep.deltampa.com`; se puede repetir) y `--www` hace que cada bloque
+  responda también en `www.<nombre>`. Ambos exigen `--domain` y se recuerdan en `instances/<instancia>/proxy/access.conf`
+  (`./deltactl access` los lee y los cambia).
 
 ## Qué crea
 - `.env.instance`  variables de la instancia: versiones, puertos, servicios activos, memoria

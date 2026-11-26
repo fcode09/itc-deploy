@@ -74,7 +74,11 @@ check "nginx with TLS: port 80 redirects, 443 has the certificate paths of certb
   echo "$out" | grep -q "return 301 https://\$host\$request_uri;" && echo "$out" | grep -q "listen 443 ssl;" && echo "$out" | grep -q "/etc/letsencrypt/live/a.example.com/fullchain.pem" && echo "$out" | grep -q "certbot --nginx -d a.example.com"'
 check "nginx passes the headers of a proxy and the websocket upgrade" '
   out="$(prx proxy_render nginx 0 "a.example.com|4300|s0")"
-  for h in "Host \$host" "X-Real-IP" "X-Forwarded-For" "X-Forwarded-Proto" "Upgrade \$http_upgrade" "Connection \$connection_upgrade" "map \$http_upgrade"; do echo "$out" | grep -qF "$h" || exit 1; done'
+  for h in "Host \$host" "X-Real-IP" "X-Forwarded-For" "X-Forwarded-Proto" "Upgrade \$http_upgrade"; do echo "$out" | grep -qF "$h" || exit 1; done
+  echo "$out" | grep -q "Connection .upgrade.;" && ! echo "$out" | grep -q "^map "'
+check "a service with no template of its own gets the default one, which needs the map of the upgrade" '
+  out="$(prx proxy_render nginx 0 "a.example.com|4300|zz")"
+  for h in "Host \$host" "X-Forwarded-For" "Upgrade \$http_upgrade" "Connection \$connection_upgrade" "map \$http_upgrade"; do echo "$out" | grep -qF "$h" || exit 1; done'
 check "Caddy: with TLS the name alone (Caddy gets the certificate), without it http://name" '
   a="$(prx proxy_render caddy 1 "a.example.com|4300|s0")"; b="$(prx proxy_render caddy 0 "a.example.com|4300|s0")"
   echo "$a" | grep -q "^a.example.com {" && echo "$a" | grep -q "reverse_proxy 127.0.0.1:4300" && echo "$b" | grep -q "^http://a.example.com {"'

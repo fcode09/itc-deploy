@@ -12,6 +12,9 @@
 # (a connection to 127.0.0.1, in the background) run every ten seconds while the tab is on screen, and never in the drawing.
 
 declare -gA DASH_ACC_DOM=() DASH_ACC_FL=() DASH_ACC_TLS=() DASH_ACC_LOADED=() DASH_ACC_PORT=() DASH_ACC_REACH=() DASH_ACC_AT=()
+# What the instance remembered besides the three answers: the www alias (0|1) and the name of each service that has one of its own ("s0=a.pe s1=b.pe"),
+# written by `./deltactl access`. The tab does not edit them but keeps them: what it generates and saves carries them.
+declare -gA DASH_ACC_WWW=() DASH_ACC_OV=()
 DASH_ACC_DET="" DASH_ACC_DET_SET=0       # the proxy this server has (nginx | caddy | none), asked once
 DASH_ACC_SCROLL=0 DASH_ACC_N=0          # the first line of the block on screen; a counter that says "something changed" (signature)
 DASH_ACC_SIGM=""                        # the signature of the model that was built
@@ -23,7 +26,7 @@ ws_acceso_avail() { # instance
 
 # What the instance remembers (once per instance and session), and what this server has.
 dash_acc_load() { # instance
-  local name="$1"
+  local name="$1" s
   if [ "$DASH_ACC_DET_SET" -eq 0 ]; then
     proxy_detect_r
     DASH_ACC_DET="$PROXY_DET"
@@ -34,6 +37,10 @@ dash_acc_load() { # instance
   DASH_ACC_DOM[$name]="$PROXY_M_DOMAIN"
   DASH_ACC_FL[$name]="${PROXY_M_FLAVOR:-${DASH_ACC_DET:-nginx}}"
   DASH_ACC_TLS[$name]="$PROXY_M_TLS"
+  DASH_ACC_WWW[$name]="$PROXY_M_WWW"
+  DASH_ACC_OV[$name]=""
+  for s in "${KNOWN_SERVICES[@]}"; do [ -z "${PROXY_M_HOSTS[$s]:-}" ] || DASH_ACC_OV[$name]+="$s=${PROXY_M_HOSTS[$s]} "; done
+  DASH_ACC_OV[$name]="${DASH_ACC_OV[$name]% }"
   DASH_ACC_LOADED[$name]=1
   dash_acc_ports "$name"
   DASH_ACC_N=$((DASH_ACC_N + 1))
@@ -48,12 +55,19 @@ dash_acc_ports() { # instance
   for s in "${svcs[@]}"; do DASH_ACC_PORT[$name/$s]="${PROXY_PORTS[$s]:-}"; done
 }
 
+# Puts the www alias and the names of the services of the instance where the generator reads them (PROXY_WWW, PROXY_HOSTS).
+dash_acc_proxy_vars() { # instance
+  local kv
+  PROXY_HOSTS=() PROXY_WWW="${DASH_ACC_WWW[$1]:-0}"
+  for kv in ${DASH_ACC_OV[$1]:-}; do PROXY_HOSTS[${kv%%=*}]="${kv#*=}"; done
+}
+
 # The block and the table of the instance into DASH_ACC_*: made again only when what it depends on changed.
 dash_acc_model() { # instance
   local name="$1" dom fl tls sig s
   local -a svcs
   dom="${DASH_ACC_DOM[$name]:-}" fl="${DASH_ACC_FL[$name]:-nginx}" tls="${DASH_ACC_TLS[$name]:-1}"
-  sig="$name|$dom|$fl|$tls|$DASH_ACC_N|${DASH_SVCS[$name]:-}"
+  sig="$name|$dom|$fl|$tls|$DASH_ACC_N|${DASH_SVCS[$name]:-}|${DASH_ACC_WWW[$name]:-0}|${DASH_ACC_OV[$name]:-}"
   [ "$sig" != "$DASH_ACC_SIGM" ] || return 0
   DASH_ACC_SIGM="$sig" DASH_ACC_TEXT="" DASH_ACC_BLOCK=() DASH_ACC_ERR="" DASH_ACC_SAVED=none DASH_ACC_ENT=() DASH_ACC_HOSTS=()
   read -ra svcs <<< "${DASH_SVCS[$name]:-}"
@@ -64,6 +78,7 @@ dash_acc_model() { # instance
     PROXY_PORTS[$s]="${DASH_ACC_PORT[$name/$s]:-}"
     if ! proxy_port_ok "${PROXY_PORTS[$s]}"; then DASH_ACC_ERR="port:$s"; fi
   done
+  dash_acc_proxy_vars "$name"
   proxy_domain_names "$dom" "${svcs[@]}" || { DASH_ACC_ERR=domain; return 0; }
   DASH_ACC_ENT=("${PROXY_ENTRIES[@]}")
   for s in "${!DASH_ACC_ENT[@]}"; do DASH_ACC_HOSTS[s]="${DASH_ACC_ENT[$s]%%|*}"; done
@@ -73,6 +88,8 @@ dash_acc_model() { # instance
     mapfile -t DASH_ACC_BLOCK <<< "${PROXY_OUT%$'\n'}"
     # (what is shown starts at the first directive: the comments that open the file say where to put it, and the tab says that in its own words)
     while [ "${#DASH_ACC_BLOCK[@]}" -gt 1 ] && [[ "${DASH_ACC_BLOCK[0]}" == "#"* ]]; do DASH_ACC_BLOCK=("${DASH_ACC_BLOCK[@]:1}"); done
+    # (and the blank line after them: what is shown starts at the label of the first service, `# s0`)
+    while [ "${#DASH_ACC_BLOCK[@]}" -gt 1 ] && [ -z "${DASH_ACC_BLOCK[0]}" ]; do DASH_ACC_BLOCK=("${DASH_ACC_BLOCK[@]:1}"); done
     proxy_state "$name" "$fl"
     DASH_ACC_SAVED="$PROXY_SAVED"
   else
@@ -170,7 +187,7 @@ ws_acceso_key() { # key
         PROXY_OUT="$DASH_ACC_TEXT"
         rc=0
         proxy_save "$name" "$fl" || rc=$?
-        if [ "$rc" -eq 0 ]; then proxy_meta_save "$name" "${DASH_ACC_DOM[$name]}" "$fl" "${DASH_ACC_TLS[$name]:-1}" || rc=$?; fi
+        if [ "$rc" -eq 0 ]; then dash_acc_proxy_vars "$name"; proxy_meta_save "$name" "${DASH_ACC_DOM[$name]}" "$fl" "${DASH_ACC_TLS[$name]:-1}" || rc=$?; fi
         if [ "$rc" -eq 0 ]; then dash_msg ok "$(t tui.acc.msg.saved "instances/$name/proxy/$(proxy_file "$fl")")"; else dash_msg err "$(t tui.acc.msg.save_fail)"; fi
         DASH_ACC_N=$((DASH_ACC_N + 1))
       fi
