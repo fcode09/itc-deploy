@@ -10,7 +10,7 @@
 ╰──────────────────────────────────────────────────────────────────────────────╯
  Resumen  Logs  Acceso  Historial [Servicios] Variables  Datos                  
 ╭─┐ ▸ix-lima ┌─────────────────────────────────────────────────────┐▲ parcial┌─╮
-│   ● s0 backend-s0  · 2.14.1  :4110  mem 512m  · healthy                      │
+│   ● s0 backend-s0  · 2.14.1  :4110  mem 110m  · healthy                      │
 │ ▸ ○ s1 backend-s1  · sin activar                                             │
 │                                                                              │
 │ (NestJS + Chromium para los reportes PDF)                                    │
