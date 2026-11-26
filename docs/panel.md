@@ -114,6 +114,11 @@ más nueva a la más vieja **por fecha de creación de la imagen** (una etiqueta
 **★** la más reciente que este servidor puede usar (la más nueva por fecha entre las etiquetas que son versión y de la arquitectura del servidor; se
 marca «↑ más reciente»), **▲** una etiqueta que se mueve (`latest`, o sin versión: no sirve para volver atrás y nunca es ★), **✖** una imagen de otra
 arquitectura (no arrancaría aquí). Si el orden por versión discrepa del orden por fecha (¿se reconstruyó una vieja?), un aviso lo dice debajo de la imagen.
+Bajo el encabezado de cada imagen, una línea **En uso** dice qué versiones corren y quién corre cada una (`★ 2.14.1 (lima) · 2.13.2 (colorado)`; un servicio
+parado cuenta con su versión configurada y lo dice: `[parada]`). Debajo, un aviso por cada cosa que no cuadra: **▲** la instancia corre una versión distinta
+de la configurada en `.env.instance` (se escribió la etiqueta y falta desplegar) y **✖** la versión configurada no está cargada en este Docker (el próximo
+despliegue fallaría o la descargaría de un registry). Salen hasta dos avisos por imagen y «+N avisos más». Lo configurado se lee de `.env.instance`
+(`IC_CFG`, en el mismo segundo plano que el catálogo) y lo que corre del estado de Docker que el panel ya tiene: la vista no hace consultas nuevas.
 El cursor empieza en la ★ de la primera imagen. La última línea de la caja dice lo importante de la versión elegida (por qué no se puede usar, que la
 etiqueta se mueve, que es la más reciente).
 
