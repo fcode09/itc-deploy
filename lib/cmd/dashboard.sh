@@ -424,6 +424,9 @@ dash_lock_release() {
 }
 
 dash_shutdown() {
+  # (with nounset on, a variable that is not there would stop the cleanup half way: what is left of it, the process of the events and the files with the
+  # answers of the wizard, is exactly what must not be left behind)
+  : "${DASH_EV_PID:=}" "${DASH_LOCK_FILE:=}"
   tui_leave
   prof_dump
   dash_lock_release

@@ -9,7 +9,8 @@
 
 access_usage() { die "$(t access.usage)"; }
 
-# --apply: the block of each service asked for goes to /etc/nginx/conf.d (one file per service), nginx tests it and is reloaded; with a test that fails
+# --apply: the block of each service asked for goes to /etc/nginx/sites-available/ (one file per service) and is linked in sites-enabled/ (conf.d/ when
+# the server has no such folders), nginx tests it and is reloaded; with a test that fails
 # everything is put back as it was and nothing is reloaded. The certificates of HTTPS must be there already (the block of 443 would not load without).
 # It asks first (--yes skips it) and needs root: it changes /etc and reloads a service.
 access_apply() { # instance flavor tls svc...
@@ -34,7 +35,7 @@ access_apply() { # instance flavor tls svc...
   case "$rc" in
     0) ;;
     1) printf '%s\n' "$PROXY_ERR" | head -5 >&2; die "$(t access.apply_test_failed)" ;;
-    *) die "$(t access.apply_write_failed "$(proxy_conf_dir)")" ;;
+    *) die "$(t access.apply_write_failed "$(proxy_nginx_root)")" ;;
   esac
   proxy_reload || die "$(t access.apply_reload_failed)"
   ok "$(t access.applied "${PROXY_APPLIED[*]}")"
@@ -53,7 +54,7 @@ access_remove() { # instance svc...
     0) ;;
     1) printf '%s\n' "$PROXY_ERR" | head -5 >&2; die "$(t access.apply_test_failed)" ;;
     3) info "$(t access.remove_none "$name")"; return 0 ;;
-    *) die "$(t access.apply_write_failed "$(proxy_conf_dir)")" ;;
+    *) die "$(t access.apply_write_failed "$(proxy_nginx_root)")" ;;
   esac
   proxy_reload || die "$(t access.apply_reload_failed)"
   ok "$(t access.removed "${PROXY_APPLIED[*]}")"
@@ -145,7 +146,8 @@ cmd_access() {
   if [ "$apply" -eq 1 ]; then access_apply "$name" "$flavor" "$tls" "${sel[@]}"; return; fi
   info "$(t access.install_title)"
   if [ "$flavor" = nginx ]; then
-    info "  ${su}cp $INSTANCES_DIR/$name/proxy/nginx.conf /etc/nginx/conf.d/$name.conf"
+    info "  ${su}cp $INSTANCES_DIR/$name/proxy/nginx.conf /etc/nginx/sites-available/$name"
+    info "  ${su}ln -s /etc/nginx/sites-available/$name /etc/nginx/sites-enabled/$name"
     if [ "$tls" -eq 1 ]; then
       for e in "${PROXY_ENTRIES[@]}"; do
         host="${e%%|*}"; proxy_names "$host"
