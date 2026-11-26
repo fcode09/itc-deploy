@@ -49,7 +49,7 @@ section "1. the view is registered with one line and follows the contract"
 check "it is the second tab and its digit opens it" '[ "$(run_lib "dash_screen_by_number 2; echo \$DASH_SCR_ID")" = "images" ]'
 check "its two dialogs are modes" '[ "$(run_lib "printf \"%s \" \${DASH_MODES[@]}")" = "menu confirm name cmd filter lfilter find wizard newinst palette help options srvask imguse imgload envedit svcask accdom " ]'
 check "every function of the contract it uses is defined" 'run_lib "for f in render key keys texts sig enter back tick poll; do declare -F scr_images_\$f >/dev/null || exit 1; done; for m in imguse imgload; do for f in render key keys sig; do declare -F scr_\${m}_\$f >/dev/null || exit 1; done; done"'
-check "its signature carries what it draws" '[ "$(run_lib "DASH_SIG=; scr_images_sig; echo \$DASH_SIG")" = "|0|0|none|0|0|" ]'
+check "its signature carries what it draws" '[ "$(run_lib "DASH_SIG=; scr_images_sig; echo \$DASH_SIG")" = "|0|0|none|0|0||" ]'
 check "it is in the list of views of the console, the palette and the messages, in both languages" 'grep -q "pool=(server images instances" lib/screens/console.sh && grep -q "for v in server images instances" lib/screens/palette.sh && grep -q "server · images · instances" lib/i18n/es/dashboard.sh && grep -q "server · images · instances" lib/i18n/en/dashboard.sh'
 check "the help of the panel names it (both languages)" 'grep -q "1-9 0  " lib/i18n/es/dashboard.sh && grep -q "IMÁGENES ↑" lib/i18n/es/dashboard.sh && grep -q "IMAGES   ↑" lib/i18n/en/dashboard.sh'
 check "the tab has a name in both languages" '[ "$(run_lib "t tui.tab.images")" = "Imágenes" ] && [ "$(LANGX=en run_lib "t tui.tab.images")" = "Images" ]'
@@ -114,7 +114,7 @@ for sc in "${IMAGES_SCENES[@]}"; do
   done
 done
 images_fixture "$FIX"
-for sc in ok confirm foreign; do
+for sc in ok confirm foreign current; do
   for sz in 80x24 120x30 160x40; do
     g="$GOLD_DIR/$sc-$sz-en.txt"
     scene "$sc" "${sz%x*}" "${sz#*x}" en > "$FIX/frames/$sc-$sz-en.txt"
@@ -122,6 +122,15 @@ for sc in ok confirm foreign; do
     else check "scene $sc at $sz (en) equals its snapshot" '[ -f "$g" ] && cmp -s "$FIX/frames/$sc-$sz-en.txt" "$g"'; fi
   done
 done
+
+section "3b. what is in use of each image (what runs, what is configured, what is loaded)"
+F="$FIX/frames/current-160x40-es.txt"
+check "under each image it says which versions the instances run and who runs each; the star is marked" 'grep -qF "En uso: ★ 2.14.1 (ix-lima) · 2.13.2 (ix-colorado) · 9.9.9 (ix-nuevo [parada])" "$F"'
+check "a service that runs another version than the configured one is warned: it needs a deploy" 'grep -q "ix-colorado: corre 2.13.2 pero está configurada 2.14.0; falta desplegar" "$F"'
+check "a configured version that is not loaded is an error, with what to do" 'grep -q "ix-nuevo: la versión configurada 9.9.9 no está cargada; cárgala antes de desplegar" "$F"'
+check "a stopped service counts with its configured version and says it is stopped" 'grep -qF "En uso: ★ 2.9.0 (ix-colorado, ix-lima [parada])" "$F"'
+check "an image that no instance has says so" 'run_lib "dash_img_apply \"\$(dash_img_dump)\"; DASH_NAMES=(); dash_img_current \"s0|auth-backend\" 80; echo \"\${DASH_IMG_CUR[0]}\"" | grep -q "En uso: ninguna instancia"'
+check "in English the lines are translated too" 'grep -q "In use: ★ 2.14.1" "$FIX/frames/current-160x40-en.txt" && grep -q "runs 2.13.2 but 2.14.0 is configured; it needs a deploy" "$FIX/frames/current-160x40-en.txt" && grep -q "configured version 9.9.9 is not loaded; load it before deploying" "$FIX/frames/current-160x40-en.txt"'
 
 section "4. the shape of every frame"
 for sz in 60x14 80x24 100x20 120x30 160x40; do

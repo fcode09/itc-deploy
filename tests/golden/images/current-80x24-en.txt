@@ -1,0 +1,25 @@
+=== frame 1 ===
+
+  1  [2 Images]  3   4   5   6   7   8   9   0                                 
+╭─┐ ▸²images ┌─────────────────────────────────────┐server amd64 · 6 versions┌─╮
+│ ▾ s0 · auth-backend                                    5 versions · ★ 2.14.1 │
+│   In use: ★ 2.14.1 (ix-lima) · 2.13.2 (ix-colorado) · 9.9.9 (ix-nuevo [stopp │
+│   ▲ ix-colorado: runs 2.13.2 but 2.14.0 is configured; it needs a deploy     │
+│   ✖ ix-nuevo: the configured version 9.9.9 is not loaded; load it before dep │
+│   VERSION       CREATED           SIZE ARCH      USE                         │
+│   3.0.0-rc1     1 h ago          300MB arm64 ✖   unused                      │
+│   2.14.1 ★      2 days ago       300MB amd64 ✔   ix-lima(current)  ↑ most re │
+│   latest ▲      5 days ago       300MB amd64 ✔   unused                      │
+│   2.14.0        9 days ago       300MB amd64 ✔   ix-colorado(current)        │
+│   2.13.2        1 month ago      300MB amd64 ✔   ix-lima(previous)           │
+│                                                                              │
+│ ▾ s1 · gueo-back-end                                     1 version · ★ 2.9.0 │
+│   In use: ★ 2.9.0 (ix-colorado, ix-lima [stopped])                           │
+│   VERSION       CREATED           SIZE ARCH      USE                         │
+│   2.9.0 ★       5 days ago       300MB amd64 ✔   ix-colorado(current) ix-lim │
+│                                                                              │
+│                                                                              │
+│ The most recent this server can use · Enter uses it in an instance           │
+╰─┘Enter use in an instance…└─┘l load .tar└─┘c copy└─┘R read again└────────────╯
+
+ ↑↓ choose · Enter use in an instance · Space detail · l load · ? help · q quit

@@ -6,9 +6,9 @@
 # (tests/golden/images/) and the source of the PNG captures. Sourced, never executed: it needs lib/bootstrap.sh and lib/cmd/dashboard.sh already
 # loaded, the simulated docker first in the PATH, and the environment of the panel (DELTACTL_UI=rich, DELTACTL_TUI_KEYS=...).
 #
-#   images_scene <name>     name: ok | detail | foreign | star2 | empty | nodocker | loading | load | use | confirm
+#   images_scene <name>     name: ok | detail | foreign | star2 | empty | nodocker | loading | load | use | confirm | current
 
-IMAGES_SCENES=(ok detail foreign star2 empty nodocker loading load use confirm)
+IMAGES_SCENES=(ok detail foreign star2 empty nodocker loading load use confirm current)
 IMAGES_NOW=1795521600   # 2026-11-24 12:00:00 UTC
 
 # What the simulated docker has: two images of s0 with several versions (one for another architecture, one that is `latest`) and one of s1.
@@ -18,6 +18,17 @@ images_fixture() { # dir
     "auth-backend:3.0.0-rc1|sha256:a4aaaaaaaaaaaa|arm64" "auth-backend:latest|sha256:a5aaaaaaaaaaaa|amd64" "gueo-back-end:2.9.0|sha256:g1aaaaaaaaaaaa|amd64" > "$d/images.txt"
   printf '%s\n' "auth-backend:2.14.1|2026-11-22 12:00:00 +0000 UTC" "auth-backend:2.14.0|2026-11-15 12:00:00 +0000 UTC" "auth-backend:2.13.2|2026-10-10 12:00:00 +0000 UTC" \
     "auth-backend:3.0.0-rc1|2026-11-24 11:00:00 +0000 UTC" "auth-backend:latest|2026-11-19 12:00:00 +0000 UTC" "gueo-back-end:2.9.0|2026-11-19 12:00:00 +0000 UTC" > "$d/image_dates.txt"
+}
+
+# What runs against what is configured and what is loaded: ix-colorado runs s0 2.13.2 with 2.14.0 configured (it was not deployed), ix-lima runs the
+# star, a third instance has 9.9.9 configured for s0 and that is not loaded (and is stopped), and the s1 of ix-lima is stopped.
+images_current_setup() {
+  mkdir -p "$INSTANCES_DIR/ix-nuevo"
+  printf 'COMPOSE_PROFILES=s0\nS0_TAG=9.9.9\n' > "$INSTANCES_DIR/ix-nuevo/.env.instance"
+  DASH_NAMES=(ix-colorado ix-lima ix-nuevo)
+  DASH_SVCS=([ix-colorado]="s0 s1" [ix-lima]="s0 s1" [ix-nuevo]="s0")
+  ST_STATE=([ix-colorado/s0]=running [ix-colorado/s1]=running [ix-lima/s0]=running [ix-lima/s1]=exited [ix-nuevo/s0]=exited)
+  ST_CIMAGE=([ix-colorado/s0]="auth-backend:2.13.2" [ix-colorado/s1]="gueo-back-end:2.9.0" [ix-lima/s0]="auth-backend:2.14.1")
 }
 
 images_scene() { # name
@@ -33,11 +44,12 @@ images_scene() { # name
   case "$name" in
     nodocker) DASH_IMG_STATE=nodocker IC_N=0 IC_GROUPS=() ;;
     loading) DASH_IMG_STATE=loading DASH_IMG_BUSY=1 ;;
+    current) images_current_setup; dash_img_apply "$(dash_img_dump)" ;;
     *) dash_img_apply "$(dash_img_dump)" ;;
   esac
   DASH_VIEW=images
   case "$name" in
-    ok | nodocker | loading | empty) ;;
+    ok | nodocker | loading | empty | current) ;;
     detail) DASH_IMG_OPEN=1 ;;
     foreign) DASH_IMG_SEL=0 ;;                       # the arm64 image of s0: it cannot be used, and says why
     star2) DASH_IMG_SEL=$((${#DASH_IMG_ITEMS[@]} - 1)) ;;   # the star of the second image
@@ -47,4 +59,5 @@ images_scene() { # name
     *) echo "unknown scene $name" >&2; return 1 ;;
   esac
   dash_render
+  [ "$name" != current ] || rm -rf "$INSTANCES_DIR/ix-nuevo"
 }
