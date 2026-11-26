@@ -58,6 +58,7 @@ check "it lists the folders of data/ of each service that runs, present or not" 
 check "an instance with its marker shows where it came from, and its seed records newest first" '
   f="$(panel down "${DT[@]}" | last_frame)"; echo "$f" | grep -q "SOURCE=init" && echo "$f" | grep -q "2026-11-02T10:00:00Z" && echo "$f" | grep -q "init-logs/) . 2" && echo "$f" | grep -n "20261102T100000Z" | head -1 | cut -d: -f1 | { read -r a; b="$(echo "$f" | grep -n "20261101T100000Z" | head -1 | cut -d: -f1)"; [ "$a" -lt "$b" ]; }'
 check "the keys of the tab are in the last line" 'panel "${DT[@]}" | last_frame | tail -1 | grep -q "I sembrar · A adoptar"'
+check "the dot and the comma change the tab like > and < (the same keys without Shift): five dots reach Data, and the comma goes back" 'panel . . . . . | last_frame | tail -1 | grep -q "I sembrar · A adoptar" && panel . . . . . , | last_frame | grep -q "\[Variables\]"'
 check "in English" 'LANGX=en panel "${DT[@]}" | last_frame | grep -q "Variables \[Data\]" && LANGX=en panel "${DT[@]}" | last_frame | tail -1 | grep -q "I seed · A adopt"'
 check "I on an instance that was not seeded asks to type its name, as init does from the menu; nothing runs yet" '
   f="$(panel "${DT[@]}" I | last_frame)"; echo "$f" | grep -qi "wt-a" && echo "$f" | grep -q "Enter confirma" && [ ! -f instances/wt-a/.initialized ]'
