@@ -407,8 +407,10 @@ dash_build_body() { # body_height
 dash_render() {
   local bh i sig data
   bh=$((TUI_ROWS - 4))
+  prof_b frame.head
   dash_tabs_line
   TUI_FRAME=("$DASH_HOSTLINE" "$TUI_TABS")
+  prof_e frame.head
   # The figures (samples, state of Docker, errors, events, logs of a service) only matter to the views that draw them. The others keep
   # their body between samples: rebuilding it every 2 s would redraw exactly the same lines.
   if dash_screen_live; then data="$MT_SAMPLES|$DASH_REFRESH_N|$DASH_ERRS_N|$DASH_EV_N|$DASH_LOGS_N"; else data=""; fi
@@ -424,6 +426,7 @@ dash_render() {
     DASH_BODY=("${TUI_FRAME[@]:2:$bh}")
     DASH_BODY_SIG="$sig"
   fi
+  prof_b frame.tail
   dash_msg_line
   dash_key_line
   # The lines that are not boxes can be wider than the screen: cut them.
@@ -431,5 +434,8 @@ dash_render() {
     tui_clip "${TUI_FRAME[$i]}" "$TUI_COLS"
     TUI_FRAME[i]="$TUI_OUT"
   done
+  prof_e frame.tail
+  prof_b frame.draw
   tui_draw
+  prof_e frame.draw
 }
