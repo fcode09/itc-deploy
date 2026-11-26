@@ -28,6 +28,9 @@ Tab y Mayús+Tab recorren las vistas (en Instancias, los paneles: lista, servici
   con el foco a toda la pantalla.
 - **Actuar sobre ella**: Enter abre el menú de acciones (estado, comprobar, desplegar, rollback, logs, parar...). Atajos directos:
   `u` despliega, `c` comprueba, `s` muestra el estado, `l` sigue los logs del servicio.
+- **El nombre de cada servicio**: en la tarjeta de un servicio (vista Instancias, Resumen) aparece, en su propia línea, el nombre al que responde desde
+  fuera (`backlion.deltampa.com`), el que se guardó en la pestaña Acceso o con `./deltactl access`. Una instancia que corre bien y aún no tiene acceso
+  guardado muestra en «Para desplegar» la fila **Sin dominio** (`t` y Enter la abren: lleva a la pestaña Acceso), igual que las demás filas.
 - **Buscar cualquier acción**: Ctrl+P abre la paleta; escribe parte del nombre ("despl", "logs", "tema") y Enter.
 - **Crear una instancia**: `n` (o Enter sobre «+ Nueva instancia», o `new` en la consola) abre el formulario de nueva
   instancia dentro del panel. A la izquierda están las secciones (Nombre, Servicios, Datos, Imágenes, Acceso y Resumen), cada una
