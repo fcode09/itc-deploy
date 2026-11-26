@@ -1,6 +1,6 @@
 === frame 1 ===
   ITC  testhost · Memory ███░░░ 5.6/11.5 GB 48% ▄▃▂▅▃▂ · Load 3.18 · Docker 27.0.0 · containers 1.5G
- 1 Server [2 Instances] 3 Resources 4 Output 5 Runs 6 Processes 7 Console 8 Images 9 Variables 0 Activity              
+ 1 Server 2 Images [3 Instances] 4 Resources 5 Output 6 Runs 7 Processes 8 Console 9 Variables 0 Activity              
 
 
 

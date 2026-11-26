@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC2034,SC2154  # the DASH_* variables (DASH_KEYS, TUI_CURSOR...) are declared in lib/cmd/dashboard*.sh and shared by every screen
-# Screen: Resources (view 3). Every service of every instance with memory, CPU and trend; `s` sorts them.
+# Screen: Resources (view 4). Every service of every instance with memory, CPU and trend; `s` sorts them.
 
 # Services of every instance as "instance/service" keys, ordered by DASH_RES_SORT, into DASH_RES_KEYS.
 DASH_RES_KEYS=()

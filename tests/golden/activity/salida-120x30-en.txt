@@ -1,6 +1,6 @@
 === frame 1 ===
   ITC  testhost · Docker 27.0.0
- 1 Server 2 Instances 3 Resources 4 Output 5 Runs 6 Processes 7 Console 8 Images 9 Variables [0 Activity]              
+ 1 Server 2 Images 3 Instances 4 Resources 5 Output 6 Runs 7 Processes 8 Console 9 Variables [0 Activity]              
 ╭─ ▸Activity (5) ────────────────────────────╮ Summary [Output] Usage  Processes                                        
 │ ▸ ● 11-01 10:00 deploy   ix-colora   41.2 s│╭─ ▸Output of 20261101T100000Z-1 · lines 1-4 of 4 ───────────────────────╮
 │   ● 11-01 09:50 deploy   ix-lima     30.1 s││   1 Validating compose...                                              │

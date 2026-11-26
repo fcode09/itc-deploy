@@ -159,13 +159,13 @@ dash_screen_click() { # column row
 # --- The registry: ONE line per screen ------------------------------------------------------------------------------------
 # Views, in tab order (their number is their position). The title is the key of its tab text; `live` is 1 when the body shows figures.
 dash_screen_register server tui.tab.server 1
+dash_screen_register images tui.tab.images 0
 dash_screen_register instances tui.tab.instances 1
 dash_screen_register resources tui.tab.resources 1
 dash_screen_register output tui.tab.output 0
 dash_screen_register runs tui.tab.runs 0
 dash_screen_register procs tui.tab.procs 0
 dash_screen_register console tui.tab.console 0
-dash_screen_register images tui.tab.images 0
 dash_screen_register env tui.tab.env 0
 dash_screen_register activity tui.tab.activity 0
 # Modes.

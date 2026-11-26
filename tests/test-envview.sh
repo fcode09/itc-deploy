@@ -78,7 +78,7 @@ check "the mode that gives it the keyboard is registered, after the others" '[ "
 check "every function of the contract it uses is defined" 'run_lib "for f in render key keys texts sig enter tick; do declare -F scr_env_\$f >/dev/null || exit 1; done; for f in key keys sig; do declare -F scr_envedit_\$f >/dev/null || exit 1; done"'
 check "its signature carries what it draws: the instance, the editor revision and the marks read" '[[ "$(run_lib "DASH_SIG=; scr_env_sig; echo \$DASH_SIG")" =~ ^\|\|[0-9]+\|0$ ]]'
 check "the tab has a name in both languages" '[ "$(run_lib "t tui.tab.env")" = "Variables" ] && [ "$(LANGX=en run_lib "t tui.tab.env")" = "Variables" ]'
-check "it is in the lists of views of the console and the palette" 'grep -q "console images env activity) ;;" lib/screens/console.sh && grep -q "console images env activity; do" lib/screens/palette.sh && grep -q "images · env" lib/i18n/es/dashboard.sh && grep -q "images · env" lib/i18n/en/dashboard.sh'
+check "it is in the lists of views of the console and the palette" 'grep -q "console env activity) ;;" lib/screens/console.sh && grep -q "console env activity; do" lib/screens/palette.sh && grep -q "console · env" lib/i18n/es/dashboard.sh && grep -q "console · env" lib/i18n/en/dashboard.sh'
 check "the help of the panel names it (both languages)" 'grep -q "1-9 0  Servidor" lib/i18n/es/dashboard.sh && grep -q "VARIABLES ↑" lib/i18n/es/dashboard.sh && grep -q "VARIABLES ↑" lib/i18n/en/dashboard.sh'
 check "the editor is a kit component loaded with the others" 'grep -q "env_editor.sh" lib/ui/kit/kit.sh'
 
@@ -286,8 +286,8 @@ o="$(panel 9 down down enter $(typed "https://colorado.itc.pe") enter esc)"; f="
 check "Esc with a change asks, in the panel, what to do with it" 'echo "$f" | grep -q "Hay cambios sin guardar (1)" && echo "$f" | tail -1 | grep -q "s guardar y salir"'
 o="$(panel 9 down down enter $(typed "https://colorado.itc.pe") enter esc d)"; f="$(echo "$o" | last_frame)"
 check "d discards and leaves: the first view (the Server view) is on screen and the file is as it was" 'echo "$f" | sed -n 3p | grep -q "\[1 Servidor\]" && cmp -s instances/ix-colorado/.env.s0 "$FIX/colorado.orig/.env.s0"'
-o="$(panel 9 down down enter $(typed "https://colorado.itc.pe") enter 2)"; f="$(echo "$o" | last_frame)"
-check "a digit changes the view with the changes staged (and the keyboard back to the panel)" 'echo "$f" | sed -n 3p | grep -q "\[2 Instancias\]" && cmp -s instances/ix-colorado/.env.s0 "$FIX/colorado.orig/.env.s0"'
+o="$(panel 9 down down enter $(typed "https://colorado.itc.pe") enter 3)"; f="$(echo "$o" | last_frame)"
+check "a digit changes the view with the changes staged (and the keyboard back to the panel)" 'echo "$f" | sed -n 3p | grep -q "\[3 Instancias\]" && cmp -s instances/ix-colorado/.env.s0 "$FIX/colorado.orig/.env.s0"'
 o="$(panel 9 down down enter $(typed "https://colorado.itc.pe") enter 2 9)"; f="$(echo "$o" | last_frame)"
 check "coming back to the view the changes are still there: nothing is lost by looking at another view" 'echo "$f" | grep -q "1 sin guardar" && echo "$f" | grep -q "IP_SERVER .*https://colorado.itc.pe"'
 o="$(panel 9 down down enter $(typed "https://colorado.itc.pe") enter "]")"; f="$(echo "$o" | last_frame)"
