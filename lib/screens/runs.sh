@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC2034,SC2154  # the DASH_RUNS_* variables are shared with lib/cmd/dashboard.sh, dashboard_view.sh and the other screens
-# The Runs view of the panel (key 4): the history of the operations that changed something (lib/core/runs.sh). A list of runs
+# The Runs view of the panel (key 6): the history of the operations that changed something (lib/core/runs.sh). A list of runs
 # on one side, the detail of the selected one on the other (state, consumption, containers before/after, how it compares with the
 # earlier runs of the same operation, the end of its output) and, with `t`, what each kind of operation costs on average.
 # Loaded by lib/screens/registry.sh. It only reads what the runs left on disk (as data, never sourced).

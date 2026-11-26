@@ -1,6 +1,6 @@
 === frame 1 ===
 
-  1   2   3  [4 Salida]  5   6   7   8   9   0  ● ./deltactl env sim-01 list te
+  1   2   3   4  [5 Salida]  6   7   8   9   0  ● ./deltactl env sim-01 list te
 ╭─ ▸Salida · ./deltactl env sim-01 list · terminó bien 00:42 · resumen ────────╮
 │ Variables de sim-01                                                          │
 │                                                                              │

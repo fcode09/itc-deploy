@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC2034,SC2153,SC2154  # the DASH_* variables (DASH_KEYS, TUI_CURSOR...) are declared in lib/cmd/dashboard*.sh and shared by every screen
-# Screen: Images (view 8). What this Docker has of each service: its versions from the newest to the oldest, with the most recent one you may
+# Screen: Images (view 2). What this Docker has of each service: its versions from the newest to the oldest, with the most recent one you may
 # choose starred (★), the tags that move marked (▲), the images that cannot run here marked (✖), who uses each one and, for the one chosen,
 # why it can or cannot be used. Enter uses a version in an instance (lib/screens/imguse.sh asks which, shows the change and, on y, deploys it);
 # l loads an image archive (lib/screens/imgload.sh; `./deltactl load` runs in the background and the panel keeps working); c copies the
@@ -251,7 +251,7 @@ scr_images_render() { # width height
     body+=("$TUI_OUT")
   fi
   # The box: the title, how many versions the server has and its architecture, and the keys of the view in the border.
-  dt tui.img.title; chips="8:$DTV"
+  dt tui.img.title; chips="2:$DTV"
   if [ "$DASH_IMG_STATE" = "ready" ]; then
     dash_img_t tui.img.status "$IC_SERVER_ARCH" "${#DASH_IMG_ITEMS[@]}"; status="$DASH_T"
     if [ "$DASH_IMG_BUSY" -eq 1 ]; then status+=" $UI_S_DOT $UI_S_RUN"; fi
