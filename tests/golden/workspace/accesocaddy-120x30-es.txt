@@ -18,7 +18,7 @@
 │ ▃██▆██▆████████████ ██▁██▅██▄█████▇││     reverse_proxy 127.0.0.1:4100                                               │
 │ Carga 3.18                         ││ }                                                                              │
 │ contenedores 1.5G                  ││                                                                                │
-╰────────────────────────────────────╯╰─┘Enter dominio└─┘b bloque└─┘w https└─┘y copiar└─┘g guardar└─┘< > pestaña└──────╯
+╰────────────────────────────────────╯╰─┘Enter dominio└─┘e nombre└─┘a nginx└─┘g guardar└─┘R quitar└─┘< > pestaña└──────╯
 ╭─ Consola ────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
 │                                                                                                                      │
 │                                                                                                                      │
@@ -28,4 +28,4 @@
 │ ix-colorado ❯ : escribe un comando · ! en el terminal · Tab completa · ↑ historial · help                            │
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 
- ↑↓ servicio · Enter dominio · b otro proxy · w https · y copiar · g guardar · z ampliar · ? ayuda · q salir
+ ↑↓ servicio · Enter dominio · b otro proxy · w https · y copiar · g guardar · e nombre · a/A nginx · ? ayuda · q salir

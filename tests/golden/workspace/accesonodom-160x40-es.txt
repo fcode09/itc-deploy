@@ -28,7 +28,7 @@
 │                                        ││                                                                                ││                                  │
 │                                        ││                                                                                ││                                  │
 │                                        ││                                                                                ││                                  │
-╰────────────────────────────────────────╯╰─┘Enter dominio└─┘b bloque└─┘w https└─┘y copiar└─┘g guardar└─┘< > pestaña└──────╯╰──────────────────────────────────╯
+╰────────────────────────────────────────╯╰─┘Enter dominio└─┘e nombre└─┘a nginx└─┘g guardar└─┘R quitar└─┘< > pestaña└──────╯╰──────────────────────────────────╯
 ╭─ Consola ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
 │                                                                                                                                                              │
 │                                                                                                                                                              │
@@ -38,4 +38,4 @@
 │ ix-colorado ❯ : escribe un comando · ! en el terminal · Tab completa · ↑ historial · help                                                                    │
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 
- ↑↓ servicio · Enter dominio · b otro proxy · w https · y copiar · g guardar · z ampliar · RePág/AvPág desplaza · ← atrás · ? ayuda · q salir
+ ↑↓ servicio · Enter dominio · b otro proxy · w https · y copiar · g guardar · e nombre · a/A nginx · R/X quitar · z ampliar · ? ayuda · q salir
