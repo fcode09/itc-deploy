@@ -175,6 +175,10 @@ sf_install() { # src instance-dir name
   if ! cat -- "$src" > "$dir/secrets/$name"; then umask "$old"; return 1; fi
   umask "$old"
   chmod 600 "$dir/secrets/$name"
+  # The containers run as the user `node` (RUNTIME_UID): a file that root owns with mode 600 is not readable by them (EACCES on /run/secrets/...).
+  # Only root can hand a file over; anyone else keeps it as it is and the doctor says what is left to do.
+  if [ "$(host_uid)" = 0 ]; then chown "$RUNTIME_UID:$RUNTIME_UID" "$dir/secrets/$name" 2> /dev/null || true; fi
+  return 0
 }
 
 # --- What an instance needs, and whether it has it ---------------------------------------------------------------------------------------------

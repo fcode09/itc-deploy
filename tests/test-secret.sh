@@ -87,4 +87,18 @@ check "the instance of the record is the one after the sub-command" '[ "$(run "s
 check "it has its help page in both languages" 'D help secret 2>&1 | grep -q "secret · los archivos de secrets/" && DELTACTL_LANG=en D help secret 2>&1 | grep -q "secret · the files of"'
 check "the completion knows it and its option" 'D completion bash | grep -q "secret)" && D completion bash | grep -q "list check add"'
 
+section "6. the containers run as uid 1000: a file that root copies has to belong to it"
+mkdir -p "$FIX/rootbin"
+printf '#!/bin/sh
+if [ "$1" = "-u" ]; then echo 0; else exec /usr/bin/id "$@"; fi
+' > "$FIX/rootbin/id"
+printf '#!/bin/sh
+echo "chown $*" >> "$FIX/chown.log"
+' > "$FIX/rootbin/chown"
+chmod +x "$FIX/rootbin/id" "$FIX/rootbin/chown"
+check "as root the file goes to the user of the containers (a file of root with mode 600 is EACCES for them), with mode 600; as anyone else it is left alone" '
+  : > "$FIX/chown.log"; rm -f instances/sc-a/secrets/fcm.json
+  PATH="$FIX/rootbin:$PATH" D secret add sc-a FCM_CERT "$FIX/home/up/fcm.json" > /dev/null 2>&1 && grep -q "chown 1000:1000 .*instances/sc-a/secrets/fcm.json" "$FIX/chown.log" && [ "$(mode instances/sc-a/secrets/fcm.json)" = 600 ] || exit 1
+  : > "$FIX/chown.log"; D secret add sc-a FCM_CERT "$FIX/home/up/fcm.json" --force > /dev/null 2>&1 && [ ! -s "$FIX/chown.log" ]'
+
 finish
