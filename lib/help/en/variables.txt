@@ -39,10 +39,10 @@ Host port where s0 is published (only on 127.0.0.1). Each instance uses a block 
 @ S1_PORT | .env.instance | required | 4101
 Host port where s1 is published (only on 127.0.0.1). Normally `S0_PORT` + 1.
 
-@ S0_MEM_LIMIT | .env.instance | optional | 512m
+@ S0_MEM_LIMIT | .env.instance | optional | 110m
 Memory limit of the s0 container. Adjust it to the real load.
 
-@ S1_MEM_LIMIT | .env.instance | optional | 2g
+@ S1_MEM_LIMIT | .env.instance | optional | 400m
 Memory limit of the s1 container. Each instance can open up to 2 Chromium at a time for the
 PDF reports; with less memory they can fail.
 

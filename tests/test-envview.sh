@@ -112,7 +112,7 @@ t_cancel() { kee_open ix-colorado; env_goto .env.s0 IP_SERVER; env_press enter; 
 check "Esc cancels what was typed: the value is the one it had" '[[ "$(run_lib "$(declare -f t_cancel); t_cancel")" == "0 0 http://CAMBIAR"* ]]'
 t_start() { kee_open ix-colorado; env_goto .env.s0 IP_SERVER; env_press enter; echo "[$KF_VALUE]"; env_press esc; env_goto .env.s0 MONGO_URI; env_press enter; echo "[$KF_VALUE]"; }
 check "the template value (CAMBIAR) starts empty in the field (you type a new one, you do not append to it); a value that is there opens with it" '[ "$(run_lib "$(declare -f t_start); t_start" | tr "
-" " ")" = "[] [mongodb://host.docker.internal:27017/authsoftware_ix-colorado] " ]'
+" " ")" = "[] [mongodb://host.docker.internal:27017/s0_ix-colorado] " ]'
 t_start_secret() { kee_open ix-lima; env_goto .env.s0 JWT_SECRET; env_press enter; echo "[$KF_VALUE] $KEE_EDIT_SHOW"; env_press esc; echo "$KEE_EDIT [${KEE_VAL[.env.s0|JWT_SECRET]}]"; }
 lib_eq "a secret that has a value opens in the modal with it (shown: opening it is asking to see it), and Esc leaves it as it was" t_start_secret "[Zq7-secret-do-not-show-9X] 1|0 [Zq7-secret-do-not-show-9X]|"
 t_tab() { kee_open ix-lima; env_goto .env.s0 JWT_SECRET; env_press enter; env_press tab; local a="$KEE_EDIT_SHOW"; kee_render 120 30; local hid=yes; printf "%s\n" "${KEE_BOX[@]}" | grep -q "$SECRET" && hid=no; env_press tab; kee_render 120 30; local shown=no; printf "%s\n" "${KEE_BOX[@]}" | grep -q "$SECRET" && shown=yes; echo "$a $hid $KEE_EDIT_SHOW $shown"; }
