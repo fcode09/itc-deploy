@@ -84,7 +84,10 @@ secret_add() { # instance target path [--force]
     if [ "$src" -ef "$dir/secrets/$found" ]; then die "$(t secret.same "$found")"; fi
     [ "$force" -eq 1 ] || die "$(t secret.exists "$found")"
   fi
-  [ -d "$dir/secrets" ] || mkdir -m 700 -p "$dir/secrets" || die "$(t secret.copy_failed "$found")"
+  if [ ! -d "$dir/secrets" ]; then
+    mkdir -m 700 -p "$dir/secrets" || die "$(t secret.copy_failed "$found")"
+    if [ "$(host_uid)" = 0 ]; then chown "$RUNTIME_UID:$RUNTIME_UID" "$dir/secrets" 2> /dev/null || true; fi
+  fi
   sf_install "$src" "$dir" "$found" || die "$(t secret.copy_failed "$found")"
   ok "$(t secret.added "$found" "$name")"
   info "$(t secret.next_deploy "$name")"

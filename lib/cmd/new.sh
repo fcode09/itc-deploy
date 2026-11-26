@@ -471,6 +471,8 @@ cmd_new() {
   me="$(host_uid)"
   if [ "$me" = "0" ]; then
     chown -R "$RUNTIME_UID:$RUNTIME_UID" "$dir/data"
+    # (secrets/ too, still with 700 and 600: the containers read the files of /run/secrets as that user)
+    chown -R "$RUNTIME_UID:$RUNTIME_UID" "$dir/secrets"
   elif [ "$me" != "$RUNTIME_UID" ]; then
     warn "$(t new.data_uid_1 "$me" "$RUNTIME_UID")"
     warn "$(t new.data_uid_2 "$RUNTIME_UID" "$RUNTIME_UID" "$dir")"

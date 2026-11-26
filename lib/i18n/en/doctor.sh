@@ -62,3 +62,5 @@ MSG_en["doctor.tool_missing_hint.gunzip"]="Without it, ./deltactl load cannot re
 MSG_en["doctor.summary_err"]="{1} error(s) and {2} warning(s)"
 MSG_en["doctor.summary_warn"]="The server works, with {1} warning(s)"
 MSG_en["doctor.summary_ok"]="Server in good shape"
+MSG_en["doctor.secrets_uid"]="{1}: secrets/ belongs to uid {2} and the containers run as {3}: they will not be able to read the files of /run/secrets"
+MSG_en["doctor.secrets_uid_hint"]="Fix with: chown -R {1}:{1} {2}/secrets"

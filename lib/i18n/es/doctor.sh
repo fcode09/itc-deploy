@@ -62,3 +62,5 @@ MSG_es["doctor.tool_missing_hint.gunzip"]="Sin ella ./deltactl load no puede lee
 MSG_es["doctor.summary_err"]="{1} error(es) y {2} aviso(s)"
 MSG_es["doctor.summary_warn"]="El servidor funciona, con {1} aviso(s)"
 MSG_es["doctor.summary_ok"]="Servidor en buen estado"
+MSG_es["doctor.secrets_uid"]="{1}: secrets/ pertenece al uid {2} y los contenedores corren como {3}: no podrán leer los archivos de /run/secrets"
+MSG_es["doctor.secrets_uid_hint"]="Corrige con: chown -R {1}:{1} {2}/secrets"
