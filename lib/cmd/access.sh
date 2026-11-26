@@ -135,7 +135,8 @@ cmd_access() {
     info "$(t access.hint_save "$name")"
     return 0
   fi
-  local rc=0
+  local rc=0 su="sudo "
+  [ "$(host_uid)" != 0 ] || su=""   # (root needs no sudo: the commands are shown as they are typed)
   proxy_save "$name" "$flavor" || rc=$?
   [ "$rc" -eq 0 ] || die "$(t new.proxy_write "$flavor")"
   proxy_meta_save "$name" "$dom" "$flavor" "$tls" || die "$(t new.proxy_write "$flavor")"
@@ -144,17 +145,17 @@ cmd_access() {
   if [ "$apply" -eq 1 ]; then access_apply "$name" "$flavor" "$tls" "${sel[@]}"; return; fi
   info "$(t access.install_title)"
   if [ "$flavor" = nginx ]; then
-    info "  sudo cp $INSTANCES_DIR/$name/proxy/nginx.conf /etc/nginx/conf.d/$name.conf"
+    info "  ${su}cp $INSTANCES_DIR/$name/proxy/nginx.conf /etc/nginx/conf.d/$name.conf"
     if [ "$tls" -eq 1 ]; then
       for e in "${PROXY_ENTRIES[@]}"; do
         host="${e%%|*}"; proxy_names "$host"
         [ "$first" -eq 1 ] && { info "  # $(t access.tls_first)"; first=0; }
-        info "  sudo certbot certonly --nginx $PROXY_CERT_ARGS"
+        info "  ${su}certbot certonly --nginx $PROXY_CERT_ARGS"
       done
     fi
-    info "  sudo nginx -t && sudo systemctl reload nginx"
+    info "  ${su}nginx -t && ${su}systemctl reload nginx"
   else
     info "  # $(t access.caddy_where "$INSTANCES_DIR/$name/proxy/Caddyfile")"
-    info "  sudo caddy reload --config /etc/caddy/Caddyfile"
+    info "  ${su}caddy reload --config /etc/caddy/Caddyfile"
   fi
 }

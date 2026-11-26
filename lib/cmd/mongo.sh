@@ -171,7 +171,7 @@ cmd_mongo() {
   [[ "$gw" =~ ^[0-9]{1,3}(\.[0-9]{1,3}){3}$ ]] || die "$(t mongo.no_gw)"
   mongo_plan "$gw"
   if [ "$MG_NEED" -eq 0 ]; then ok "$(t mongo.nothing)"; info "$(t mongo.auth_note)"; return 0; fi
-  if [ "$apply" -eq 0 ]; then info "$(t mongo.dry)"; info "$(t mongo.auth_note)"; return 0; fi
+  if [ "$apply" -eq 0 ]; then info "$(t mongo.dry "$([ "$(host_uid)" = 0 ] || printf "sudo ")")"; info "$(t mongo.auth_note)"; return 0; fi
   mongo_apply "$gw"
   info "$(t mongo.auth_note)"
 }

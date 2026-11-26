@@ -38,9 +38,9 @@ dash_menu_run() {
     stop_svc) dash_confirm "$(t tui.confirm_stop "$svc" "$inst")" stay stop "$inst" "$svc" ;;
     down) dash_confirm "$(t menu.confirm_down "$inst")" stay down "$inst" --yes ;;
     init) DASH_NAME_TARGET="$inst" DASH_BUF="" DASH_CUR=0 DASH_MODE=name ;;
-    access_all) dash_confirm "$(t menu.confirm_access "$inst" "$(t menu.all_the_services)")" stay access "$inst" --apply --yes ;;
-    access_svc) dash_confirm "$(t menu.confirm_access "$inst" "$svc")" stay access "$inst" --apply --yes --service "$svc" ;;
-    access_off) dash_confirm "$(t menu.confirm_access_off "$inst")" stay access "$inst" --remove --yes ;;
+    access_all) dash_acc_install apply all ;;
+    access_svc) dash_acc_install apply one ;;
+    access_off) dash_acc_install remove all ;;
     edit_access) dash_ws_tab_go acceso ;;
     edit_vars) dash_ws_tab_go variables ;;
     help) dash_start_job output help status ;;
