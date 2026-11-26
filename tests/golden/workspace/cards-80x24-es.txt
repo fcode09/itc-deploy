@@ -10,10 +10,10 @@
 ╰──────────────────────────────────────────────────────────────────────────────╯
 [Resumen] Logs  Acceso  Historial  Servicios  Variables  Datos                  
 ╭─┐ix-colorado · 2/2┌────────────────────────────────────────────┐● en marcha┌─╮
-│ ▸ s0 auth-backend:2.14.1  ● healthy                                          │
 │     activo 2d04h  ·  :4100                                                   │
 │     mem  █████░░░░░░░ 196M/512M  38%  ▅▃▁▅▄▂▅▄▂▅▄▂▁▄                         │
 │     cpu  ░░░░░░░░░░░░ 3.7%  ▅▂▇▅▃▁▅▃█▅▄▁▆▃                                   │
+│ Para desplegar · 1  t pendientes                                             │
 ╰─┘u desplegar└─┘c comprobar└─┘s estado└─┘l logs└─┘< > pestaña└─┘Enter más└────╯
 ╭─ Consola ────────────────────────────────────────────────────────────────────╮
 │                                                                              │

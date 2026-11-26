@@ -10,8 +10,8 @@
 ╰────────────────────────────────────╯│                                                                                │
 ╭─ Servidor ─────────────────────────╮│   s1 gueo-back-end:2.9.0  ● healthy                                            │
 │ Memoria █████░░░░░ 5.6/11.5 GB 48% ││     activo 2d04h  ·  :4101  ·  reinicios 3                                     │
-│              ▃                     ││     mem  ███████░░░░░ 1.1G/2.0G  59%  ▅▃▁▅▄▂▅▄▂▅▄▂▁▄                           │
-│              █   ▄                 ││     cpu  ███░░░░░░░░░ 21.4%  ▅▂▇▅▃▁▅▃█▅▄▁▆▃                                    │
+│              ▃                     ││ Para desplegar · 1                                                             │
+│              █   ▄                 ││   ℹ Sin dominio: nadie la alcanza por nombre  falta el blo  ⏎ configurar acceso│
 │  ▁  ▄  ▄  █  ██  █     ▂  ▃  ▂  ▆  │╰─┘u desplegar└─┘c comprobar└─┘s estado└─┘l logs└─┘< > pestaña└─┘Enter más└──────╯
 │  █▁ █▂ █▁ █▅ ██▆ █  █  █  █  █▃ █▂ │╭─ ▸Logs · s0 · siguiendo ───────────────────────────────────────────────────────╮
 │  ██ ██ ██▁██▁███▅█▄ █▄ █▇ █▇ ██ ██ ││ linea 7 ok                                                                     │

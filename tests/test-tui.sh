@@ -89,6 +89,8 @@ deployed() { printf '%s_TAG=%s\n%s_IMAGE_ID=%s\n' "${2^^}" "$3" "${2^^}" "$4" >>
 newinst() { bash ./deltactl new "$1" >/dev/null 2>&1; fill_instance "instances/$1" "$2" "$3"; }
 seeded() { printf 'SOURCE=init\nINITIALIZED_AT=2026-01-01T00:00:00Z\n' > "instances/$1/.initialized"; }
 newinst tui-a 1.0 1.0; seeded tui-a
+# (tui-a runs well and has its access saved: the row that offers to set it up is not one more stop in the focus ring of the tests)
+mkdir -p instances/tui-a/proxy; printf 'DOMAIN=itc.pe\nFLAVOR=nginx\nTLS=0\n' > instances/tui-a/proxy/access.conf
 newinst tui-b 1.0 1.0
 newinst tui-c 1.0 1.0; seeded tui-c
 image auth-backend:1.0 sha256:aaa; image gueo-back-end:1.0 sha256:bbb

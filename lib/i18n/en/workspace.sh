@@ -49,3 +49,8 @@ MSG_en["tui.list.sort.name"]="by name"
 MSG_en["tui.list.sort.state"]="by state"
 MSG_en["tui.list.sort.mem"]="by memory"
 MSG_en["tui.list.sorted"]="List sorted {1}"
+
+# To deploy: reaching it by name (lib/screens/instances_ws.sh)
+MSG_en["tui.ws.todo.access"]="No domain: nobody reaches it by name"
+MSG_en["tui.ws.todo.access_detail"]="the nginx block is missing"
+MSG_en["tui.ws.todo.access_act"]="set up access"

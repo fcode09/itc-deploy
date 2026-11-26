@@ -10,9 +10,9 @@
 ╰────────────────────────────────────╯│                                                                                │
 ╭─ Server ───────────────────────────╮│   s1 gueo-back-end:2.9.0  ● healthy                                            │
 │ Memory █████░░░░░ 5.6/11.5 GB 48%  ││     up 2d04h  ·  :4101  ·  restarts 3                                          │
-│              ▃                     ││     mem  ███████░░░░░ 1.1G/2.0G  59%  ▅▃▁▅▄▂▅▄▂▅▄▂▁▄                           │
-│              █   ▄                 ││     cpu  ███░░░░░░░░░ 21.4%  ▅▂▇▅▃▁▅▃█▅▄▁▆▃                                    │
-│  ▁  ▄  ▄  █  ██  █     ▂  ▃  ▂  ▆  │╰─┘u deploy└─┘c check└─┘s status└─┘l logs└─┘< > tab└─┘Enter more└────────────────╯
+│              ▃                     ││ To deploy · 1                                                                  │
+│              █   ▄                 ││   ℹ No domain: nobody reaches it by name  the nginx block is m  ⏎ set up access│
+│  ▁  ▄  ▄  █  ██  █     ▂  ▃  ▂  ▆  │╰─┘u deploy└─┘c check└─┘s status└─┘l logs└─┘t to do└─┘< > tab└─┘Enter more└──────╯
 │  █▁ █▂ █▁ █▅ ██▆ █  █  █  █  █▃ █▂ │╭─ Logs · s0 · following ────────────────────────────────────────────────────────╮
 │  ██ ██ ██▁██▁███▅█▄ █▄ █▇ █▇ ██ ██ ││ Reading the log...                                                             │
 │ ▃██▆██▆████████████ ██▁██▅██▄█████▇││                                                                                │

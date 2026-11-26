@@ -10,11 +10,11 @@
 ╰──────────────────────────────────────────────────────────────────────────────╯
 [Summary] Logs  Access  History  Services  Variables  Data                      
 ╭─┐ix-colorado · 2/2┌──────────────────────────────────────────────┐● running┌─╮
-│ ▸ s0 auth-backend:2.14.1  ● healthy                                          │
 │     up 2d04h  ·  :4100                                                       │
 │     mem  █████░░░░░░░ 196M/512M  38%  ▅▃▁▅▄▂▅▄▂▅▄▂▁▄                         │
 │     cpu  ░░░░░░░░░░░░ 3.7%  ▅▂▇▅▃▁▅▃█▅▄▁▆▃                                   │
-╰─┘u deploy└─┘c check└─┘s status└─┘l logs└─┘< > tab└─┘Enter more└──────────────╯
+│ To deploy · 1  t to do                                                       │
+╰─┘u deploy└─┘c check└─┘s status└─┘l logs└─┘t to do└─┘< > tab└─┘Enter more└────╯
 ╭─ Console ────────────────────────────────────────────────────────────────────╮
 │                                                                              │
 │                                                                              │
