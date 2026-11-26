@@ -10,10 +10,10 @@
 │ ¿Qué servicios lleva? Cada tarjeta dice qué es, el puerto que tendría en el  │
 │ servidor y la memoria que se le reserva.                                     │
 │                                                                              │
-│ ▸ [ ] s0 · backend-s0                                     ● puerto 4100  512m│
+│ ▸ [ ] s0 · backend-s0                                     ● puerto 4100  110m│
 │       autenticación, usuarios, municipalidad y URLs de los sistemas          │
 │                                                                              │
-│   [x] s1 · backend-s1                                       ● puerto 4101  2g│
+│   [x] s1 · backend-s1                                     ● puerto 4101  400m│
 │       NestJS + Chromium para los reportes PDF                                │
 │     ▲ s1 usa s0, que no está en la instancia: lo que dependa de él no funcion│
 │                                                                              │

@@ -8,8 +8,8 @@
 │ ▲ IP_SERVER                  http://CAMBIAR-direccion-del-ser  por completar │
 │ ● AUTH_URL                   http://s0:3200                                  │
 │ ▲ JWT_SECRET                 (vacía)                             obligatoria │
-│ ● MONGO_DELTA_DISPATCH_URI   mongodb://host.docker.internal:27017/deltadispa │
-│ ● MONGO_AUTHSOFTWARE_URI     mongodb://host.docker.internal:27017/authsoftwa │
+│ ● MONGO_DELTA_DISPATCH_URI   mongodb://host.docker.internal:27017/s1_ix-colo │
+│ ● MONGO_AUTHSOFTWARE_URI     mongodb://host.docker.internal:27017/s0_ix-colo │
 │ ● MONGO_ROBIN_URI            mongodb://host.docker.internal:27017/robin_ix-c │
 │ ● FCM_CERT                   /run/secrets/fcm.json      falta el archivo (f) │
 │ ● KEEPER_FCM_CERT            /run/secrets/keeper-fcm.j  falta el archivo (f) │

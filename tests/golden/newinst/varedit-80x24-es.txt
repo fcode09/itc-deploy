@@ -8,16 +8,16 @@
 ╭─┐ ▸5 · Variables ┌───────────────────────────────────────────────────────────╮
 │ 3 obligatorias por poner · 0 puestos · 4 generados                           │
 │ ▸ .env.instance                                                  12 variables│
-│ ▾ .env.s0                                       9 variables · 1 sin completar│
-│   IP_SERVER                     ● http://m.ex                                │
-│ ● JWT_SECRET                      ⚿ ••••••••••                     modificada│
-│ ● MONGO_URI                       ⚿ ••••••••••                               │
-│ ● IP_INTERNAL_CONNECTION          s1                                         │
-│ ▾ .env.s1                                      27 variables · 2 sin completar│
-│ ▲ IP_SERVER                       (vacía)                         obligatoria│
-│ ● AUTH_URL                        http://s0:3200                             │
-│ ─────────────────────────────────────────────────────────────────────────────│
-│ IP_SERVER  Obligatoria · .env.s0                                             │
+│ ▾ .╭─┐ ▸IP_SERVER ┌──────────────────────────────────────────────────────╮tar│
+│ ▲ I│                                                                     │ria│
+│ ● J│ Obligatoria · .env.s0                                               │ada│
+│ ● M│ URL pública base del sistema, con esquema (`http://` o `https://`), │ada│
+│ ● I│ sin puerto ni barra final. Los seeds la usan: `url_systems` la      │   │
+│ ▾ .│ guarda como URL de cada sistema (se ve en Auth, Configuración,      │tar│
+│ ▲ I│                                                                     │ria│
+│ ● A│ ● http://m.ex                                                       │   │
+│ ───│                                                                     │───│
+│ IP_╰─┘Enter aceptar└─┘Esc cancelar└─┘Ctrl+G generar└─┘Ctrl+U borrar└─────╯   │
 │ URL pública base del sistema, con esquema (`http://` o `https://`), sin      │
 │ puerto ni barra final. Los seeds la usan: `url_systems` la guarda como URL de│
 ╰─┘Esc atrás└─┘Enter siguiente└─┘Tab vista previa└─────────────────────────────╯

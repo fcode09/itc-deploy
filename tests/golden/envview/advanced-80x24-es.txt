@@ -12,14 +12,14 @@
 │ ● S1_TAG                          2.9.0                                      │
 │ ● S0_PORT                         4100                                       │
 │ ● S1_PORT                         4101                                       │
-│ ● S0_MEM_LIMIT                    512m                                       │
-│ ● S1_MEM_LIMIT                    2g                                         │
+│ ● S0_MEM_LIMIT                    110m                                       │
+│ ● S1_MEM_LIMIT                    400m                                       │
 │ ○ DATA_DIR                        (vacía)                           opcional │
 │ ▾ .env.s0                                      9 variables · 2 sin completar │
 │ ──────────────────────────────────────────────────────────────────────────── │
 │ S0_MEM_LIMIT  Opcional · .env.instance                                       │
 │ Límite de memoria del contenedor de s0. Ajústalo según la carga real.        │
-│ Por defecto: 512m                                                            │
+│ Por defecto: 110m                                                            │
 ╰─┘Enter editar└─┘g generar└─┘r revelar└─┘d defecto└─┘s guardar└─┘u desplegar└─╯
 
  ↑↓ mover · Enter edita · g generar · r revelar · [/] instancia · Esc sale

@@ -6,14 +6,14 @@
 │ ▾ .env.s0                                         9 variables · 2 to fill in │
 │ ▲ IP_SERVER                  http://CAMBIAR-direccion-del-servid  to fill in │
 │ ▲ JWT_SECRET                 (empty)                                required │
-│ ● MONGO_URI                  mongodb://host.docker.internal:27017/authsoftwa │
+│ ● MONGO_URI                  mongodb://host.docker.internal:27017/s0_ix-colo │
 │ ● IP_INTERNAL_CONNECTION     s1                                              │
 │ ▾ .env.s1                                        27 variables · 4 to fill in │
 │ ▲ IP_SERVER                  http://CAMBIAR-direccion-del-servid  to fill in │
 │ ● AUTH_URL                   http://s0:3200                                  │
 │ ▲ JWT_SECRET                 (empty)                                required │
-│ ● MONGO_DELTA_DISPATCH_URI   mongodb://host.docker.internal:27017/deltadispa │
-│ ● MONGO_AUTHSOFTWARE_URI     mongodb://host.docker.internal:27017/authsoftwa │
+│ ● MONGO_DELTA_DISPATCH_URI   mongodb://host.docker.internal:27017/s1_ix-colo │
+│ ● MONGO_AUTHSOFTWARE_URI     mongodb://host.docker.internal:27017/s0_ix-colo │
 │ ● MONGO_ROBIN_URI            mongodb://host.docker.internal:27017/robin_ix-c │
 │ ● FCM_CERT                   /run/secrets/fcm.json          file missing (f) │
 │ ──────────────────────────────────────────────────────────────────────────── │

@@ -6,7 +6,7 @@
 │ ▾ .env.s0                                            9 variables · 2 sin completar ││                                │
 │ ▲ IP_SERVER                  http://CAMBIAR-direccion-del-servidor   por completar ││ URL pública base del sistema,  │
 │ ▲ JWT_SECRET                 (vacía)                                   obligatoria ││ con esquema (`http://` o       │
-│ ● MONGO_URI                  mongodb://host.docker.internal:27017/authsoftware_ix- ││ `https://`), sin puerto ni     │
+│ ● MONGO_URI                  mongodb://host.docker.internal:27017/s0_ix-colorado   ││ `https://`), sin puerto ni     │
 │ ● IP_INTERNAL_CONNECTION     s1                                                    ││ barra final. Los seeds la      │
 │ ▾ .env.s1           ╭─┐ ▸IP_SERVER ┌───────────────────────────────────────────────────────────╮_systems` la guarda  │
 │ ▲ IP_SERVER         │                                                                          │e cada sistema (se   │
