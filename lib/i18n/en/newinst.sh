@@ -76,11 +76,11 @@ MSG_en["tui.nz.step.access"]="Access"
 
 MSG_en["tui.nz.help.variables"]="What values do its files carry? The required ones come first; the unique secrets are already generated: the list shows dots, Enter opens the value and r shows it for a few seconds. What you do not change stays as the template."
 MSG_en["tui.nz.help.secrets"]="Files the services read from secrets/ (the Firebase JSON of the notifications). They are copied when the instance is created, with mode 600; if you do not have them yet, copy them later."
-MSG_en["tui.nz.help.access"]="With what name is it reached from the internet? With a domain the nginx or Caddy block is prepared; it is text only: nothing is installed or reloaded."
+MSG_en["tui.nz.help.access"]="With what name is it reached from the internet? Type the whole name of each service (Enter on its row) or a base domain that names the ones you leave empty. The nginx or Caddy block is prepared; it is text only: nothing is installed or reloaded."
 
 MSG_en["tui.nz.keys.variables"]="{1} move · Enter edits · g generates · r shows · d default · a advanced · s goes on · Esc back · Tab preview"
 MSG_en["tui.nz.keys.secrets"]="{1} move · e types the path · b searches · x removes · Enter goes on · 1-9 step · Esc back · Tab preview"
-MSG_en["tui.nz.keys.access"]="{1} move · ←→ space changes · c copies the block · v nginx/Caddy · Enter reviews · Esc back · Tab preview"
+MSG_en["tui.nz.keys.access"]="{1} move · Enter edits the name · s goes on · ←→ space changes · c copies the block · v nginx/Caddy · Esc back · Tab preview"
 
 MSG_en["tui.nz.pv.envfile"]="<answers>"
 MSG_en["tui.nz.pv.vars"]="variables: {1} set · {2} generated"
@@ -156,3 +156,14 @@ MSG_en["tui.nz.data.m_typed"]="(the one you typed)"
 MSG_en["tui.nz.data.m_key_u"]="u changes"
 MSG_en["tui.nz.data.m_key_c"]="c changes"
 MSG_en["tui.nz.data.m_bad_user"]="The user only has letters, digits, dot, hyphen and underscore (up to 64)."
+
+# Step 7 (access): the name of each service, typed whole in a modal.
+MSG_en["tui.nz.acc.name"]="Name {1}"
+MSG_en["tui.nz.acc.name_none"]="(Enter: type its whole name, or put the base domain)"
+MSG_en["tui.nz.acc.bad_host"]="The name of {1} (\"{2}\") is not valid: lowercase, digits, hyphen and dots."
+MSG_en["tui.nz.acc.dup"]="{1} and {2} cannot have the same name."
+MSG_en["tui.nz.acc.need_hosts"]="The name of {1} is missing: put the base domain (it names the missing ones) or the whole name of each service."
+MSG_en["tui.nz.acc.m_text"]="Type or paste the whole name (DNS) that {1} is reached with, for example backs0m1.delta-dispatch.com. Empty: its name comes from the base domain ({2})."
+MSG_en["tui.nz.acc.m_bad"]="Not a valid name: lowercase, digits, hyphen and dots."
+MSG_en["tui.nz.acc.m_dup"]="{1} already uses it."
+MSG_en["tui.nz.acc.m_foot"]="{Enter} accept|{Esc} cancel|{Ctrl+U} clear"
