@@ -14,7 +14,7 @@
 │ Proxy     ● nginx   ○ caddy   nginx detectado aquí                           │
 │ HTTPS     no   http por el puerto 80                                         │
 │                                                                              │
-╰─┘Enter dominio└─┘b bloque└─┘w https└─┘y copiar└─┘g guardar└─┘< > pestaña└────╯
+╰─┘Enter dominio└─┘e nombre└─┘a nginx└─┘g guardar└─┘R quitar└─┘< > pestaña└────╯
 ╭─ Consola ────────────────────────────────────────────────────────────────────╮
 │                                                                              │
 │                                                                              │

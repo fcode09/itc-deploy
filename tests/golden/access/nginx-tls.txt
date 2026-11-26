@@ -1,5 +1,5 @@
-# nginx: one server block for each service. Put it in /etc/nginx/conf.d/ (or sites-available) and run: nginx -t && systemctl reload nginx
-# (deltactl only generates this text: it never writes under /etc and never reloads nginx)
+# nginx: one server block for each service. ./deltactl access --apply puts each one in /etc/nginx/sites-available/ and links it in sites-enabled/; by hand: nginx -t && systemctl reload nginx
+# (this text is only written under /etc/nginx when ./deltactl access --apply is run)
 
 # s0
 server {

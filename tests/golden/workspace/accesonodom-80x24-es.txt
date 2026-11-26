@@ -14,7 +14,7 @@
 │ Proxy     ● nginx   ○ caddy   nginx detectado aquí                           │
 │ HTTPS     sí   con certificado (certbot)                                     │
 │                                                                              │
-╰─┘Enter dominio└─┘b bloque└─┘w https└─┘y copiar└─┘g guardar└─┘< > pestaña└────╯
+╰─┘Enter dominio└─┘e nombre└─┘a nginx└─┘g guardar└─┘R quitar└─┘< > pestaña└────╯
 ╭─ Consola ────────────────────────────────────────────────────────────────────╮
 │                                                                              │
 │                                                                              │
