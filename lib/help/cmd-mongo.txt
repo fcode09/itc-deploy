@@ -1,0 +1,27 @@
+# mongo · dejar el Mongo de este servidor accesible para los contenedores
+
+Los contenedores llegan al Mongo del servidor por la puerta de enlace de Docker (`host.docker.internal`, casi siempre
+`172.17.0.1`, pero se lee de Docker, no se supone). Si mongod solo escucha en `127.0.0.1`, o el cortafuegos cierra el
+puerto, el doctor dice "MongoDB alcanzable ✖". `mongo setup` lo detecta y lo arregla.
+
+## Uso
+$ ./deltactl mongo setup              # solo muestra qué cambiaría
+$ sudo ./deltactl mongo setup --apply [--yes]
+
+## Qué mira y qué cambia
+- `bindIp` de `/etc/mongod.conf`: añade la puerta de enlace (`127.0.0.1,172.17.0.1`); no abre Mongo a la red
+- un drop-in de systemd para que mongod arranque después de Docker (la dirección no existe antes de que Docker cree la red)
+- ufw, si está activo: deja pasar solo las redes de los contenedores (`172.16.0.0/12`) hacia el puerto 27017
+
+## Cómo lo hace
+- sin `--apply` no escribe nada: enseña el diff de `mongod.conf`, el drop-in y la regla
+- con `--apply` pide confirmación (`--yes` la omite) y necesita root
+- guarda una copia de `mongod.conf`, comprueba el resultado, reinicia mongod y prueba la conexión desde fuera
+- si `mongod.conf` no tiene el formato habitual no lo toca y dice qué línea escribir a mano
+
+## Lo que no hace
+- No activa la autenticación de Mongo: se activa al final, cuando existan el administrador y los usuarios de las
+  instancias (`./deltactl init` crea el de cada instancia). Activarla antes deja sin acceso a lo que ya funciona.
+
+## Relacionado
+- `./deltactl doctor`, `./deltactl help datos`, `./deltactl help solucion-problemas`

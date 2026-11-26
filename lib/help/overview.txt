@@ -17,6 +17,7 @@ $ ./deltactl help <tema>           guía completa paso a paso
 | adopt <instancia> | Marca como ya inicializada una instancia que YA tiene datos
 | env <instancia> list|get|set|generate | Ver, validar y cambiar las variables de entorno; generar secretos sin mostrarlos
 | service list|add|remove|set <instancia> | Servicios de una instancia: añadir, quitar (conserva datos), versión, puerto, memoria
+| mongo setup [--apply] | Mongo de este servidor accesible desde los contenedores (bindIp, systemd, ufw); sin --apply solo muestra
 | secret list|check|add <instancia> | Archivos de secrets/ (el JSON de FCM): cuáles faltan y cargar uno con su ruta
 
 ## Despliegue

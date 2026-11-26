@@ -25,6 +25,9 @@ Instancias
                                                     generar secretos sin mostrarlos
   service list|add|remove|set <instancia>           Servicios de una instancia: añadir, quitar
                                                     (conserva datos), versión, puerto, memoria
+  mongo setup [--apply]                             Mongo de este servidor accesible desde los
+                                                    contenedores (bindIp, systemd, ufw); sin --apply
+                                                    solo muestra
   secret list|check|add <instancia>                 Archivos de secrets/ (el JSON de FCM): cuáles
                                                     faltan y cargar uno con su ruta
 
