@@ -52,11 +52,14 @@ dash_srv_row_boxes() { # height widths-array name...
     "dash_srv_key_$nm"
     key="${_wd[$i]}|$h|$DASH_LANG_N|${UI_UTF8:-0}|$DASH_SRV_FOCUS|$DASH_SRV_ZM|${DASH_SRV_AL[$nm]:-0}|$DASH_SRV_KEYV"
     if [ "${DASH_SRV_MEMO_KEY[$nm]:-}" = "$key" ] && [ "${#_memo[@]}" -eq "$h" ]; then
+      prof_count "box.$nm.hit"
       DASH_SRV_BOX=("${_memo[@]}")
     else
+      prof_b "box.$nm"
       "dash_srv_$nm" "${_wd[$i]}" "$h"
       _memo=("${DASH_SRV_BOX[@]}")
       DASH_SRV_MEMO_KEY[$nm]="$key"
+      prof_e "box.$nm"
     fi
     for ((k = 0; k < h; k++)); do DASH_SRV_FLAT[i * h + k]="${DASH_SRV_BOX[$k]:-}"; done
     DASH_SRV_RECT[$nm]="$x $y ${_wd[$i]} $h"
@@ -111,8 +114,10 @@ scr_server_render() { # width height
   local w="$1" h="$2" top=3 cls="" i bw bmin bmax nk nr f ok=0 topmin
   local -a hs=() wa=() specs=() rows=() nms=() vis=()
   DASH_SRV_VIS=()
+  prof_b srv.alerts
   dash_srv_alerts
   dash_srv_crows
+  prof_e srv.alerts
   if [ -n "$DASH_SRV_PZ" ]; then
     DASH_SRV_ZM=1
     wa=("$w")

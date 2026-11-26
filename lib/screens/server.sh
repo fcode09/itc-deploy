@@ -686,29 +686,13 @@ dash_srv_need() { # inner_width
 DASH_SRV_REQ_BOX=()
 declare -gA DASH_SRV_RMAP=()   # row inside the box (counting its top border as 0) -> "requirement in the left column|in the right one" (-1: none), for the mouse
 DASH_SRV_RCOLW=0               # width of the left column when the list has two, else 0
-dash_srv_req() { # width height
-  local w="$1" h="$2" cw=$(($1 - 4)) inner=$(($2 - 2)) R lh dh two=0 colw i n nrec foot chips status seph cn sel nm
-  local -a left=() right=() body=() lines=()
-  local foc=0 col=""
-  [ "$DASH_SRV_FOCUS" != "req" ] || foc=1
-  case "${DASH_SRV_AL[req]:-0}" in 2) col="${TH[err]:-}" ;; 1) col="${TH[warn]:-}" ;; esac
-  dash_srv_vitals "$cw"; body+=("$DASH_SRV_VIT")
-  if [ "$DASH_SRV_STATE" != "ready" ] || [ "$DASH_SRV_BUSY" -eq 1 ]; then
-    dt tui.srv.status.checking; status="$UI_S_RUN $DTV"
-  else
-    dash_srv_t tui.srv.status.req "$DASH_SRV_READY" "$DASH_SRV_NREQ"; status="$DASH_T"
-    if [ "$DASH_SRV_REC_PEND" -gt 0 ]; then dash_srv_t tui.srv.status.rec "$DASH_SRV_REC_PEND"; status+=" $UI_S_DOT $DASH_T"; fi
-  fi
-  dt tui.srv.title.req; chips="$DTV"
-  DASH_SRV_RMAP=() DASH_SRV_RCOLW=0
-  if [ "$inner" -lt 5 ] || { ! dash_srv_expanded && [ "$DASH_SRV_PZ" != req ]; }; then
-    dt tui.srv.foot.strip; foot="$DTV"
-    while [ "${#body[@]}" -lt "$inner" ]; do body+=(""); done
-    kit_box "$w" "$h" body "chips=$chips" "status=$status" "footer=$foot" "focus=$foc" ${col:+"color=$col"}
-    DASH_SRV_BOX=("${KIT_BOX[@]}")
-    return 0
-  fi
-  # Open: the strip, a rule, the list and the detail.
+# The rule, the list of requirements and the detail of the selected one, appended to the lines of the box in `body` (the strip is its first
+# line), and the footer into `foot`; dash_srv_req owns those variables (and w, h, cw, inner), this one only fills them.
+DASH_SRV_REQL_KEY="" DASH_SRV_REQL_BODY=() DASH_SRV_REQL_FOOT="" DASH_SRV_REQL_COLW=0
+declare -gA DASH_SRV_REQL_MAP=()
+dash_srv_req_list() {
+  local R lh dh two=0 colw i n nrec seph cn sel nm
+  local -a left=() right=() lines=()
   tui_rep "$UI_S_RULE" "$cw"; body+=("${TH[border]:-}$TUI_OUT$TH_RESET")
   R=$((inner - 2))
   n="${#DASH_SRV_ORDER[@]}"
@@ -770,6 +754,47 @@ dash_srv_req() { # width height
   fi
   while [ "${#body[@]}" -lt "$inner" ]; do body+=(""); done
   dt tui.srv.foot.req; foot="$DTV"
+}
+
+dash_srv_req() { # width height
+  local w="$1" h="$2" cw=$(($1 - 4)) inner=$(($2 - 2)) i foot chips status lkey
+  local -a body=()
+  local foc=0 col=""
+  [ "$DASH_SRV_FOCUS" != "req" ] || foc=1
+  case "${DASH_SRV_AL[req]:-0}" in 2) col="${TH[err]:-}" ;; 1) col="${TH[warn]:-}" ;; esac
+  dash_srv_vitals "$cw"; body+=("$DASH_SRV_VIT")
+  if [ "$DASH_SRV_STATE" != "ready" ] || [ "$DASH_SRV_BUSY" -eq 1 ]; then
+    dt tui.srv.status.checking; status="$UI_S_RUN $DTV"
+  else
+    dash_srv_t tui.srv.status.req "$DASH_SRV_READY" "$DASH_SRV_NREQ"; status="$DASH_T"
+    if [ "$DASH_SRV_REC_PEND" -gt 0 ]; then dash_srv_t tui.srv.status.rec "$DASH_SRV_REC_PEND"; status+=" $UI_S_DOT $DASH_T"; fi
+  fi
+  dt tui.srv.title.req; chips="$DTV"
+  DASH_SRV_RMAP=() DASH_SRV_RCOLW=0
+  if [ "$inner" -lt 5 ] || { ! dash_srv_expanded && [ "$DASH_SRV_PZ" != req ]; }; then
+    dt tui.srv.foot.strip; foot="$DTV"
+    while [ "${#body[@]}" -lt "$inner" ]; do body+=(""); done
+    kit_box "$w" "$h" body "chips=$chips" "status=$status" "footer=$foot" "focus=$foc" ${col:+"color=$col"}
+    DASH_SRV_BOX=("${KIT_BOX[@]}")
+    return 0
+  fi
+  # Open: the strip, a rule, the list and the detail. The list and the detail are the expensive part (about two thirds of the box) and they do not
+  # depend on the figures of the strip, which move at every sample: they are kept apart and built again only when what they draw changed.
+  lkey="$w|$h|$foc|$col|$DASH_LANG_N|${UI_UTF8:-0}|${TH_NAME:-}|$DASH_SRV_PZ|$DASH_SRV_SEL|$DASH_SRV_OPEN|$DASH_SRV_REQ|$DASH_SRV_STATE|$DASH_SRV_BUSY|$DASH_SRV_N|$DASH_SRV_ALKEY"
+  if [ "$lkey" = "$DASH_SRV_REQL_KEY" ]; then
+    prof_count box.req.list.hit
+    body+=("${DASH_SRV_REQL_BODY[@]}")
+    foot="$DASH_SRV_REQL_FOOT" DASH_SRV_RCOLW="$DASH_SRV_REQL_COLW"
+    DASH_SRV_RMAP=()
+    for i in "${!DASH_SRV_REQL_MAP[@]}"; do DASH_SRV_RMAP[$i]="${DASH_SRV_REQL_MAP[$i]}"; done
+  else
+    prof_b box.req.list
+    dash_srv_req_list
+    DASH_SRV_REQL_KEY="$lkey" DASH_SRV_REQL_BODY=("${body[@]:1}") DASH_SRV_REQL_FOOT="$foot" DASH_SRV_REQL_COLW="$DASH_SRV_RCOLW"
+    DASH_SRV_REQL_MAP=()
+    for i in "${!DASH_SRV_RMAP[@]}"; do DASH_SRV_REQL_MAP[$i]="${DASH_SRV_RMAP[$i]}"; done
+    prof_e box.req.list
+  fi
   kit_box "$w" "$h" body "chips=$chips" "status=$status" "footer=$foot" "focus=$foc" ${col:+"color=$col"}
   DASH_SRV_BOX=("${KIT_BOX[@]}")
 }
