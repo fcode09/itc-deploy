@@ -228,4 +228,43 @@ body() { sed -n "/^$1() {/,/^}/p" lib/screens/ws/acceso.sh | grep -vE "^[[:space
 check "the model and the drawing of the tab start no process: no command substitution in them" 'for f in dash_acc_model dash_acc_top dash_acc_table dash_acc_label ws_acceso_box ws_acceso_sig dash_acc_load dash_acc_ports; do body "$f" | grep -qE "\\$\\([^(]|\`" && { echo "$f"; exit 1; }; done; true'
 check "the tab that is chosen is read when the key arrives and when the loop turns, not at every frame: the tick does nothing while another tab is on screen" '[ "$(run_lib "DASH_VIEW=instances; DASH_NAMES=(ta-a); DASH_SEL=0; DASH_ON_NEW=0; DASH_SVCS[ta-a]=\"s0\"; DASH_WS_TAB=resumen; ws_acceso_tick; echo \"[\${DASH_ACC_LOADED[ta-a]:-}]\"")" = "[]" ]'
 
+# nginx and systemctl simulated, and the folder of nginx, for the keys that install the block from the tab
+printf '#!/bin/sh\necho "nginx $*" >> "$FIX/nginx.log"\nexit 0\n' > "$FIX/bin/nginx"
+printf '#!/bin/sh\necho "systemctl $*" >> "$FIX/systemctl.log"\nexit 0\n' > "$FIX/bin/systemctl"
+chmod +x "$FIX/bin/nginx" "$FIX/bin/systemctl"
+mkdir -p "$FIX/conf.d"
+export DELTACTL_NGINX_DIR="$FIX/conf.d"
+N0="backs0m1.delta-dispatch.com"; N1="backs1m1.delta-dispatch.com"
+
+section "N. the names of the services and nginx, from the tab"
+f="$(panel '>' e | last_frame)"
+check "e edits the whole name of the selected service: the line says whose name it is, and offers its current one" 'echo "$f" | grep -q "Nombre s0"'
+f="$(PANEL_ROWS=70 panel '>' enter $(typed d.example.com) enter e $(typed "$N0") enter | last_frame)"
+check "a whole name typed is the name of the service: the table and the block have it, and the other service keeps its default" 'echo "$f" | grep -q "$N0" && echo "$f" | grep -q "server_name $N0;" && echo "$f" | grep -q "backend-s1.d.example.com"'
+f="$(panel '>' enter $(typed d.example.com) enter e $(typed "Muni_X") enter | last_frame)"
+check "a name that is not valid is refused and the line stays open" 'echo "$f" | grep -q "no es un nombre válido" && echo "$f" | grep -q "Nombre s0"'
+f="$(panel '>' e $(typed one.example.com) enter down e $(typed one.example.com) enter | last_frame)"
+check "two services cannot share a name" 'echo "$f" | grep -q "Ese nombre ya lo usa s0"'
+f="$(PANEL_ROWS=70 panel '>' e $(typed "$N0") enter down e $(typed "$N1") enter | last_frame)"
+check "with a name for every service no domain is needed: the block is made with them" 'echo "$f" | grep -q "server_name $N0;" && echo "$f" | grep -q "server_name $N1;"'
+rm -rf instances/ta-a/proxy
+panel '>' e $(typed "$N0") enter down e $(typed "$N1") enter g q > /dev/null
+check "g saves them (and the domain taken from the names) in what the instance remembers" 'grep -qx "HOST_S0=$N0" instances/ta-a/proxy/access.conf && grep -qx "HOST_S1=$N1" instances/ta-a/proxy/access.conf && grep -qx "DOMAIN=delta-dispatch.com" instances/ta-a/proxy/access.conf'
+f="$(panel '>' e $(typed "$N0") enter down e $(typed "$N1") enter w a | last_frame)"
+check "a asks first and says what goes where: the name of the selected service with its port, and that there is no HTTPS" 'echo "$f" | grep -q "Instala en nginx el bloque de .ta-a." && echo "$f" | grep -q "s0 $N0 :4100" && ! echo "$f" | grep -q "$N1 :4101" && echo "$f" | grep -q "Sin HTTPS"'
+rm -f "$FIX/conf.d"/* "$FIX/nginx.log" "$FIX/systemctl.log"
+panel '>' e $(typed "$N0") enter down e $(typed "$N1") enter w a n > /dev/null
+check "any other key than y cancels: nothing is installed" '[ -z "$(ls "$FIX/conf.d")" ] && [ ! -f "$FIX/nginx.log" ]'
+panel '>' e $(typed "$N0") enter down e $(typed "$N1") enter w A y wait > /dev/null
+check "A and y install the block of every service, one file each, and nginx is tested and reloaded" 'grep -q "server_name $N0;" "$FIX/conf.d/ta-a-s0.conf" && grep -q "server_name $N1;" "$FIX/conf.d/ta-a-s1.conf" && grep -q "nginx -t" "$FIX/nginx.log" && grep -q "reload nginx" "$FIX/systemctl.log"'
+f="$(panel '>' R | last_frame)"
+check "R asks before taking the selected service out of nginx" 'echo "$f" | grep -q "Quita de nginx el bloque de .ta-a." && echo "$f" | grep -q "s0 $N0 :4100"'
+panel '>' R y wait > /dev/null
+check "R and y take out only the selected service, and the other one stays" '[ ! -e "$FIX/conf.d/ta-a-s0.conf" ] && [ -f "$FIX/conf.d/ta-a-s1.conf" ]'
+panel '>' X y wait > /dev/null
+check "X and y take out all of them" '[ ! -e "$FIX/conf.d/ta-a-s1.conf" ]'
+f="$(panel '>' b a | last_frame)"
+check "with Caddy it says that installing from here is only for nginx, and asks nothing" 'echo "$f" | grep -q "solo sabe hacerlo con nginx" && ! echo "$f" | grep -q "Instala en nginx"'
+check "the keys of the tab say the new ones" 'panel ">" | last_frame | grep -q "e nombre"'
+
 finish

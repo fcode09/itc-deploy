@@ -6,7 +6,8 @@
 # /etc, nothing is reloaded or installed; the person puts it where their proxy reads it. What the tab remembers (domain, proxy, HTTPS) is
 # instances/<name>/proxy/access.conf, written only when the block is saved.
 # Keys while the tab has the focus: Enter writes the domain (mode accdom), b the other block (nginx / Caddy), w HTTPS, y copies the block, g saves
-# it, PgUp / PgDn scroll it; up and down choose a service (its row is the one marked). Loaded by lib/screens/instances_ws.sh (dash_ws_register).
+# it, e types the whole public name of the selected service, a / A put its block / all of them in nginx and R / X take it / all out (the panel keeps
+# n and x for itself), PgUp / PgDn scroll it; up and down choose a service (its row is the one marked). Loaded by lib/screens/instances_ws.sh (dash_ws_register).
 #
 # Cost: the figures are made when something changes (the model, cached by its signature); a read of the ports and a probe of each port
 # (a connection to 127.0.0.1, in the background) run every ten seconds while the tab is on screen, and never in the drawing.
@@ -66,7 +67,8 @@ dash_acc_proxy_vars() { # instance
 dash_acc_model() { # instance
   local name="$1" dom fl tls sig s
   local -a svcs
-  dom="${DASH_ACC_DOM[$name]:-}" fl="${DASH_ACC_FL[$name]:-nginx}" tls="${DASH_ACC_TLS[$name]:-1}"
+  dash_acc_edom "$name"
+  dom="$DASH_ACC_ED" fl="${DASH_ACC_FL[$name]:-nginx}" tls="${DASH_ACC_TLS[$name]:-1}"
   sig="$name|$dom|$fl|$tls|$DASH_ACC_N|${DASH_SVCS[$name]:-}|${DASH_ACC_WWW[$name]:-0}|${DASH_ACC_OV[$name]:-}"
   [ "$sig" != "$DASH_ACC_SIGM" ] || return 0
   DASH_ACC_SIGM="$sig" DASH_ACC_TEXT="" DASH_ACC_BLOCK=() DASH_ACC_ERR="" DASH_ACC_SAVED=none DASH_ACC_ENT=() DASH_ACC_HOSTS=()
@@ -147,6 +149,110 @@ ws_acceso_tick() {
   if [ -z "${DASH_ACC_AT[$name]:-}" ] || { ! tui_test_mode && [ $((SECONDS - DASH_ACC_AT[$name])) -ge 10 ]; }; then dash_acc_request "$name"; fi
 }
 
+# --- The names of the services, and putting the block in nginx ---------------------------------------------------------------------
+
+DASH_ACC_TGT=""   # what the mode accdom is typing: "" the domain, or a service (its whole public name)
+DASH_ACC_S="" DASH_ACC_OVV="" DASH_ACC_ED=""
+
+# The service that is selected (the one of the marked row), into DASH_ACC_S.
+dash_acc_svc() { # instance
+  local -a svcs
+  read -ra svcs <<< "${DASH_SVCS[$1]:-}"
+  DASH_ACC_S="${svcs[$DASH_SVC]:-${svcs[0]:-}}"
+}
+
+# The name of its own that a service has (typed here or kept from `access`), into DASH_ACC_OVV.
+dash_acc_ov_get() { # instance service
+  local kv
+  DASH_ACC_OVV=""
+  for kv in ${DASH_ACC_OV[$1]:-}; do [ "${kv%%=*}" != "$2" ] || DASH_ACC_OVV="${kv#*=}"; done
+}
+
+# The domain that is in use, into DASH_ACC_ED: the typed one or, with none, what is left of the first name without its first label when every service
+# has a name of its own (the names are what counts; the domain only has to be valid).
+dash_acc_edom() { # instance
+  local name="$1" s kv h first="" all=1
+  local -a svcs
+  read -ra svcs <<< "${DASH_SVCS[$name]:-}"
+  DASH_ACC_ED="${DASH_ACC_DOM[$name]:-}"
+  [ -z "$DASH_ACC_ED" ] || return 0
+  [ "${#svcs[@]}" -gt 0 ] || return 0
+  for s in "${svcs[@]}"; do
+    h=""
+    for kv in ${DASH_ACC_OV[$name]:-}; do [ "${kv%%=*}" != "$s" ] || h="${kv#*=}"; done
+    if [ -z "$h" ]; then all=0; else [ -n "$first" ] || first="$h"; fi
+  done
+  [ "$all" -eq 1 ] && [ -n "$first" ] || return 0
+  if [[ "$first" == *.*.* ]]; then DASH_ACC_ED="${first#*.}"; else DASH_ACC_ED="$first"; fi
+}
+
+# The whole name typed for a service in the mode accdom: a valid name that no other service uses is kept (lowered), an empty line gives the service
+# back its default one; anything else is refused and the line stays open.
+dash_acc_set_name() { # text service   (returns 1 when it is not accepted)
+  local name="${DASH_NAMES[$DASH_SEL]:-}" s="$2" h="${1,,}" kv out=""
+  h="${h#"${h%%[![:space:]]*}"}"
+  h="${h%"${h##*[![:space:]]}"}"
+  if [ -n "$h" ]; then
+    if ! proxy_host_ok "$h"; then dash_msg warn "$(t tui.acc.msg.name_bad "$1")"; return 1; fi
+    for kv in ${DASH_ACC_OV[$name]:-}; do
+      if [ "${kv%%=*}" != "$s" ] && [ "${kv#*=}" = "$h" ]; then dash_msg warn "$(t tui.acc.msg.name_dup "${kv%%=*}")"; return 1; fi
+    done
+  fi
+  for kv in ${DASH_ACC_OV[$name]:-}; do [ "${kv%%=*}" = "$s" ] || out+="$kv "; done
+  [ -z "$h" ] || out+="$s=$h"
+  DASH_ACC_OV[$name]="${out% }"
+  DASH_ACC_N=$((DASH_ACC_N + 1)) DASH_ACC_SCROLL=0
+  if [ -n "$h" ]; then dash_msg ok "$(t tui.acc.msg.name_set "$s" "$h")"; else dash_msg info "$(t tui.acc.msg.name_cleared "$s")"; fi
+  return 0
+}
+
+# Saves the block and what the tab remembers (what `g` does) in instances/<name>/proxy/. 0 saved; 1 nothing to save; 2 it could not be written.
+dash_acc_save() { # instance
+  local name="$1" fl="${DASH_ACC_FL[$1]:-nginx}" rc=0
+  dash_acc_model "$name"
+  [ -n "$DASH_ACC_TEXT" ] || return 1
+  PROXY_OUT="$DASH_ACC_TEXT"
+  proxy_save "$name" "$fl" || rc=$?
+  if [ "$rc" -eq 0 ]; then
+    dash_acc_proxy_vars "$name"; dash_acc_edom "$name"
+    proxy_meta_save "$name" "$DASH_ACC_ED" "$fl" "${DASH_ACC_TLS[$name]:-1}" || rc=$?
+  fi
+  DASH_ACC_N=$((DASH_ACC_N + 1))
+  [ "$rc" -eq 0 ] || return 2
+  return 0
+}
+
+# a / A (put the block of the selected service / of all of them in nginx) and x / X (take it out): it asks first, saying which names go to which port,
+# and then runs `./deltactl access <instance> --apply|--remove` as a command, so what nginx said is in the Output view.
+dash_acc_install() { # apply|remove one|all
+  local name="${DASH_NAMES[$DASH_SEL]:-}" action="$1" scope="$2" fl rc s e host port label list="" note
+  local -a args=()
+  [ -n "$name" ] || return 0
+  dash_acc_load "$name"
+  fl="${DASH_ACC_FL[$name]:-nginx}"
+  if [ "$fl" != nginx ]; then dash_msg warn "$(t tui.acc.msg.only_nginx)"; return 0; fi
+  if [ "$action" = apply ]; then
+    rc=0; dash_acc_save "$name" || rc=$?
+    case "$rc" in
+      0) ;;
+      1) dash_msg warn "$(t tui.acc.msg.nothing)"; return 0 ;;
+      *) dash_msg err "$(t tui.acc.msg.save_fail)"; return 0 ;;
+    esac
+  fi
+  dash_acc_model "$name"
+  dash_acc_svc "$name"; s="$DASH_ACC_S"
+  for e in "${DASH_ACC_ENT[@]}"; do
+    host="${e%%|*}" port="${e#*|}" label="${port#*|}" port="${port%%|*}"
+    [ "$scope" = all ] || [ "$label" = "$s" ] || continue
+    list+="${list:+, }$label $host :$port"
+  done
+  [ -n "$list" ] || { dash_msg warn "$(t tui.acc.msg.nothing)"; return 0; }
+  if [ "${DASH_ACC_TLS[$name]:-1}" -eq 1 ]; then note="$(t tui.acc.confirm_tls)"; else note="$(t tui.acc.confirm_notls)"; fi
+  args=(access "$name" "--$action" --yes)
+  [ "$scope" = all ] || args+=(--service "$s")
+  dash_confirm "$(t "tui.acc.confirm_$action" "$name" "$list" "$note")" output "${args[@]}"
+}
+
 # --- Keys -----------------------------------------------------------------------------------------------------------------------
 
 # The domain typed in the mode accdom: a valid name is kept (lowered), an empty line removes it, anything else is refused and the line stays open.
@@ -181,17 +287,23 @@ ws_acceso_key() { # key
       else dash_msg warn "$(t tui.acc.msg.copy_fail)"; fi
       ;;
     g)
-      dash_acc_model "$name"
-      if [ -z "$DASH_ACC_TEXT" ]; then dash_msg warn "$(t tui.acc.msg.nothing)"
-      else
-        PROXY_OUT="$DASH_ACC_TEXT"
-        rc=0
-        proxy_save "$name" "$fl" || rc=$?
-        if [ "$rc" -eq 0 ]; then dash_acc_proxy_vars "$name"; proxy_meta_save "$name" "${DASH_ACC_DOM[$name]}" "$fl" "${DASH_ACC_TLS[$name]:-1}" || rc=$?; fi
-        if [ "$rc" -eq 0 ]; then dash_msg ok "$(t tui.acc.msg.saved "instances/$name/proxy/$(proxy_file "$fl")")"; else dash_msg err "$(t tui.acc.msg.save_fail)"; fi
-        DASH_ACC_N=$((DASH_ACC_N + 1))
-      fi
+      rc=0; dash_acc_save "$name" || rc=$?
+      case "$rc" in
+        0) dash_msg ok "$(t tui.acc.msg.saved "instances/$name/proxy/$(proxy_file "$fl")")" ;;
+        1) dash_msg warn "$(t tui.acc.msg.nothing)" ;;
+        *) dash_msg err "$(t tui.acc.msg.save_fail)" ;;
+      esac
       ;;
+    e)
+      dash_acc_svc "$name"
+      [ -n "$DASH_ACC_S" ] || return 0
+      dash_acc_ov_get "$name" "$DASH_ACC_S"
+      DASH_ACC_TGT="$DASH_ACC_S" DASH_BUF="$DASH_ACC_OVV" DASH_CUR="${#DASH_ACC_OVV}" DASH_MODE=accdom
+      ;;
+    a) dash_acc_install apply one ;;
+    A) dash_acc_install apply all ;;
+    R) dash_acc_install remove one ;;
+    X) dash_acc_install remove all ;;
     pgup) DASH_ACC_SCROLL=$((DASH_ACC_SCROLL - page)); [ "$DASH_ACC_SCROLL" -ge 0 ] || DASH_ACC_SCROLL=0 ;;
     pgdn) DASH_ACC_SCROLL=$((DASH_ACC_SCROLL + page)) ;;    # (clamped to the last line when drawn)
     home) DASH_ACC_SCROLL=0 ;;
@@ -234,6 +346,7 @@ dash_acc_top() { # instance width
   elif proxy_host_ok "$d"; then st=ok msg=""
   else st=err; dt tui.acc.dom_bad; msg="$DTV"; fi
   dt tui.acc.lbl.domain; lbl="$DTV"
+  if [ "$editing" -eq 1 ] && [ -n "$DASH_ACC_TGT" ]; then t_r tui.acc.lbl.name "$DASH_ACC_TGT"; lbl="$T_OUT"; fi
   dt tui.acc.ph; ph="$DTV"
   kit_field_render "$lbl" "$val" "$cur" "$iw" label_width=10 focus="$editing" placeholder="$ph" state="$st" msg="$msg"
   DASH_ACC_TOP+=("$KIT_OUT")
@@ -367,7 +480,7 @@ ws_acceso_box() { # instance width height
   if [ -n "$DASH_ACC_DET" ]; then kit_state_icon ok; dash_ws_t tui.acc.detected "$DASH_ACC_DET"; else kit_state_icon dim; dt tui.acc.not_detected_short; DASH_T="$DTV"; fi
   st="$KIT_ICON $DASH_T"
   foot=""
-  for i in domain block https copy save; do dt "tui.acc.foot.$i"; foot+="${foot:+|}$DTV"; done
+  for i in domain block https copy save name nginx off; do dt "tui.acc.foot.$i"; foot+="${foot:+|}$DTV"; done
   if dash_ws_has_strip; then dt tui.ws.foot.tabs; foot+="|$DTV"; fi
   opts=("chips=$chip" "status=$st" "footer=$foot")
   if [ "$DASH_FOCUS" = "tab" ]; then opts+=(focus=1); fi
