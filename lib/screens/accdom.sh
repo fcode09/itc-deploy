@@ -6,8 +6,12 @@
 
 scr_accdom_key() { # key
   case "$1" in
-    enter) if dash_acc_set_domain "$DASH_BUF"; then DASH_MODE=normal DASH_CUR=0; fi ;;
-    esc) DASH_MODE=normal DASH_CUR=0; dash_msg info "$(t tui.msg.cancelled)" ;;
+    enter)
+      if [ -n "$DASH_ACC_TGT" ]; then
+        if dash_acc_set_name "$DASH_BUF" "$DASH_ACC_TGT"; then DASH_MODE=normal DASH_CUR=0 DASH_ACC_TGT=""; fi
+      elif dash_acc_set_domain "$DASH_BUF"; then DASH_MODE=normal DASH_CUR=0; fi
+      ;;
+    esc) DASH_MODE=normal DASH_CUR=0 DASH_ACC_TGT=""; dash_msg info "$(t tui.msg.cancelled)" ;;
     *) dash_key_edit "$1" ;;
   esac
 }
