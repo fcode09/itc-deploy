@@ -121,27 +121,33 @@ mu_parse() { # uri
 # its URI comes in DELTACTL_MONGO_ADMIN_URI (an environment variable: a secret is never in a command line). Without it the script to run by whoever
 # has that account is shown, and init goes on (it says by itself if the user is not there). An existing user is not touched.
 init_mongo_user() { # instance
-  local name="$1" dir s var uri user ref out
+  local name="$1" dir s var uri user ref out admin anon first="" mh mp
   local -A pw=() dbs=()
   dir="$(instance_dir "$name")"
   for s in "${ENABLED[@]}"; do
     for var in ${CAT_MONGO[$s]:-}; do
       uri="$(get_var "$dir/.env.$s" "$var")"
       mu_parse "$uri" || continue
+      [ -n "$first" ] || first="$uri"
       if [ -n "${pw[$MU_USER]+x}" ] && [ "${pw[$MU_USER]}" != "$MU_PASS" ]; then die "$(t init.mongo_user_conflict "$MU_USER")"; fi
       pw[$MU_USER]="$MU_PASS"
       case " ${dbs[$MU_USER]:-} " in *" $MU_DB "*) ;; *) dbs[$MU_USER]+=" $MU_DB" ;; esac
     done
   done
   [ "${#pw[@]}" -gt 0 ] || return 0
+  read -r mh mp <<< "$(dr_mongo_hostport "$first")"
   for user in "${!pw[@]}"; do
-    if [ -z "${DELTACTL_MONGO_ADMIN_URI:-}" ]; then
+    admin="${DELTACTL_MONGO_ADMIN_URI:-}" anon=0
+    # With no account of administration it is tried once without one: a Mongo that does not ask for authentication lets a user be created like
+    # that. When it does ask, the script is shown (whoever has the account runs it) and init goes on.
+    if [ -z "$admin" ] && [ -n "$mp" ] && [ "$mp" != srv ]; then admin="mongodb://$mh:$mp/admin" anon=1; fi
+    if [ -z "$admin" ]; then
       init_mongo_user_script "$user" "${dbs[$user]# }"
       continue
     fi
-    [[ "$DELTACTL_MONGO_ADMIN_URI" == mongodb://* || "$DELTACTL_MONGO_ADMIN_URI" == mongodb+srv://* ]] || die "$(t init.mongo_admin_bad)"
+    [ "$anon" -eq 1 ] || [[ "$admin" == mongodb://* || "$admin" == mongodb+srv://* ]] || die "$(t init.mongo_admin_bad)"
     ref="$(service_image_ref "$name" s0)"
-    out="$(MU_USER="$user" MU_PASS="${pw[$user]}" MU_DBS="${dbs[$user]# }" dk_run_once "$dir/.env.s0" "$ref" \
+    out="$(DELTACTL_MONGO_ADMIN_URI="$admin" MU_USER="$user" MU_PASS="${pw[$user]}" MU_DBS="${dbs[$user]# }" dk_run_once "$dir/.env.s0" "$ref" \
       -e DELTACTL_MONGO_ADMIN_URI -e MU_USER -e MU_PASS -e MU_DBS -- node -e '
       const m = require("mongoose");
       (async () => {
@@ -160,6 +166,9 @@ init_mongo_user() { # instance
     ' 2>&1)" || true
     if [[ "$out" == *CREATED=* ]]; then ok "$(t init.mongo_user_created "$user" "${dbs[$user]# }")"
     elif [[ "$out" == *EXISTS=* ]]; then info "$(t init.mongo_user_exists "$user")"
+    elif [ "$anon" -eq 1 ]; then
+      info "$(t init.mongo_user_anon_failed "$user")"
+      init_mongo_user_script "$user" "${dbs[$user]# }"
     else die "$(t init.mongo_user_failed "$user" "$(printf '%s' "$out" | grep -a 'ERR=' | head -1)")"; fi
   done
 }

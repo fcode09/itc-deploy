@@ -39,3 +39,4 @@ MSG_es["init.mongo_user_conflict"]="las URI de Mongo de la instancia llevan dos 
 MSG_es["init.mongo_admin_bad"]="DELTACTL_MONGO_ADMIN_URI debe ser una URI de Mongo: mongodb://… o mongodb+srv://…"
 MSG_es["init.mongo_user_script"]="El usuario de Mongo '{1}' lo crea quien tenga la cuenta de administración de Mongo (o define DELTACTL_MONGO_ADMIN_URI y repite init):"
 MSG_es["init.mongo_user_script_note"]="(en mongosh, con la cuenta de administración; la contraseña es la de las URI de MONGO_* en instances/<instancia>/.env.s0 y .env.s1)"
+MSG_es["init.mongo_user_anon_failed"]="No se pudo crear el usuario de Mongo '{1}' sin cuenta de administración (Mongo pide autenticación)."
