@@ -25,7 +25,7 @@ act_data() {
     cp "$9" "$d/.deltactl/runs/$1/out.log"
     printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$1" "$7" "$2" "$4" "$5" "$6" "$8" >> "$d/.deltactl/runs.idx"
   }
-  printf 'Rolling back auth-backend to 2.13.0\nDone\n' > "$d/plain.txt"
+  printf 'Rolling back backend-s0 to 2.13.0\nDone\n' > "$d/plain.txt"
   act_run 20261030T100000Z-0 deploy ix-colorado ix-colorado succeeded 0 2026-10-30T10:00:00Z 38000 "tests/golden/outsum/in/deploy-$lang.txt" \
     $'CPU_MS=8000\nDOCKER_MS=28000\nDOCKER_CALLS=12\nPEAK_RSS_KB=40000\nPEAK_PROCS=5\nOUT_BYTES=2100\nOUT_LINES=38'
   act_run 20261031T150000Z-3 rollback "ix-colorado s0" ix-colorado succeeded 0 2026-10-31T15:00:00Z 5300 "$d/plain.txt"

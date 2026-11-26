@@ -32,13 +32,13 @@ newinst() { # nombre s0tag s1tag [servicios]
 calls() { cat "$FIX/calls.log"; }
 
 section "1. check: instancia lista"
-image auth-backend:1.0 sha256:aaaa1111 amd64; image gueo-back-end:2.0 sha256:bbbb2222 amd64
+image backend-s0:1.0 sha256:aaaa1111 amd64; image backend-s1:2.0 sha256:bbbb2222 amd64
 newinst gd-ok 1.0 2.0
 out="$(bash ./deltactl check gd-ok 2>&1)"; rc=$?
 check "informa que está lista para desplegar" 'echo "$out" | grep -q "Todo en orden: listo para desplegar"'
 check "termina con código 0" '[ "$rc" -eq 0 ]'
 check "valida configuración, compose, imágenes, puertos y datos" \
-  'echo "$out" | grep -q "Configuración completa" && echo "$out" | grep -q "compose de la instancia es válido" && echo "$out" | grep -q "imagen auth-backend:1.0 cargada" && echo "$out" | grep -q "puerto .* libre" && echo "$out" | grep -q "Datos:"'
+  'echo "$out" | grep -q "Configuración completa" && echo "$out" | grep -q "compose de la instancia es válido" && echo "$out" | grep -q "imagen backend-s0:1.0 cargada" && echo "$out" | grep -q "puerto .* libre" && echo "$out" | grep -q "Datos:"'
 check "sugiere el siguiente paso" 'echo "$out" | grep -q "./deltactl deploy gd-ok"'
 check "no prueba Mongo si no se pide" 'echo "$out" | grep -q "no probadas" && ! calls | grep -q "^run "'
 check "es solo lectura: no levanta nada" '! calls | grep -q "COMPOSE up"'
@@ -53,9 +53,9 @@ check "con errores termina con código 1" '[ "$rc" -eq 1 ]'
 check "resume cuántos errores hay" 'echo "$out" | grep -qE "[0-9]+ error\(es\)"'
 newinst gd-noimg 7.7 7.7
 out="$(bash ./deltactl check gd-noimg 2>&1)"; rc=$?
-check "imagen que falta: error con la solución" 'echo "$out" | grep -q "falta la imagen auth-backend:7.7" && echo "$out" | grep -q "./deltactl load"'
+check "imagen que falta: error con la solución" 'echo "$out" | grep -q "falta la imagen backend-s0:7.7" && echo "$out" | grep -q "./deltactl load"'
 check "el error de imagen devuelve 1" '[ "$rc" -eq 1 ]'
-image auth-backend:8.0 sha256:cccc3333 arm64; image gueo-back-end:8.0 sha256:dddd4444 amd64
+image backend-s0:8.0 sha256:cccc3333 arm64; image backend-s1:8.0 sha256:dddd4444 amd64
 newinst gd-arch 8.0 8.0
 out="$(bash ./deltactl check gd-arch 2>&1)"
 check "arquitectura distinta de la del servidor" 'echo "$out" | grep -q "es arm64 y este servidor es amd64"'
@@ -73,7 +73,7 @@ rm -f "$FIX/compose_invalid"
 
 section "3. check: opciones"
 check "un servicio concreto solo revisa ese servicio" \
-  'o="$(bash ./deltactl check gd-ok s1 2>&1)"; echo "$o" | grep -q "s1: imagen gueo-back-end:2.0" && ! echo "$o" | grep -q "s0: imagen"'
+  'o="$(bash ./deltactl check gd-ok s1 2>&1)"; echo "$o" | grep -q "s1: imagen backend-s1:2.0" && ! echo "$o" | grep -q "s0: imagen"'
 out="$(bash ./deltactl check gd-ok --mongo 2>&1)"
 check "--mongo prueba las 4 bases de la instancia" '[ "$(echo "$out" | grep -c "responde (base")" -eq 4 ]'
 touch "$FIX/mongo_fail"
@@ -122,12 +122,12 @@ check "es solo lectura: no levanta nada" '! calls | grep -q "COMPOSE up"'
 rm -rf instances/gd-*
 
 section "5. asistente: new --wizard"
-image auth-backend:1.5 sha256:eeee5555 amd64; image gueo-back-end:2.5 sha256:ffff6666 amd64
-answers_new() { printf '%s\n' "wz-test" "s0,s1" "n" "auth-backend" "1.5" "gueo-back-end" "2.5" "http://10.0.0.5" "s" "s"; }
+image backend-s0:1.5 sha256:eeee5555 amd64; image backend-s1:2.5 sha256:ffff6666 amd64
+answers_new() { printf '%s\n' "wz-test" "s0,s1" "n" "backend-s0" "1.5" "backend-s1" "2.5" "http://10.0.0.5" "s" "s"; }
 out="$(answers_new | bash ./deltactl new --wizard 2>&1)"; rc=$?
 d=instances/wz-test
 check "crea la instancia" '[ "$rc" -eq 0 ] && [ -f $d/.env.instance ]'
-check "muestra las etiquetas ya cargadas" 'echo "$out" | grep -q "Etiquetas cargadas de auth-backend:.* 1.5"'
+check "muestra las etiquetas ya cargadas" 'echo "$out" | grep -q "Etiquetas cargadas de backend-s0:.* 1.5"'
 check "aplica las etiquetas" 'grep -qx "S0_TAG=1.5" $d/.env.instance && grep -qx "S1_TAG=2.5" $d/.env.instance'
 check "aplica la URL pública a los dos servicios" 'grep -qx "IP_SERVER=http://10.0.0.5" $d/.env.s0 && grep -qx "IP_SERVER=http://10.0.0.5" $d/.env.s1'
 check "nombra las bases con la instancia" \
@@ -156,7 +156,7 @@ check "en una existente no se generan secretos ni se renombran las bases" \
   '[ -z "$(grep -E "^JWT_SECRET=" $d/.env.s0 | cut -d= -f2-)" ] && grep -q "CAMBIAR_authsoftware_INSTANCIA" $d/.env.s0'
 check "usa el nombre de imagen indicado" 'grep -qx "S0_IMAGE=s0" $d/.env.instance && grep -qx "S1_IMAGE=s1" $d/.env.instance'
 rm -rf instances/wz-ex
-out="$(printf '%s\n' "wz-no" "s1" "n" "gueo-back-end" "" "" "n" "s" | bash ./deltactl new --wizard 2>&1)"
+out="$(printf '%s\n' "wz-no" "s1" "n" "backend-s1" "" "" "n" "s" | bash ./deltactl new --wizard 2>&1)"
 check "sin generar secretos: JWT_SECRET queda vacío" '[ -z "$(grep -E "^JWT_SECRET=" instances/wz-no/.env.s1 | cut -d= -f2-)" ]'
 check "solo con s1 no pregunta por s0 ni lo pide pendiente" \
   '! echo "$out" | grep -q "imagen de s0" && ! echo "$out" | grep -q "^  .* \.env\.s0 "'
@@ -179,7 +179,7 @@ check "conserva los siguientes pasos y apunta a la ayuda" 'echo "$out" | grep -q
 rm -rf instances/wz-classic
 
 section "8. new con las respuestas del asistente como opciones (lo que usa el formulario del panel)"
-out="$(bash ./deltactl new wz-flags --services s1 --s1-image gueo-back-end --s1-tag 9.9 --ip http://1.2.3.4 --generate-secrets 2>&1)"; rc=$?
+out="$(bash ./deltactl new wz-flags --services s1 --s1-image backend-s1 --s1-tag 9.9 --ip http://1.2.3.4 --generate-secrets 2>&1)"; rc=$?
 d=instances/wz-flags
 check "crea la instancia sin hacer preguntas" '[ "$rc" -eq 0 ] && [ -f $d/.env.instance ] && echo "$out" | grep -q "creada en"'
 check "aplica el servicio, la etiqueta y la URL" 'grep -qx "COMPOSE_PROFILES=s1" $d/.env.instance && grep -qx "S1_TAG=9.9" $d/.env.instance && grep -qx "IP_SERVER=http://1.2.3.4" $d/.env.s1'

@@ -19,7 +19,7 @@ mkdir -p "$FIX/bin"
 cp tests/fake-docker.sh "$FIX/bin/docker"
 chmod +x "$FIX/bin/docker"
 export PATH="$FIX/bin:$PATH"
-printf 'auth-backend:1.0|sha256:aaaa1111|amd64\ngueo-back-end:2.0|sha256:bbbb2222|amd64\n' > "$FIX/images.txt"
+printf 'backend-s0:1.0|sha256:aaaa1111|amd64\nbackend-s1:2.0|sha256:bbbb2222|amd64\n' > "$FIX/images.txt"
 
 D() { bash ./deltactl "$@"; }   # sin colores: la salida va a una tubería
 run() { ROOT="$PWD" bash -c "source lib/bootstrap.sh; $1"; }

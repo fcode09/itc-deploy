@@ -144,7 +144,7 @@ check "entero: dígitos solamente" '[ -z "$(printf "%s\n" 0 4 600 "!-1" "!1.5" "
 check "etiqueta: versiones y commits valen; latest avisa; espacios, :, vacío y empezar con - no" \
   '[ -z "$(printf "%s\n" 1.2.3 v1.2.3 2026.11.3 abc1234 1.2.3-rc.1 "?latest" "!1.2 3" "!a:b" "!" "!-x" "!a/b" | vcases tag)" ]'
 check "nombre de imagen: sin etiqueta ni registry en mayúsculas" \
-  '[ -z "$(printf "%s\n" auth-backend gueo-back-end s0 mi/imagen "!Auth" "!a:1.0" "!" "!a b" | vcases image-name)" ]'
+  '[ -z "$(printf "%s\n" backend-s0 backend-s1 s0 mi/imagen "!Auth" "!a:1.0" "!" "!a b" | vcases image-name)" ]'
 check "servicios: s0, s1, s0,s1; desconocido, repetido, espacios, comas sobrantes o vacío no" \
   '[ -z "$(printf "%s\n" s0 s1 s0,s1 s1,s0 "!s9" "!s0,s0" "!s0, s1" "!s0,,s1" "!,s0" "!s0," "!" | vcases services-list)" ]'
 check "servicios: mensaje que nombra el servicio desconocido" '[ "$(run "envschema_validate_r services-list s0,s9 \"\"; echo \$EV_MSG")" = "servicio desconocido: s9" ]'

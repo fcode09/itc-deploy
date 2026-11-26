@@ -66,12 +66,12 @@ newinst tw-a 1.0 1.0; seeded tw-a; complete tw-a
 mkdir -p instances/tw-a/proxy; printf 'DOMAIN=itc.pe\nFLAVOR=nginx\nTLS=0\nHOST_S0=backlion.itc.pe\n' > instances/tw-a/proxy/access.conf
 newinst tw-b 1.0 1.0                                   # (not seeded, and its variables are still the template's: the files have things to fill in)
 newinst tw-c 1.0 1.0; seeded tw-c; complete tw-c
-image auth-backend:1.0 sha256:aaa; image gueo-back-end:1.0 sha256:bbb
+image backend-s0:1.0 sha256:aaa; image backend-s1:1.0 sha256:bbb
 deployed tw-a s0 1.0 sha256:aaa; deployed tw-a s1 1.0 sha256:bbb
-container tw-a s0 running healthy auth-backend:1.0 "2 days" 1234 0
-container tw-a s1 running healthy gueo-back-end:1.0 "2 days" 1235 3
-container tw-c s0 running healthy auth-backend:1.0 "1 hour" 1236 0
-container tw-c s1 exited none gueo-back-end:1.0 "1 hour" 0 0
+container tw-a s0 running healthy backend-s0:1.0 "2 days" 1234 0
+container tw-a s1 running healthy backend-s1:1.0 "2 days" 1235 3
+container tw-c s0 running healthy backend-s0:1.0 "1 hour" 1236 0
+container tw-c s1 exited none backend-s1:1.0 "1 hour" 0 0
 cgroup 1234 104857600 536870912 5000000
 cgroup 1235 629145600 2147483648 9000000
 cgroup 1236 52428800 max 100
@@ -95,13 +95,13 @@ out="$(panel q)"
 check "the border says who it is, how it is and what can be done to it" 'echo "$out" | frame_n 1 | grep -q "\[tw-a . 2/2\]" && echo "$out" | frame_n 1 | grep -q "\[. en marcha\]" && echo "$out" | frame_n 1 | grep -q "\[^u desplegar\]\|\[u desplegar\]" && echo "$out" | frame_n 1 | grep -q "\[Enter m.s\]"'
 check "on a wide box the footer lists deploy, check, status and logs; on a narrow one the first and the last two stay" 'PANEL_COLS=160 PANEL_ROWS=40 panel q | frame_n 1 | grep -q "\[u desplegar\]-\[c comprobar\]-\[s estado\]-\[l logs\]" && echo "$out" | frame_n 1 | grep -q "\[u desplegar\]-.*\[Enter m.s\]"'
 check "a strip of tabs names the summary and the logs (the logs are a tab on this size)" 'echo "$out" | frame_n 1 | grep -q "\[Resumen\] Logs"'
-check "every service of the instance is in its workspace, with its image, state, uptime and port" 'echo "$out" | frame_n 1 | grep -q "s0 auth-backend:1.0  . healthy" && echo "$out" | frame_n 1 | grep -q "s1 gueo-back-end:1.0  . healthy" && echo "$out" | frame_n 1 | grep -q "activo 2d00h  \.  :4100"'
+check "every service of the instance is in its workspace, with its image, state, uptime and port" 'echo "$out" | frame_n 1 | grep -q "s0 backend-s0:1.0  . healthy" && echo "$out" | frame_n 1 | grep -q "s1 backend-s1:1.0  . healthy" && echo "$out" | frame_n 1 | grep -q "activo 2d00h  \.  :4100"'
 check "the totals and the data are under the services" 'echo "$out" | frame_n 1 | grep -q "Total  mem 7[0-9][0-9]M/2.5G  cpu 0.0%  datos: sembrados"'
 check "an instance with nothing to resolve says so when there is room, and its list shows the instance as it was" 'PANEL_ROWS=50 panel q | frame_n 1 | grep -q "Todo al d.a"'
 out="$(panel down q)"
-check "selecting another instance shows its own workspace" 'echo "$out" | frame_n 2 | grep -q "\[tw-b . 0/2\]" && echo "$out" | frame_n 2 | grep -q "s0 auth-backend:1.0  . no creado"'
+check "selecting another instance shows its own workspace" 'echo "$out" | frame_n 2 | grep -q "\[tw-b . 0/2\]" && echo "$out" | frame_n 2 | grep -q "s0 backend-s0:1.0  . no creado"'
 out="$(PANEL_COLS=160 PANEL_ROWS=40 panel q)"
-check "on a wide screen each service is a card: its image, its state, its facts, and its memory and CPU as metric rows" 'echo "$out" | frame_n 1 | grep -q "\[s0\]-\[auth-backend:1.0\]-\[. healthy\]" && echo "$out" | frame_n 1 | grep -q "\[s1\]-\[gueo-back-end:1.0\]" && echo "$out" | frame_n 1 | grep -q "mem \.* 100M/512M" && echo "$out" | frame_n 1 | grep -q "mem \.* 600M/2.0G" && echo "$out" | frame_n 1 | grep -q "activo 2d00h  \.  :4100"'
+check "on a wide screen each service is a card: its image, its state, its facts, and its memory and CPU as metric rows" 'echo "$out" | frame_n 1 | grep -q "\[s0\]-\[backend-s0:1.0\]-\[. healthy\]" && echo "$out" | frame_n 1 | grep -q "\[s1\]-\[backend-s1:1.0\]" && echo "$out" | frame_n 1 | grep -q "mem \.* 100M/512M" && echo "$out" | frame_n 1 | grep -q "mem \.* 600M/2.0G" && echo "$out" | frame_n 1 | grep -q "activo 2d00h  \.  :4100"'
 check "a wide screen has no tab for the logs (they are under the summary): the strip has the summary and the access, and the logs are there" 'echo "$out" | frame_n 1 | grep -qE "\[Resumen\] +Acceso +Historial +Servicios" && ! echo "$out" | frame_n 1 | grep -q "Resumen.* Logs" && echo "$out" | frame_n 1 | grep -q "Logs . s0"'
 check "a service that does not run has a card too, with no reading" 'PANEL_COLS=160 PANEL_ROWS=40 panel down q | frame_n 2 | grep -q "sin lectura"'
 check "the restarts of a service are in its card" 'PANEL_COLS=200 PANEL_ROWS=40 panel q | frame_n 1 | grep -q "reinicios 3"'
@@ -127,14 +127,14 @@ out="$(DELTACTL_TUI_WSENV=1 panel down t down down enter q)"
 check "Enter on that row goes to the Variables view, on that instance" 'echo "$out" | last_frame | grep -q "\[9 Variables\]" && echo "$out" | last_frame | grep -q "tw-b"'
 check "an instance whose files are complete has no such row" '! DELTACTL_TUI_WSENV=1 panel q | frame_n 1 | grep -q "Faltan variables"'
 check "the rows are built from what the panel knows, with no process (no fork in the builder)" '! sed -n "/^dash_todo_build()/,/^}/p" lib/screens/instances_ws.sh | grep -vE "^[[:space:]]*#" | grep -qE "\\$\\([^(]|\`"'
-LAST_STARS='IC_N=2; IC_GROUPS=("s0|auth-backend"); IC_TAG=(1.0 2.0); IC_EPOCH=(1700000000 1710000000); IC_KIND=(ver ver); IC_VNUM=(1.0 2.0); IC_VPRE=("" ""); IC_USE=("tw-a(current) " ""); IC_ORDER=(["s0|auth-backend"]="1 0"); IC_STARIDX=(["s0|auth-backend"]=1); DASH_IMG_STATE=ready; DASH_SVCS[tw-a]="s0 s1";'
+LAST_STARS='IC_N=2; IC_GROUPS=("s0|backend-s0"); IC_TAG=(1.0 2.0); IC_EPOCH=(1700000000 1710000000); IC_KIND=(ver ver); IC_VNUM=(1.0 2.0); IC_VPRE=("" ""); IC_USE=("tw-a(current) " ""); IC_ORDER=(["s0|backend-s0"]="1 0"); IC_STARIDX=(["s0|backend-s0"]=1); DASH_IMG_STATE=ready; DASH_SVCS[tw-a]="s0 s1";'
 check "a version that is more recent than the one in use is a row that leads to the images" '[ "$(run_lib "$LAST_STARS dash_ws_stars tw-a; echo \"\$DASH_TODO_STAR\"")" = "s0|2.0|1.0" ]'
 check "the star the instance already uses is not a row" '[ -z "$(run_lib "$LAST_STARS IC_USE=(\"\" \"tw-a(current) \"); dash_ws_stars tw-a; echo \"\$DASH_TODO_STAR\"")" ]'
 check "without the catalog of Docker there are no rows about versions" '[ -z "$(run_lib "$LAST_STARS DASH_IMG_STATE=none; dash_ws_stars tw-a; echo \"\$DASH_TODO_STAR\"")" ]'
 check "a running instance with no access saved has a row that says nobody reaches it by name, and Enter on it opens the Access tab" '[ "$(run_lib "HINTS=(); DASH_KIND[tw-b]=ok; DASH_SVCS[tw-b]=\"s0 s1\"; dash_todo_build tw-b; echo \"\${DASH_TODO_ACT[*]}|\${DASH_TODO[0]}\"")" = "tab:acceso|info|Sin dominio: nadie la alcanza por nombre|falta el bloque de nginx|configurar acceso" ] && [ "$(run_lib "HINTS=(); DASH_KIND[tw-b]=ok; DASH_SVCS[tw-b]=\"s0 s1\"; DASH_NAMES=(tw-b); DASH_SEL=0; DASH_TODO_SEL=0; dash_todo_run tw-b; echo \"\$DASH_WS_TAB \$DASH_FOCUS\"")" = "acceso tab" ]'
 check "the row is not there when the access is saved, when the instance is not running well, or when it runs nothing" '[ -z "$(run_lib "HINTS=(); DASH_KIND[tw-a]=ok; DASH_SVCS[tw-a]=\"s0 s1\"; dash_todo_build tw-a; echo \"\${DASH_TODO_ACT[*]}\"")" ] && [ -z "$(run_lib "HINTS=(); DASH_KIND[tw-b]=warn; DASH_SVCS[tw-b]=\"s0 s1\"; dash_todo_build tw-b; echo \"\${DASH_TODO_ACT[*]}\"")" ] && [ -z "$(run_lib "HINTS=(); DASH_KIND[tw-b]=ok; DASH_SVCS[tw-b]=; dash_todo_build tw-b; echo \"\${DASH_TODO_ACT[*]}\"")" ]'
-check "the card of a service shows the name it answers to: the one of its own, or <catalog name>.<domain>" 'f="$(PANEL_COLS=160 PANEL_ROWS=40 panel q | frame_n 1)"; echo "$f" | grep -q "backlion.itc.pe" && echo "$f" | grep -q "gueo-back-end.itc.pe"'
-check "an instance with no access shows no name in its cards" '[ -z "$(run_lib "DASH_SVCS[tw-b]=\"s0\"; dash_ws_host tw-b s0; echo \$DASH_WS_H")" ] && [ "$(run_lib "DASH_SVCS[tw-a]=\"s0 s1\"; dash_ws_host tw-a s1; echo \$DASH_WS_H")" = "gueo-back-end.itc.pe" ]'
+check "the card of a service shows the name it answers to: the one of its own, or <catalog name>.<domain>" 'f="$(PANEL_COLS=160 PANEL_ROWS=40 panel q | frame_n 1)"; echo "$f" | grep -q "backlion.itc.pe" && echo "$f" | grep -q "backend-s1.itc.pe"'
+check "an instance with no access shows no name in its cards" '[ -z "$(run_lib "DASH_SVCS[tw-b]=\"s0\"; dash_ws_host tw-b s0; echo \$DASH_WS_H")" ] && [ "$(run_lib "DASH_SVCS[tw-a]=\"s0 s1\"; dash_ws_host tw-a s1; echo \$DASH_WS_H")" = "backend-s1.itc.pe" ]'
 check "the rows about a version lead to the Images view" '[ "$(run_lib "$LAST_STARS DASH_VIEW=instances; DASH_NAMES=(tw-a); DASH_SEL=0; HINTS=(); dash_todo_build tw-a; echo \"\${DASH_TODO_ACT[*]}\"")" = "view:images" ]'
 check "what the server lacks is a row while the instance does not run, leading to the Server view" '[ "$(run_lib "DASH_SRV_STATE=ready; DASH_SRV_BAD=1; DASH_SRV_BAD_NAMES=docker; DASH_KIND[tw-b]=err; HINTS=(); dash_todo_build tw-b; echo \"\${DASH_TODO_ACT[*]}\"")" = "view:server" ] && [ -z "$(run_lib "DASH_SRV_STATE=ready; DASH_SRV_BAD=1; DASH_KIND[tw-a]=ok; HINTS=(); dash_todo_build tw-a; echo \"\${DASH_TODO_ACT[*]}\"")" ]'
 check "the files that changed since the last deploy are a row that leads to the Variables view" '[ "$(run_lib "HINTS=(); DASH_WS_ENVPEND[tw-a]=\"s0 instance\"; dash_todo_build tw-a; echo \"\${DASH_TODO_ACT[*]}|\${DASH_TODO[0]}\"")" = "view:env|pend|Variables cambiadas sin desplegar|s0, instance|ver variables" ]'

@@ -33,7 +33,7 @@ runs_n() { ls "$STATE/runs" 2>/dev/null | wc -l | tr -d ' '; }
 last_run() { ls "$STATE/runs" | tail -n 1; }
 mv_() { grep -E "^$2=" "$STATE/runs/$1/meta" | cut -d= -f2-; }   # value of a meta key of a run
 
-image auth-backend:1.0 sha256:aaaa1111 amd64; image gueo-back-end:2.0 sha256:bbbb2222 amd64
+image backend-s0:1.0 sha256:aaaa1111 amd64; image backend-s1:2.0 sha256:bbbb2222 amd64
 
 section "1. a successful operation is recorded"
 newinst rn-ok
@@ -206,7 +206,7 @@ check "a deploy after it still never seeds" '[ "$(seeds)" = "2" ]'
 section "8. what a run consumed"
 newinst rn-cons
 rm -rf "$STATE"
-printf 'rn-cons|auth-backend|running|none|auth-backend:1.0|2026-11-19T20:00:00Z|/rn-cons-a-1|0|0\nrn-cons|gueo-back-end|running|healthy|gueo-back-end:2.0|2026-11-19T20:00:00Z|/rn-cons-g-1|0|3\nother|x|running|none|x:1|2026-11-19T20:00:00Z|/o-1|0|9\n' > "$FIX/containers.txt"
+printf 'rn-cons|backend-s0|running|none|backend-s0:1.0|2026-11-19T20:00:00Z|/rn-cons-a-1|0|0\nrn-cons|backend-s1|running|healthy|backend-s1:2.0|2026-11-19T20:00:00Z|/rn-cons-g-1|0|3\nother|x|running|none|x:1|2026-11-19T20:00:00Z|/o-1|0|9\n' > "$FIX/containers.txt"
 bash ./deltactl deploy rn-cons > /dev/null 2>&1
 id="$(last_run)"
 check "CPU is measured in milliseconds" '[[ "$(mv_ "$id" CPU_MS)" =~ ^[0-9]+$ ]]'

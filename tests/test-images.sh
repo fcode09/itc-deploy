@@ -15,10 +15,10 @@ rm -rf instances/im-*
 mkdir -p "$FIX/bin"
 
 cat > "$FIX/images.txt" <<'EOF'
-auth-backend|1.0|sha256:aaaaaaaaaaaaaaaa|2 hours ago|350MB
-auth-backend|0.9|sha256:bbbbbbbbbbbbbbbb|3 days ago|349MB
-auth-backend|0.5|sha256:cccccccccccccccc|2 months ago|340MB
-gueo-back-end|2.0|sha256:dddddddddddddddd|1 hour ago|1.2GB
+backend-s0|1.0|sha256:aaaaaaaaaaaaaaaa|2 hours ago|350MB
+backend-s0|0.9|sha256:bbbbbbbbbbbbbbbb|3 days ago|349MB
+backend-s0|0.5|sha256:cccccccccccccccc|2 months ago|340MB
+backend-s1|2.0|sha256:dddddddddddddddd|1 hour ago|1.2GB
 EOF
 
 cat > "$FIX/bin/docker" <<'SHIM'
@@ -44,7 +44,7 @@ printf 'S0_TAG=0.9\n' > instances/im-one/.previous
 section "1. tabla de versiones"
 out="$(bash ./deltactl images 2>&1)"
 check "muestra la arquitectura del servidor" 'echo "$out" | grep -q "Arquitectura de este servidor: amd64"'
-check "agrupa por servicio y nombre de imagen" 'echo "$out" | grep -qx "s0 = auth-backend" && echo "$out" | grep -qx "s1 = gueo-back-end"'
+check "agrupa por servicio y nombre de imagen" 'echo "$out" | grep -qx "s0 = backend-s0" && echo "$out" | grep -qx "s1 = backend-s1"'
 check "marca la etiqueta en uso con su instancia" 'echo "$out" | grep "^1.0 " | grep -q "im-one(actual)"'
 check "marca la etiqueta previa (rollback)" 'echo "$out" | grep "^0.9 " | grep -q "im-one(previa)"'
 check "marca la etiqueta sin uso" 'echo "$out" | grep "^0.5 " | grep -q "sin uso (candidata a borrar)"'
@@ -56,7 +56,7 @@ check "la cabecera con ñ queda alineada con las filas" \
   '[ "$(echo "$out" | grep "^ETIQUETA" | cut -d" " -f1-5 | wc -c)" -gt 0 ] && echo "$out" | grep -q "TAMAÑO"'
 
 section "2. filtro, alias y errores"
-check "images s1 solo muestra s1" 'o="$(bash ./deltactl images s1 2>&1)"; echo "$o" | grep -q "s1 = gueo-back-end" && ! echo "$o" | grep -q "s0 = auth-backend"'
+check "images s1 solo muestra s1" 'o="$(bash ./deltactl images s1 2>&1)"; echo "$o" | grep -q "s1 = backend-s1" && ! echo "$o" | grep -q "s0 = backend-s0"'
 check "versions es un alias de images" '[ "$(bash ./deltactl versions 2>&1)" = "$out" ]'
 check "servicio inválido falla" '! bash ./deltactl images s9 >/dev/null 2>&1'
 check "opción desconocida falla" '! bash ./deltactl images --nada >/dev/null 2>&1'
@@ -67,7 +67,7 @@ check "es JSON válido" 'if command -v python3 >/dev/null; then echo "$js" | pyt
 check "incluye uso y estado" \
   'echo "$js" | grep "\"tag\":\"1.0\"" | grep -q "\"used_by\":\"im-one(current)\"" && echo "$js" | grep "\"tag\":\"0.5\"" | grep -q "\"in_use\":false"'
 check "sin escapes ni cabeceras" '! echo "$js" | has_ansi && [ "$(echo "$js" | head -n1)" = "[" ]'
-check "--json respeta el filtro de servicio" '! bash ./deltactl images s1 --json | grep -q "auth-backend"'
+check "--json respeta el filtro de servicio" '! bash ./deltactl images s1 --json | grep -q "backend-s0"'
 
 # --- The catalog of versions (lib/core/imagecat.sh) ---------------------------------------------------------------------------------
 # A second simulated Docker: tests/fake-docker.sh, with dates (image_dates.txt) and the architecture of the server (server_arch). The real
@@ -144,21 +144,21 @@ check "tags made of a date (2026-11-24) are versions with a suffix: they compare
 
 section "6. the catalog: order, the star and what never is one"
 images_are \
-  "auth-backend:v1.2.10|sha256:a10aaaaaaaaaaaaaaaa|amd64" "auth-backend:v1.2.9|sha256:a09aaaaaaaaaaaaaaaa|amd64" \
-  "auth-backend:latest|sha256:a99aaaaaaaaaaaaaaaa|amd64" "auth-backend:2.0.0|sha256:a20aaaaaaaaaaaaaaaa|arm64" \
-  "auth-backend:dev|sha256:a77aaaaaaaaaaaaaaaa|amd64" "gueo-back-end:3.1|sha256:g31aaaaaaaaaaaaaaaa|amd64"
+  "backend-s0:v1.2.10|sha256:a10aaaaaaaaaaaaaaaa|amd64" "backend-s0:v1.2.9|sha256:a09aaaaaaaaaaaaaaaa|amd64" \
+  "backend-s0:latest|sha256:a99aaaaaaaaaaaaaaaa|amd64" "backend-s0:2.0.0|sha256:a20aaaaaaaaaaaaaaaa|arm64" \
+  "backend-s0:dev|sha256:a77aaaaaaaaaaaaaaaa|amd64" "backend-s1:3.1|sha256:g31aaaaaaaaaaaaaaaa|amd64"
 dates \
-  "auth-backend:v1.2.10|2026-11-20 10:00:00 +0000 UTC" "auth-backend:v1.2.9|2026-11-22 08:30:00 +0000 UTC" \
-  "auth-backend:latest|2026-11-23 09:00:00 +0000 UTC" "auth-backend:2.0.0|2026-11-23 10:00:00 -0500 EST" \
-  "gueo-back-end:3.1|2026-10-01 00:00:00 +0000 UTC"
+  "backend-s0:v1.2.10|2026-11-20 10:00:00 +0000 UTC" "backend-s0:v1.2.9|2026-11-22 08:30:00 +0000 UTC" \
+  "backend-s0:latest|2026-11-23 09:00:00 +0000 UTC" "backend-s0:2.0.0|2026-11-23 10:00:00 -0500 EST" \
+  "backend-s1:3.1|2026-10-01 00:00:00 +0000 UTC"
 t_dump() { ic_load; local i; for ((i = 0; i < IC_N; i++)); do printf '%s:%s:%s:%s ' "${IC_TAG[$i]}" "${IC_KIND[$i]}" "${IC_OK[$i]}" "${IC_STAR[$i]}"; done; }
 t_groups() { ic_load; echo "${IC_GROUPS[*]}"; }
-t_order() { ic_load; local i; for i in ${IC_ORDER["s0|auth-backend"]}; do printf '%s ' "${IC_TAG[$i]}"; done; }
+t_order() { ic_load; local i; for i in ${IC_ORDER["s0|backend-s0"]}; do printf '%s ' "${IC_TAG[$i]}"; done; }
 t_latest() { ic_load; ic_latest s0; local a="$IC_LATEST"; ic_latest s1; echo "$a $IC_LATEST"; }
-t_disc() { ic_load; echo "${IC_DISC["s0|auth-backend"]:-}|${IC_DISC["s1|gueo-back-end"]:-}"; }
+t_disc() { ic_load; echo "${IC_DISC["s0|backend-s0"]:-}|${IC_DISC["s1|backend-s1"]:-}"; }
 t_archs() { ic_load; echo "${IC_ARCH[*]} $IC_SERVER_ARCH"; }
 check "every tag of the images of the services, with its kind, compatibility and star" '[ "$(lib2 t_dump)" = "v1.2.10:ver:1:0 v1.2.9:ver:1:1 latest:latest:1:0 2.0.0:ver:0:0 dev:other:1:0 3.1:ver:1:1 " ]'
-check "the groups are the services in the order of the catalog" '[ "$(lib2 t_groups)" = "s0|auth-backend s1|gueo-back-end" ]'
+check "the groups are the services in the order of the catalog" '[ "$(lib2 t_groups)" = "s0|backend-s0 s1|backend-s1" ]'
 check "newest first by creation date; what has no date goes last" '[ "$(lib2 t_order)" = "2.0.0 latest v1.2.9 v1.2.10 dev " ]'
 check "the star is the newest VERSION this server can run: not latest, not the arm64 image" '[ "$(lib2 t_latest)" = "v1.2.9 3.1" ]'
 check "the order by date and the order by version disagree: the group says so (and only that group)" '[ "$(lib2 t_disc)" = "v1.2.9|v1.2.10|" ]'
@@ -167,28 +167,28 @@ t_arm() { ic_load; ic_latest s0; echo "$IC_LATEST $IC_SERVER_ARCH ${IC_OK[0]}${I
 echo arm64 > "$F2/server_arch"
 check "on an arm64 server the arm64 image is the star and the amd64 ones are not options" '[ "$(lib2 t_arm)" = "2.0.0 arm64 01" ]'
 rm -f "$F2/server_arch"
-images_are "auth-backend:1.0|sha256:b1|amd64" "auth-backend:1.1|sha256:b2|amd64"
-dates "auth-backend:1.0|2026-11-01 00:00:00 +0000 UTC" "auth-backend:1.1|2026-11-01 00:00:00 +0000 UTC"
-t_tie() { ic_load; ic_latest s0; echo "$IC_LATEST ${IC_ORDER["s0|auth-backend"]}"; }
+images_are "backend-s0:1.0|sha256:b1|amd64" "backend-s0:1.1|sha256:b2|amd64"
+dates "backend-s0:1.0|2026-11-01 00:00:00 +0000 UTC" "backend-s0:1.1|2026-11-01 00:00:00 +0000 UTC"
+t_tie() { ic_load; ic_latest s0; echo "$IC_LATEST ${IC_ORDER["s0|backend-s0"]}"; }
 check "two versions with the same date: the higher version comes first and is the star" '[ "$(lib2 t_tie)" = "1.1 1 0" ]'
 dates
-t_nodate() { ic_load; ic_latest s0; local rc=$?; echo "$rc ${IC_ORDER["s0|auth-backend"]} ${IC_STARIDX["s0|auth-backend"]}"; }
+t_nodate() { ic_load; ic_latest s0; local rc=$?; echo "$rc ${IC_ORDER["s0|backend-s0"]} ${IC_STARIDX["s0|backend-s0"]}"; }
 check "without dates there is no star, the order falls back to the version, and nothing is made up" '[ "$(lib2 t_nodate)" = "1 1 0 -1" ]'
-images_are "auth-backend:latest|sha256:b1|amd64"
-dates "auth-backend:latest|2026-11-01 00:00:00 +0000 UTC"
+images_are "backend-s0:latest|sha256:b1|amd64"
+dates "backend-s0:latest|2026-11-01 00:00:00 +0000 UTC"
 t_onlylatest() { ic_load; ic_latest s0; echo "$? [$IC_LATEST]"; }
 check "only latest: no star and nothing to resolve" '[ "$(lib2 t_onlylatest)" = "1 []" ]'
 images_are; dates
-t_none() { ic_load; echo "$? $IC_N ${IC_STARIDX["s0|auth-backend"]}"; }
+t_none() { ic_load; echo "$? $IC_N ${IC_STARIDX["s0|backend-s0"]}"; }
 check "no images: an empty catalog, no star and no failure" '[ "$(lib2 t_none)" = "0 0 -1" ]'
-images_are "auth-backend:<none>|sha256:b1|amd64" "auth-backend:1.0|sha256:b2|amd64"
+images_are "backend-s0:<none>|sha256:b1|amd64" "backend-s0:1.0|sha256:b2|amd64"
 t_untagged() { ic_load; echo "$IC_N ${IC_TAG[0]}"; }
 check "an image without a tag is not listed" '[ "$(lib2 t_untagged)" = "1 1.0" ]'
-images_are "auth-backend:1.0|sha256:b1|"
-dates "auth-backend:1.0|2026-11-01 00:00:00 +0000 UTC"
+images_are "backend-s0:1.0|sha256:b1|"
+dates "backend-s0:1.0|2026-11-01 00:00:00 +0000 UTC"
 t_unknownarch() { ic_load; echo "${IC_ARCH[0]} ${IC_OK[0]} ${IC_STAR[0]}"; }
 check "an image of an unknown architecture counts as compatible (it cannot be proved wrong)" '[ "$(lib2 t_unknownarch)" = "? 1 1" ]'
-images_are "auth-backend:1.0|sha256:b1|amd64"
+images_are "backend-s0:1.0|sha256:b1|amd64"
 # shellcheck disable=SC2329  # the inner function replaces dk_ready in the library
 t_nodocker() { dk_ready() { return 1; }; ic_load; echo "$? $IC_N"; }
 check "without Docker the load fails and leaves the catalog empty" '[ "$(lib2 t_nodocker)" = "1 0" ]'
@@ -196,32 +196,32 @@ check "without Docker the load fails and leaves the catalog empty" '[ "$(lib2 t_
 section "6b. the star is a stable version: never a pre-release, a debug build or a variant"
 # The newest image by date is a release candidate, then a debug build, then an alpine variant: none of them may be what "the most recent version" is.
 images_are \
-  "auth-backend:1.9.0|sha256:p1|amd64" "auth-backend:2.0.0-rc1|sha256:p2|amd64" "auth-backend:2.14.0-debug|sha256:p3|amd64" \
-  "auth-backend:2.0.0-alpine|sha256:p4|amd64" "auth-backend:1.8.0|sha256:p5|amd64"
+  "backend-s0:1.9.0|sha256:p1|amd64" "backend-s0:2.0.0-rc1|sha256:p2|amd64" "backend-s0:2.14.0-debug|sha256:p3|amd64" \
+  "backend-s0:2.0.0-alpine|sha256:p4|amd64" "backend-s0:1.8.0|sha256:p5|amd64"
 dates \
-  "auth-backend:1.9.0|2026-11-10 00:00:00 +0000 UTC" "auth-backend:2.0.0-rc1|2026-11-20 00:00:00 +0000 UTC" \
-  "auth-backend:2.14.0-debug|2026-11-21 00:00:00 +0000 UTC" "auth-backend:2.0.0-alpine|2026-11-22 00:00:00 +0000 UTC" \
-  "auth-backend:1.8.0|2026-11-01 00:00:00 +0000 UTC"
-t_stable_star() { ic_load; ic_latest s0; echo "$IC_LATEST ${IC_DISC["s0|auth-backend"]:-none}"; }
+  "backend-s0:1.9.0|2026-11-10 00:00:00 +0000 UTC" "backend-s0:2.0.0-rc1|2026-11-20 00:00:00 +0000 UTC" \
+  "backend-s0:2.14.0-debug|2026-11-21 00:00:00 +0000 UTC" "backend-s0:2.0.0-alpine|2026-11-22 00:00:00 +0000 UTC" \
+  "backend-s0:1.8.0|2026-11-01 00:00:00 +0000 UTC"
+t_stable_star() { ic_load; ic_latest s0; echo "$IC_LATEST ${IC_DISC["s0|backend-s0"]:-none}"; }
 check "the star is the newest STABLE version; the pre-release, the debug build and the variant are newer and are not" '[ "$(lib2 t_stable_star)" = "1.9.0 none" ]'
 check "they are still listed, newest first, as versions that can be chosen by hand" '[ "$(lib2 t_order)" = "2.0.0-alpine 2.14.0-debug 2.0.0-rc1 1.9.0 1.8.0 " ]'
 o="$(img2 new im-stable --s0-tag latest)"
 check "new --s0-tag latest keeps the stable version, not the newest tag" 'grep -q "^S0_TAG=1.9.0$" instances/im-stable/.env.instance'
 rm -rf instances/im-stable
-images_are "auth-backend:2.0.0-rc1|sha256:p2|amd64" "auth-backend:2.0.0-debug|sha256:p3|amd64"
-dates "auth-backend:2.0.0-rc1|2026-11-20 00:00:00 +0000 UTC" "auth-backend:2.0.0-debug|2026-11-21 00:00:00 +0000 UTC"
+images_are "backend-s0:2.0.0-rc1|sha256:p2|amd64" "backend-s0:2.0.0-debug|sha256:p3|amd64"
+dates "backend-s0:2.0.0-rc1|2026-11-20 00:00:00 +0000 UTC" "backend-s0:2.0.0-debug|2026-11-21 00:00:00 +0000 UTC"
 check "only pre-releases and variants: there is no star and nothing to resolve (nothing is guessed for a municipality)" '[ "$(lib2 t_onlylatest)" = "1 []" ]'
 check "and new --s0-tag latest says there is no version to choose and creates nothing" 'o="$(img2 new im-prerel --s0-tag latest)"; rc=$?; [ "$rc" -ne 0 ] && [ ! -e instances/im-prerel ] && echo "$o" | grep -q "no version to choose for s0"'
 
 section "6c. the same image under the name of a registry: what an instance can find"
-# A local instance (empty REGISTRY) runs auth-backend:<tag> and never pulls; one with a REGISTRY runs <registry>/auth-backend:<tag>. The tags
-# loaded as reg.io/auth-backend are in the group of auth-backend, and their name is kept (IC_FULL): the star is a tag a local instance can run.
-images_are "auth-backend:1.0|sha256:r1|amd64" "reg.io/auth-backend:2.0|sha256:r2|amd64" "reg.io/auth-backend:1.0|sha256:r1|amd64"
-dates "auth-backend:1.0|2026-11-01 00:00:00 +0000 UTC" "reg.io/auth-backend:2.0|2026-11-20 00:00:00 +0000 UTC" "reg.io/auth-backend:1.0|2026-11-01 00:00:00 +0000 UTC"
+# A local instance (empty REGISTRY) runs backend-s0:<tag> and never pulls; one with a REGISTRY runs <registry>/backend-s0:<tag>. The tags
+# loaded as reg.io/backend-s0 are in the group of backend-s0, and their name is kept (IC_FULL): the star is a tag a local instance can run.
+images_are "backend-s0:1.0|sha256:r1|amd64" "reg.io/backend-s0:2.0|sha256:r2|amd64" "reg.io/backend-s0:1.0|sha256:r1|amd64"
+dates "backend-s0:1.0|2026-11-01 00:00:00 +0000 UTC" "reg.io/backend-s0:2.0|2026-11-20 00:00:00 +0000 UTC" "reg.io/backend-s0:1.0|2026-11-01 00:00:00 +0000 UTC"
 t_full() { ic_load; local i; for ((i = 0; i < IC_N; i++)); do printf '%s=%s ' "${IC_TAG[$i]}" "${IC_FULL[$i]}"; done; }
-check "the name Docker gives each image is kept, with its registry" '[ "$(lib2 t_full)" = "1.0=auth-backend 2.0=reg.io/auth-backend 1.0=reg.io/auth-backend " ]'
-check "the star is a version loaded under the bare name when there is one (the newest by date is only loaded as reg.io/auth-backend)" '[ "$(lib2 t_latest)" = "1.0 " ]'
-images_are "reg.io/auth-backend:2.0|sha256:r2|amd64" "reg.io/auth-backend:1.0|sha256:r1|amd64"
+check "the name Docker gives each image is kept, with its registry" '[ "$(lib2 t_full)" = "1.0=backend-s0 2.0=reg.io/backend-s0 1.0=reg.io/backend-s0 " ]'
+check "the star is a version loaded under the bare name when there is one (the newest by date is only loaded as reg.io/backend-s0)" '[ "$(lib2 t_latest)" = "1.0 " ]'
+images_are "reg.io/backend-s0:2.0|sha256:r2|amd64" "reg.io/backend-s0:1.0|sha256:r1|amd64"
 check "when every one has the name of a registry, the star is the newest of them (an instance with that REGISTRY can use it)" '[ "$(lib2 t_latest)" = "2.0 " ]'
 t_latest_s0() { ic_load; ic_latest s0; echo "$IC_LATEST"; }
 check "...and new --s0-tag latest keeps it" 'img2 new im-reg --s0-tag latest > /dev/null; grep -q "^S0_TAG=2.0$" instances/im-reg/.env.instance; rm -rf instances/im-reg'
@@ -231,30 +231,30 @@ rm -rf instances/im-one   # (the instance of the sections above)
 bash ./deltactl new im-uso >/dev/null 2>&1
 fill_instance instances/im-uso 2.0 3.1
 printf 'S0_TAG=1.5\n' > instances/im-uso/.previous
-images_are "auth-backend:2.0|sha256:c1|amd64" "auth-backend:1.5|sha256:c2|amd64" "auth-backend:1.0|sha256:c3|amd64" "gueo-back-end:3.1|sha256:c4|amd64"
+images_are "backend-s0:2.0|sha256:c1|amd64" "backend-s0:1.5|sha256:c2|amd64" "backend-s0:1.0|sha256:c3|amd64" "backend-s1:3.1|sha256:c4|amd64"
 dates
 t_use() { ic_load; local i; for i in 0 1 2 3; do printf '[%s]' "${IC_USE[$i]}"; done; }
 check "who uses a tag: as current, as previous, and nobody" '[ "$(lib2 t_use)" = "[im-uso(current) ][im-uso(previous) ][][im-uso(current) ]" ]'
 echo 'S0_IMAGE=otro/auth' >> instances/im-uso/.env.instance
-images_are "auth-backend:1.0|sha256:c3|amd64" "otro/auth:7.0|sha256:d1|amd64"
-check "the image name an instance chose is a group of its own" '[ "$(lib2 t_groups)" = "s0|auth-backend s0|otro/auth s1|gueo-back-end" ]'
+images_are "backend-s0:1.0|sha256:c3|amd64" "otro/auth:7.0|sha256:d1|amd64"
+check "the image name an instance chose is a group of its own" '[ "$(lib2 t_groups)" = "s0|backend-s0 s0|otro/auth s1|backend-s1" ]'
 sed -i '/^S0_IMAGE=/d' instances/im-uso/.env.instance
-images_are "auth-backend:1.0|sha256:e1|amd64" "nuevo/img:3.0|sha256:e2|amd64" "nuevo/img:2.0|sha256:e3|amd64"
+images_are "backend-s0:1.0|sha256:e1|amd64" "nuevo/img:3.0|sha256:e2|amd64" "nuevo/img:2.0|sha256:e3|amd64"
 dates "nuevo/img:3.0|2026-11-02 00:00:00 +0000 UTC" "nuevo/img:2.0|2026-11-01 00:00:00 +0000 UTC"
 t_extra() { ic_load s0=nuevo/img; ic_latest s0 nuevo/img; echo "${IC_GROUPS[*]} $IC_LATEST"; }
-check "an image name still being typed (in no instance yet) can be added to the groups" '[ "$(lib2 t_extra)" = "s0|auth-backend s0|nuevo/img s1|gueo-back-end 3.0" ]'
+check "an image name still being typed (in no instance yet) can be added to the groups" '[ "$(lib2 t_extra)" = "s0|backend-s0 s0|nuevo/img s1|backend-s1 3.0" ]'
 t_extra_bad() { ic_load s9=nuevo/img; echo "${IC_GROUPS[*]}"; }
-check "an unknown service in that list is ignored" '[ "$(lib2 t_extra_bad)" = "s0|auth-backend s1|gueo-back-end" ]'
+check "an unknown service in that list is ignored" '[ "$(lib2 t_extra_bad)" = "s0|backend-s0 s1|backend-s1" ]'
 
 section "8. images: the star, the warnings and the new fields of --json"
 images_are \
-  "auth-backend:v1.2.10|sha256:a10aaaaaaaaaaaaaaaa|amd64" "auth-backend:v1.2.9|sha256:a09aaaaaaaaaaaaaaaa|amd64" \
-  "auth-backend:latest|sha256:a99aaaaaaaaaaaaaaaa|amd64" "auth-backend:2.0.0|sha256:a20aaaaaaaaaaaaaaaa|arm64" \
-  "gueo-back-end:3.1|sha256:g31aaaaaaaaaaaaaaaa|amd64"
+  "backend-s0:v1.2.10|sha256:a10aaaaaaaaaaaaaaaa|amd64" "backend-s0:v1.2.9|sha256:a09aaaaaaaaaaaaaaaa|amd64" \
+  "backend-s0:latest|sha256:a99aaaaaaaaaaaaaaaa|amd64" "backend-s0:2.0.0|sha256:a20aaaaaaaaaaaaaaaa|arm64" \
+  "backend-s1:3.1|sha256:g31aaaaaaaaaaaaaaaa|amd64"
 dates \
-  "auth-backend:v1.2.10|2026-11-20 10:00:00 +0000 UTC" "auth-backend:v1.2.9|2026-11-22 08:30:00 +0000 UTC" \
-  "auth-backend:latest|2026-11-23 09:00:00 +0000 UTC" "auth-backend:2.0.0|2026-11-23 10:00:00 -0500 EST" \
-  "gueo-back-end:3.1|2026-10-01 00:00:00 +0000 UTC"
+  "backend-s0:v1.2.10|2026-11-20 10:00:00 +0000 UTC" "backend-s0:v1.2.9|2026-11-22 08:30:00 +0000 UTC" \
+  "backend-s0:latest|2026-11-23 09:00:00 +0000 UTC" "backend-s0:2.0.0|2026-11-23 10:00:00 -0500 EST" \
+  "backend-s1:3.1|2026-10-01 00:00:00 +0000 UTC"
 rm -rf instances/im-uso
 out2="$(img2 images)"
 check "the table goes newest first" '[ "$(echo "$out2" | awk "/^s0 = /{f=1;next} /^s1 = /{f=0} f && /^[0-9a-z]/ && !/^TAG|^ETIQ/ {print \$1}" | tr "\n" " ")" = "2.0.0 latest v1.2.9 v1.2.10 " ]'
@@ -285,21 +285,21 @@ check "without a date created_at is empty (not made up) and nothing is the lates
 
 section "9. new --sN-tag latest picks the star"
 dates \
-  "auth-backend:v1.2.10|2026-11-20 10:00:00 +0000 UTC" "auth-backend:v1.2.9|2026-11-22 08:30:00 +0000 UTC" \
-  "auth-backend:latest|2026-11-23 09:00:00 +0000 UTC" "auth-backend:2.0.0|2026-11-23 10:00:00 -0500 EST" \
-  "gueo-back-end:3.1|2026-10-01 00:00:00 +0000 UTC"
+  "backend-s0:v1.2.10|2026-11-20 10:00:00 +0000 UTC" "backend-s0:v1.2.9|2026-11-22 08:30:00 +0000 UTC" \
+  "backend-s0:latest|2026-11-23 09:00:00 +0000 UTC" "backend-s0:2.0.0|2026-11-23 10:00:00 -0500 EST" \
+  "backend-s1:3.1|2026-10-01 00:00:00 +0000 UTC"
 o="$(img2 new im-lat --s0-tag latest --s1-tag latest)"
 check "the instance keeps the tag it resolved to, not the word" 'grep -q "^S0_TAG=v1.2.9$" instances/im-lat/.env.instance && grep -q "^S1_TAG=3.1$" instances/im-lat/.env.instance'
-check "it says which one it chose" 'echo "$o" | grep -q "s0: using the most recent version of auth-backend: v1.2.9"'
+check "it says which one it chose" 'echo "$o" | grep -q "s0: using the most recent version of backend-s0: v1.2.9"'
 check "a tag that is a version is kept as it is" 'img2 new im-fix --s0-tag v1.2.10 > /dev/null; grep -q "^S0_TAG=v1.2.10$" instances/im-fix/.env.instance'
-images_are "auth-backend:1.0|sha256:f0|amd64" "otro/auth:5.0|sha256:f1|amd64"
-dates "otro/auth:5.0|2026-11-24 00:00:00 +0000 UTC" "auth-backend:1.0|2026-11-01 00:00:00 +0000 UTC"
+images_are "backend-s0:1.0|sha256:f0|amd64" "otro/auth:5.0|sha256:f1|amd64"
+dates "otro/auth:5.0|2026-11-24 00:00:00 +0000 UTC" "backend-s0:1.0|2026-11-01 00:00:00 +0000 UTC"
 check "with another image name it looks among the versions of that one" 'img2 new im-otro --s0-image otro/auth --s0-tag latest > /dev/null; grep -q "^S0_TAG=5.0$" instances/im-otro/.env.instance'
 dates \
-  "auth-backend:v1.2.10|2026-11-20 10:00:00 +0000 UTC" "auth-backend:v1.2.9|2026-11-22 08:30:00 +0000 UTC" \
-  "auth-backend:latest|2026-11-23 09:00:00 +0000 UTC" "auth-backend:2.0.0|2026-11-23 10:00:00 -0500 EST" \
-  "gueo-back-end:3.1|2026-10-01 00:00:00 +0000 UTC"
-images_are "auth-backend:v1.2.10|sha256:a10aaaaaaaaaaaaaaaa|amd64" "auth-backend:v1.2.9|sha256:a09aaaaaaaaaaaaaaaa|amd64" "auth-backend:latest|sha256:a99aaaaaaaaaaaaaaaa|amd64"
+  "backend-s0:v1.2.10|2026-11-20 10:00:00 +0000 UTC" "backend-s0:v1.2.9|2026-11-22 08:30:00 +0000 UTC" \
+  "backend-s0:latest|2026-11-23 09:00:00 +0000 UTC" "backend-s0:2.0.0|2026-11-23 10:00:00 -0500 EST" \
+  "backend-s1:3.1|2026-10-01 00:00:00 +0000 UTC"
+images_are "backend-s0:v1.2.10|sha256:a10aaaaaaaaaaaaaaaa|amd64" "backend-s0:v1.2.9|sha256:a09aaaaaaaaaaaaaaaa|amd64" "backend-s0:latest|sha256:a99aaaaaaaaaaaaaaaa|amd64"
 o="$(img2 new im-svc --services s0 --s0-tag latest --s1-tag latest)"; rc=$?
 check "only the services of the instance are resolved: a service that is not active (and has no version loaded) does not stop it" '[ "$rc" -eq 0 ] && grep -q "^S0_TAG=v1.2.9$" instances/im-svc/.env.instance && ! echo "$o" | grep -q "s1: using"'
 check "and what it does not resolve keeps what was asked, so nothing is made up" 'grep -q "^S1_TAG=latest$" instances/im-svc/.env.instance'
@@ -313,10 +313,10 @@ check "a tag that is a version needs no Docker at all" 'o="$(img2 new im-down2 -
 check "the same in Spanish" 'LIB2_LANG=es img2 new im-down3 --s0-tag latest | grep -q "s0: Docker no responde"'
 rm -f "$F2/daemon_down"
 rm -rf instances/im-down instances/im-down2 instances/im-down3
-images_are "auth-backend:latest|sha256:g1|amd64"
-check "no version to choose: it fails, says why and creates nothing" 'o="$(img2 new im-nada --s0-tag latest)"; rc=$?; [ "$rc" -ne 0 ] && [ ! -e instances/im-nada ] && echo "$o" | grep -q "no version to choose for s0 (auth-backend)"'
-images_are "auth-backend:2.0.0|sha256:g2|arm64"
+images_are "backend-s0:latest|sha256:g1|amd64"
+check "no version to choose: it fails, says why and creates nothing" 'o="$(img2 new im-nada --s0-tag latest)"; rc=$?; [ "$rc" -ne 0 ] && [ ! -e instances/im-nada ] && echo "$o" | grep -q "no version to choose for s0 (backend-s0)"'
+images_are "backend-s0:2.0.0|sha256:g2|arm64"
 check "the image has to be of the architecture of the server" '! img2 new im-arm --s0-tag latest > /dev/null && [ ! -e instances/im-arm ]'
-check "the same in Spanish" 'images_are "auth-backend:latest|sha256:g1|amd64"; LIB2_LANG=es img2 new im-nada2 --s0-tag latest | grep -q "no hay una versión que elegir para s0"'
+check "the same in Spanish" 'images_are "backend-s0:latest|sha256:g1|amd64"; LIB2_LANG=es img2 new im-nada2 --s0-tag latest | grep -q "no hay una versión que elegir para s0"'
 
 finish

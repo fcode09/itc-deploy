@@ -31,7 +31,7 @@ newinst() { # name [registry]
 }
 marker_source() { grep -E '^SOURCE=' "instances/$1/.initialized" 2>/dev/null | cut -d= -f2; }
 
-image auth-backend:1.0 sha256:aaaa1111 amd64; image gueo-back-end:2.0 sha256:bbbb2222 amd64
+image backend-s0:1.0 sha256:aaaa1111 amd64; image backend-s1:2.0 sha256:bbbb2222 amd64
 
 section "1. deploy: a failed pull stops the deployment"
 newinst op-reg reg.test

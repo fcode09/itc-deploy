@@ -16,9 +16,9 @@ run() { ROOT="$PWD" bash -c "source lib/bootstrap.sh; $1"; }
 
 section "1. el catálogo reproduce lo que había escrito a mano"
 check "KNOWN_SERVICES = s0 s1, en ese orden" '[ "$(run "echo \${KNOWN_SERVICES[*]}")" = "s0 s1" ]'
-check "imagen por defecto de s0 y s1" '[ "$(run "default_repo s0; default_repo s1" | tr "\n" " ")" = "auth-backend gueo-back-end " ]'
+check "imagen por defecto de s0 y s1" '[ "$(run "default_repo s0; default_repo s1" | tr "\n" " ")" = "backend-s0 backend-s1 " ]'
 check "un servicio desconocido no tiene imagen por defecto" '! run "default_repo s9" >/dev/null 2>&1'
-check "service_repo_r usa el valor por defecto" '[ "$(run "service_repo_r s1; echo \$SR")" = "gueo-back-end" ]'
+check "service_repo_r usa el valor por defecto" '[ "$(run "service_repo_r s1; echo \$SR")" = "backend-s1" ]'
 check "REQUIRED_S0" '[ "$(run "echo \${REQUIRED_S0[*]}")" = "IP_SERVER JWT_SECRET MONGO_URI IP_INTERNAL_CONNECTION" ]'
 check "REQUIRED_S1 tiene 11 variables" '[ "$(run "echo \${#REQUIRED_S1[@]}")" = "11" ]'
 check "variables de URI de Mongo de cada servicio" \
