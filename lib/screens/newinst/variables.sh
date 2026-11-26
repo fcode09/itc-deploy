@@ -15,11 +15,11 @@
 # `s` goes on to the next step; with required variables still empty it says so first and goes on the second time (▲: the deploy will ask for them).
 
 DASH_NZV_PRE="" DASH_NZV_BUILT=0 DASH_NZV_SIG="" DASH_NZV_ASK=-1 DASH_NZV_ACK=-1 DASH_NZV_IP="" DASH_NZV_GENN=0 DASH_NZV_GENIDN=0 DASH_NZV_GENNAMES=""
-declare -gA DASH_NZV_KEEP=() DASH_NZV_GENID=()
+declare -gA DASH_NZV_KEEP=() DASH_NZV_GENID=() DASH_NZV_MONGO=()   # (DASH_NZV_MONGO: the URI composed with the user and password of Mongo, by id, as it was put in the model)
 
 dash_nzs_variables_reset() {
   DASH_NZV_PRE="" DASH_NZV_BUILT=0 DASH_NZV_SIG="" DASH_NZV_ASK=-1 DASH_NZV_ACK=-1 DASH_NZV_IP="" DASH_NZV_GENN=0 DASH_NZV_GENIDN=0 DASH_NZV_GENNAMES=""
-  DASH_NZV_KEEP=() DASH_NZV_GENID=() DASH_NZV_CREV=-1
+  DASH_NZV_KEEP=() DASH_NZV_GENID=() DASH_NZV_MONGO=() DASH_NZV_CREV=-1
   DASH_NZ_GENDONE=0
 }
 
@@ -59,6 +59,11 @@ dash_nzv_template() {
     [[ "$v" != *CAMBIAR* ]] || continue
     [ -z "${KEE_VAL[$id]}" ] || continue
     KEE_VAL[$id]="$v" KEE_BASE[$id]="$v"
+    # A new municipality has its own user of Mongo: its URIs carry it (the value differs from the template's, so it goes to `new` like any value
+    # the person put; `init` creates the user from what the URIs say).
+    if [ "$DASH_NZ_DATA" -eq 0 ] && [ "${ENV_VALIDATOR[$id]:-}" = mongo-uri ] && dash_nzm_compose "$v"; then
+      KEE_VAL[$id]="$DASH_NZM_URI" DASH_NZV_MONGO[$id]="$DASH_NZM_URI"
+    fi
   done
 }
 
@@ -108,7 +113,7 @@ dash_nzv_ensure() {
   local sig id s
   local -a files=(.env.instance)
   dash_nz_sel_list
-  sig="$DASH_NZ_NAME|$DASH_NZ_CSV|$DASH_NZ_DATA|$DASH_NZ_SSL|$DASH_NZ_GEN"
+  sig="$DASH_NZ_NAME|$DASH_NZ_CSV|$DASH_NZ_DATA|$DASH_NZ_SSL|$DASH_NZ_GEN|$DASH_NZM_USER|$DASH_NZM_PASS"
   if [ "$DASH_NZV_BUILT" -eq 1 ] && [ "$sig" = "$DASH_NZV_SIG" ]; then
     # (every variable is evaluated again only when what the earlier steps decided changed: a frame must not pay for it)
     local pre="$sig"
@@ -122,8 +127,11 @@ dash_nzv_ensure() {
   fi
   if [ "$DASH_NZV_BUILT" -eq 1 ]; then
     for id in "${!KEE_VAL[@]}"; do
-      [ "${KEE_VAL[$id]}" = "${KEE_BASE[$id]:-}" ] || DASH_NZV_KEEP[$id]="${KEE_VAL[$id]}"
+      [ "${KEE_VAL[$id]}" = "${KEE_BASE[$id]:-}" ] && continue
+      [ "${KEE_VAL[$id]}" != "${DASH_NZV_MONGO[$id]:-}" ] || continue   # (the URI composed with the user and password is not something the person typed)
+      DASH_NZV_KEEP[$id]="${KEE_VAL[$id]}"
     done
+    DASH_NZV_MONGO=()
   fi
   for s in "${DASH_NZ_SL[@]}"; do files+=(".env.$s"); done
   kee_init "$DASH_NZ_NAME" "${files[@]}"
@@ -198,6 +206,12 @@ dash_nzv_after() {
   if [ -n "$KEE_NOTE" ]; then dash_msg "${KEE_NOTE_KIND:-info}" "$KEE_NOTE"; fi
   dash_nzv_syncback
   if [ "$KEE_ACTION" = leave ]; then KEE_ACTION=""; dash_nz_back; fi
+  # `f` on a file of secrets/: the instance has no folder yet; the files are given in the step of the files.
+  if [ "$KEE_ACTION" = secfile ]; then
+    local i
+    KEE_ACTION=""
+    for i in "${!DASH_NZ_STEPS[@]}"; do [ "${DASH_NZ_STEPS[$i]}" != secrets ] || { dash_nz_goto "$i"; break; }; done
+  fi
 }
 
 dash_nzs_variables_key() { # key
@@ -334,4 +348,5 @@ dash_nzs_variables_render() { # width height
       done
     fi
   fi
+  kee_modal_overlay DASH_NZ_B "$iw"   # (the value being typed is a modal over the list)
 }

@@ -76,6 +76,10 @@ case "$1" in
   run)
     echo "run $*" >> "$FIX/calls.log"
     case "$*" in
+      *usersInfo*)
+        # init creates the Mongo user of the instance: $FIX/mongouser_fail makes it fail, $FIX/mongouser_exists says it is there already
+        if [ -f "$FIX/mongouser_fail" ]; then echo "ERR=auth de prueba"; elif [ -f "$FIX/mongouser_exists" ]; then echo "EXISTS=u"; else echo "CREATED=u"; fi
+        exit 0 ;;
       *countDocuments*)
         # init's document count: the collection is the last argument; the value comes from $FIX/count_<collection> (0 by default)
         if [ -f "$FIX/mongo_fail" ]; then echo "ERR=timeout de prueba"; else echo "COUNT=$(cat "$FIX/count_${*: -1}" 2>/dev/null || echo 0)"; fi
