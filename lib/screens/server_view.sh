@@ -428,8 +428,7 @@ scr_server_wheel() { # button column row
 # The first time the view is chosen it asks for the check; the figures of the server start being read.
 scr_server_enter() {
   DASH_SRV_MODAL=0 DASH_SRV_OPEN=0   # (coming back to the view finds the strip, not a window left open)
-  [ "$DASH_SRV_STATE" != "none" ] || dash_srv_request
-  MT_LAST_US=0
+  MT_LAST_US=0   # (the first check of the requirements is asked by the tick, once the view has stayed: see dash_dwelled)
 }
 
 # Every turn of the loop, whatever the view: the answer of the background check, the processes and the ports, and the figures of the server (see
@@ -442,10 +441,12 @@ scr_server_tick() {
     DASH_SRV_BUSY=0 DASH_DIRTY=1   # the check died or was cut after a minute: free the view, R and the periodic check ask again
   fi
   dash_srv_ps_tick
-  if [ "$DASH_VIEW" = "server" ] || [ "$DASH_SRV_ALWAYS" -eq 1 ]; then
+  # The detailed readings and the first check start once the view has stayed (walking through the tabs fast costs nothing); they stop at once
+  # when it is left.
+  if { [ "$DASH_VIEW" = "server" ] && dash_dwelled; } || [ "$DASH_SRV_ALWAYS" -eq 1 ]; then
     if [ "$MT_HOST_DETAIL" -ne 1 ]; then MT_HOST_DETAIL=1 MT_LAST_US=0; fi
     if [ "$DASH_VIEW" = "server" ] && [ "$DASH_SRV_STATE" = "none" ]; then dash_srv_request; fi
-  elif [ "$MT_HOST_DETAIL" -ne 0 ]; then
+  elif [ "$DASH_VIEW" != "server" ] && [ "$MT_HOST_DETAIL" -ne 0 ]; then
     MT_HOST_DETAIL=0
   fi
 }

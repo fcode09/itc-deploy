@@ -517,8 +517,31 @@ dash_job_tick() {
 
 # --- Periodic work ----------------------------------------------------------------------------------------
 
+# --- Keys that come in a burst, and work that waits for the view to settle -------------------------------------------------------
+# DELTACTL_COALESCE=0 turns off the first, DELTACTL_DWELL_MS (500 by default; 0 turns it off) sets the second.
+
+# The view that was current at the last tick and since when (microseconds): dash_dwelled says whether the current one has stayed long enough
+# for its background work to be worth starting. Walking through the tabs fast then starts nothing; stopping on one starts it half a second later.
+DASH_VIEW_SEEN="" DASH_VIEW_SINCE=0
+dash_dwell_update() {
+  [ "$DASH_VIEW" != "$DASH_VIEW_SEEN" ] || return 0
+  DASH_VIEW_SEEN="$DASH_VIEW"
+  host_now_us
+  DASH_VIEW_SINCE="$HOST_NOW_US"
+}
+# In the test mode there is no delay (it is synchronous and the suites count on it) unless DELTACTL_DWELL_MS is set explicitly.
+dash_dwelled() {
+  local ms="${DELTACTL_DWELL_MS:-500}"
+  [[ "$ms" =~ ^[0-9]+$ ]] || ms=500
+  if tui_test_mode && [ -z "${DELTACTL_DWELL_MS+x}" ]; then return 0; fi
+  [ "$ms" -gt 0 ] || return 0
+  host_now_us
+  [ $((HOST_NOW_US - DASH_VIEW_SINCE)) -ge $((ms * 1000)) ]
+}
+
 dash_tick() {
   local interval
+  dash_dwell_update
   prof_b tick.job
   dash_job_tick
   if dash_events_drain; then DASH_EV_PENDING=1; fi
@@ -732,22 +755,38 @@ dash_key_seen() {
   DASH_KEY_AT="$SECONDS" DASH_AWAY=0
 }
 
+# Can the next key be handled before drawing? Yes while more input is already waiting (a burst) and the last drawing was less than 100 ms ago:
+# the intermediate screens would be thrown away by the next key. A single key, or a burst that lasts, is drawn at once.
+DASH_DRAW_US=0
+dash_skip_draw() {
+  [ "${DELTACTL_COALESCE:-1}" != 0 ] && ! tui_test_mode || return 1
+  tui_pending || return 1
+  host_now_us
+  [ $((HOST_NOW_US - DASH_DRAW_US)) -lt 100000 ]
+}
+
 dash_loop() {
-  local tick
+  local tick skip=0
   DASH_DIRTY=1 DASH_KEY_AT="$SECONDS"
   while [ "$DASH_QUIT" -eq 0 ]; do
     if [ "$TUI_RESIZED" -eq 1 ]; then tui_size; dash_host_build; DASH_DIRTY=1; fi
     prof_count loop.turns
-    prof_b dash_tick
-    dash_tick
-    prof_e dash_tick
-    if [ "$DASH_DIRTY" -eq 1 ]; then
-      DASH_DIRTY=0
-      prof_b dash_render
-      dash_render
-      prof_e dash_render
+    if [ "$skip" -eq 0 ]; then
+      prof_b dash_tick
+      dash_tick
+      prof_e dash_tick
+      if [ "$DASH_DIRTY" -eq 1 ]; then
+        DASH_DIRTY=0
+        prof_b dash_render
+        dash_render
+        prof_e dash_render
+        host_now_us
+        DASH_DRAW_US="$HOST_NOW_US"
+      fi
+      prof_tick
+    else
+      prof_count loop.skipped
     fi
-    prof_tick
     # Waiting costs nothing: `read -t` sleeps. A running command makes the loop wake up more often.
     # A running command, a log that grows faster than one turn can read and a stream waiting to start all ask to be back soon.
     if job_running || [ "$DASH_LS_MORE" -eq 1 ]; then tick=0.2; elif [ "$DASH_LS_DEFER" -eq 1 ]; then tick=0.3; else tick=1; fi
@@ -758,6 +797,8 @@ dash_loop() {
     prof_b handle_key
     dash_handle_key
     prof_e handle_key
+    skip=0
+    if [ "$TUI_KEY" != "timeout" ] && dash_skip_draw; then skip=1; fi
   done
 }
 
