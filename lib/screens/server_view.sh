@@ -83,7 +83,7 @@ declare -gA DASH_SRV_WSPEC=(
   [L:cpu]="50:40:100:3" [L:mem]="40:30:60:2" [L:disks]="40:30:60:2" [L:net]="44:34:90:2"
   [M:cpu]="48:40:100:3" [M:mem]="38:30:70:2" [M:disks]="40:30:70:2" [M:net]="40:34:48:1" [M:containers]="0:60::3"
   [N:cpu]="44:30:100:3" [N:mem]="36:26:70:2" [N:disks]="42:30:70:1" [N:net]="38:28::1"
-  [procs]="60:40:100:2" [ports]="40:30:60:1" [inst]="100:56:112:2"
+  [procs]="60:40:84:2" [ports]="66:48:80:2" [inst]="100:56:112:2"
 )
 dash_srv_widths() { # total class name...
   local total="$1" cls="$2" nm
