@@ -81,7 +81,7 @@ check "una variable muestra archivo, tipo y descripción" \
   'o="$(bash ./deltactl help variable S0_TAG 2>&1)"; echo "$o" | grep -q ".env.instance" && echo "$o" | grep -q "obligatoria" && echo "$o" | grep -q "Etiqueta"'
 check "acepta minúsculas" 'bash ./deltactl help variable s0_tag 2>&1 | grep -q "S0_TAG"'
 check "una variable en varios archivos muestra todos los bloques" \
-  '[ "$(bash ./deltactl help variable JWT_SECRET 2>&1 | grep -c "(\.env\.s")" -eq 2 ]'
+  '[ "$(bash ./deltactl help variable JWT_SECRET 2>&1 | grep -c "(\.env\.")" -eq 3 ]'
 check "una variable desconocida falla con sugerencias" \
   '! bash ./deltactl help variable JWT_SECRTE >/dev/null 2>&1; bash ./deltactl help variable JWT_SECRTE 2>&1 | grep -q "Parecidas"'
 check "sin nombre lista todas, agrupadas por archivo" \

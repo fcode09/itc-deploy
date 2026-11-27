@@ -76,6 +76,10 @@ check "y runs service add: the service is active, its file exists, with the most
   panel down "${SV[@]}" down a y wait > /dev/null; [ "$(prof sw-b)" = "s0,s1" ] && [ -f instances/sw-b/.env.s1 ] && [ "$(val sw-b .env.instance S1_TAG)" = "2.10.0" ]'
 check "its own secrets were generated, and the shared one is the one the other service has" '
   [ -n "$(val sw-b .env.s1 FEDERATION_ENCRYPTION_KEY)" ] && [ "$(val sw-b .env.s1 JWT_SECRET)" = "$(val sw-b .env.s0 JWT_SECRET)" ]'
+check "the confirmation shows its keys inside the box, and says that Enter is no" '
+  f="$(panel down "${SV[@]}" down down a | last_frame)"; echo "$f" | grep -q "Activa robin (backend-robin)" && echo "$f" | grep -q "s sí · n no (Enter = no)"'
+check "a service with no image loaded (robin) is activated anyway, without a version, and its file and data folders exist" '
+  panel down "${SV[@]}" down down a y wait > /dev/null; [ "$(prof sw-b)" = "s0,s1,robin" ] && [ -f instances/sw-b/.env.robin ] && [ -d instances/sw-b/data/robin/geofence ] && [ -z "$(val sw-b .env.instance ROBIN_TAG)" ]'
 
 section "4. remove: it asks for the key, and the data stays"
 check "X asks to type the key of the service, and says what is kept" '
@@ -124,5 +128,11 @@ check "R asks before it rolls the service back" 'panel "${SV[@]}" R | last_frame
 check "a key the tab does not know falls to the panel (z zooms, q quits)" 'panel "${SV[@]}" q | grep -q "=== frame" '
 check ".env.instance has one line per variable after all of this (no duplicates), and its mode is 600" '
   [ -z "$(grep -o "^[A-Z0-9_]*=" instances/sw-a/.env.instance | sort | uniq -d)" ] && [ "$(stat -c %a instances/sw-a/.env.instance)" = "600" ]'
+
+section "7. the Variables tab sees the file of a service that was just activated"
+# The editor of Variables read the instance when it was opened; `service add` then wrote .env.robin, and the list of files has to follow it.
+rm -f instances/sw-a/.env.robin   # an instance made before the service existed has no file for it
+check "activating a service (a, y) and going to Variables lists its .env file, though the editor was open before (end: down to the last rows)" '
+  f="$(panel "${SV[@]}" ">" "<" down down a y wait ">" end | last_frame)"; [ -f instances/sw-a/.env.robin ] && echo "$f" | grep -q ".env.robin" && echo "$f" | grep -q "KAFKA_TOPIC"'
 
 finish
