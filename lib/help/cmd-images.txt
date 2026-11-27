@@ -1,10 +1,12 @@
 # images · versiones de imagen disponibles
 
 Lista las imágenes cargadas en este Docker por servicio y qué instancias las usan.
-Solo lista: nunca borra nada. Alias: `./deltactl versions`.
+Lista y, si se lo pides, borra las versiones que nadie usa (`rm`, `prune`). Alias: `./deltactl versions`.
 
 ## Uso
 $ ./deltactl images [servicio] [--json]
+$ ./deltactl images rm <servicio>:<versión>... [--yes]
+$ ./deltactl images prune [servicio] [--keep N] [--dry-run] [--yes]
 
 ## Cómo leer la tabla
 Cada imagen va de la versión más nueva a la más vieja **por fecha de creación** (una etiqueta es solo un nombre).
@@ -24,9 +26,24 @@ Cada imagen va de la versión más nueva a la más vieja **por fecha de creació
   idioma. Además trae `created_at` (fecha ISO 8601 en UTC, vacía si Docker no la da), `latest` (`true` en la ★),
   `compatible` (`false` si es de otra arquitectura) y `kind` (`version`, `latest` u `other`)
 
+## Borrar versiones que no se usan
+`rm` borra las versiones que le nombras; `prune` borra todas las que sobran de un servicio (o de todos). Los dos piden
+confirmación (`--yes` la omite) y dicen cuánto espacio libera. **No tocan datos ni instancias**; para tener una versión otra
+vez hay que cargarla (`load`).
+Nunca se borra (se dice por qué):
+- la versión que una instancia usa ahora (`actual`)
+- la **previa** de una instancia: la necesita el rollback
+- una que usa un contenedor, aunque esté parado (una instancia que cambió su etiqueta y aún no desplegó sigue usando la vieja)
+`prune` además conserva siempre la ★ (la más reciente del servicio) y `--keep N` deja las N más recientes de las que sobran.
+`prune --dry-run` solo dice qué borraría. Docker se llama sin forzar: si se niega, se muestra su motivo. Si otra etiqueta
+apunta a la misma imagen, solo se quita el nombre y no se libera espacio (la cifra de espacio cuenta cada imagen una vez).
+
 ## Ejemplos
 $ ./deltactl images
 $ ./deltactl images s1 --json
+$ ./deltactl images prune --dry-run
+$ ./deltactl images prune s0 --keep 1 --yes
+$ ./deltactl images rm s0:v2.1.0
 
 ## Relacionado
 - `./deltactl help imagenes`, `./deltactl help actualizar`

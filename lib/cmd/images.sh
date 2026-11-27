@@ -2,7 +2,7 @@
 # ./deltactl images [service] [--json]  (alias: ./deltactl versions)
 # Image versions loaded in this Docker and which instances use them.
 # If an instance uses a custom name (<SN>_IMAGE in .env.instance), it is listed too.
-# It only lists: it never deletes images.
+# It lists; `images rm` and `images prune` remove the versions nobody uses (see below).
 #
 # Reads the catalog of lib/core/imagecat.sh: the versions come newest first (by creation date), the most recent one you may choose has a star,
 # a tag that moves (latest, or not a version) has a warning mark, an image of another architecture is marked as an error.
@@ -10,7 +10,126 @@
 # The "current" and "previous" markers of the used-by column are text in the UI language, both in the
 # table and in the used_by field of --json.
 
+# ---------- rm / prune ----------
+# Removing versions that nobody uses. Both ask first (--yes skips it), and `prune --dry-run` only says what it would do. The rules of what can go are in
+# lib/core/imagecat.sh (ic_removable): never the version an instance runs, the one kept for its rollback, or one a container uses; Docker is asked
+# without force, so its own refusal is the last safety net.
+
+# Shows what is going to be removed and, unless it is a dry run, asks and removes it. $1 = 1 for a dry run; then the indexes.
+images_remove_flow() { # dry i...
+  local dry="$1" i n ok_n=0 fail_n=0 note ref
+  shift
+  n="$#"
+  info "$(t images.rm.title "$n")"
+  for i in "$@"; do
+    note=""
+    ic_removable "$i"
+    [ "$IC_RM_SHARED" -eq 0 ] || note="  $(t images.rm.shared)"
+    [ "${IC_STAR[$i]}" -ne 1 ] || note+="  $(t images.rm.newest "${IC_SVC[$i]}")"
+    info "  $(printf '%-8s' "${IC_SVC[$i]}") $(printf '%-14s' "${IC_TAG[$i]}") $(printf '%8s' "${IC_SIZE[$i]}")$note"
+  done
+  ic_frees_bytes "$@"
+  ic_fmt_bytes "$IC_FREES"
+  info "$(t images.rm.total "$IC_BYTES_H")"
+  if [ "$dry" -eq 1 ]; then
+    info ""
+    info "$(t images.rm.dry_hint)"
+    return 0
+  fi
+  confirm "$(t images.rm.confirm "$n" "$IC_BYTES_H")" || die "$(t err.cancelled)"
+  for i in "$@"; do
+    ref="${IC_FULL[$i]}:${IC_TAG[$i]}"
+    if dk_image_rm "$ref"; then
+      ok "$(t images.rm.done_one "$ref")"
+      ok_n=$((ok_n + 1))
+    else
+      warn "$(t images.rm.failed "$ref" "$(printf '%s' "$DK_RM_ERR" | head -n1)")"
+      fail_n=$((fail_n + 1))
+    fi
+  done
+  info ""
+  info "$(t images.rm.summary "$ok_n" "$fail_n" "$IC_BYTES_H")"
+  [ "$fail_n" -eq 0 ] || return 1
+}
+
+images_prepare() {
+  check_docker
+  ic_load || die "$(t err.docker_daemon)"
+  ic_containers_load
+}
+
+images_rm() { # <service>:<version>... [--yes]
+  local a t svc tag i found refused=0 g
+  local -a want=() sel=()
+  parse_yes "$@"
+  set -- ${ARGS[@]+"${ARGS[@]}"}
+  for a in "$@"; do
+    case "$a" in
+      -*) die "$(t images.unknown_option "$a")" ;;
+      *:*) want+=("$a") ;;
+      *) die "$(t images.rm.bad_target "$a")" ;;
+    esac
+  done
+  [ "${#want[@]}" -gt 0 ] || die "$(t images.rm.usage)"
+  for t in "${want[@]}"; do
+    svc="${t%%:*}" tag="${t#*:}"
+    valid_service "$svc" || die "$(t err.service_unknown "$svc" "${KNOWN_SERVICES[*]}")"
+    [ -n "$tag" ] || die "$(t images.rm.bad_target "$t")"
+  done
+  images_prepare
+  for t in "${want[@]}"; do
+    svc="${t%%:*}" tag="${t#*:}"
+    found=0
+    for g in "${IC_GROUPS[@]}"; do
+      [ "${g%%|*}" = "$svc" ] || continue
+      for i in ${IC_ORDER[$g]}; do
+        [ "${IC_TAG[$i]}" = "$tag" ] || continue
+        found=1
+        ic_removable "$i"
+        if [ "$IC_RM_WHY" = ok ]; then sel+=("$i")
+        else warn "$(ic_why_text "$i")"; refused=$((refused + 1)); fi
+      done
+    done
+    [ "$found" -eq 1 ] || die "$(t images.rm.notfound "$svc" "$tag")"
+  done
+  if [ "${#sel[@]}" -eq 0 ]; then die "$(t images.rm.nothing)"; fi
+  images_remove_flow 0 "${sel[@]}"
+}
+
+images_prune() { # [service] [--keep N] [--dry-run] [--yes]
+  local a only="" keep=0 dry=0
+  parse_yes "$@"
+  set -- ${ARGS[@]+"${ARGS[@]}"}
+  while [ "$#" -gt 0 ]; do
+    a="$1"
+    shift
+    case "$a" in
+      --dry-run) dry=1 ;;
+      --keep)
+        [ "$#" -gt 0 ] || die "$(t images.opt_value "$a")"
+        keep="$1"
+        shift
+        [[ "$keep" =~ ^[0-9]+$ ]] || die "$(t images.prune.keep_bad "$keep")"
+        ;;
+      -*) die "$(t images.unknown_option "$a")" ;;
+      *)
+        [ -z "$only" ] || die "$(t images.extra_arg "$a")"
+        only="$a"
+        ;;
+    esac
+  done
+  if [ -n "$only" ]; then valid_service "$only" || die "$(t err.service_unknown "$only" "${KNOWN_SERVICES[*]}")"; fi
+  images_prepare
+  ic_prune_plan "$only" "$keep"
+  if [ "${#IC_PLAN[@]}" -eq 0 ]; then info "$(t images.rm.none)"; return 0; fi
+  images_remove_flow "$dry" "${IC_PLAN[@]}"
+}
+
 cmd_images() {
+  case "${1:-}" in
+    rm) shift; images_rm "$@"; return $? ;;
+    prune) shift; images_prune "$@"; return $? ;;
+  esac
   local only="" json=0 a svc repo found
   while [ "$#" -gt 0 ]; do
     a="$1"
