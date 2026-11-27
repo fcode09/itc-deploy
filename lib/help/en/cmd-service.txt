@@ -7,19 +7,21 @@ version, port or memory limit. It deploys nothing: it says what is left (variabl
 $ ./deltactl service list <instance>
 $ ./deltactl service add <instance> <service> [--tag <version|latest>] [--port <n>] [--generate-secrets]
 $ ./deltactl service remove <instance> <service> [--yes]
-$ ./deltactl service set <instance> <service> tag|port|memory <value>
+$ ./deltactl service set <instance> <service> tag|image|port|memory <value>
 
 ## Subcommands
 - `list` the services of the catalog, which ones are active in the instance, their version, port and memory limit
 - `add` activates a service: it creates its `.env.<service>` from the template and its `data/` folders, finds a free
   port for it and adds it to `COMPOSE_PROFILES`. It never overwrites what exists (a service that was removed and comes
   back finds its variables and data). A secret the services share (`JWT_SECRET`) is copied from the one the instance
-  already has. With `--tag latest` it uses the most recent version this server can run (as `new` does).
+  already has. With `--tag latest` it uses the most recent version this server can run (as `new` does); if the service has no
+  image loaded yet, it is activated anyway, without a version (set it afterwards with `set`).
   Then: fill in its variables and deploy it
 - `remove` takes the service out of `COMPOSE_PROFILES` and stops its container. It asks to type the key of the
   service (or `--yes`). Its variables file, its secrets and its data folder **are kept**. An instance never ends up
   with no services
-- `set` changes `tag` (the version), `port` (1024 to 65535, not used by another instance or by another service of
+- `set` changes `tag` (the version), `image` (the image name, without a tag: to point at it after the service is activated),
+  `port` (1024 to 65535, not used by another instance or by another service of
   this one) or `memory` (`512m`, `2g`). The change applies when that service is deployed
 
 ## Options

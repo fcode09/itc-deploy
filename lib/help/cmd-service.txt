@@ -7,19 +7,21 @@ versión, su puerto o su límite de memoria. No despliega nada: dice qué falta 
 $ ./deltactl service list <instancia>
 $ ./deltactl service add <instancia> <servicio> [--tag <versión|latest>] [--port <n>] [--generate-secrets]
 $ ./deltactl service remove <instancia> <servicio> [--yes]
-$ ./deltactl service set <instancia> <servicio> tag|port|memory <valor>
+$ ./deltactl service set <instancia> <servicio> tag|image|port|memory <valor>
 
 ## Subcomandos
 - `list` los servicios del catálogo, cuáles están activos en la instancia, su versión, su puerto y su memoria
 - `add` activa un servicio: crea su `.env.<servicio>` desde la plantilla y sus carpetas de `data/`, le busca un puerto
   libre y lo suma a `COMPOSE_PROFILES`. No pisa nada que ya exista (un servicio que se quitó y vuelve encuentra sus
   variables y sus datos). Un secreto que comparten los servicios (`JWT_SECRET`) se copia del que ya tiene la instancia.
-  Con `--tag latest` usa la versión más reciente que este servidor puede ejecutar (como `new`).
+  Con `--tag latest` usa la versión más reciente que este servidor puede ejecutar (como `new`); si el servicio aún no tiene
+  imagen cargada, lo activa igual, sin versión (la indicas después con `set`).
   Después: completar sus variables y desplegarlo
 - `remove` quita el servicio de `COMPOSE_PROFILES` y detiene su contenedor. Pide escribir la clave del servicio (o
   `--yes`). **Se conservan** su archivo de variables, sus secretos y su carpeta de datos. Una instancia no se queda
   sin servicios
-- `set` cambia `tag` (la versión), `port` (1024 a 65535, que no use otra instancia ni otro servicio de esta) o
+- `set` cambia `tag` (la versión), `image` (el nombre de la imagen, sin etiqueta: sirve para indicarla después de activar el
+  servicio), `port` (1024 a 65535, que no use otra instancia ni otro servicio de esta) o
   `memory` (`512m`, `2g`). El cambio se aplica al desplegar ese servicio
 
 ## Opciones

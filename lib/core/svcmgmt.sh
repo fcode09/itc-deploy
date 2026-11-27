@@ -78,11 +78,12 @@ svc_port_ok() { # instance service port
   return 0
 }
 
-# The values a field of a service takes: tag (a Docker tag), port, memory (a number and m or g: 512m, 2g).
+# The values a field of a service takes: tag (a Docker tag), image (the image name, no tag), port, memory (a number and m or g: 512m, 2g).
 svc_value_ok() { # instance service field value
   SVC_MSG=""
   case "$3" in
     tag) [[ "$4" =~ ^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$ ]] || { SVC_MSG="$(t service.tag_invalid)"; return 1; } ;;
+    image) valid_image_name "$4" || { SVC_MSG="$(t service.image_invalid "$4")"; return 1; } ;;
     port) svc_port_ok "$1" "$2" "$4" ;;
     memory) [[ "$4" =~ ^[1-9][0-9]{0,5}[mg]$ ]] || { SVC_MSG="$(t service.memory_invalid "$4")"; return 1; } ;;
     *) SVC_MSG="$(t service.field_unknown "$3")"; return 1 ;;
@@ -93,6 +94,7 @@ svc_value_ok() { # instance service field value
 svc_field_var() { # service field
   case "$2" in
     tag) tag_var "$1" ;;
+    image) printf '%s_IMAGE' "${1^^}" ;;
     port) printf '%s_PORT' "${1^^}" ;;
     memory) printf '%s_MEM_LIMIT' "${1^^}" ;;
   esac
