@@ -520,9 +520,10 @@ dash_srv_row() { # id width name_width selected
 # The lines of a group of requirements (indexes $2..$3 of DASH_SRV_ORDER) under its heading, $4 cells wide, into the array named $1. The
 # heading says how many are fine. The selected one is marked; in a single column its whole line carries the selection colours (a column
 # of two shares its line).
+declare -gA DASH_SRV_ROWC=()
 dash_srv_group() { # array first last width single
   local -n _out="$1"
-  local i id tw=0 sel hd key ok=0 st n=$(($3 - $2 + 1))
+  local i id tw=0 sel hd key ok=0 st n=$(($3 - $2 + 1)) ck
   _out=()
   for ((i = $2; i <= $3; i++)); do
     dt "prereq.name.${DASH_SRV_ORDER[$i]}"
@@ -542,7 +543,17 @@ dash_srv_group() { # array first last width single
   for ((i = $2; i <= $3; i++)); do
     id="${DASH_SRV_ORDER[$i]}"
     sel=0; [ "$i" -ne "$DASH_SRV_SEL" ] || sel=1
-    dash_srv_row "$id" "$4" "$tw" "$sel"
+    if [ "$sel" -eq 0 ]; then
+      # (the rows that are not selected do not change while the cursor moves: they are built once per answer, width, language and theme)
+      ck="$id|$4|$tw|$DASH_SRV_STATE|$DASH_SRV_N|$DASH_LANG_N|${UI_UTF8:-0}|${TH_NAME:-}"
+      if [ -n "${DASH_SRV_ROWC[$ck]+x}" ]; then DASH_SRV_ROW="${DASH_SRV_ROWC[$ck]}"
+      else
+        [ "${#DASH_SRV_ROWC[@]}" -le 300 ] || DASH_SRV_ROWC=()
+        dash_srv_row "$id" "$4" "$tw" 0; DASH_SRV_ROWC[$ck]="$DASH_SRV_ROW"
+      fi
+    else
+      dash_srv_row "$id" "$4" "$tw" 1
+    fi
     if [ "$sel" -eq 1 ]; then
       if [ "$5" -eq 1 ]; then _out+=("$TUI_SEL$DASH_SRV_ROW"); else _out+=("${TH[sel]:-}${DASH_SRV_ROW//"$TH_RESET"/"$TH_RESET${TH[sel]:-}"}$TH_RESET"); fi
     else
@@ -595,7 +606,25 @@ dash_srv_blk() { # array label_width label text width colour
 # When the lines are not enough the blocks that matter most stay (result, how, what for, more) and the others go, never half a block.
 # DASH_SRV_DET_N is how many lines everything would take.
 DASH_SRV_DET=() DASH_SRV_DET_N=0
+# (the detail of a requirement does not change until the next answer, width, language or theme: each one is built once and kept; walking the
+# list up and down then costs a lookup. The lines are kept joined with the record separator.)
+declare -gA DASH_SRV_DETC=()
 dash_srv_detail() { # width lines
+  local ck="$1|$2|${DASH_SRV_ORDER[$DASH_SRV_SEL]:-}|$DASH_SRV_OPEN|$DASH_SRV_STATE|$DASH_SRV_N|$DASH_LANG_N|${UI_UTF8:-0}|${TH_NAME:-}" rs=$'\x1e' v l
+  if [ -n "${DASH_SRV_DETC[$ck]+x}" ]; then
+    v="${DASH_SRV_DETC[$ck]}"
+    DASH_SRV_DET_N="${v%%"$rs"*}" DASH_SRV_DET=()
+    v="${v#*"$rs"}"
+    [ -z "$v" ] || IFS="$rs" read -ra DASH_SRV_DET <<< "$v"
+    return 0
+  fi
+  dash_srv_detail_build "$1" "$2"
+  [ "${#DASH_SRV_DETC[@]}" -le 200 ] || DASH_SRV_DETC=()
+  v="$DASH_SRV_DET_N"
+  for l in ${DASH_SRV_DET[@]+"${DASH_SRV_DET[@]}"}; do v+="$rs$l"; done
+  DASH_SRV_DETC[$ck]="$v"
+}
+dash_srv_detail_build() { # width lines
   local w="$1" n="$2" id="${DASH_SRV_ORDER[$DASH_SRV_SEL]:-}" lw=0 l why cmd="" rec st msg hint m url fix="" b used k
   local -a recs why_b=() res_b=() how_b=() more_b=() keep=()
   local -A size=()
