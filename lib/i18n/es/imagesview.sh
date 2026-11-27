@@ -4,7 +4,7 @@
 # cargar un archivo de imagen (lib/screens/imgload.sh): español. Lo carga lib/i18n/i18n.sh; no se ejecuta.
 
 MSG_es["tui.tab.images"]="Imágenes"
-MSG_es["tui.keys.images"]="{1} elegir · Enter usar en una instancia · Espacio detalle · l cargar · c copiar · R releer · : comando · ? ayuda · q salir"
+MSG_es["tui.keys.images"]="{1} elegir · Enter usar en una instancia · Espacio detalle · l cargar · b borrar · B limpiar · c copiar · R releer · : comando · ? ayuda · q salir"
 MSG_es["tui.help.head.images"]="IMÁGENES"
 MSG_es["tui.img.title"]="imágenes"
 MSG_es["tui.img.status"]="servidor {1} · {2} versiones"
@@ -49,6 +49,10 @@ MSG_es["tui.img.use.busy"]="No se cambió nada: hay otra operación en curso (./
 MSG_es["tui.img.use.blocked"]="No se cambió nada: la ejecución {1} ({2}) se interrumpió y sigue sin revisar (vista Ejecuciones)."
 MSG_es["tui.img.use.saved"]="{1}: {2}={3} guardado en .env.instance. Despliega para aplicarlo (u en la instancia)."
 MSG_es["tui.img.use.confirm"]="Cambiar la versión de {1} en '{2}': {3} → {4}. Se escribe {5} en su .env.instance; la versión anterior queda guardada para el rollback al desplegar."
+MSG_es["tui.img.rm.confirm"]="Borra la imagen {1}:{2} ({3}) de este Docker. No toca datos ni instancias; para tenerla otra vez hay que cargarla (l)."
+MSG_es["tui.img.rm.newest"]="Es la versión más reciente de {1}."
+MSG_es["tui.img.prune.confirm"]="Borra {1} imagen(es) de {2} ({3}) y libera {4}. Se conservan la más reciente, las que usa una instancia, la previa de cada una (rollback) y las de un contenedor. No toca datos ni instancias. ¿Continuar?"
+MSG_es["tui.img.prune.none"]="No hay nada que limpiar en {1}: todo lo cargado se usa, es la previa de una instancia, lo usa un contenedor o es la más reciente."
 MSG_es["tui.img.use.deploy_warn"]="Desplegar vuelve a crear el contenedor de {1} de '{2}': hay unos segundos sin servicio. Los datos no se tocan."
 MSG_es["tui.img.use.sync_note"]="El .env.{1} de '{2}' no tiene {3} variable(s) de la plantilla actual: {4}. Agrégalas antes de desplegar: en Variables, tecla A (o ./deltactl env {2} sync {1} --apply)."
 MSG_es["tui.img.use.keys_pick"]="↑↓ elegir · Enter continuar · Esc cancelar"
