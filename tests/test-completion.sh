@@ -50,7 +50,7 @@ done
 for c in init adopt down ps; do
   check "$c completa instancias y nada más después" 'has "$(comp deltactl '"$c"' "")" cp-dos && [ -z "$(comp deltactl '"$c"' cp-uno "" | tr -d " ")" ]'
 done
-check "images completa los servicios" '[ "$(comp deltactl images "")" = "robin s0 s1 " ]'
+check "images completa rm, prune y los servicios" '[ "$(comp deltactl images "")" = "prune rm robin s0 s1 " ]'
 check "una instancia nueva aparece sin regenerar el script" \
   'bash ./deltactl new cp-tres >/dev/null 2>&1; has "$(comp deltactl deploy "")" cp-tres'
 
@@ -60,7 +60,7 @@ check "status sugiere sus opciones" '[ "$(comp deltactl status --)" = "--json --
 check "una opción parcial se completa" '[ "$(comp deltactl status --j)" = "--json " ]'
 check "check sugiere --mongo" '[ "$(comp deltactl check cp-uno --)" = "--mongo " ]'
 check "logs sugiere -f" '[ "$(comp deltactl logs cp-uno -)" = "-f " ]'
-check "images sugiere --json" '[ "$(comp deltactl images --)" = "--json " ]'
+check "images sugiere sus opciones" '[ "$(comp deltactl images --)" = "--dry-run --json --keep --yes " ]'
 check "un comando sin opciones no sugiere nada con --" '[ -z "$(comp deltactl deploy cp-uno -- | tr -d " ")" ]'
 
 section "5. ayuda"
