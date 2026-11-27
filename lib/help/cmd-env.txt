@@ -11,6 +11,7 @@ $ ./deltactl env <instancia> get <[archivo:]VARIABLE> [--reveal]
 $ ./deltactl env <instancia> set <[archivo:]VARIABLE> [valor] [--stdin] [--force]
 $ ./deltactl env <instancia> generate <[archivo:]VARIABLE> [--yes]
 $ ./deltactl env <instancia> pending
+$ ./deltactl env <instancia> sync [servicio] [--apply] [--json]
 
 ## Subcomandos
 - `list` las variables de cada archivo en el orden del glosario, con su estado: `bien`, `FALTA` (obligatoria y vacía),
@@ -25,6 +26,11 @@ $ ./deltactl env <instancia> pending
   Si ya había uno pide confirmación (en `JWT_SECRET`, si lo tiene cualquiera de `s0` o `s1`); `JWT_SECRET` se escribe igual en
   `s0` y `s1`, o en los dos o en ninguno
 - `pending` qué archivos cambiaron desde el último despliegue y aún no se aplican
+- `sync` compara los archivos de la instancia con las plantillas actuales y dice qué variables nuevas les faltan (y cuáles ya no
+  están en la plantilla). Las plantillas se copian al crear el archivo: una instancia que ya existe no recibe las variables
+  que se agregan después. Con `--apply` las escribe al final de cada archivo, con su comentario y el valor de ejemplo de la
+  plantilla: **solo agrega**, nunca cambia un valor que ya está ni borra nada (deja `<archivo>.bak`). Sin servicio revisa
+  los archivos de los servicios que la instancia corre; con uno (`sync robin`), ese aunque no esté activo
 
 ## Archivo y variable
 `archivo` es `instance` o la clave de un servicio (`s0`, `s1`, `robin`…). Una variable que está en un solo archivo se da sola
@@ -35,6 +41,7 @@ $ ./deltactl env <instancia> pending
 - `--reveal` muestra el valor de los secretos (en `list` y `get`)
 - `--json` salida para scripts: `instance`, los archivos con cambios `pending` y cada variable con `state`, `required`,
   `validator` y `generator`; los secretos salen ocultos salvo con `--reveal`
+- `--apply` (en `sync`) escribe las variables nuevas; sin ella `sync` solo las muestra
 - `--stdin` lee el valor de la entrada estándar: así no queda en el historial de la terminal ni en `ps`. Lee todo: un valor con
   saltos de línea se rechaza. Un secreto escrito como argumento avisa de que queda en el historial de tu shell
 - `--force` escribe aunque el valor no pase su regla o la variable no esté en el glosario (nunca una `fija` ni un `INSTANCE` que
