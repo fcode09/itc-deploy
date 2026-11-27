@@ -335,8 +335,8 @@ section "6. the actions of an instance"
 out="$(panel enter q q)"
 check "Enter opens the actions with the instance and its n/m" 'echo "$out" | frame_n 2 | grep -q "Acciones de tui-a (2/2)"'
 check "the actions name the selected service" 'echo "$out" | frame_n 2 | grep -q "Desplegar solo s0" && echo "$out" | frame_n 2 | grep -q "Logs en vivo de s0" && echo "$out" | frame_n 2 | grep -q "Detener s0"'
-check "the other actions are listed" 'echo "$out" | frame_n 2 | grep -q "Ver el estado detallado" && echo "$out" | frame_n 2 | grep -q "Volver a la versión anterior" && echo "$out" | frame_n 2 | grep -q "Bajar la instancia"'
-check "the actions also open the tabs of the instance (names and access, variables), and offer to install the block in nginx only when a domain is remembered" 'echo "$out" | frame_n 2 | grep -q "Editar nombres y acceso" && echo "$out" | frame_n 2 | grep -q "Editar variables" && ! echo "$out" | frame_n 2 | grep -q "instalar en nginx"'
+check "the other actions are listed" 'echo "$out" | frame_n 2 | grep -q "Estado detallado" && echo "$out" | frame_n 2 | grep -q "Volver a la versión anterior" && echo "$out" | frame_n 2 | grep -q "Bajar la instancia"'
+check "the actions also open the tabs of the instance (names and access, variables), and offer to install the block in nginx only when a domain is remembered" 'echo "$out" | frame_n 2 | grep -q "Nombres y acceso" && echo "$out" | frame_n 2 | grep -q "Variables" && ! echo "$out" | frame_n 2 | grep -q "Instalar todos"'
 check "a seeded instance does not offer to seed" '! echo "$out" | frame_n 2 | grep -q "Sembrar datos iniciales"'
 out="$(panel right down enter q q)"
 check "the actions follow the selected service" 'echo "$out" | frame_n 4 | grep -q "Desplegar solo s1"'
@@ -347,26 +347,45 @@ check "the first action runs status and shows its output" 'echo "$out" | last_fr
 out="$(panel enter down enter wait q)"
 check "the second action runs check and stays in the view" 'echo "$out" | grep -q "Ejecutando: ./deltactl check tui-a" && echo "$out" | last_frame | grep -q "\[3 Instancias\]"'
 check "its output is in the console at the bottom of the view" 'echo "$out" | last_frame | grep -q "Consola" && echo "$out" | last_frame | grep -q "terminó bien"'
-out="$(panel enter down down down enter q)"
+out="$(panel enter u q)"
 check "deploy only one service passes the service" 'echo "$out" | grep -q "Ejecutando: ./deltactl deploy tui-a s0"'
 out="$(panel enter esc q)"
 check "Esc goes back from the actions to the view" 'echo "$out" | frame_n 3 | grep -q "\[3 Instancias\]" && ! echo "$out" | frame_n 3 | grep -q "Acciones de"'
 
+section "6b. the actions menu is in sections, with a letter for each action"
+out="$(panel enter q q)"
+check "the actions are in sections: what acts on the whole instance, on one service and on the configuration, and the danger apart" '
+  f="$(echo "$out" | frame_n 2)"; for t in "VER" "TODA LA INSTANCIA" "SERVICIO" "CONFIGURAR" "PELIGRO"; do echo "$f" | grep -q "$t" || exit 1; done
+  echo "$f" | grep -q "SERVICIO  ‹ s0 ›" || echo "$f" | grep -q "SERVICIO  < s0 >"'
+check "every action shows its letter, and the ones that stop or remove something carry the warning mark" '
+  f="$(echo "$out" | frame_n 2)"; echo "$f" | grep -qE "Estado detallado +e" && echo "$f" | grep -qE "Desplegar solo s0 +u" && echo "$f" | grep -qE "Detener s0 +! x" && echo "$f" | grep -qE "Volver a la versión anterior +! r" && echo "$f" | grep -qE "Bajar la instancia +! b"'
+check "the keys are inside the box" 'echo "$out" | frame_n 2 | grep -q "la letra de cada accion la hace"'
+out="$(panel enter right q q)"
+check "right changes the service without leaving the menu: the title and the actions follow it" '
+  f="$(echo "$out" | frame_n 3)"; echo "$f" | grep -q "Desplegar solo s1" && echo "$f" | grep -q "Detener s1" && echo "$f" | grep -q "Acciones de tui-a"'
+out="$(panel enter right right u q)"
+check "the letter of an action does it, with the service chosen in the menu" 'echo "$out" | grep -q "Ejecutando: ./deltactl deploy tui-a s0"'
+out="$(panel enter right u q)"
+check "…and with the other one when right was pressed once" 'echo "$out" | grep -q "Ejecutando: ./deltactl deploy tui-a s1"'
+out="$(PANEL_ROWS=16 panel enter up q q)"
+check "on a short screen the list scrolls with the cursor: the last action (up from the first) is in view and there is a sign of more above" '
+  f="$(echo "$out" | frame_n 3)"; echo "$f" | grep -q "Bajar la instancia" && echo "$f" | grep -qE "\| +\^ +\|" && ! echo "$f" | grep -q "Estado detallado"'
+
 section "7. confirmations"
-out="$(panel enter down down down down enter n q)"
+out="$(panel enter r n q)"
 check "rollback asks for confirmation and does nothing on n" 'echo "$out" | grep -q "Vuelve a la versión anterior de todos los servicios" && echo "$out" | grep -q "Continuar" && ! echo "$out" | grep -q "Ejecutando: ./deltactl rollback"'
 check "the confirmation shows the keys" 'echo "$out" | grep -q "s si - n no (Enter = no)"'
-out="$(panel enter down down down down enter y wait q)"
+out="$(panel enter r y wait q)"
 check "rollback runs after confirming with s or y" 'echo "$out" | grep -q "Ejecutando: ./deltactl rollback tui-a --yes"'
-out="$(panel enter down down down down down down down enter enter q)"
+out="$(panel enter x enter q)"
 check "Enter on a confirmation means no" '! echo "$out" | grep -q "Ejecutando: ./deltactl stop"'
-out="$(panel enter down down down down down down down enter s wait q)"
+out="$(panel enter x s wait q)"
 check "stop asks and then stops the selected service" 'echo "$out" | grep -q "Ejecutando: ./deltactl stop tui-a s0"'
-out="$(panel enter down down down down down down down down enter n q)"
+out="$(panel enter b n q)"
 check "down asks for confirmation too" 'echo "$out" | grep -q "Detiene y elimina los contenedores" && ! echo "$out" | grep -q "Ejecutando: ./deltactl down"'
-out="$(panel down enter down down down down down down down down down enter $(typed otro) enter q)"
+out="$(panel down enter i $(typed otro) enter q)"
 check "init asks to type the instance name and does nothing if it differs" 'echo "$out" | grep -q "Escribe el nombre de la instancia (tui-b)" && echo "$out" | grep -q "El nombre no coincide" && ! echo "$out" | grep -q "Ejecutando: ./deltactl init"'
-out="$(panel down enter down down down down down down down down down enter $(typed tui-b) enter wait q)"
+out="$(panel down enter i $(typed tui-b) enter wait q)"
 check "init runs when the name matches" 'echo "$out" | grep -q "Ejecutando: ./deltactl init tui-b --yes"'
 
 section "8. help, language, pause and refresh"
