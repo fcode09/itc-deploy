@@ -316,4 +316,30 @@ check "the history of the server holds MT_HOST_HIST_LEN (240) values and that of
 " " ")" = "240 120 240 11 240 120 " ]'
 check "the sampler keeps the history of the server as long as the history of a wide screen needs" '[ "$(lib "MT_HOST_HIST_LEN=5; source $FIX/sample2.sh; for i in 1 2 3 4 5 6 7; do HOST_FAKE_NOW_US=\$((3000000 + i * 1000000)); mt_host_sample; done; read -ra h <<< \"\$MT_HH_CPU\"; read -ra n <<< \"\$MT_HH_NETD\"; read -ra l <<< \"\$MT_HH_LOAD\"; echo \${#h[@]} \${#n[@]} \${#l[@]}")" = "5 5 5" ]'
 
+section "12. what each container costs: disk, network, CPU throttling and memory kills (Server view only)"
+D="$FIX/cg/detail.scope"; mkdir -p "$D" "$FIX/proc/3333/net"
+printf '8:0 rbytes=1000 wbytes=2000 rios=1 wios=2 dbytes=0 dios=0\n8:16 rbytes=500 wbytes=0 rios=1 wios=0 dbytes=0 dios=0\n' > "$D/io.stat"
+printf 'low 0\nhigh 0\nmax 0\noom 1\noom_kill 3\noom_group_kill 0\n' > "$D/memory.events"
+printf 'usage_usec 9000000\nuser_usec 5\nsystem_usec 4\nnr_periods 100\nnr_throttled 20\nthrottled_usec 777\n' > "$D/cpu.stat"
+printf 'Inter-|   Receive                                                |  Transmit\n face |bytes    packets errs drop fifo frame compressed multicast|bytes    packets errs drop fifo colls carrier compressed\n    lo: 9999 5 0 0 0 0 0 0 9999 5 0 0 0 0 0 0\n  eth0: 4000 5 0 0 0 0 0 0 1500 5 0 0 0 0 0 0\n  eth1:1000 5 0 0 0 0 0 0 500 5 0 0 0 0 0 0\n' > "$FIX/proc/3333/net/dev"
+check "disk of a container: bytes read and written, summed over its devices (cgroup v2); v1 says there is no such file" '[ "$(lib "host_cg_io $D 2; echo \$? \$CG_IO_R \$CG_IO_W; host_cg_io $D 1; echo \$? [\$CG_IO_R]" | tr "\n" " ")" = "0 1500 2000 1 [] " ]'
+check "memory kills: the oom_kill counter of memory.events; without the file there is no figure" '[ "$(lib "host_cg_oom $D 2; echo \$? \$CG_OOM; host_cg_oom $FIX/cg/none 2; echo \$? [\$CG_OOM]" | tr "\n" " ")" = "0 3 1 [] " ]'
+check "network of a container: the bytes of its namespace summed over its interfaces, the loopback left out; unreadable is a clean failure" '[ "$(lib "host_pid_net 3333; echo \$? \$HOST_PN_RX \$HOST_PN_TX; host_pid_net 4444; echo \$? [\$HOST_PN_RX]" | tr "\n" " ")" = "0 5000 2000 1 [] " ]'
+check "CPU throttling: the periods and the throttled ones come from cpu.stat only when the detail is on (the plain reading stops at usage_usec)" '[ "$(lib "HOST_CG_CPU_DETAIL=1; host_cg_cpu $D 2; echo \$CG_CPU_USEC \$CG_CPU_PER \$CG_CPU_THR; HOST_CG_CPU_DETAIL=0; host_cg_cpu $D 2; echo \$CG_CPU_USEC [\$CG_CPU_PER]" | tr "\n" " ")" = "9000000 100 20 9000000 [] " ]'
+check "a counter becomes a rate per second: none on the first reading, none when the counter went back" '[ "$(lib "mt_rate k a 1000 1000000; echo [\$MT_RATE]; mt_rate k a 3000 3000000; echo \$MT_RATE; mt_rate k a 10 5000000; echo [\$MT_RATE]" | tr "\n" " ")" = "[] 1000 [] " ]'
+cat > "$FIX/detail.sh" <<EOS
+MT_CG_MEMDIR[c/s0]="$D" MT_CG_VER[c/s0]=2 MT_SAMPLES=0 HOST_CG_CPU_DETAIL=1
+host_cg_cpu "$D" 2; mt_sample_detail c/s0 3333 1000000
+echo "first: [\${MT_IOR[c/s0]:-}] [\${MT_NRX[c/s0]:-}] [\${MT_THR[c/s0]:-}] oom=\${MT_OOM[c/s0]:-}"
+printf '8:0 rbytes=3000 wbytes=2000 rios=1 wios=2 dbytes=0 dios=0\n8:16 rbytes=500 wbytes=4000 rios=1 wios=0 dbytes=0 dios=0\n' > "$D/io.stat"
+printf 'usage_usec 9500000\nnr_periods 200\nnr_throttled 70\n' > "$D/cpu.stat"
+printf '  eth0: 8000 5 0 0 0 0 0 0 3500 5 0 0 0 0 0 0\n' > "$FIX/proc/3333/net/dev"
+host_cg_cpu "$D" 2; mt_sample_detail c/s0 3333 3000000
+echo "second: ior=\${MT_IOR[c/s0]} iow=\${MT_IOW[c/s0]} rx=\${MT_NRX[c/s0]} tx=\${MT_NTX[c/s0]} thr=\${MT_THR[c/s0]}"
+mt_forget c/s0
+echo "forgotten: [\${MT_IOR[c/s0]:-}] [\${MT_PV[c/s0|ior]:-}]"
+EOS
+check "per container: the first sample has no rates; the second turns the counters into bytes per second and the throttled share of the periods in between (50 of 100)" '[ "$(lib "source $FIX/detail.sh")" = "$(printf "first: [] [] [] oom=3\nsecond: ior=1000 iow=2000 rx=2000 tx=1000 thr=50\nforgotten: [] []")" ]'
+check "the extra readings are taken only while the Server view is on screen: with MT_HOST_DETAIL=0 the sampler never calls them" 'grep -q "MT_HOST_DETAIL.*= 1 \]; then mt_sample_detail" lib/core/metrics.sh'
+
 finish

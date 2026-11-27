@@ -3,7 +3,7 @@
  [1 Server] 2 Images 3 Instances 4 Resources 5 Output 6 Runs 7 Processes 8 Console 9 Variables 0 Activity              
 ╭─┐ ▸requirements ┌────────────────────────────────────────────────────────────────────────────────────────┐9/9 ready┌─╮
 │  disk / 86% · load 3.18↗ · 8 cores · up 02:22 · ▼ 4.0 MiB/s ▲ 1.4 KiB/s · ▲ 2 warnings: disk / at 86%                │
-╰─┘Enter expand└─┘R recheck└─┘m metrics└───────────────────────────────────────────────────────────────────────────────╯
+╰─┘Enter requirements└─┘R recheck└─┘m metrics└─────────────────────────────────────────────────────────────────────────╯
 ╭─┐cpu┌─────────────────────────────────┐61°C┌─╮╭─┐memory┌─────────────────────┐48%┌─╮╭─┐disks┌────────────────────────╮
 │ Load 3.18↗ 2.64 1.97 · 0.39/c… CPU█▊░░░  37% ││ Used ···················· 5.61 GiB ││ / ···················· 204 GiB │
 │                                C0 █░░░░  22% ││ ██████████████▒▒▒▒▒▒▒▒▒▒░░░░░  48% ││ █████████████████████▌░░░  86% │
@@ -28,4 +28,4 @@
 │ TCP 58 · closing 7 · sockets 412          ││                                                                         │
 ╰───────────────────────────────────────────╯╰─────────────────────────────────────────────────────────────────────────╯
 
- Enter expand · Tab other box · z zoom · m metrics · R check · : command · ? help · q quit
+ Enter requirements · Tab other box · z zoom · m metrics · R check · : command · ? help · q quit

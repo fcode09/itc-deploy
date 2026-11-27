@@ -1,0 +1,31 @@
+=== frame 1 ===
+  ITC  testhost · Memoria ███░░░ 5.6/11.5 GB 48% ▂▁▄▂▁▄ · Carga 3.18 · Docker 27.0.0 · contenedores 3.3G
+ [1 Servidor] 2 Imágenes 3 Instancias 4 Recursos 5 Salida 6 Ejecuciones 7 Procesos 8 Consola 9 Variables 0 Actividad   
+╭─┐ ▸requisitos ┌─────────────────────────────────────────────────────────────┐6/9 listos · 3 recomendados pendientes┌─╮
+│  disco / 86% · ✖ 4 avisos: 2 requisitos obligatorios fallan: Disco libre, MongoDB alcanzable                         │
+╰─┘╭─┐ ▸requisitos ┌───────────────────────────────────────────────────────┐6/9 listos · 3 recomendados pendientes┌─╮──╯
+╭─┐│  disco / 86% · ✖ 4 avisos: 2 requisitos obligatorios fallan: Disco libre, MongoDB alcanzable                   │──╮
+│ C│ ────────────────────────────────────────────────────────────────────────────────────────────────────────────── │B │
+│  │   OBLIGATORIOS  6/9                                   │   RECOMENDADOS  3/6                                    │% │
+│ ⡀│   ● Docker Engine          Docker 27.0.0 (arquitectu… │   ● Límite de archivos d…  mongod permite 524288 arch… │B │
+│ ⡇│   ● Acceso al daemon de …  El daemon de Docker respo… │   ▲ Proxy inverso (nginx…  No se detectó nginx ni Cad… │% │
+│ ⡇│   ● Docker Compose 2.20 …  Docker Compose 2.30.0      │   ▲ certbot                Falta 'certbot' (recomenda… │B │
+│ ⣿│ ▸ ✖ Disco libre            Poco disco libre en /var/… │   ● Hora sincronizada      La hora del servidor está … │% │
+│ ⣿│   ● Memoria                Memoria: 11776 MB en tota… │   ▲ Cortafuegos            No se detectó un cortafueg… │  │
+│ ⣿│   ✖ MongoDB alcanzable     127.0.0.1:27017 no respon… │   ● curl                   curl disponible             │… │
+│ ⣿│   ▲ ss (iproute2)          Falta 'ss'                 │                                                        │… │
+│ ⣿│   ● openssl                openssl disponible         │                                                        │  │
+│ -│   ● gunzip (gzip)          gunzip disponible          │                                                        │  │
+│ m│                                                       │                                                        │  │
+╰──│                                                       │                                                        │──╯
+╭─┐│ ─ ✖ Disco libre ────────────────────────────────────────────────────────────────────────────────────────────── │┌─╮
+│ ⢠│  Para qué        Las imágenes, los datos y los logs ocupan disco: con menos de 3 GB libres un despliegue       │  │
+│ ⣼│                   puede fallar a medias.                                                                       │  │
+│ ⠁│  Resultado        Poco disco libre en /var/lib/docker: 1.9 GB                                                  │  │
+│ 5│  Cómo            Las imágenes y los logs necesitan espacio. Libera disco o mueve Docker.                       │  │
+│ ▼╰─┘Enter detalle└─┘c copiar└─┘! ejecutar└─┘Esc cerrar└───────────────────────────────────────────────────────────╯  │
+│ ▲ 1.4 KiB/s  máx 615.2 KiB/s              ││                                                                         │
+│ TCP 58 · cerrándose 7 · sockets 412       ││                                                                         │
+╰───────────────────────────────────────────╯╰─────────────────────────────────────────────────────────────────────────╯
+
+ ↑↓ elegir · Enter detalle · c copiar · ! ejecutar · R comprobar · Esc cerrar · : comando · ? ayuda · q salir

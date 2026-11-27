@@ -5,10 +5,10 @@
 # the golden snapshots of tests/test-server.sh (tests/golden/server/) and the source of the PNG captures. Sourced, never executed: it needs
 # lib/bootstrap.sh and lib/cmd/dashboard.sh already loaded, and the environment of the panel (DELTACTL_UI=rich, DELTACTL_TUI_KEYS=...).
 #
-#   server_scene <name>      name: ok | missing | open | zoom | na | loading | alert | ok-open | focus-containers | zoom-cpu | many-cores |
+#   server_scene <name>      name: ok | missing | modal | open | zoom | na | loading | alert | ok-open | focus-containers | zoom-cpu | many-cores |
 #                                  many-containers | wide
 
-SERVER_SCENES=(ok missing open zoom na loading alert ok-open focus-containers zoom-cpu many-cores many-containers wide)
+SERVER_SCENES=(ok missing modal open zoom na loading alert ok-open focus-containers zoom-cpu many-cores many-containers wide)
 
 # A deterministic series of N samples between 0 and 100 (a wave with bursts), oldest first, into SS.
 SS=""
@@ -101,6 +101,10 @@ srv_host() {
   ST_RESTARTS=([colorado/s0]=0 [colorado/s1]=0 [piura/s0]=0 [piura/s1]=3)
   MT_CPU=([colorado/s0]=37 [colorado/s1]=412 [piura/s0]=25 [piura/s1]=873)
   MT_PIDS=([colorado/s0]=24 [colorado/s1]=61 [piura/s0]=22 [piura/s1]=75)
+  MT_IOR=([colorado/s0]=0 [colorado/s1]=1310720 [piura/s0]=4096 [piura/s1]=9437184) MT_IOW=([colorado/s0]=2048 [colorado/s1]=524288 [piura/s0]=0 [piura/s1]=3145728)
+  MT_NRX=([colorado/s0]=3072 [colorado/s1]=262144 [piura/s0]=1024 [piura/s1]=1572864) MT_NTX=([colorado/s0]=1024 [colorado/s1]=131072 [piura/s0]=512 [piura/s1]=786432)
+  DASH_SRV_DU=([colorado]=12582912 [piura]=4194304)
+  MT_THR=([colorado/s0]=0 [colorado/s1]=0 [piura/s0]=0 [piura/s1]=8) MT_OOM=([colorado/s0]=0 [colorado/s1]=0 [piura/s0]=0 [piura/s1]=0)
   MT_MEM=([colorado/s0]=205520896 [colorado/s1]=1288490188 [piura/s0]=188743680 [piura/s1]=1932735283)
   MT_LIM=([colorado/s0]=536870912 [colorado/s1]=2147483648 [piura/s0]=536870912 [piura/s1]=2147483648)
   # shellcheck disable=SC2004  # MT_HCPU is an associative array: the key is a name, not arithmetic
@@ -117,12 +121,12 @@ srv_ps_ss() {
    611 root       0.4  0.1 containerd
    907 www-data   0.2  0.1 nginx
      1 root       0.0  0.0 systemd'
-  DASH_SRV_SS_RAW=$'22|0.0.0.0|sshd
-80|0.0.0.0|nginx
-443|0.0.0.0|nginx
-4100|0.0.0.0|docker-proxy
-4101|0.0.0.0|docker-proxy
-27017|127.0.0.1|mongod'
+  DASH_SRV_SS_RAW=$'22|0.0.0.0|sshd|2
+80|0.0.0.0|nginx|41
+443|0.0.0.0|nginx|87
+4100|0.0.0.0|docker-proxy|12
+4101|0.0.0.0|docker-proxy|3
+27017|127.0.0.1|mongod|1'
 }
 
 # 64 cores (a big server): the grid of the CPU box must say how many it leaves out and not cover the graph.
@@ -135,7 +139,7 @@ srv_many_cores() {
 # 40 containers of 10 instances: the table scrolls, keeps the cursor in view and the box asks for the height it can have.
 srv_many_containers() {
   local i s key n
-  DASH_NAMES=() DASH_SVCS=() DSV_KIND=() DSV_TEXT=() DSV_CODES=() DSV_UP=() DSV_PORT=() ST_RESTARTS=() MT_MEM=() MT_LIM=() MT_CPU=() MT_HCPU=() MT_PIDS=()
+  DASH_NAMES=() DASH_SVCS=() DSV_KIND=() DSV_TEXT=() DSV_CODES=() DSV_UP=() DSV_PORT=() ST_RESTARTS=() MT_MEM=() MT_LIM=() MT_CPU=() MT_HCPU=() MT_PIDS=() MT_IOR=() MT_IOW=() MT_NRX=() MT_NTX=() MT_THR=() MT_OOM=()
   for ((i = 1; i <= 10; i++)); do
     printf -v n 'inst%02d' "$i"
     DASH_NAMES+=("$n")
@@ -167,13 +171,14 @@ server_scene() { # name
   DASH_DOCKER_VER=27.0.0
   MT_HOST_PCT=48 MT_HOST_TOTAL_KB=12058624 MT_HOST_USED_KB=5892096 MT_HOST_LOAD=3.18 MT_HOST_HIST=""
   PR_DISTRO_ID=debian PR_DISTRO_NAME="Debian GNU/Linux 12" PR_MANAGER=apt
-  DASH_SRV_STATE=ready DASH_SRV_BUSY=0 DASH_SRV_SEL=0 DASH_SRV_OPEN=0 DASH_SRV_ZOOM=0 DASH_SRV_REQ=auto DASH_SRV_FOCUS=req DASH_SRV_PZ="" DASH_SRV_CSEL=0
+  DASH_SRV_STATE=ready DASH_SRV_BUSY=0 DASH_SRV_SEL=0 DASH_SRV_OPEN=0 DASH_SRV_ZOOM=0 DASH_SRV_MODAL=0 DASH_SRV_FOCUS=req DASH_SRV_PZ="" DASH_SRV_CSEL=0
   srv_host
   srv_ps_ss
   case "$name" in
     ok) srv_prereqs_ok ;;
-    missing) srv_prereqs_missing; DASH_SRV_SEL=3 ;;   # the first one that fails: the disk
-    open) srv_prereqs_missing; DASH_SRV_SEL=5; DASH_SRV_OPEN=1 ;;   # Mongo, open
+    missing) srv_prereqs_missing; DASH_SRV_SEL=3 ;;   # something required fails: the strip says so and stays a strip
+    modal) srv_prereqs_missing; DASH_SRV_SEL=3; DASH_SRV_MODAL=1 ;;   # the modal with the first one that fails (the disk) selected
+    open) srv_prereqs_missing; DASH_SRV_SEL=5; DASH_SRV_OPEN=1; DASH_SRV_MODAL=1 ;;   # the modal, Mongo with its whole detail
     zoom) srv_prereqs_ok; DASH_SRV_ZOOM=1 ;;
     na) srv_prereqs_ok; srv_host_na ;;
     alert)
@@ -181,8 +186,9 @@ server_scene() { # name
       srv_prereqs_ok
       HOST_DISK_PCT=(96 22 91) HOST_MEMD_AVAIL=524288 HOST_MEMD_USED=11534336 HOST_TEMP_CPU_C=96 HOST_TEMP_CPU_CRIT=100
       DSV_KIND[colorado/s1]=err DSV_TEXT[colorado/s1]=exited
+      MT_THR[piura/s1]=40 MT_OOM[piura/s1]=2   # a CPU limit that is too low and a process killed for lack of memory
       ;;
-    ok-open) srv_prereqs_ok; DASH_SRV_REQ=open; DASH_SRV_SEL=4 ;;   # the list opened by hand with everything fine
+    ok-open) srv_prereqs_ok; DASH_SRV_MODAL=1; DASH_SRV_SEL=4 ;;   # the modal with everything fine
     focus-containers) srv_prereqs_ok; DASH_SRV_FOCUS=containers; DASH_SRV_CSEL=2 ;;
     zoom-cpu) srv_prereqs_ok; DASH_SRV_FOCUS=cpu; DASH_SRV_PZ=cpu ;;
     many-cores) srv_prereqs_ok; srv_many_cores ;;
