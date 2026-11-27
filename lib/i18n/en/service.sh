@@ -39,3 +39,4 @@ MSG_en["service.kept"]="Its variables and data stay in {2}: when it is activated
 MSG_en["service.set_usage"]="usage: ./deltactl service set {1} {2} tag|image|port|memory <value>"
 MSG_en["service.latest_unknown"]="the most recent version could not be found (Docker does not answer): give the version"
 MSG_en["service.set_done"]="{1}: {2} = {3} in '{4}'"
+MSG_en["service.sync_note"]="the .env.{1} of '{2}' lacks {3} variable(s) of the current template: {4}. Add them with ./deltactl env {2} sync {1} --apply"

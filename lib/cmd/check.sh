@@ -95,6 +95,16 @@ cmd_check() {
     ck ok "$(t check.config_ok)"
   fi
 
+  # 1b. Variables the templates have and the files do not (an instance made before they were added): only a warning, deploy does not need them.
+  local sf sn
+  for sf in .env.instance "${SELECTED[@]/#/.env.}"; do
+    envsync_r "$name" "$sf" named || continue
+    [ "${#ENVSYNC_NEW[@]}" -gt 0 ] || continue
+    sn=""
+    for p in "${ENVSYNC_NEW[@]}"; do sn+="${sn:+, }$p"; done
+    ck warn "$(t check.sync_warn "$sf" "${#ENVSYNC_NEW[@]}")" "$sn" "$(t check.sync_hint "$name")"
+  done
+
   # 2. Compose.
   if [ -n "$only" ]; then
     out="$(dk_compose "$name" --profile "$only" config -q 2>&1)" && rc=0 || rc=$?

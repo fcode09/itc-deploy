@@ -39,3 +39,4 @@ MSG_es["service.kept"]="Sus variables y datos siguen en {2}: al activarlo otra v
 MSG_es["service.set_usage"]="uso: ./deltactl service set {1} {2} tag|image|port|memory <valor>"
 MSG_es["service.latest_unknown"]="no se pudo averiguar la versión más reciente (Docker no responde): indica la versión"
 MSG_es["service.set_done"]="{1}: {2} = {3} en '{4}'"
+MSG_es["service.sync_note"]="el .env.{1} de '{2}' no tiene {3} variable(s) de la plantilla actual: {4}. Agrégalas con ./deltactl env {2} sync {1} --apply"
