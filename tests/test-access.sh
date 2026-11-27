@@ -271,4 +271,55 @@ f="$(panel '>' b a | last_frame)"
 check "with Caddy it says that installing from here is only for nginx, and asks nothing" 'echo "$f" | grep -q "solo sabe hacerlo con nginx" && ! echo "$f" | grep -q "Instala en nginx"'
 check "the keys of the tab say the new ones" 'panel ">" | last_frame | grep -q "e nombre"'
 
+section "O. the state of the nginx block of each service (read only)"
+# What is installed under /etc/nginx (the folder of the test), against the block `access` would write now, and whether nginx loaded it.
+rm -f "$FIX/nginx/sites-available"/* "$FIX/nginx/sites-enabled"/* "$FIX/nginx.log" "$FIX/systemctl.log"
+rm -rf instances/ta-a/proxy
+export DELTACTL_LETSENCRYPT_DIR="$FIX/le"; mkdir -p "$FIX/le"
+NOW="$(date +%s)"
+st() { bash ./deltactl access ta-a --domain deltampa.example --host s0="$N0" --host s1="$N1" --no-tls --status "$@" 2>&1; }
+# writes the file the tool would write for a service and enables it (a link, as `--apply` does)
+inst() { # service host port
+  core "proxy_render nginx 0 \"$2|$3|$1\"; printf %s \"\$PROXY_OUT\" > \"$FIX/nginx/sites-available/ta-a-$1\"" > /dev/null
+  ln -sfn "$FIX/nginx/sites-available/ta-a-$1" "$FIX/nginx/sites-enabled/ta-a-$1"
+}
+check "nothing installed: each service says so and gives the command that installs it" '
+  o="$(st)"; [ "$(echo "$o" | grep -c "sin instalar en /etc/nginx")" = 2 ] && echo "$o" | grep -q "access ta-a --apply --service s0" && echo "$o" | grep -q "access ta-a --apply --service s1"'
+inst s0 "$N0" 4100; inst s1 "$N1" 4101
+check "installed, enabled, up to date and nginx loaded it after the files were written: active" '
+  [ "$(DELTACTL_NGINX_LOADED_AT=$((NOW + 60)) st | grep -c "activo en nginx")" = 2 ]'
+check "the files are newer than the last load of nginx: a reload is missing, and the command is given" '
+  o="$(DELTACTL_NGINX_LOADED_AT=$((NOW - 3600)) st)"; [ "$(echo "$o" | grep -c "falta recargar nginx")" = 2 ] && echo "$o" | grep -q "nginx -t && .*systemctl reload nginx"'
+check "a reload a second after the file was written is not taken for a missing one (the margin)" '
+  [ "$(DELTACTL_NGINX_LOADED_AT=$((NOW - 1)) st | grep -c "activo en nginx")" = 2 ]'
+check "nginx is not running" 'o="$(DELTACTL_NGINX_LOADED_AT=down st)"; echo "$o" | grep -q "nginx no está corriendo" && echo "$o" | grep -q "systemctl start nginx"'
+check "it cannot be told whether nginx loaded it (no pid, no ps): installed, and it says so" '
+  DELTACTL_NGINX_LOADED_AT=unknown st | grep -q "no se puede saber si nginx ya lo cargó"'
+rm -f "$FIX/nginx/sites-enabled/ta-a-s0"
+check "the file is there but its link is not: not enabled, and only that service" '
+  o="$(DELTACTL_NGINX_LOADED_AT=$((NOW + 60)) st)"; echo "$o" | grep -q "s0 .*instalado, sin activar" && echo "$o" | grep -q "s1 .*activo en nginx"'
+inst s0 "$N0" 4100
+check "a name that changed: the installed block is not what would be written now" '
+  bash ./deltactl access ta-a --domain deltampa.example --host s0=otro.deltampa.example --host s1="$N1" --no-tls --status --service s0 2>&1 | grep -q "distinto de lo que se escribiría ahora"'
+check "HTTPS with no certificate: it says which name lacks it and gives the certbot" '
+  o="$(bash ./deltactl access ta-a --domain deltampa.example --host s0="$N0" --host s1="$N1" --tls --status --service s0 2>&1)"; echo "$o" | grep -q "falta el certificado de $N0" && echo "$o" | grep -q "certbot certonly --nginx -d $N0"'
+check "--json has the instance, the proxy, the state of each service and the command that follows" '
+  j="$(DELTACTL_NGINX_LOADED_AT=$((NOW - 3600)) st --json)"; echo "$j" | grep -q "\"instance\": \"ta-a\", \"proxy\": \"nginx\", \"tls\": false" && echo "$j" | grep -q "\"service\": \"s0\", \"host\": \"$N0\", \"state\": \"reload\"" && echo "$j" | grep -q "\"next\": \"[^\"]*reload nginx"'
+check "with Caddy the state is not worked out (deltactl writes nothing for it) and it says so" '
+  bash ./deltactl access ta-a --domain deltampa.example --proxy caddy --status 2>&1 | grep -q "solo para nginx"'
+check "it reads and writes nothing: the folder of nginx is the same after, and nothing was reloaded" '
+  a="$(cd "$FIX/nginx" && find . | sort | xargs ls -ld --time-style=+%s 2>/dev/null | md5sum)"; st > /dev/null; DELTACTL_NGINX_LOADED_AT=down st > /dev/null
+  b="$(cd "$FIX/nginx" && find . | sort | xargs ls -ld --time-style=+%s 2>/dev/null | md5sum)"; [ "$a" = "$b" ] && [ ! -f "$FIX/nginx.log" ] && [ ! -f "$FIX/systemctl.log" ] && [ ! -e instances/ta-a/proxy ]'
+check "--status cannot be mixed with --apply, --remove or --save, and --json needs --status" '
+  ! bash ./deltactl access ta-a --domain d.example --status --apply >/dev/null 2>&1 && ! bash ./deltactl access ta-a --domain d.example --status --save >/dev/null 2>&1 && ! bash ./deltactl access ta-a --domain d.example --json >/dev/null 2>&1'
+# the tab: the column and the line of what to do, read in the background (in a test only when it is asked for)
+bash ./deltactl access ta-a --domain deltampa.example --host s0="$N0" --host s1="$N1" --no-tls --save > /dev/null 2>&1
+check "the tab has a nginx column with the state of each service when the read was made" '
+  f="$(DELTACTL_TUI_WSACC=1 DELTACTL_NGINX_LOADED_AT=$((NOW + 60)) panel ">" q | frame_n 2)"; echo "$f" | grep -qE "Servicio +Puerto +En servidor +nginx" && [ "$(echo "$f" | grep -c "activo")" -ge 2 ]'
+check "a reload missing: the row says so and the line under the table gives the command" '
+  f="$(DELTACTL_TUI_WSACC=1 DELTACTL_NGINX_LOADED_AT=$((NOW - 3600)) panel ">" q | frame_n 2)"; echo "$f" | grep -q "falta recargar" && echo "$f" | grep -q "s0: instalado: falta recargar nginx" && echo "$f" | grep -q "sudo nginx -t && sudo systemctl reload nginx"'
+check "without the read (the default in a test) there is no column and nothing about nginx is invented" '
+  ! panel ">" q | frame_n 2 | grep -qE "falta recargar|sin instalar|activo en nginx"'
+rm -rf instances/ta-a/proxy
+
 finish
