@@ -154,6 +154,12 @@ nginx: el comando para ponerlo en marcha (`sudo cp … /etc/nginx/conf.d/…`, `
 - **El nombre de cada servicio**: por defecto `<nombre-del-servicio>.<dominio>`; con `--host s0=backlion.deltampa.com --host s1=backguep.deltampa.com` cada
   uno responde en el suyo, y con `--www` también en `www.<nombre>` (el certificado se pide para los dos). Se recuerda en `proxy/access.conf`
   (`HOST_S0=…`, `WWW=1`), que la pestaña Acceso lee y conserva al guardar.
+- **Estado en nginx, por servicio** (`./deltactl access <instancia> --status [--json]` y la columna «nginx» de la pestaña Acceso): se calcula sin root y
+  sin escribir nada. Dice si el bloque está *sin instalar*, *sin activar* (falta el enlace en `sites-enabled/`), *sin certificado*, *distinto de lo que se
+  escribiría ahora* (cambió el dominio, un nombre, el puerto o la plantilla: `a` o `--apply` lo vuelve a escribir), si *nginx está apagado*, si *falta
+  recargar* o si está *activo*, con el comando que sigue debajo de la tabla. «Cargado» se deduce: un `reload` arranca procesos nuevos de nginx, así que si
+  el archivo o su enlace es más nuevo que el proceso más reciente, falta recargar. `a` instala **y recarga**: el «falta recargar» aparece cuando se copió
+  a mano o solo se guardó con `g`. Con Caddy no se calcula.
 - `new --domain D --host sN=NOMBRE --www` lo hace al crear la instancia; `access` lo cambia después (`--save` guarda; sin él es una vista previa).
 
 ## Alias de la consola

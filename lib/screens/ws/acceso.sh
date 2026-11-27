@@ -16,6 +16,9 @@ declare -gA DASH_ACC_DOM=() DASH_ACC_FL=() DASH_ACC_TLS=() DASH_ACC_LOADED=() DA
 # What the instance remembered besides the three answers: the www alias (0|1) and the name of each service that has one of its own ("s0=a.pe s1=b.pe"),
 # written by `./deltactl access`. The tab does not edit them but keeps them: what it generates and saves carries them.
 declare -gA DASH_ACC_WWW=() DASH_ACC_OV=()
+# The state of the nginx block of each service, read in the same background job as the ports (lib/core/proxystate.sh): <instance>/<service> -> state,
+# and the hosts that lack a certificate. Empty until the first read; nothing when there is no domain or the proxy is not nginx.
+declare -gA DASH_ACC_NG=() DASH_ACC_NGM=() DASH_ACC_NGN=()   # (the third: the command that follows, worked out in the background too)
 DASH_ACC_DET="" DASH_ACC_DET_SET=0       # the proxy this server has (nginx | caddy | none), asked once
 DASH_ACC_SCROLL=0 DASH_ACC_N=0          # the first line of the block on screen; a counter that says "something changed" (signature)
 DASH_ACC_SIGM=""                        # the signature of the model that was built
@@ -116,12 +119,48 @@ dash_acc_dump() { # instance
     fi
     printf '%s %s %s\n' "$s" "${port:--}" "$st"
   done
+  dash_acc_ng_lines "$name"
+}
+
+# "ng <service> <state> <hosts without a certificate>" for each service: what the nginx block of each one is in (lib/core/proxystate.sh), against the
+# block the tab would show now (the domain being typed included). Nothing when there is no domain or the proxy is not nginx.
+dash_acc_ng_lines() { # instance
+  local name="$1" dom e svc fl tls
+  local -a svcs
+  fl="${DASH_ACC_FL[$name]:-nginx}"
+  [ "$fl" = nginx ] || return 0
+  tls="${DASH_ACC_TLS[$name]:-1}"
+  read -ra svcs <<< "${DASH_SVCS[$name]:-}"
+  dash_acc_edom "$name"
+  dom="$DASH_ACC_ED"
+  { [ -n "$dom" ] && proxy_host_ok "$dom"; } || return 0
+  proxy_instance_ports "$name" "${svcs[@]}"
+  dash_acc_proxy_vars "$name"
+  proxy_domain_names "$dom" "${svcs[@]}" || return 0
+  for e in "${PROXY_ENTRIES[@]}"; do
+    svc="${e##*|}"
+    proxy_port_ok "${PROXY_PORTS[$svc]:-}" || continue
+    proxy_block_state_r "$name" "$svc" "$tls" "$e"
+    printf 'ng %s %s %s\n' "$svc" "$PSTATE" "${PSTATE_MISSING:-${e%%|*}}"
+    proxy_state_next_r "$PSTATE" "$name" "$svc" "${PSTATE_MISSING:-${e%%|*}}"
+    [ -z "$PSTATE_NEXT" ] || printf 'nx %s %s\n' "$svc" "$PSTATE_NEXT"
+  done
 }
 
 dash_acc_apply() { # instance text
-  local s port st name="$1"
+  local s port st name="$1" k ngsvc ngst ngm
+  # what was known of the blocks is dropped: a service with no line now has no state (the domain was removed, or the proxy changed)
+  for k in "${!DASH_ACC_NG[@]}"; do
+    [[ "$k" != "$name/"* ]] || unset "DASH_ACC_NG[$k]" "DASH_ACC_NGM[$k]" "DASH_ACC_NGN[$k]"
+  done
   while read -r s port st; do
     [ -n "$s" ] || continue
+    if [ "$s" = ng ]; then
+      read -r ngsvc ngst ngm <<< "$port $st"
+      DASH_ACC_NG[$name/$ngsvc]="$ngst" DASH_ACC_NGM[$name/$ngsvc]="$ngm"
+      continue
+    fi
+    if [ "$s" = nx ]; then DASH_ACC_NGN[$name/$port]="$st"; continue; fi
     [ "$port" != "-" ] || port=""
     DASH_ACC_PORT[$name/$s]="$port" DASH_ACC_REACH[$name/$s]="$st"
   done <<< "$2"
@@ -377,15 +416,22 @@ dash_acc_top() { # instance width
 # The table of the services (their port, whether they answer on this server, their public name) into DASH_ACC_TAB.
 DASH_ACC_TAB=()
 dash_acc_table() { # instance width
-  local name="$1" iw="$2" s i port st icon txt line host pw=7 rw=17 withname=1
+  local name="$1" iw="$2" s i port st icon txt line host pw=7 rw=17 withname=1 ngw=18 withng=0 ng ngi ngt
   local -a svcs
   DASH_ACC_TAB=()
   read -ra svcs <<< "${DASH_SVCS[$name]:-}"
   [ "$iw" -ge 58 ] || withname=0
+  # the column of nginx only when some service has a state (the read has been made) and there is room for it and for the names
+  if [ "$iw" -ge 74 ]; then
+    for s in "${svcs[@]}"; do [ -z "${DASH_ACC_NG[$name/$s]:-}" ] || withng=1; done
+  fi
+  [ "$withng" -eq 0 ] || rw=14    # (the column of whether it answers is made shorter to make room: its words are short)
   dt tui.acc.th.svc; line="  $DTV"
   tui_fit "$line" 11; line="$TUI_OUT"
   dt tui.acc.th.port; tui_fit "$DTV" "$pw"; line+="$TUI_OUT"
-  dt tui.acc.th.local; tui_fit "$DTV" "$rw"; line+="  $TUI_OUT"
+  if [ "$withng" -eq 1 ]; then dt tui.acc.th.local_short; else dt tui.acc.th.local; fi
+  tui_fit "$DTV" "$rw"; line+="  $TUI_OUT"
+  if [ "$withng" -eq 1 ]; then dt tui.acc.th.ng; tui_fit "$DTV" "$ngw"; line+="  $TUI_OUT"; fi
   if [ "$withname" -eq 1 ]; then dt tui.acc.th.name; line+="  $DTV"; fi
   tui_fit "$line" "$iw"; DASH_ACC_TAB+=("${TH[dim]:-$C_GRY}$TUI_OUT$TH_RESET")
   for i in "${!svcs[@]}"; do
@@ -404,12 +450,42 @@ dash_acc_table() { # instance width
     if [ -n "$port" ]; then tui_fit ":$port" "$pw"; else tui_fit "-" "$pw"; fi
     line+="$TUI_OUT"
     tui_fit "$txt" "$rw"; line+="  $TUI_OUT"
+    if [ "$withng" -eq 1 ]; then
+      ng="${DASH_ACC_NG[$name/$s]:-}"
+      dash_acc_ng_cell "$ng"; ngi="$KIT_ICON" ngt="$DTV"
+      tui_fit "$ngt" $((ngw - 2)); line+="  $ngi $TUI_OUT"
+    fi
     host="${DASH_ACC_HOSTS[$i]:-}"
     if [ "$withname" -eq 1 ] && [ -n "$host" ]; then line+="  ${TH[accent]:-$C_CYN}$host$TH_RESET"; fi
     tui_fit "$line" "$((iw - 2))"; line="$TUI_OUT"
     if [ "$DASH_FOCUS" = "tab" ] && [ "$i" -eq "$DASH_SVC" ]; then DASH_ACC_TAB+=("$TUI_SEL${TH[accent]:-$C_CYN}$UI_S_SEL$TH_RESET $line")
     else DASH_ACC_TAB+=("  $line"); fi
   done
+  # what the nginx block of the selected service needs, in a line (nothing when it is active or not read yet)
+  s="${svcs[$DASH_SVC]:-}"
+  ng="${DASH_ACC_NG[$name/$s]:-}"
+  if [ -n "$ng" ] && [ "$ng" != active ]; then
+    t_r access.state.$ng "${DASH_ACC_NGM[$name/$s]:-}"; ngt="$T_OUT"
+    line="  ${TH[dim]:-$C_GRY}$s: $ngt"
+    tui_fit "$line$TH_RESET" "$((iw - 2))"; DASH_ACC_TAB+=("$TUI_OUT")
+    if [ -n "${DASH_ACC_NGN[$name/$s]:-}" ]; then
+      tui_fit "    ${TH[dim]:-$C_GRY}${DASH_ACC_NGN[$name/$s]}$TH_RESET" "$((iw - 2))"; DASH_ACC_TAB+=("$TUI_OUT")
+    fi
+  fi
+}
+
+# The icon and the short text of the state of a block (into KIT_ICON and DTV).
+dash_acc_ng_cell() { # state
+  case "$1" in
+    active) kit_state_icon ok ;;
+    reload | installed | stale | disabled | none) kit_state_icon warn ;;
+    nocert | down) kit_state_icon err ;;
+    *) kit_state_icon pend ;;
+  esac
+  case "$1" in
+    '') dt tui.acc.ng.none_read ;;
+    *) dt "tui.acc.ng.$1" ;;
+  esac
 }
 
 ws_acceso_box() { # instance width height

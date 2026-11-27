@@ -60,8 +60,47 @@ access_remove() { # instance svc...
   ok "$(t access.removed "${PROXY_APPLIED[*]}")"
 }
 
+# The state of the nginx block of each selected service (read only: no root, nothing written). The block is the one `access` would write now;
+# PROXY_ENTRIES / PROXY_WWW / PROXY_HOSTS are set by the caller exactly as for proxy_render. See lib/core/proxystate.sh for the states.
+access_status() { # instance flavor tls json "svc svc ..."
+  local name="$1" flavor="$2" tls="$3" json="$4" only=" $5 " e host svc sym first=1 label next
+  if [ "$flavor" != nginx ]; then
+    if [ "$json" -eq 1 ]; then printf '{"instance": "%s", "proxy": "%s", "services": []}\n' "$name" "$flavor"; else info "$(t access.status_caddy)"; fi
+    return 0
+  fi
+  if [ "$json" -eq 1 ]; then
+    printf '{"instance": "%s", "proxy": "nginx", "tls": %s, "services": [' "$name" "$([ "$tls" -eq 1 ] && echo true || echo false)"
+  else
+    info "$(t access.status_title "$name" "$([ "$tls" -eq 1 ] && echo HTTPS || echo HTTP)")"
+  fi
+  for e in "${PROXY_ENTRIES[@]}"; do
+    host="${e%%|*}" svc="${e##*|}"
+    case "$only" in *" $svc "*) ;; *) continue ;; esac
+    proxy_block_state_r "$name" "$svc" "$tls" "$e"
+    proxy_state_next_r "$PSTATE" "$name" "$svc" "${PSTATE_MISSING:-$host}"
+    next="$PSTATE_NEXT"
+    if [ "$json" -eq 1 ]; then
+      [ "$first" -eq 1 ] || printf ', '
+      first=0
+      printf '{"service": "%s", "host": "%s", "state": "%s", "file": "%s", "next": "%s"}' "$svc" "$host" "$PSTATE" "$PSTATE_FILE" "${next//\"/\\\"}"
+      continue
+    fi
+    case "$PSTATE" in
+      active) sym="$(ui_sym ok)" ;;
+      reload | installed | stale | disabled | none) sym="$(ui_sym warn)" ;;
+      nocert | down) sym="$(ui_sym err)" ;;
+      *) sym="$(ui_sym dot)" ;;
+    esac
+    label="$(t "access.state.$PSTATE" "${PSTATE_MISSING:-$host}")"
+    info "  $sym $(printf '%-6s' "$svc") $(printf '%-34s' "$host") $label"
+    [ -z "$next" ] || info "      $(t access.next "$next")"
+  done
+  if [ "$json" -eq 1 ]; then printf ']}\n'; fi
+  return 0
+}
+
 cmd_access() {
-  local name="" dom="" flavor="" tls="" www="" save=0 a spec s h e host port label first=1 apply=0 remove=0 only=""
+  local name="" dom="" flavor="" tls="" www="" save=0 a spec s h e host port label first=1 apply=0 remove=0 only="" status=0 json=0
   local -a act=() hostspec=() sel=() hosts=()
   ASSUME_YES=0
   while [ "$#" -gt 0 ]; do
@@ -77,6 +116,8 @@ cmd_access() {
       --save) save=1; shift ;;
       --apply) apply=1; shift ;;
       --remove) remove=1; shift ;;
+      --status) status=1; shift ;;
+      --json) json=1; shift ;;
       --service) [ "$#" -ge 2 ] || die "$(t new.opt_value "$a")"; only="$2"; shift 2 ;;
       --yes | -y) ASSUME_YES=1; shift ;;
       -*) die "$(t new.unknown_option "$a")" ;;
@@ -95,6 +136,8 @@ cmd_access() {
     sel=("${act[@]}")
   fi
   [ "$apply" -eq 0 ] || [ "$remove" -eq 0 ] || access_usage
+  [ "$status" -eq 0 ] || { [ "$apply" -eq 0 ] && [ "$remove" -eq 0 ] && [ "$save" -eq 0 ]; } || access_usage
+  [ "$json" -eq 0 ] || [ "$status" -eq 1 ] || access_usage
   if [ "$remove" -eq 1 ]; then access_remove "$name" "${sel[@]}"; return; fi
 
   # What the instance remembered, then what the options say over it.
@@ -121,6 +164,7 @@ cmd_access() {
   for s in "${act[@]}"; do proxy_port_ok "${PROXY_PORTS[$s]:-}" || die "$(t access.bad_port "$s" "$name")"; done
   proxy_domain_names "$dom" "${act[@]}" || die "$(t new.domain_invalid "$dom")"
   proxy_render "$flavor" "$tls" "${PROXY_ENTRIES[@]}" || die "$(t new.proxy_render "$flavor" "$PROXY_ERR")"
+  if [ "$status" -eq 1 ]; then access_status "$name" "$flavor" "$tls" "$json" "${sel[*]}"; return; fi
 
   info "$(t access.table_title "$name")"
   for e in "${PROXY_ENTRIES[@]}"; do

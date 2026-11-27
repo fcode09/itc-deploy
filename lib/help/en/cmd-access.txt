@@ -8,6 +8,7 @@ writes nothing under `/etc` and reloads nothing: that is up to you.
 ## Usage
 $ ./deltactl access <instance> [--domain D] [--host sN=NAME]... [--www | --no-www]
     [--tls | --no-tls] [--proxy nginx|caddy] [--save]
+$ ./deltactl access <instance> --status [--json] [--service sN]
 
 ## Example (two services, each with its own name)
 $ ./deltactl access colorado --domain deltampa.com \
@@ -29,9 +30,25 @@ $ sudo nginx -t && sudo systemctl reload nginx
 - `--remove`  disables them (removes the link of `sites-enabled/`; the file of `sites-available/` stays), tests and reloads
 - `--service sN`  limits `--apply` or `--remove` to one service (without it, to all)
 - `--yes`  does not ask
+- `--status`  changes nothing: says, for each service, what state its nginx block is in (see below) and the command that follows
+- `--json`  (with `--status`) the same information for scripts
 - `--save`  keeps the block in `instances/<instance>/proxy/` and remembers the answers in `access.conf`
 
 What you do not say is taken from what the instance remembered (`access.conf`), as the Access tab of the panel does.
+
+## State in nginx (`--status`)
+It is worked out without root and without writing anything, for each service of the instance:
+- `not installed`: there is no file under `/etc/nginx` (`sites-available/<instance>-<service>` or `conf.d/`)
+- `not enabled`: the file is there but its link in `sites-enabled/` is not
+- `the certificate is missing`: the block is HTTPS and the certificate of that name does not exist (it gives you the
+  `certbot` to run)
+- `different from what would be written now`: you changed the domain, a name, the port or the template: apply again with `--apply`
+- `nginx is not running`
+- `nginx needs a reload`: the file (or its link) is newer than the last time nginx loaded its configuration
+- `active in nginx`: installed, enabled, up to date and loaded
+"Loaded" is deduced, not read: nginx does not say when it read each file. A reload starts new worker processes, so the newest
+one marks the last load; a file modified after that is not loaded yet. With Caddy it is not worked out (deltactl writes nothing
+under `/etc`).
 
 ## Templates
 Each service comes from `templates/nginx/<service>.location.conf` (if it does not exist, from `default.location.conf`).
