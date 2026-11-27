@@ -8,6 +8,7 @@ en `/etc` ni recarga nginx: eso lo haces tú.
 ## Uso
 $ ./deltactl access <instancia> [--domain D] [--host sN=NOMBRE]... [--www | --no-www]
     [--tls | --no-tls] [--proxy nginx|caddy] [--save]
+$ ./deltactl access <instancia> --status [--json] [--service sN]
 
 ## Ejemplo (dos servicios, cada uno con su nombre)
 $ ./deltactl access colorado --domain deltampa.com \
@@ -30,8 +31,24 @@ $ sudo nginx -t && sudo systemctl reload nginx
 - `--remove`  los desactiva (quita el enlace de `sites-enabled/`; el archivo de `sites-available/` se queda), prueba y recarga
 - `--service sN`  limita `--apply` o `--remove` a un servicio (sin ella, a todos)
 - `--yes`  no pregunta
+- `--status`  no cambia nada: dice, por servicio, en qué estado está su bloque en nginx (ver abajo) y el comando que sigue
+- `--json`  (con `--status`) la misma información para scripts
 
 Lo que no indicas se toma de lo que la instancia recordó (`access.conf`), igual que hace la pestaña Acceso del panel.
+
+## Estado en nginx (`--status`)
+Se calcula sin root y sin escribir nada, por cada servicio de la instancia:
+- `sin instalar`: no hay archivo en `/etc/nginx` (`sites-available/<instancia>-<servicio>` o `conf.d/`)
+- `sin activar`: el archivo está, pero falta su enlace en `sites-enabled/`
+- `falta el certificado`: el bloque es HTTPS y el certificado de ese nombre no existe (te da el `certbot` que corresponde)
+- `distinto de lo que se escribiría ahora`: cambiaste el dominio, un nombre, el puerto o la plantilla: vuelve a aplicar
+  con `--apply`
+- `nginx no está corriendo`
+- `falta recargar nginx`: el archivo (o su enlace) es más nuevo que la última vez que nginx cargó su configuración
+- `activo en nginx`: instalado, activado, al día y cargado
+«Cargado» se deduce, no se lee: nginx no dice cuándo leyó cada archivo. Un `reload` arranca procesos nuevos, así que el más
+reciente marca la última carga; un archivo modificado después de eso aún no está cargado. Con Caddy no se calcula (deltactl no
+escribe en `/etc`).
 
 ## Plantillas
 Cada servicio sale de `templates/nginx/<servicio>.location.conf` (si no existe, de `default.location.conf`). Dentro,

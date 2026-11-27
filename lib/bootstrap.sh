@@ -53,6 +53,8 @@ source "$ROOT/lib/core/envsync.sh"
 source "$ROOT/lib/core/secretfile.sh"
 # shellcheck source=lib/core/proxy.sh
 source "$ROOT/lib/core/proxy.sh"
+# shellcheck source=lib/core/proxystate.sh
+source "$ROOT/lib/core/proxystate.sh"
 # shellcheck source=lib/core/ports.sh
 source "$ROOT/lib/core/ports.sh"
 # shellcheck source=lib/core/status.sh
