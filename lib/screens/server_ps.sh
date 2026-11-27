@@ -4,7 +4,7 @@
 # are listening (`ss`, crossed with the ports of the instances, with the connections open on each) and the size of the folder of each instance
 # (`du`, the instances box). Nothing else in the view starts a process. They run in the background
 # (dash_async), only while their box is on screen (it needs a tall screen, or the zoom), at most every DELTACTL_PS_TTL / DELTACTL_SS_TTL seconds
-# (5 and 15 by default, kept between 5 and 60) and cut by a time limit. A server without `ps` or `ss` says so in the box instead of failing.
+# (10 and 15 by default, 5 for the processes while their box has the focus; kept between 5 and 60) and cut by a time limit. A server without `ps` or `ss` says so in the box instead of failing.
 # DELTACTL_PS and DELTACTL_SS replace the programs, only inside the tests.
 
 DASH_SRV_PS_RAW="" DASH_SRV_PS_STATE=none DASH_SRV_PS_AT=-1000 DASH_SRV_PSEL=0 DASH_SRV_PTOP=0
@@ -126,7 +126,9 @@ dash_srv_ps_tick() {
   [ "$DASH_VIEW" = "server" ] && [ "$DASH_PAUSED" -eq 0 ] || return 0
   dash_dwelled || return 0   # (passing through the view starts no program)
   if dash_srv_visible procs; then
-    dash_srv_ttl DELTACTL_PS_TTL 5; ttl="$DASH_THR"
+    dash_srv_ttl DELTACTL_PS_TTL 10; ttl="$DASH_THR"
+    # (every 10 s; every 5 s while the box has the focus, unless DELTACTL_PS_TTL says otherwise)
+    if [ -z "${DELTACTL_PS_TTL:-}" ] && [ "$DASH_SRV_FOCUS" = procs ]; then ttl=5; fi
     if [ $((SECONDS - DASH_SRV_PS_AT)) -ge "$ttl" ] && [ -z "${DASH_AS_PID[srvps]:-}" ]; then dash_srv_ps_request; fi
   fi
   if dash_srv_visible inst; then
@@ -141,14 +143,23 @@ dash_srv_ps_tick() {
 
 # Where a process runs into DASH_ORIG: the "instance/service" of the container whose cgroup it is in, "-" for the server's own (the cgroups of
 # the containers are the ones the sampler resolved: MT_CG_MEMDIR). Only a file read per row, no process.
+# The answer is kept per pid for 30 s (the busiest processes are mostly the same ones at every refresh) and forgotten when the containers change.
 DASH_ORIG=""
+declare -gA DASH_ORIGC=()
+DASH_ORIGC_AT=0 DASH_ORIGC_SIG=""
 dash_srv_origin() { # pid
-  local line root="${DELTACTL_CGROUP_ROOT:-/sys/fs/cgroup}" file="${DELTACTL_PROC_ROOT:-/proc}/$1/cgroup"
+  local line file="${DELTACTL_PROC_ROOT:-/proc}/$1/cgroup"
+  if [ "${MT_CG_MEMDIR[*]}" != "$DASH_ORIGC_SIG" ] || [ $((SECONDS - DASH_ORIGC_AT)) -ge 30 ] || [ "${#DASH_ORIGC[@]}" -gt 500 ]; then
+    DASH_ORIGC=() DASH_ORIGC_SIG="${MT_CG_MEMDIR[*]}" DASH_ORIGC_AT="$SECONDS"
+  fi
+  if [ -n "${DASH_ORIGC[$1]+x}" ]; then DASH_ORIG="${DASH_ORIGC[$1]}"; return 0; fi
   DASH_ORIG="-"
-  [ -r "$file" ] || return 0
-  while IFS= read -r line; do
-    case "$line" in *::*) line="${line#*::}"; [ -z "${DASH_ORIGIN[$line]:-}" ] || DASH_ORIG="${DASH_ORIGIN[$line]}"; return 0 ;; esac
-  done < "$file"
+  if [ -r "$file" ]; then
+    while IFS= read -r line; do
+      case "$line" in *::*) line="${line#*::}"; [ -z "${DASH_ORIGIN[$line]:-}" ] || DASH_ORIG="${DASH_ORIGIN[$line]}"; break ;; esac
+    done < "$file"
+  fi
+  DASH_ORIGC[$1]="$DASH_ORIG"
 }
 
 # The busiest processes: pid, user, CPU and memory in percent, where it runs and the command; the cursor is on screen when the box has the focus.
