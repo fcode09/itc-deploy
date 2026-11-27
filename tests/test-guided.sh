@@ -27,7 +27,7 @@ newinst() { # nombre s0tag s1tag [servicios]
   fill_instance "instances/$1" "$2" "$3"
   # Puertos altos y únicos por instancia: los de 4100 en adelante pueden estar ocupados de verdad en esta máquina.
   NEXTP=$((${NEXTP:-28100} + 10))
-  sed -i -e "s/^S0_PORT=.*/S0_PORT=$NEXTP/" -e "s/^S1_PORT=.*/S1_PORT=$((NEXTP + 1))/" "instances/$1/.env.instance"
+  sed -i -e "s/^S0_PORT=.*/S0_PORT=$NEXTP/" -e "s/^S1_PORT=.*/S1_PORT=$((NEXTP + 1))/" -e "s/^ROBIN_PORT=.*/ROBIN_PORT=$((NEXTP + 2))/" "instances/$1/.env.instance"
 }
 calls() { cat "$FIX/calls.log"; }
 

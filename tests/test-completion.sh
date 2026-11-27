@@ -26,7 +26,7 @@ check "es un script de bash válido" 'echo "$script" | bash -n'
 check "registra la función para deltactl, ./deltactl y la ruta absoluta" \
   'echo "$script" | grep -q "complete -F _deltactl_complete deltactl ./deltactl \"$PWD/deltactl\""'
 check "incluye los comandos, temas y servicios del propio código" \
-  'echo "$script" | grep -q "deploy" && echo "$script" | grep -q "nueva-instancia" && echo "$script" | grep -q "cmds=\".*s0 s1\"\\|services=\"s0 s1\""'
+  'echo "$script" | grep -q "deploy" && echo "$script" | grep -q "nueva-instancia" && echo "$script" | grep -q "cmds=\".*s0 s1 robin\"\\|services=\"s0 s1 robin\""'
 check "no deja marcadores @...@ sin sustituir" '! echo "$script" | grep -q "@[A-Z]*@"'
 check "sin shell indicado da el uso" 'bash ./deltactl completion 2>&1 | grep -q "uso: ./deltactl completion bash"'
 check "solo admite bash" 'bash ./deltactl completion zsh 2>&1 | grep -q "solo hay autocompletado para bash"'
@@ -43,19 +43,19 @@ check "un prefijo inexistente no sugiere nada" '[ -z "$(comp deltactl zzz | tr -
 section "3. instancias y servicios"
 check "tras un comando de instancia sugiere las instancias existentes" 'r="$(comp deltactl deploy "")"; has "$r" cp-uno && has "$r" cp-dos'
 check "filtra las instancias por prefijo" '[ "$(comp deltactl deploy cp-u)" = "cp-uno " ]'
-check "tras la instancia sugiere los servicios" '[ "$(comp deltactl deploy cp-uno "")" = "s0 s1 " ]'
+check "tras la instancia sugiere los servicios" '[ "$(comp deltactl deploy cp-uno "")" = "robin s0 s1 " ]'
 for c in rollback stop logs check status; do
   check "$c completa instancias" 'has "$(comp deltactl '"$c"' "")" cp-uno'
 done
 for c in init adopt down ps; do
   check "$c completa instancias y nada más después" 'has "$(comp deltactl '"$c"' "")" cp-dos && [ -z "$(comp deltactl '"$c"' cp-uno "" | tr -d " ")" ]'
 done
-check "images completa los servicios" '[ "$(comp deltactl images "")" = "s0 s1 " ]'
+check "images completa los servicios" '[ "$(comp deltactl images "")" = "robin s0 s1 " ]'
 check "una instancia nueva aparece sin regenerar el script" \
   'bash ./deltactl new cp-tres >/dev/null 2>&1; has "$(comp deltactl deploy "")" cp-tres'
 
 section "4. opciones"
-check "new sugiere sus opciones" '[ "$(comp deltactl new --)" = "--domain --env-file --existing --generate-secrets --host --ip --proxy --s0-image --s0-tag --s1-image --s1-tag --secret-file --services --tls --wizard --www " ]'
+check "new sugiere sus opciones" '[ "$(comp deltactl new --)" = "--domain --env-file --existing --generate-secrets --host --ip --proxy --robin-image --robin-tag --s0-image --s0-tag --s1-image --s1-tag --secret-file --services --tls --wizard --www " ]'
 check "status sugiere sus opciones" '[ "$(comp deltactl status --)" = "--json --stats --strict --watch " ]'
 check "una opción parcial se completa" '[ "$(comp deltactl status --j)" = "--json " ]'
 check "check sugiere --mongo" '[ "$(comp deltactl check cp-uno --)" = "--mongo " ]'

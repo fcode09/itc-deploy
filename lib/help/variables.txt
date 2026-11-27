@@ -15,7 +15,7 @@ no se descarga nada. Con valor (por ejemplo `registry.ejemplo.com/itc`) `deploy`
 `<registry>/<nombre>:<etiqueta>`. Ver `./deltactl help imagenes`.
 
 @ COMPOSE_PROFILES | .env.instance | obligatoria | s0,s1
-Servicios activos de la instancia, separados por coma: `s0,s1`, `s1` o `s0`. Solo los listados se
+Servicios activos de la instancia, separados por coma: `s0,s1,robin`, `s0,s1`, `s1` o `s0`. Solo los listados se
 validan, se descargan y se levantan. Ver `./deltactl help servicios`.
 
 @ S0_IMAGE | .env.instance | opcional | backend-s0
@@ -25,12 +25,18 @@ nombre (por ejemplo `s0`). Minúsculas, números, `.` `_` `-`; admite `/`.
 @ S1_IMAGE | .env.instance | opcional | backend-s1
 Nombre de la imagen de s1, SIN etiqueta ni registry. Igual que `S0_IMAGE`.
 
+@ ROBIN_IMAGE | .env.instance | opcional | backend-robin
+Nombre de la imagen de Robin, SIN etiqueta ni registry. Igual que `S0_IMAGE`.
+
 @ S0_TAG | .env.instance | obligatoria | ninguno
 Etiqueta (versión) de la imagen de s0 que se despliega. Una por versión o commit; evita `latest` y nunca
 reutilices una etiqueta. Las disponibles: `./deltactl images`.
 
 @ S1_TAG | .env.instance | obligatoria | ninguno
 Etiqueta (versión) de la imagen de s1 que se despliega. Igual que `S0_TAG`.
+
+@ ROBIN_TAG | .env.instance | obligatoria | ninguno
+Etiqueta (versión) de la imagen de Robin que se despliega. Igual que `S0_TAG`.
 
 @ S0_PORT | .env.instance | obligatoria | 4100
 Puerto del host donde se publica s0 (solo en 127.0.0.1). Cada instancia usa un bloque de 10 desde 4100.
@@ -39,12 +45,18 @@ Puerto del host donde se publica s0 (solo en 127.0.0.1). Cada instancia usa un b
 @ S1_PORT | .env.instance | obligatoria | 4101
 Puerto del host donde se publica s1 (solo en 127.0.0.1). Normalmente `S0_PORT` + 1.
 
+@ ROBIN_PORT | .env.instance | obligatoria | 4102
+Puerto del host donde se publica Robin (solo en 127.0.0.1). Normalmente `S0_PORT` + 2.
+
 @ S0_MEM_LIMIT | .env.instance | opcional | 110m
 Límite de memoria del contenedor de s0. Ajústalo según la carga real.
 
 @ S1_MEM_LIMIT | .env.instance | opcional | 400m
 Límite de memoria del contenedor de s1. Cada instancia puede abrir hasta 2 Chromium a la vez para los
 reportes PDF; con menos memoria pueden fallar.
+
+@ ROBIN_MEM_LIMIT | .env.instance | opcional | 256m
+Límite de memoria del contenedor de Robin. Provisional: mídelo con la vista Recursos del panel y ajústalo.
 
 @ DATA_DIR | .env.instance | opcional | ./instances/<INSTANCE>/data
 Carpeta de datos de la instancia. Úsala solo si los datos deben vivir fuera del repositorio (otro disco).
@@ -191,3 +203,70 @@ Bandera de funcionalidad. `log` pausa el cambio de reporte y registra una compar
 
 @ SIPCOP_ALERT_RESYNC | .env.s1 | opcional | desactivada
 Bandera de funcionalidad. `on` activa la resincronización de alertas SIPCOP.
+
+@ SERVER_PORT | .env.robin | fija | 3601
+Puerto interno de Robin. Lo fija el compose; no va en el `.env`.
+
+@ JWT_SECRET | .env.robin | obligatoria | ninguno
+Secreto con el que Robin valida los tokens de s0. Debe ser el MISMO que el de `.env.s0` y `.env.s1`
+(`./deltactl new --generate-secrets` y `service add --generate-secrets` lo copian). Sin esta variable el código de
+Robin usa un valor por defecto conocido: por eso aquí es obligatoria.
+
+@ JWT_EXPIRES_IN | .env.robin | opcional | 8h
+Duración de los tokens que emite Robin (`8h`, `30m`, `1d`).
+
+@ ROBIN_MONGO_URI | .env.robin | obligatoria | ninguno
+URI de la base de Robin. Debe ser la MISMA base que `MONGO_ROBIN_URI` de s1 (`robin_<instancia>`).
+
+@ KAFKA_BROKER_IP | .env.robin | obligatoria | host.docker.internal
+Dirección del broker de Kafka. Kafka corre en el host, no en este compose: desde el contenedor es
+`host.docker.internal`.
+
+@ KAFKA_BROKER_PORT | .env.robin | obligatoria | 9092
+Puerto del broker de Kafka.
+
+@ KAFKA_TOPIC | .env.robin | obligatoria | ninguno
+Tópico del que Robin lee las tramas de las unidades. Sin valor la suscripción no se crea.
+
+@ KAFKA_GROUP_ID | .env.robin | obligatoria | robin_<instancia>
+Grupo de consumidores de Kafka. Uno por instancia: con el mismo grupo, dos instancias se repartirían los
+mensajes en vez de recibirlos los dos.
+
+@ DELTA_DISPATCH_URL | .env.robin | obligatoria | http://s1:3000
+URL de Delta Dispatch (s1), de donde Robin pide los turnos y los polígonos. En la red privada de la instancia
+s1 se resuelve por su nombre. Sin barra final.
+
+@ QUERY_FORGE_URL | .env.robin | opcional | ninguno
+URL de Query Forge, que genera los reportes de metas. Sin ella esos reportes fallan; el resto de Robin funciona.
+
+@ QUERY_FORGE_API_KEY | .env.robin | opcional | ninguno
+Clave con la que Robin se identifica ante Query Forge.
+
+@ URI_SIPCOPM | .env.robin | opcional | ninguno
+URL de destino de los datos del serenazgo en SIPCOPM (Link). Sin valor se usa la que está guardada en la
+configuración de la municipalidad (en la base).
+
+@ POLICE_URI_SIPCOPM | .env.robin | opcional | ninguno
+URL de destino de los datos de la policía en SIPCOPM (Link). Igual que `URI_SIPCOPM`.
+
+@ SIPCOP_MAX_CONCURRENT | .env.robin | opcional | 10
+Máximo de envíos simultáneos a SIPCOPM.
+
+@ IP_INTERNAL_CONNECTION | .env.robin | opcional | 127.0.0.1
+Host del servicio de direcciones (conversor geográfico) que Robin consulta por TCP. Dentro del contenedor
+`127.0.0.1` es el propio contenedor: si ese servicio corre en el host, usa `host.docker.internal`.
+
+@ PORT_INTERNAL_CONNECTION | .env.robin | opcional | 7050
+Puerto del servicio de direcciones (conversor geográfico).
+
+@ QUEUE_MAX_SIZE | .env.robin | opcional | 40
+Tamaño máximo de la cola de entrada de tramas; al llenarse se pausa la lectura de Kafka.
+
+@ QUEUE_RESUME_THRESHOLD | .env.robin | opcional | 30
+Cuando la cola baja a este tamaño se reanuda la lectura de Kafka.
+
+@ QUEUE_BATCH_SIZE | .env.robin | opcional | 20
+Tramas que se procesan en cada tanda.
+
+@ QUEUE_POLL_INTERVAL_MS | .env.robin | opcional | 1000
+Milisegundos entre una tanda y la siguiente.

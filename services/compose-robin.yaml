@@ -1,0 +1,42 @@
+# robin = backend-robin (Robin: NestJS + Kafka). Puerto interno 3601; se publica solo en 127.0.0.1:${ROBIN_PORT}.
+services:
+  robin:
+    # REGISTRY vacío = imagen local (backend-robin:<tag>); con valor se antepone (<registry>/backend-robin:<tag>).
+    image: ${REGISTRY:+${REGISTRY}/}${ROBIN_IMAGE:-backend-robin}:${ROBIN_TAG:?define ROBIN_TAG en .env.instance}
+    # ./deltactl fija PULL_POLICY=never cuando REGISTRY está vacío (ver compose-s0.yaml).
+    pull_policy: ${PULL_POLICY:-missing}
+    container_name: robin_${INSTANCE}
+    restart: unless-stopped
+    # El servicio solo corre en las instancias que lo listan en COMPOSE_PROFILES (.env.instance).
+    profiles: ["robin"]
+    # Robin pide a s1 (Delta Dispatch) sus turnos y sus polígonos por HTTP (DELTA_DISPATCH_URL). Solo se
+    # necesita cuando llega una petición, no para arrancar: basta con que s1 haya arrancado, sin esperar a
+    # que esté sano. required: false permite instancias sin s1 (con un Delta Dispatch que corra en otro lugar).
+    depends_on:
+      s1:
+        condition: service_started
+        required: false
+    # La imagen no trae init (como s0): Docker aporta uno.
+    init: true
+    env_file:
+      - ./instances/${INSTANCE}/.env.robin
+    environment:
+      # Fijo: debe coincidir con el puerto interno publicado abajo. Pisa lo que diga .env.robin.
+      SERVER_PORT: "3601"
+    ports:
+      - "127.0.0.1:${ROBIN_PORT:?define ROBIN_PORT en .env.instance}:3601"
+    volumes:
+      # Las rutas son relativas al directorio de trabajo de la imagen (/app): './src/media/file' y
+      # './src/common/assets/geofence/' son los destinos de multer en el código de Robin.
+      - ${DATA_DIR:-./instances/${INSTANCE}/data}/robin/media:/app/src/media
+      - ${DATA_DIR:-./instances/${INSTANCE}/data}/robin/geofence:/app/src/common/assets/geofence
+    # Para llegar a servicios que corren en el host (MongoDB, Kafka).
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    # Memoria provisional: mídela con la vista Recursos del panel y ajusta ROBIN_MEM_LIMIT.
+    mem_limit: ${ROBIN_MEM_LIMIT:-256m}
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"

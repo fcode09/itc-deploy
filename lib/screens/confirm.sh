@@ -24,7 +24,10 @@ dash_dialog_confirm() { # body_height
   dash_wrap "$DASH_CONF_TEXT" 58
   DASH_DLG=("")
   for l in "${DASH_WRAP[@]}"; do DASH_DLG+=(" $l"); done
+  # The keys go inside the box too (the bar under the body is easy to miss, and Enter here means "no": pressing it looked like "nothing happened").
   DASH_DLG+=("")
+  if [ "$UI_UTF8" -eq 1 ] && [ "$UI_RICH" -eq 1 ]; then dt tui.confirm.keys; else dt tui.confirm.keys.ascii; fi
+  DASH_DLG+=(" $C_BLD$DTV$C_OFF" "")
   dash_dialog "$1" "?" 50
 }
 

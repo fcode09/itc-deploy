@@ -30,8 +30,8 @@ check "cada variable del glosario está en el esquema (52 con las del catálogo)
   '[ "$(run "echo \${#ENV_IDS[@]}")" -ge 50 ]'
 check "la clave es archivo|VARIABLE y una misma variable puede estar en dos archivos" \
   'run "[ -n \"\${ENV_KEY[.env.s0|JWT_SECRET]}\" ] && [ -n \"\${ENV_KEY[.env.s1|JWT_SECRET]}\" ]"'
-check "el orden es el del glosario (INSTANCE primero, SIPCOP_ALERT_RESYNC al final)" \
-  '[ "$(run "echo \${ENV_IDS[0]} \${ENV_IDS[-1]}")" = ".env.instance|INSTANCE .env.s1|SIPCOP_ALERT_RESYNC" ]'
+check "el orden es el del glosario (INSTANCE primero, QUEUE_POLL_INTERVAL_MS al final)" \
+  '[ "$(run "echo \${ENV_IDS[0]} \${ENV_IDS[-1]}")" = ".env.instance|INSTANCE .env.robin|QUEUE_POLL_INTERVAL_MS" ]'
 check "tipo del glosario: obligatoria, opcional y fija" \
   '[ "$(run "echo \${ENV_TYPE[.env.s0|JWT_SECRET]} \${ENV_TYPE[.env.s0|JWT_EXPIRES_IN]} \${ENV_TYPE[.env.s0|SERVER_PORT]}")" = "req opt fixed" ]'
 check "el valor por defecto sale del glosario" \

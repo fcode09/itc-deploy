@@ -26,7 +26,7 @@ newinst() { # nombre s0tag s1tag
   bash ./deltactl new "$1" >/dev/null 2>&1
   fill_instance "instances/$1" "$2" "$3"
   NEXTP=$((${NEXTP:-29100} + 10))
-  sed -i -e "s/^S0_PORT=.*/S0_PORT=$NEXTP/" -e "s/^S1_PORT=.*/S1_PORT=$((NEXTP + 1))/" "instances/$1/.env.instance"
+  sed -i -e "s/^S0_PORT=.*/S0_PORT=$NEXTP/" -e "s/^S1_PORT=.*/S1_PORT=$((NEXTP + 1))/" -e "s/^ROBIN_PORT=.*/ROBIN_PORT=$((NEXTP + 2))/" "instances/$1/.env.instance"
 }
 # Ejecuta el menú con las respuestas dadas (una por argumento); stdout y stderr juntos.
 menu() { printf '%s\n' "$@" | bash ./deltactl menu 2>&1; }

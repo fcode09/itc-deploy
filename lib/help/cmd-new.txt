@@ -8,6 +8,7 @@ la instancia se crea igual y la etiqueta se queda en `latest` (con un aviso).
 ## Uso
 $ ./deltactl new <instancia> [--services s0,s1] [--existing]
 $ ./deltactl new <instancia> [--s0-image X] [--s0-tag X] [--s1-image X] [--s1-tag X] [--ip URL] [--generate-secrets]
+$ ./deltactl new <instancia> [--robin-image X] [--robin-tag X]      (y así con cada servicio del catálogo)
 $ ./deltactl new <instancia> [--env-file ARCHIVO] [--secret-file ORIGEN[:NOMBRE]]
 $ ./deltactl new <instancia> --domain DOMINIO [--host sN=NOMBRE] [--www] [--proxy nginx|caddy|both] [--tls]
 $ ./deltactl new --wizard
@@ -24,8 +25,10 @@ confirmar lanza `new` con las respuestas como opciones.
 - `--services s0,s1` servicios activos en la instancia (por defecto s0,s1). Ej.: `--services s1` crea una instancia solo con Gue.
 - `--existing` la municipalidad YA tiene datos: se marca como inicializada y `./deltactl init` no podrá ejecutarse nunca sobre
   ella.
-- `--s0-image <nombre>` y `--s1-image <nombre>` nombre de la imagen de cada servicio (sin etiqueta).
-- `--s0-tag <etiqueta>` y `--s1-tag <etiqueta>` versión a desplegar de cada servicio. Con `latest` se elige la versión
+- `--<servicio>-image <nombre>` (`--s0-image`, `--s1-image`, `--robin-image`…) nombre de la imagen de cada servicio (sin
+  etiqueta).
+- `--<servicio>-tag <etiqueta>` (`--s0-tag`, `--s1-tag`, `--robin-tag`…) versión a desplegar de cada servicio. Con `latest` se
+  elige la versión
   **más reciente** que este servidor puede usar (la ★ de `./deltactl images`: la más nueva por fecha de creación entre
   las etiquetas de versión estable, sin sufijo como `-rc1` o `-debug`, de su arquitectura), no una
   etiqueta llamada `latest`; la instancia guarda la etiqueta que resultó. Solo se resuelven los

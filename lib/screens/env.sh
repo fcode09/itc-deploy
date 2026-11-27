@@ -72,6 +72,22 @@ dash_env_apply() { # instance text
   DASH_ENV_BUSY=0 DASH_ENV_N=$((DASH_ENV_N + 1)) DASH_DIRTY=1
 }
 
+# The files the instance has on disk are not the ones the editor holds: a command that ended may have made one (`service add` writes the
+# `.env.<service>` of the service it activates) or taken one away. Returns 0 when they differ.
+dash_env_files_changed() {
+  [ -n "$DASH_ENV_INST" ] || return 1
+  envedit_files_r "$DASH_ENV_INST"
+  [ "${ENVEDIT_FILES[*]}" != "${KEE_FILES[*]}" ]
+}
+
+# Reads the instance again when its files changed and nothing is staged (staged changes are not lost: they stay as they are, and the list is
+# read again the next time). Returns 0 when it reloaded.
+dash_env_refresh_files() {
+  dash_env_files_changed || return 1
+  ! kee_dirty || return 1
+  dash_env_load "$DASH_ENV_INST"
+}
+
 dash_env_request() {
   [ -n "$DASH_ENV_INST" ] || return 0
   if tui_test_mode; then dash_env_apply "$DASH_ENV_INST" "$(dash_env_dump "$DASH_ENV_INST")"; return 0; fi
@@ -127,6 +143,9 @@ scr_env_enter() {
 scr_env_tick() {
   [ -n "$DASH_ENV_INST" ] || return 0
   if dash_async_take env; then dash_env_apply "${DASH_AS_ARG[env]:-}" "$DASH_AS_TEXT"; fi
-  if [ -n "$JOB_RC" ] && [ "$JOB_SEQ" -ne "$DASH_ENV_SEEN" ]; then DASH_ENV_SEEN="$JOB_SEQ"; dash_env_request; fi
+  if [ -n "$JOB_RC" ] && [ "$JOB_SEQ" -ne "$DASH_ENV_SEEN" ]; then
+    DASH_ENV_SEEN="$JOB_SEQ"
+    dash_env_refresh_files || dash_env_request
+  fi
   if kee_tick; then DASH_DIRTY=1; fi
 }

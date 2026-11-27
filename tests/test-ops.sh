@@ -26,7 +26,7 @@ newinst() { # name [registry]
   bash ./deltactl new "$1" >/dev/null 2>&1
   fill_instance "instances/$1" 1.0 2.0
   NEXTP=$((${NEXTP:-29100} + 10))
-  sed -i -e "s/^S0_PORT=.*/S0_PORT=$NEXTP/" -e "s/^S1_PORT=.*/S1_PORT=$((NEXTP + 1))/" "instances/$1/.env.instance"
+  sed -i -e "s/^S0_PORT=.*/S0_PORT=$NEXTP/" -e "s/^S1_PORT=.*/S1_PORT=$((NEXTP + 1))/" -e "s/^ROBIN_PORT=.*/ROBIN_PORT=$((NEXTP + 2))/" "instances/$1/.env.instance"
   [ -z "${2:-}" ] || sed -i "s/^REGISTRY=.*/REGISTRY=$2/" "instances/$1/.env.instance"
 }
 marker_source() { grep -E '^SOURCE=' "instances/$1/.initialized" 2>/dev/null | cut -d= -f2; }

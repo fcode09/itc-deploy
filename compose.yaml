@@ -11,6 +11,8 @@ include:
     project_directory: .
   - path: services/compose-s1.yaml
     project_directory: .
+  - path: services/compose-robin.yaml
+    project_directory: .
 
 # Red privada de la instancia: todos sus servicios se conectan a ella (la red "default" de
 # Compose) y se resuelven por el nombre del servicio (s0, s1...). Cada instancia tiene su propia

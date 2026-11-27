@@ -8,6 +8,7 @@ answer, the instance is still created and the tag stays `latest` (with a warning
 ## Usage
 $ ./deltactl new <instance> [--services s0,s1] [--existing]
 $ ./deltactl new <instance> [--s0-image X] [--s0-tag X] [--s1-image X] [--s1-tag X] [--ip URL] [--generate-secrets]
+$ ./deltactl new <instance> [--robin-image X] [--robin-tag X]      (and so on for every service of the catalog)
 $ ./deltactl new <instance> [--env-file FILE] [--secret-file SOURCE[:NAME]]
 $ ./deltactl new <instance> --domain DOMAIN [--host sN=NAME] [--www] [--proxy nginx|caddy|both] [--tls]
 $ ./deltactl new --wizard
@@ -23,8 +24,9 @@ terminal, and on confirmation it starts `new` with the answers as options.
 ## Options
 - `--services s0,s1` services active in the instance (s0,s1 by default). E.g.: `--services s1` creates an instance with only Gue.
 - `--existing` the municipality ALREADY has data: it is marked as initialized and `./deltactl init` can never run on it.
-- `--s0-image <name>` and `--s1-image <name>` image name of each service (without a tag).
-- `--s0-tag <tag>` and `--s1-tag <tag>` version to deploy of each service. With `latest` the **most recent** version
+- `--<service>-image <name>` (`--s0-image`, `--s1-image`, `--robin-image`…) image name of each service (without a tag).
+- `--<service>-tag <tag>` (`--s0-tag`, `--s1-tag`, `--robin-tag`…) version to deploy of each service. With `latest` the
+  **most recent** version
   this server can use is chosen (the ★ of `./deltactl images`: the newest by creation date among the
   stable version tags, without a suffix such as `-rc1` or `-debug`, of its architecture), not a tag
   called `latest`; the instance stores the tag it resolved to. Only the services of the instance

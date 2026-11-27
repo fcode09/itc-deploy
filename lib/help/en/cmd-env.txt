@@ -1,6 +1,7 @@
 # env · environment variables of an instance
 
-See, validate and change the variables of `.env.instance`, `.env.s0` and `.env.s1` without an editor, and generate secrets.
+See, validate and change the variables of `.env.instance` and of `.env.<service>` (`.env.s0`, `.env.s1`, `.env.robin`…) without an
+editor, and generate secrets.
 Every value is checked with its rule (port, Mongo URI, base64 of 32 bytes…) before it is written.
 A secret is never shown unless you ask for it.
 
@@ -26,8 +27,9 @@ $ ./deltactl env <instance> pending
 - `pending` which files changed since the last deploy and are not applied yet
 
 ## File and variable
-`file` is `instance`, `s0` or `s1`. A variable that is in a single file is given alone (`S0_PORT`);
-`JWT_SECRET` is in `s0` and in `s1`: write `s0:JWT_SECRET`.
+`file` is `instance` or the key of a service (`s0`, `s1`, `robin`…). A variable that is in a single file is given alone
+(`S0_PORT`);
+`JWT_SECRET` is in every service: write `s0:JWT_SECRET`.
 
 ## Options
 - `--reveal` shows the value of secrets (in `list` and `get`)

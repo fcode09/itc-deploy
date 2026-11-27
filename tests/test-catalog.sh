@@ -15,7 +15,7 @@ TMPD="$(mktemp -d)"
 run() { ROOT="$PWD" bash -c "source lib/bootstrap.sh; $1"; }
 
 section "1. el catálogo reproduce lo que había escrito a mano"
-check "KNOWN_SERVICES = s0 s1, en ese orden" '[ "$(run "echo \${KNOWN_SERVICES[*]}")" = "s0 s1" ]'
+check "KNOWN_SERVICES = s0 s1 robin, en ese orden" '[ "$(run "echo \${KNOWN_SERVICES[*]}")" = "s0 s1 robin" ]'
 check "imagen por defecto de s0 y s1" '[ "$(run "default_repo s0; default_repo s1" | tr "\n" " ")" = "backend-s0 backend-s1 " ]'
 check "un servicio desconocido no tiene imagen por defecto" '! run "default_repo s9" >/dev/null 2>&1'
 check "service_repo_r usa el valor por defecto" '[ "$(run "service_repo_r s1; echo \$SR")" = "backend-s1" ]'
@@ -40,14 +40,16 @@ check "arranque: la capa completa carga en menos de 1,5 s aunque el catálogo se
 section "3. un servicio nuevo es una línea de datos"
 CAT="$TMPD/catalog.data"
 cp lib/core/catalog.data "$CAT"
-printf 's2|walle-backend|walle|3700|2|.env.s2.example|IP_SERVER PORT||s0|1g|media logs|CERT_FILE|TOKEN_SECRET:hex32 JWT_SECRET:shared\n' >> "$CAT"
-check "catalog_load lee otra ruta y suma el servicio" '[ "$(run "catalog_load $CAT; echo \${KNOWN_SERVICES[*]}")" = "s0 s1 s2" ]'
-check "su imagen por defecto sale de la fila" '[ "$(run "catalog_load $CAT; default_repo s2")" = "walle" ]'
-check "su REQUIRED_S2 sale de la fila" '[ "$(run "catalog_load $CAT; echo \${REQUIRED_S2[*]}")" = "IP_SERVER PORT" ]'
-check "valid_service lo acepta" 'run "catalog_load $CAT; valid_service s2"'
-check "una línea mal formada (clave no sN) se ignora" '[ "$(printf "x1|a|b\n" >> "$CAT"; run "catalog_load $CAT; echo \${#KNOWN_SERVICES[@]}")" = "3" ]'
-check "la guía de servicios lo lista en español" '[ "$(run "catalog_load $CAT; catalog_help_lines" | grep -c "^- ")" = "3" ] || run "catalog_load $CAT; catalog_help_lines" | grep -q "walle-backend"'
-check "un comentario o línea vacía no es servicio" '[ "$(printf "\n# comentario\n" >> "$CAT"; run "catalog_load $CAT; echo \${#KNOWN_SERVICES[@]}")" = "3" ]'
+printf 'walle|walle-backend|walle|3700|3|.env.walle.example|IP_SERVER PORT||s0|1g|media logs|CERT_FILE|TOKEN_SECRET:hex32 JWT_SECRET:shared\n' >> "$CAT"
+check "catalog_load lee otra ruta y suma el servicio" '[ "$(run "catalog_load $CAT; echo \${KNOWN_SERVICES[*]}")" = "s0 s1 robin walle" ]'
+check "su imagen por defecto sale de la fila" '[ "$(run "catalog_load $CAT; default_repo walle")" = "walle" ]'
+check "su REQUIRED_WALLE sale de la fila" '[ "$(run "catalog_load $CAT; echo \${REQUIRED_WALLE[*]}")" = "IP_SERVER PORT" ]'
+check "valid_service lo acepta" 'run "catalog_load $CAT; valid_service walle"'
+check "una clave que no es una palabra en minúsculas (1x, Bad-Key) o que es 'instance' se ignora" \
+  '[ "$(printf "1x|a|b\nBad-Key|a|b\ninstance|a|b\n" >> "$CAT"; run "catalog_load $CAT; echo \${#KNOWN_SERVICES[@]}")" = "4" ]'
+check "la clave de un servicio puede ser una palabra (robin) y no solo sN" '[ "$(run "echo \${REQUIRED_ROBIN[0]} \${CAT_OFFSET[robin]} \${CAT_PORT[robin]}")" = "JWT_SECRET 2 3601" ]'
+check "la guía de servicios lo lista en español" '[ "$(run "catalog_load $CAT; catalog_help_lines" | grep -c "^- ")" = "4" ] || run "catalog_load $CAT; catalog_help_lines" | grep -q "walle-backend"'
+check "un comentario o línea vacía no es servicio" '[ "$(printf "\n# comentario\n" >> "$CAT"; run "catalog_load $CAT; echo \${#KNOWN_SERVICES[@]}")" = "4" ]'
 
 section "4. new crea lo que dice el catálogo"
 bash ./deltactl new ct-uno --generate-secrets >/dev/null 2>&1
@@ -68,23 +70,23 @@ check "--s1-tag y --s0-image siguen funcionando" \
 section "5. new con un servicio que solo existe en el catálogo"
 # Copia aislada: se añade la fila, su plantilla y su variable de puerto, y no hace falta tocar ningún .sh.
 cp lib/core/catalog.data "$TMPD/orig.data"
-printf 's2|walle-backend|walle|3700|2|.env.s2.example|IP_SERVER||s0|1g|media logs||TOKEN_SECRET:hex32 JWT_SECRET:shared\n' >> lib/core/catalog.data
-printf 'IP_SERVER=CAMBIAR\nTOKEN_SECRET=CAMBIAR\nMONGO_X=mongodb://h/CAMBIAR_walle_INSTANCIA\n' > templates/.env.s2.example
-bash ./deltactl new ct-wal --services s0,s2 --s2-tag 9 --s2-image walle-x --generate-secrets >/dev/null 2>&1
-check "crea .env.s2 desde su plantilla" '[ -f instances/ct-wal/.env.s2 ] && [ "$(stat -c %a instances/ct-wal/.env.s2)" = "600" ]'
-check "crea sus carpetas de datos" '[ -d instances/ct-wal/data/s2/media ] && [ -d instances/ct-wal/data/s2/logs ]'
+printf 'walle|walle-backend|walle|3700|3|.env.walle.example|IP_SERVER||s0|1g|media logs||TOKEN_SECRET:hex32 JWT_SECRET:shared\n' >> lib/core/catalog.data
+printf 'IP_SERVER=CAMBIAR\nTOKEN_SECRET=CAMBIAR\nMONGO_X=mongodb://h/CAMBIAR_walle_INSTANCIA\n' > templates/.env.walle.example
+bash ./deltactl new ct-wal --services s0,walle --walle-tag 9 --walle-image walle-x --generate-secrets >/dev/null 2>&1
+check "crea .env.walle desde su plantilla" '[ -f instances/ct-wal/.env.walle ] && [ "$(stat -c %a instances/ct-wal/.env.walle)" = "600" ]'
+check "crea sus carpetas de datos" '[ -d instances/ct-wal/data/walle/media ] && [ -d instances/ct-wal/data/walle/logs ]'
 check "su puerto es base + desplazamiento" \
-  'p="$(grep ^S0_PORT= instances/ct-wal/.env.instance | cut -d= -f2)"; grep -q "^S2_PORT=$((p + 2))$" instances/ct-wal/.env.instance'
-check "guarda su etiqueta e imagen" 'grep -q "^S2_TAG=9" instances/ct-wal/.env.instance && grep -q "^S2_IMAGE=walle-x" instances/ct-wal/.env.instance'
+  'p="$(grep ^S0_PORT= instances/ct-wal/.env.instance | cut -d= -f2)"; grep -q "^WALLE_PORT=$((p + 3))$" instances/ct-wal/.env.instance'
+check "guarda su etiqueta e imagen" 'grep -q "^WALLE_TAG=9" instances/ct-wal/.env.instance && grep -q "^WALLE_IMAGE=walle-x" instances/ct-wal/.env.instance'
 check "genera sus secretos y comparte el JWT con el resto" \
-  '[ -n "$(grep ^TOKEN_SECRET= instances/ct-wal/.env.s2 | cut -d= -f2)" ] && ! grep -q "TOKEN_SECRET=CAMBIAR" instances/ct-wal/.env.s2 && grep -q "^JWT_SECRET=$(grep ^JWT_SECRET= instances/ct-wal/.env.s0 | cut -d= -f2)$" instances/ct-wal/.env.s2'
-check "el nombre de la instancia entra en el marcador de la base" 'grep -q "walle_ct-wal" instances/ct-wal/.env.s2'
-check "list muestra la columna del servicio nuevo" 'bash ./deltactl list 2>&1 | grep -q "S2_TAG"'
+  '[ -n "$(grep ^TOKEN_SECRET= instances/ct-wal/.env.walle | cut -d= -f2)" ] && ! grep -q "TOKEN_SECRET=CAMBIAR" instances/ct-wal/.env.walle && grep -q "^JWT_SECRET=$(grep ^JWT_SECRET= instances/ct-wal/.env.s0 | cut -d= -f2)$" instances/ct-wal/.env.walle'
+check "el nombre de la instancia entra en el marcador de la base" 'grep -q "walle_ct-wal" instances/ct-wal/.env.walle'
+check "list muestra la columna del servicio nuevo" 'bash ./deltactl list 2>&1 | grep -q "WALLE_TAG"'
 check "deploy valida las variables obligatorias del servicio nuevo" \
-  'sed -i "s/^COMPOSE_PROFILES=.*/COMPOSE_PROFILES=s2/" instances/ct-wal/.env.instance; sed -i "s/^IP_SERVER=.*/IP_SERVER=/" instances/ct-wal/.env.s2; out="$(DELTACTL_NO_RUNS=1 bash ./deltactl deploy ct-wal 2>&1)"; echo "$out" | grep -q "IP_SERVER"'
-check "la ayuda de servicios lo lista" 'bash ./deltactl help servicios 2>&1 | grep -q "s2. walle-backend"'
-check "el completado de new ofrece sus opciones" 'bash ./deltactl completion bash | grep -q -- "--s2-image .*--s2-tag"'
+  'sed -i "s/^COMPOSE_PROFILES=.*/COMPOSE_PROFILES=walle/" instances/ct-wal/.env.instance; sed -i "s/^IP_SERVER=.*/IP_SERVER=/" instances/ct-wal/.env.walle; out="$(DELTACTL_NO_RUNS=1 bash ./deltactl deploy ct-wal 2>&1)"; echo "$out" | grep -q "IP_SERVER"'
+check "la ayuda de servicios lo lista" 'bash ./deltactl help servicios 2>&1 | grep -q "walle. walle-backend"'
+check "el completado de new ofrece sus opciones" 'bash ./deltactl completion bash | grep -q -- "--walle-image .*--walle-tag"'
 cp "$TMPD/orig.data" lib/core/catalog.data
-rm -f templates/.env.s2.example
+rm -f templates/.env.walle.example
 
 finish
