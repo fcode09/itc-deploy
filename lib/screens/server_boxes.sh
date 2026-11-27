@@ -502,7 +502,7 @@ dash_srv_crows() {
 DASH_SRV_SHOW_NC=0   # 1: the services that were never created are listed too (h)
 DASH_SRV_CSEL=0 DASH_SRV_CTOP=0
 dash_srv_containers() { # width height
-  local w="$1" h="$2" cw=$(($1 - 4)) ch=$(($2 - 2)) zm="$DASH_SRV_ZM" mk k n nk rows top sel key name svc st kind cpu mem lim pct c up port rs sc sm sw mw iw tier sp sm_txt pids=0 chip=""
+  local w="$1" h="$2" cw=$(($1 - 4)) ch=$(($2 - 2)) zm="$DASH_SRV_ZM" mk k n nk rows top sel key name svc st kind cpu mem lim pct c up port rs sc sm sw mw iw tier sp sm_txt pids=0 chip="" ex exw io net
   local -a cols=() rws=()
   DASH_SRV_L=()
   nk="${#DASH_SRV_CK[@]}"
@@ -510,9 +510,10 @@ dash_srv_containers() { # width height
   # memory; then the port; then how long it has been up and its restarts. The trends take what is left, 8 to 30 cells each.
   tier=1
   if [ "$cw" -ge 118 ]; then tier=3; elif [ "$cw" -ge 92 ]; then tier=2; fi
-  iw=12; sc=0 sm=0 mw=10
+  iw=12; sc=0 sm=0 mw=10 ex=0 exw=0
+  [ "$cw" -lt 150 ] || { ex=1 exw=22; }   # (from 150 cells the table also has the disk and the network of each container)
   case "$tier" in
-    3) mw=26; sw=$((cw - (6 + iw + 12 + 8 + 6 + 6 + 6 + mw) - 9)); sc=$((sw / 2)); [ "$sc" -le 30 ] || sc=30; sm="$sc"
+    3) mw=26; sw=$((cw - (6 + iw + 12 + 8 + 6 + 6 + 6 + mw) - 9 - exw)); sc=$((sw / 2)); [ "$sc" -le 30 ] || sc=30; sm="$sc"
        if [ "$sc" -lt 8 ]; then tier=2; fi ;;
   esac
   if [ "$tier" -eq 2 ]; then
@@ -521,7 +522,7 @@ dash_srv_containers() { # width height
   fi
   if [ "$tier" -eq 1 ]; then mw=10; sc=0 sm=0; iw=$((cw - (6 + 12 + 6 + mw) - 4)); [ "$iw" -le 18 ] || iw=18; [ "$iw" -ge 6 ] || iw=6; fi
   # Zoomed with room: the processes of each container.
-  if [ "$zm" -eq 1 ] && [ "$tier" -eq 3 ] && [ "$cw" -ge 140 ]; then pids=1; sc=$((sc - 3)); [ "$sc" -ge 8 ] || sc=8; fi
+  if [ "$zm" -eq 1 ] && [ "$tier" -eq 3 ] && [ "$cw" -ge 140 ]; then pids=1; sc=$((sc - 3 - ex * 3)); [ "$sc" -ge 8 ] || sc=8; sm=$((sm - ex * 3)); [ "$sm" -ge 8 ] || sm=8; fi
   dt tui.res.col.svc; cols+=("$DTV|6|l")
   dt tui.res.col.instance; cols+=("$DTV|$iw|l")
   dt tui.res.col.state; cols+=("$DTV|12|l")
@@ -531,6 +532,7 @@ dash_srv_containers() { # width height
   [ "$sc" -le 0 ] || { dt tui.res.col.trend; cols+=("$DTV|$sc|l"); }
   dt tui.res.col.mem; cols+=("$DTV|$mw|l")
   [ "$sm" -le 0 ] || { dt tui.res.col.trend; cols+=("$DTV|$sm|l"); }
+  [ "$tier" -ne 3 ] || [ "$ex" -eq 0 ] || { dt tui.srv.col.io; cols+=("$DTV|10|r"); dt tui.srv.col.net; cols+=("$DTV|10|r"); }
   [ "$pids" -eq 0 ] || { dt tui.srv.col.pids; cols+=("$DTV|5|r"); }
   # The window over the rows: it keeps the cursor in view. A line at the end holds the folded ones.
   rows=$((ch - 1))
@@ -592,6 +594,11 @@ dash_srv_containers() { # width height
     [ "$sc" -le 0 ] || c+="$KIT_SEP$sp"
     c+="$KIT_SEP$mem"
     [ "$sm" -le 0 ] || c+="$KIT_SEP$sm_txt"
+    if [ "$tier" -eq 3 ] && [ "$ex" -eq 1 ]; then
+      dash_srv_iorate "${MT_IOR[$key]:-}" "${MT_IOW[$key]:-}"; io="$DASH_IOR"
+      dash_srv_iorate "${MT_NRX[$key]:-}" "${MT_NTX[$key]:-}"; net="$DASH_IOR"
+      c+="$KIT_SEP$io$KIT_SEP$net"
+    fi
     [ "$pids" -eq 0 ] || c+="$KIT_SEP${MT_PIDS[$key]:--}"
     rws+=("$c")
   done
@@ -604,4 +611,104 @@ dash_srv_containers() { # width height
   fi
   if [ "$DASH_SRV_FOCUS" = "containers" ] || [ "$zm" -eq 1 ]; then dt "tui.res.sort.$DASH_RES_SORT"; chip="$DTV"; dash_srv_t tui.res.sort "$chip"; chip="$DASH_T"; fi
   dash_srv_mbox containers "$w" "$h" "$((DASH_SRV_NT - DASH_SRV_NC))/$DASH_SRV_NT" "$chip"
+}
+
+# --- Instances ------------------------------------------------------------------------------------------------------------------
+
+# The rate of two counters ("12K/s 3K/s" as read and written, or received and sent) into DASH_IOR; a dash while there is no reading.
+DASH_IOR=""
+dash_srv_iorate() { # first second
+  local a="" b=""
+  if [ -n "$1" ]; then mt_bytes_v "$1"; a="$MT_B"; fi
+  if [ -n "$2" ]; then mt_bytes_v "$2"; b="$MT_B"; fi
+  if [ -z "$a$b" ]; then DASH_IOR="-"; return 0; fi
+  DASH_IOR="${a:--}/${b:--}"
+}
+
+# The instances that have a service in the table of containers, in the order of its first service, into DASH_SRV_IK.
+DASH_SRV_IK=() DASH_SRV_ISEL=0 DASH_SRV_ITOP=0
+dash_srv_irows() {
+  local key name seen=" "
+  DASH_SRV_IK=()
+  for key in ${DASH_SRV_CK[@]+"${DASH_SRV_CK[@]}"}; do
+    name="${key%%/*}"
+    case "$seen" in *" $name "*) ;; *) seen+="$name "; DASH_SRV_IK+=("$name") ;; esac
+  done
+}
+
+# The services of every instance added up: what each instance costs the server, with the service that weighs most. One row per instance:
+# its services running, CPU (tenths of a core summed), memory (and its share of the server's), the disk read and written and the network
+# received and sent per second, the limits that hurt (CPU throttled, processes killed for lack of memory) and the service with most memory.
+# Enter opens the instance. It is built from the figures in memory (no process).
+dash_srv_inst() { # width height
+  local w="$1" h="$2" cw=$(($1 - 4)) ch=$(($2 - 2)) zm="$DASH_SRV_ZM" n nk rows top sel i name key svc k tier=1 mk c lim pct
+  local cpu mem io net thr oom top_key top_mem run tot pids lm th_max oom_sum ior iow nrx ntx kb
+  local -a cols=() rws=()
+  DASH_SRV_L=()
+  nk="${#DASH_SRV_IK[@]}"
+  [ "$cw" -lt 56 ] || tier=2
+  [ "$cw" -lt 94 ] || tier=3
+  dt tui.res.col.instance; cols+=("$DTV|*|l")
+  [ "$tier" -lt 2 ] || { dt tui.srv.col.svcs; cols+=("$DTV|4|r"); }
+  dt tui.res.col.cpu; cols+=("$DTV|6|r")
+  dt tui.res.col.mem; cols+=("$DTV|$((tier >= 2 ? 19 : 9))|l")
+  [ "$tier" -lt 2 ] || { dt tui.srv.col.io; cols+=("$DTV|10|r"); }
+  [ "$tier" -lt 3 ] || { dt tui.srv.col.data; cols+=("$DTV|8|r"); }
+  [ "$tier" -lt 3 ] || { dt tui.srv.col.net; cols+=("$DTV|10|r"); dt tui.srv.col.limits; cols+=("$DTV|13|l"); dt tui.srv.col.top; cols+=("$DTV|5|l"); }
+  rows=$((ch - 1))
+  [ "$DASH_SRV_ISEL" -lt "$nk" ] || DASH_SRV_ISEL=$((nk - 1))
+  [ "$DASH_SRV_ISEL" -ge 0 ] || DASH_SRV_ISEL=0
+  top="$DASH_SRV_ITOP"
+  [ "$DASH_SRV_ISEL" -ge "$top" ] || top="$DASH_SRV_ISEL"
+  [ "$DASH_SRV_ISEL" -lt $((top + rows)) ] || top=$((DASH_SRV_ISEL - rows + 1))
+  [ $((top + rows)) -le "$nk" ] || top=$((nk - rows))
+  [ "$top" -ge 0 ] || top=0
+  DASH_SRV_ITOP="$top"
+  sel=-1
+  if [ "$DASH_SRV_FOCUS" = "inst" ] && [ "$nk" -gt 0 ]; then sel=$((DASH_SRV_ISEL - top)); fi
+  for ((i = top; i < nk && i < top + rows; i++)); do
+    name="${DASH_SRV_IK[$i]}"
+    cpu=0 mem=0 lim=0 run=0 tot=0 pids=0 th_max=0 oom_sum=0 ior="" iow="" nrx="" ntx="" top_key="" top_mem=-1
+    for key in ${DASH_SRV_CK[@]+"${DASH_SRV_CK[@]}"}; do
+      [ "${key%%/*}" = "$name" ] || continue
+      tot=$((tot + 1))
+      case "${DSV_KIND[$key]:-}" in ok) run=$((run + 1)) ;; esac
+      [ -z "${MT_CPU[$key]:-}" ] || cpu=$((cpu + MT_CPU[$key]))
+      if [ -n "${MT_MEM[$key]:-}" ]; then
+        mem=$((mem + MT_MEM[$key]))
+        [ "${MT_MEM[$key]}" -le "$top_mem" ] || { top_mem="${MT_MEM[$key]}"; top_key="${key#*/}"; }
+      fi
+      [ -z "${MT_LIM[$key]:-}" ] || lim=$((lim + MT_LIM[$key]))
+      [ -z "${MT_PIDS[$key]:-}" ] || pids=$((pids + MT_PIDS[$key]))
+      [ "${MT_THR[$key]:-0}" -le "$th_max" ] || th_max="${MT_THR[$key]}"
+      [ -z "${MT_OOM[$key]:-}" ] || oom_sum=$((oom_sum + MT_OOM[$key]))
+      if [ -n "${MT_IOR[$key]:-}" ]; then ior=$((${ior:-0} + MT_IOR[$key])) iow=$((${iow:-0} + ${MT_IOW[$key]:-0})); fi
+      if [ -n "${MT_NRX[$key]:-}" ]; then nrx=$((${nrx:-0} + MT_NRX[$key])) ntx=$((${ntx:-0} + ${MT_NTX[$key]:-0})); fi
+    done
+    mt_tenths_v "$cpu"; th_grad cpu $((cpu / 10)); cpu="$TH_C$MT_T%$TH_RESET"
+    mt_bytes_v "$mem"; c="$MT_B"
+    if [ "$lim" -gt 0 ]; then pct=$((mem * 100 / lim)); mt_bytes_v "$lim"; c+="/$MT_B"
+    elif [ -n "${MT_HOST_TOTAL_KB:-}" ] && [ "$MT_HOST_TOTAL_KB" -gt 0 ]; then pct=$((mem / 1024 * 100 / MT_HOST_TOTAL_KB)); else pct=0; fi
+    if [ "$tier" -ge 2 ]; then kit_meter "$pct" 4 mem; printf -v lm '%3d%%' "$pct"; mem="$KIT_OUT$lm $c"; else mem="$c"; fi
+    dash_srv_iorate "$ior" "$iow"; io="$DASH_IOR"
+    dash_srv_iorate "$nrx" "$ntx"; net="$DASH_IOR"
+    thr="" ; if [ "$th_max" -gt 0 ]; then thr="${TH[warn]:-}cpu $th_max%$TH_RESET"; fi
+    if [ "$oom_sum" -gt 0 ]; then thr+="${thr:+ }${TH[err]:-}oom $oom_sum$TH_RESET"; fi
+    [ -n "$thr" ] || thr="${TH[dim]:-}-$TH_RESET"
+    mk="  "; if [ "$i" -eq "$DASH_SRV_ISEL" ] && [ "$sel" -ge 0 ]; then mk="$UI_S_SEL "; fi
+    c="$mk$name"
+    [ "$tier" -lt 2 ] || c+="$KIT_SEP$run/$tot"
+    c+="$KIT_SEP$cpu$KIT_SEP$mem"
+    [ "$tier" -lt 2 ] || c+="$KIT_SEP$io"
+    if [ "$tier" -ge 3 ]; then
+      if [ -n "${DASH_SRV_DU[$name]:-}" ]; then dash_srv_kb "${DASH_SRV_DU[$name]}"; kb="$DASH_SZ"; else kb="-"; fi
+      c+="$KIT_SEP$kb$KIT_SEP$net$KIT_SEP$thr$KIT_SEP${top_key:--}"
+    fi
+    rws+=("$c")
+  done
+  dt tui.res.none
+  kit_table "$cw" "$ch" cols rws mag=cpu "sel=$sel" "empty=$DTV"
+  DASH_SRV_L=("${KTB_LINES[@]}")
+  if [ "$sel" -lt 0 ]; then DASH_SRV_L=("${KTB_LINES[@]#"$TUI_SEL"}"); fi
+  dash_srv_mbox inst "$w" "$h" "$nk"
 }

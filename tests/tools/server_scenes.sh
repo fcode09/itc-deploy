@@ -101,6 +101,10 @@ srv_host() {
   ST_RESTARTS=([colorado/s0]=0 [colorado/s1]=0 [piura/s0]=0 [piura/s1]=3)
   MT_CPU=([colorado/s0]=37 [colorado/s1]=412 [piura/s0]=25 [piura/s1]=873)
   MT_PIDS=([colorado/s0]=24 [colorado/s1]=61 [piura/s0]=22 [piura/s1]=75)
+  MT_IOR=([colorado/s0]=0 [colorado/s1]=1310720 [piura/s0]=4096 [piura/s1]=9437184) MT_IOW=([colorado/s0]=2048 [colorado/s1]=524288 [piura/s0]=0 [piura/s1]=3145728)
+  MT_NRX=([colorado/s0]=3072 [colorado/s1]=262144 [piura/s0]=1024 [piura/s1]=1572864) MT_NTX=([colorado/s0]=1024 [colorado/s1]=131072 [piura/s0]=512 [piura/s1]=786432)
+  DASH_SRV_DU=([colorado]=12582912 [piura]=4194304)
+  MT_THR=([colorado/s0]=0 [colorado/s1]=0 [piura/s0]=0 [piura/s1]=8) MT_OOM=([colorado/s0]=0 [colorado/s1]=0 [piura/s0]=0 [piura/s1]=0)
   MT_MEM=([colorado/s0]=205520896 [colorado/s1]=1288490188 [piura/s0]=188743680 [piura/s1]=1932735283)
   MT_LIM=([colorado/s0]=536870912 [colorado/s1]=2147483648 [piura/s0]=536870912 [piura/s1]=2147483648)
   # shellcheck disable=SC2004  # MT_HCPU is an associative array: the key is a name, not arithmetic
@@ -117,12 +121,12 @@ srv_ps_ss() {
    611 root       0.4  0.1 containerd
    907 www-data   0.2  0.1 nginx
      1 root       0.0  0.0 systemd'
-  DASH_SRV_SS_RAW=$'22|0.0.0.0|sshd
-80|0.0.0.0|nginx
-443|0.0.0.0|nginx
-4100|0.0.0.0|docker-proxy
-4101|0.0.0.0|docker-proxy
-27017|127.0.0.1|mongod'
+  DASH_SRV_SS_RAW=$'22|0.0.0.0|sshd|2
+80|0.0.0.0|nginx|41
+443|0.0.0.0|nginx|87
+4100|0.0.0.0|docker-proxy|12
+4101|0.0.0.0|docker-proxy|3
+27017|127.0.0.1|mongod|1'
 }
 
 # 64 cores (a big server): the grid of the CPU box must say how many it leaves out and not cover the graph.
@@ -135,7 +139,7 @@ srv_many_cores() {
 # 40 containers of 10 instances: the table scrolls, keeps the cursor in view and the box asks for the height it can have.
 srv_many_containers() {
   local i s key n
-  DASH_NAMES=() DASH_SVCS=() DSV_KIND=() DSV_TEXT=() DSV_CODES=() DSV_UP=() DSV_PORT=() ST_RESTARTS=() MT_MEM=() MT_LIM=() MT_CPU=() MT_HCPU=() MT_PIDS=()
+  DASH_NAMES=() DASH_SVCS=() DSV_KIND=() DSV_TEXT=() DSV_CODES=() DSV_UP=() DSV_PORT=() ST_RESTARTS=() MT_MEM=() MT_LIM=() MT_CPU=() MT_HCPU=() MT_PIDS=() MT_IOR=() MT_IOW=() MT_NRX=() MT_NTX=() MT_THR=() MT_OOM=()
   for ((i = 1; i <= 10; i++)); do
     printf -v n 'inst%02d' "$i"
     DASH_NAMES+=("$n")
@@ -182,6 +186,7 @@ server_scene() { # name
       srv_prereqs_ok
       HOST_DISK_PCT=(96 22 91) HOST_MEMD_AVAIL=524288 HOST_MEMD_USED=11534336 HOST_TEMP_CPU_C=96 HOST_TEMP_CPU_CRIT=100
       DSV_KIND[colorado/s1]=err DSV_TEXT[colorado/s1]=exited
+      MT_THR[piura/s1]=40 MT_OOM[piura/s1]=2   # a CPU limit that is too low and a process killed for lack of memory
       ;;
     ok-open) srv_prereqs_ok; DASH_SRV_MODAL=1; DASH_SRV_SEL=4 ;;   # the modal with everything fine
     focus-containers) srv_prereqs_ok; DASH_SRV_FOCUS=containers; DASH_SRV_CSEL=2 ;;

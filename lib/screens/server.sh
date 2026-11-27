@@ -20,10 +20,12 @@
 # The warnings (dash_srv_alerts) have fixed thresholds that an environment variable moves: DELTACTL_ALERT_DISK_WARN / _DISK_ERR (percent
 # used, 85 / 95), DELTACTL_ALERT_MEM_AVAIL (percent available below which it warns, 10; below half of it, it is an error),
 # DELTACTL_ALERT_SWAP (percent of swap in use, 50), DELTACTL_ALERT_LOAD_PCT (load of one minute over the cores, in percent, 100),
-# DELTACTL_ALERT_TEMP_MARGIN (degrees below the critical temperature of the CPU, 10).
+# DELTACTL_ALERT_TEMP_MARGIN (degrees below the critical temperature of the CPU, 10), DELTACTL_ALERT_THROTTLE (percent of the CPU periods a
+# container was held back in, 25).
 #
-# Below the strip the figures are boxes: cpu, memory, disks, network, containers (lib/screens/server_boxes.sh) and, on a tall screen, the busiest
-# processes and the ports that listen (lib/screens/server_ps.sh, the only ones that start a program, in the background). How they are laid out
+# Below the strip the figures are boxes: cpu, memory, disks, network, containers (lib/screens/server_boxes.sh) and, on a tall screen, the
+# instances (their services added up: CPU, memory, disk, network, limits), the busiest
+# processes (with where each one runs) and the ports that listen (lib/screens/server_ps.sh, the only ones that start a program, in the background). How they are laid out
 # depends on the size of the screen (see scr_server_render): the more room, the more boxes side by side, the more columns, the longer the history.
 #
 # Keys. One box has the focus (Tab and Shift+Tab move it; DASH_SRV_FOCUS): Up/Down choose a requirement or a container (or a process or a port) ·
@@ -37,7 +39,7 @@ DASH_SRV_SEL=0           # the requirement under the cursor (index into DASH_SRV
 DASH_SRV_OPEN=0          # 1: the detail of the requirement is open (every result, with its hint)
 DASH_SRV_MODAL=0         # 1: the modal with the requirements is open (Enter on the strip); the strip itself never grows
 DASH_SRV_ZOOM=0          # 1: only the metrics (m)
-DASH_SRV_FOCUS=req       # the box that has the keys: req, cpu, mem, disks, net, containers, procs or ports
+DASH_SRV_FOCUS=req       # the box that has the keys: req, cpu, mem, disks, net, containers, inst, procs or ports
 DASH_SRV_PZ=""           # the box that is zoomed (z): it takes the whole body and shows everything it has
 DASH_SRV_ZM=0            # 1 while a zoomed box is being drawn
 DASH_SRV_STATE=none      # none (never asked) | loading (first answer pending) | ready
@@ -400,6 +402,14 @@ dash_srv_alerts() {
     case "$kind" in err | warn) ;; *) continue ;; esac
     dash_srv_t tui.srv.al.cont "$key" "${DSV_TEXT[$key]:-}"
     if [ "$kind" = err ]; then errs+=("err|containers|$DASH_T"); else warns+=("warn|containers|$DASH_T"); fi
+  done
+  # The limits of the containers: one held back by its CPU limit (throttled) and processes killed for lack of memory.
+  dash_srv_thr DELTACTL_ALERT_THROTTLE 25; cap="$DASH_THR"
+  for key in "${!MT_THR[@]}"; do
+    if [ "${MT_THR[$key]}" -ge "$cap" ]; then dash_srv_t tui.srv.al.thr "$key" "${MT_THR[$key]}"; warns+=("warn|inst|$DASH_T"); fi
+  done
+  for key in "${!MT_OOM[@]}"; do
+    if [ "${MT_OOM[$key]}" -gt 0 ]; then dash_srv_t tui.srv.al.oom "$key" "${MT_OOM[$key]}"; warns+=("warn|inst|$DASH_T"); fi
   done
   # The requirements: what is required and fails, what is required and warns, and the clock.
   if [ "$DASH_SRV_STATE" = "ready" ]; then

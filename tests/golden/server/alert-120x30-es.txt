@@ -2,7 +2,7 @@
   ITC  testhost · Memoria ███░░░ 5.6/11.5 GB 48% ▂▁▄▂▁▄ · Carga 3.18 · Docker 27.0.0 · contenedores 3.3G
  [1 Servidor] 2 Imágenes 3 Instancias 4 Recursos 5 Salida 6 Ejecuciones 7 Procesos 8 Consola 9 Variables 0 Actividad   
 ╭─┐ ▸requisitos ┌─────────────────────────────────────────────────────────────────────────────────────────┐9/9 listos┌─╮
-│  disco / 96% · carga 3.18↗ · 8 núcleos · activo 02:22 · ▼ 4.0 MiB/s ▲ 1.4 KiB/s · ✖ 6 avisos: disco / al 96%         │
+│  disco / 96% · carga 3.18↗ · 8 núcleos · activo 02:22 · ▼ 4.0 MiB/s ▲ 1.4 KiB/s · ✖ 8 avisos: disco / al 96%         │
 ╰─┘Enter requisitos└─┘R comprobar└─┘m métricas└────────────────────────────────────────────────────────────────────────╯
 ╭─┐cpu┌─────────────────────────────────┐96°C┌─╮╭─┐memoria┌────────────────────┐95%┌─╮╭─┐discos┌───────────────────────╮
 │ Carga 3.18↗ 2.64 1.97 · 0.39/… CPU█▊░░░  37% ││ Usada ····················· 11 GiB ││ / ···················· 204 GiB │

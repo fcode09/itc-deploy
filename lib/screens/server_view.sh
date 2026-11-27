@@ -22,9 +22,12 @@ dash_srv_key_net() {
   DASH_SRV_KEYV="${MT_SRC[net]:-}|${MT_SRC[sock]:-}|$HOST_NET_MAIN|$HOST_NET_DOWN_BPS|$HOST_NET_UP_BPS|$MT_NET_DOWN_MAX|$MT_NET_UP_MAX|$DASH_UPT|$MT_HH_NETD|$MT_HH_NETU|$HOST_SOCK_TCP|$HOST_SOCK_TW|$HOST_SOCK_USED|$k|${MT_INTERVAL_US:-}"
 }
 dash_srv_key_containers() {
-  DASH_SRV_KEYV="${DASH_SRV_CK[*]}|$DASH_SRV_NC|$DASH_SRV_NT|${DSV_KIND[*]}|${DSV_TEXT[*]}|${DSV_CODES[*]}|${DSV_UP[*]}|${DSV_PORT[*]}|${ST_RESTARTS[*]}|${MT_MEM[*]}|${MT_LIM[*]}|${MT_CPU[*]}|${MT_HCPU[*]}|${MT_HMEM[*]}|${MT_PIDS[*]}|$DASH_RES_SORT|$DASH_SRV_SHOW_NC|$DASH_SRV_CSEL|$DASH_SRV_CTOP|${MT_HOST_TOTAL_KB:-}"
+  DASH_SRV_KEYV="${DASH_SRV_CK[*]}|$DASH_SRV_NC|$DASH_SRV_NT|${DSV_KIND[*]}|${DSV_TEXT[*]}|${DSV_CODES[*]}|${DSV_UP[*]}|${DSV_PORT[*]}|${ST_RESTARTS[*]}|${MT_MEM[*]}|${MT_LIM[*]}|${MT_CPU[*]}|${MT_HCPU[*]}|${MT_HMEM[*]}|${MT_PIDS[*]}|${MT_IOR[*]}|${MT_IOW[*]}|${MT_NRX[*]}|${MT_NTX[*]}|$DASH_RES_SORT|$DASH_SRV_SHOW_NC|$DASH_SRV_CSEL|$DASH_SRV_CTOP|${MT_HOST_TOTAL_KB:-}"
 }
-dash_srv_key_procs() { DASH_SRV_KEYV="$DASH_SRV_PS_STATE|$DASH_SRV_PSEL|$DASH_SRV_PTOP|$DASH_SRV_PS_RAW"; }
+dash_srv_key_procs() { DASH_SRV_KEYV="$DASH_SRV_PS_STATE|$DASH_SRV_PSEL|$DASH_SRV_PTOP|$DASH_SRV_PS_RAW|${MT_CG_PID[*]}"; }
+dash_srv_key_inst() {
+  DASH_SRV_KEYV="${DASH_SRV_IK[*]}|$DASH_SRV_ISEL|$DASH_SRV_ITOP|${DSV_KIND[*]}|${MT_CPU[*]}|${MT_MEM[*]}|${MT_LIM[*]}|${MT_PIDS[*]}|${MT_IOR[*]}|${MT_IOW[*]}|${MT_NRX[*]}|${MT_NTX[*]}|${MT_THR[*]}|${MT_OOM[*]}|${MT_HOST_TOTAL_KB:-}|${DASH_SRV_DU[*]}"
+}
 dash_srv_key_ports() { DASH_SRV_KEYV="$DASH_SRV_SS_STATE|$DASH_SRV_TSEL|$DASH_SRV_TTOP|$DASH_SRV_SS_RAW|${DSV_PORT[*]}"; }
 
 # The boxes of one row side by side, $1 lines high, into TUI_FRAME. $2 is the array of their widths and $3.. the names of the boxes
@@ -35,7 +38,7 @@ dash_srv_key_ports() { DASH_SRV_KEYV="$DASH_SRV_SS_STATE|$DASH_SRV_TSEL|$DASH_SR
 DASH_SRV_FLAT=()
 declare -gA DASH_SRV_MEMO_KEY=() DASH_SRV_RECT=()
 DASH_SRV_MEMO_req=() DASH_SRV_MEMO_cpu=() DASH_SRV_MEMO_mem=() DASH_SRV_MEMO_disks=() DASH_SRV_MEMO_net=() DASH_SRV_MEMO_containers=()
-DASH_SRV_MEMO_procs=() DASH_SRV_MEMO_ports=()
+DASH_SRV_MEMO_procs=() DASH_SRV_MEMO_ports=() DASH_SRV_MEMO_inst=()
 DASH_SRV_VIS=()
 dash_srv_row_boxes() { # height widths-array name...
   local h="$1" i k line n nm key x=1 y
@@ -80,7 +83,7 @@ declare -gA DASH_SRV_WSPEC=(
   [L:cpu]="50:40:100:3" [L:mem]="40:30:60:2" [L:disks]="40:30:60:2" [L:net]="44:34:90:2"
   [M:cpu]="48:40:100:3" [M:mem]="38:30:70:2" [M:disks]="40:30:70:2" [M:net]="40:34:48:1" [M:containers]="0:60::3"
   [N:cpu]="44:30:100:3" [N:mem]="36:26:70:2" [N:disks]="42:30:70:1" [N:net]="38:28::1"
-  [procs]="60:40::2" [ports]="40:30:60:1"
+  [procs]="60:40:100:2" [ports]="40:30:60:1" [inst]="100:56:112:2"
 )
 dash_srv_widths() { # total class name...
   local total="$1" cls="$2" nm
@@ -121,6 +124,7 @@ scr_server_render() { # width height
   prof_b srv.alerts
   dash_srv_alerts
   dash_srv_crows
+  dash_srv_irows
   prof_e srv.alerts
   if [ -n "$DASH_SRV_PZ" ]; then
     DASH_SRV_ZM=1
@@ -133,8 +137,8 @@ scr_server_render() { # width height
   if [ "$DASH_SRV_ZOOM" -eq 1 ]; then top=0; fi
   # The names of the boxes of each row (the strip is above them).
   case "$cls" in
-    L) rows=("cpu mem disks net" "containers"); [ "$h" -lt "$DASH_SRV_PROCS_MIN" ] || rows+=("procs ports") ;;
-    M) rows=("cpu mem disks" "net containers"); [ "$h" -lt "$DASH_SRV_PROCS_MIN" ] || rows+=("procs ports") ;;
+    L) rows=("cpu mem disks net" "containers"); [ "$h" -lt "$DASH_SRV_PROCS_MIN" ] || rows+=("inst procs ports") ;;
+    M) rows=("cpu mem disks" "net containers"); [ "$h" -lt "$DASH_SRV_PROCS_MIN" ] || rows+=("inst procs ports") ;;
     *) rows=("cpu mem" "containers"); [ "$h" -lt 38 ] || rows+=("disks net") ;;
   esac
   # (with the processes row under them the figures stay compact; without it they take what the containers leave, as before)
@@ -261,6 +265,21 @@ dash_srv_key_cont() { # key
   esac
 }
 
+# The first service of an instance in the table of containers (the one the instance opens on), printed.
+dash_srv_first_svc() { # instance
+  local key
+  for key in ${DASH_SRV_CK[@]+"${DASH_SRV_CK[@]}"}; do
+    if [ "${key%%/*}" = "$1" ]; then printf '%s' "${key#*/}"; return 0; fi
+  done
+}
+
+# Enter on an instance: opens it (the Instances view) on its first service.
+dash_srv_open_inst() {
+  local n="${DASH_SRV_IK[$DASH_SRV_ISEL]:-}"
+  [ -n "$n" ] || return 0
+  if dash_res_open_key "$n/$(dash_srv_first_svc "$n")"; then DASH_SRV_PZ=""; fi
+}
+
 scr_server_key() { # key
   if [ "$DASH_SRV_MODAL" -eq 1 ]; then
     # (the modal owns the keys: the zoom and the figures-only view are behind it)
@@ -279,6 +298,11 @@ scr_server_key() { # key
   case "$DASH_SRV_FOCUS" in
     req) dash_srv_key_req_k "$1" ;;
     containers) dash_srv_key_cont "$1" ;;
+    inst)
+      case "$1" in
+        enter | space) dash_srv_open_inst ;;
+        *) dash_srv_cursor "$1" "${#DASH_SRV_IK[@]}" DASH_SRV_ISEL ;;
+      esac ;;
     procs) dash_srv_cursor "$1" "$DASH_SRV_PS_N" DASH_SRV_PSEL ;;
     ports) dash_srv_cursor "$1" "$DASH_SRV_SS_N" DASH_SRV_TSEL ;;
   esac
@@ -316,9 +340,9 @@ scr_server_texts() {
   DASH_KEYS[server_modal]="$(t tui.keys.server_modal "$DASH_UD")"
   DASH_KEYS[server_met]="$(t tui.keys.server_met)"
   DASH_KEYS[server_zoom]="$(t tui.keys.server_zoom "$DASH_UD")"
-  for f in cpu mem disks net containers procs ports; do k="tui.keys.server_$f"; DASH_KEYS[server_$f]="$(t "$k" "$DASH_UD")"; done
+  for f in cpu mem disks net containers inst procs ports; do k="tui.keys.server_$f"; DASH_KEYS[server_$f]="$(t "$k" "$DASH_UD")"; done
 }
-scr_server_sig() { DASH_SIG+="|$DASH_SRV_SEL|$DASH_SRV_OPEN|$DASH_SRV_MODAL|$DASH_SRV_ZOOM|$DASH_SRV_PZ|$DASH_SRV_STATE|$DASH_SRV_BUSY|$DASH_SRV_N|$DASH_SRV_FOCUS|$DASH_SRV_CSEL|$DASH_SRV_SHOW_NC|$DASH_RES_SORT|$DASH_SRV_PSEL|$DASH_SRV_TSEL|$DASH_SRV_PS_STATE|$DASH_SRV_SS_STATE"; }
+scr_server_sig() { DASH_SIG+="|$DASH_SRV_SEL|$DASH_SRV_OPEN|$DASH_SRV_MODAL|$DASH_SRV_ZOOM|$DASH_SRV_PZ|$DASH_SRV_STATE|$DASH_SRV_BUSY|$DASH_SRV_N|$DASH_SRV_FOCUS|$DASH_SRV_CSEL|$DASH_SRV_ISEL|$DASH_SRV_SHOW_NC|$DASH_RES_SORT|$DASH_SRV_PSEL|$DASH_SRV_TSEL|$DASH_SRV_PS_STATE|$DASH_SRV_SS_STATE"; }
 
 # Esc: first the zoom of a box, then the detail, then the modal, then the metrics view; else leave the view.
 scr_server_back() {
@@ -372,6 +396,12 @@ scr_server_click() { # column row
       idx=$((DASH_SRV_CTOP + DASH_SRV_HROW - 2))
       [ "$idx" -lt "${#DASH_SRV_CK[@]}" ] || return 0
       if [ "$idx" -eq "$DASH_SRV_CSEL" ]; then scr_server_key enter; else DASH_SRV_CSEL="$idx"; fi
+      ;;
+    inst)
+      [ "$DASH_SRV_HROW" -ge 2 ] || return 0
+      idx=$((DASH_SRV_ITOP + DASH_SRV_HROW - 2))
+      [ "$idx" -lt "${#DASH_SRV_IK[@]}" ] || return 0
+      if [ "$idx" -eq "$DASH_SRV_ISEL" ]; then scr_server_key enter; else DASH_SRV_ISEL="$idx"; fi
       ;;
     procs)
       [ "$DASH_SRV_HROW" -ge 2 ] || return 0

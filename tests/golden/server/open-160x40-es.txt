@@ -28,14 +28,14 @@
 │ ▲ 1.4 KiB/s  máx│ ─ ✖ MongoDB alcanzable ───────────────────────────────────────────────────────────────────────────────────────────────── │                 │
 │ TCP 58 · cerránd│  Para qué        Los servicios guardan sus datos en MongoDB: debe responder desde el host y desde los contenedores.      │                 │
 ╰─────────────────│  Resultado        127.0.0.1:27017 no responde por TCP                                                                    │─────────────────╯
-╭─┐procesos┌──────│                   Revisa la URI en colorado/.env.s0 y la red                                                             │─────────────┐6┌─╮
-│       PID USUARI│  Cómo            Revisa la URI en colorado/.env.s0 y la red                                                              │ SERVICIO        │
-│      1412 mongod│  Más información  https://www.mongodb.com/docs/manual/administration/install-on-linux/                                   │ -               │
-│      2231 root  ╰─┘Enter detalle└─┘c copiar└─┘! ejecutar└─┘Esc cerrar└─────────────────────────────────────────────────────────────────────╯ -               │
-│      2275 root         6.0      2.9 node                                                         ││      443 0.0.0.0          nginx          -               │
-│       880 root         1.2      0.4 dockerd                                                      ││     4100 0.0.0.0          docker-proxy   colorado/s0     │
-│       611 root         0.4      0.1 containerd                                                   ││     4101 0.0.0.0          docker-proxy   colorado/s1     │
-│       907 www-data     0.2      0.1 nginx                                                        ││    27017 127.0.0.1        mongod         -               │
-╰──────────────────────────────────────────────────────────────────────────────────────────────────╯╰──────────────────────────────────────────────────────────╯
+╭─┐instancias┌────│                   Revisa la URI en colorado/.env.s0 y la red                                                             │┐2 de instancias┌╮
+│ INSTANCIA       │  Cómo            Revisa la URI en colorado/.env.s0 y la red                                                              │IRECCIÓN         │
+│   colorado      │  Más información  https://www.mongodb.com/docs/manual/administration/install-on-linux/                                   │.0.0.0           │
+│   piura         ╰─┘Enter detalle└─┘c copiar└─┘! ejecutar└─┘Esc cerrar└─────────────────────────────────────────────────────────────────────╯.0.0.0           │
+│                                                                                        ││      2275 root         6.0      2.9  ││      443 0.0.0.0           │
+│                                                                                        ││       880 root         1.2      0.4  ││     4100 0.0.0.0           │
+│                                                                                        ││       611 root         0.4      0.1  ││     4101 0.0.0.0           │
+│                                                                                        ││       907 www-data     0.2      0.1  ││    27017 127.0.0.1         │
+╰────────────────────────────────────────────────────────────────────────────────────────╯╰──────────────────────────────────────╯╰────────────────────────────╯
 
  ↑↓ elegir · Enter detalle · c copiar · ! ejecutar · R comprobar · Esc cerrar · : comando · ? ayuda · q salir
