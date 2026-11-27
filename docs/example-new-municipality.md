@@ -121,4 +121,4 @@ detener una no afecta a la otra.
 - **`IP_SERVER`:** el valor del ejemplo (`203.0.113.10`) es una dirección de documentación. Con
   `AUTH_URL=http://s0:3200`, Gue llama a Auth por la red privada `colorado_net` y `IP_SERVER` queda
   solo como URL pública; eso exige una imagen de Gue con soporte de `AUTH_URL` (ver el README).
-- **Walle, Robin y Link:** todavía no se despliegan con este repo (ver `docs/services-catalog.md`).
+- **Walle y Link:** todavía no se despliegan con este repo. **Robin** (`robin`) está en el catálogo, pero su imagen aún no existe (ver `docs/services-catalog.md`).

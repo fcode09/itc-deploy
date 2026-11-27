@@ -1,7 +1,7 @@
 # Catálogo de servicios
 
 Estado de los servicios del ecosistema y qué falta para sumarlos a `deltactl`.
-Hoy solo `s0` y `s1` tienen `services/compose-sN.yaml`.
+Hoy `s0`, `s1` y `robin` tienen `services/compose-<clave>.yaml`; `robin` aún no tiene imagen.
 
 > Los datos de los servicios sin Docker salen de una revisión superficial
 > (`package.json`, puerto de arranque y variables `process.env` de `src/`), no de una
@@ -13,6 +13,7 @@ Hoy solo `s0` y `s1` tienen `services/compose-sN.yaml`.
 |---|---|---|---|---|
 | `s0` | backend-s0 | AuthSoftwareUpdateV1 | 3200 | `services/compose-s0.yaml` |
 | `s1` | backend-s1 | gueosoftwareupdatev1 | 3000 | `services/compose-s1.yaml` |
+| `robin` | backend-robin | RobinSoftware | 3601 | `services/compose-robin.yaml` (falta el Dockerfile) |
 
 ## Servicios pendientes de dockerizar
 
@@ -21,7 +22,6 @@ La clave `sN` de cada uno está **por asignar**. Ninguno tiene Dockerfile todav�
 | Servicio | Repo | Stack | Puerto por defecto | Dependencias externas |
 |---|---|---|---|---|
 | walle-backend | walle | NestJS 11, Mongoose 9, TypeORM + `pg` (Postgres/Timescale), Kafka, Puppeteer 22.15.0 | 3700 (`PORT`) | MongoDB, Postgres/Timescale, Kafka, Delta Dispatch API, Query Forge |
-| robin-backend | RobinSoftware | NestJS 10, Mongoose 7, Kafka | 3601 (`SERVER_PORT`) | MongoDB, Kafka, Delta Dispatch, Query Forge |
 | sipcop-backend (Link) | sipcopsoftware | NestJS 10, Mongoose 7, Puppeteer 20.3.0 | 3603 (`SERVER_PORT`) | MongoDB, Delta Dispatch, Query Forge |
 
 "Link" es el nombre actual de la plataforma que antes se llamaba SIPCOP.
@@ -32,7 +32,11 @@ La clave `sN` de cada uno está **por asignar**. Ninguno tiene Dockerfile todav�
   (`cron.service.ts`, `sipcop.gateway.ts`, `puppeteer-step-config.*`). El patrón de imagen ejecuta
   `npm prune --omit=dev`, que lo eliminaría y rompería la app al arrancar. Hay que moverlo a
   `dependencies`. Su Chromium sería el 113 (Puppeteer 20.3.0), distinto del 127 de s1 y walle.
-- **Robin:** tiene Puppeteer 20.3.0 en `devDependencies` sin usarlo en `src`; se puede ignorar.
+- **Robin (`robin`):** definido en el catálogo y con su compose y su plantilla; falta el Dockerfile en su repo. Tiene Puppeteer 20.3.0 en
+  `devDependencies` sin usarlo en `src`: se puede ignorar. Escribe en `./src/media/file` y `./src/common/assets/geofence/` (relativos a `/app`).
+  Para quien escriba su Dockerfile (en el repo de Robin): arranque `node dist/main`; puerto 3601; en ejecución lee `src/proto/telemetry.proto`
+  (relativo al directorio de trabajo, así que `src/proto` debe copiarse a la imagen final) y escribe en `src/media/file` y
+  `src/common/assets/geofence`, que el compose monta como volúmenes; `JWT_SECRET`, Mongo y Kafka llegan por variables, nunca en la imagen.
 - **Walle y Robin usan Kafka** y walle además Postgres/Timescale: el compose deberá apuntar a los
   que ya existan en el servidor, como se hace con MongoDB.
 - **Nombres de variables de Mongo distintos** por proyecto (`MONGO_ROBIN_SERVER_URI` en walle,
@@ -42,22 +46,5 @@ La clave `sN` de cada uno está **por asignar**. Ninguno tiene Dockerfile todav�
 
 ## Pasos para sumar un servicio nuevo
 
-Un servicio se define **una sola vez**, en `lib/core/catalog.data` (una línea; lo lee `lib/core/catalog.sh`). De esa línea salen
-`KNOWN_SERVICES`, el nombre de imagen por defecto, `REQUIRED_<SN>`, las variables de URI de Mongo de `check`, las carpetas de
-`data/`, los secretos que genera `--generate-secrets`, la plantilla que copia `new`, el puerto (`base + desplazamiento`), las
-opciones `--<sN>-image` y `--<sN>-tag` y la lista de la guía `./deltactl help servicios`.
-
-1. Dockerizarlo y dejar su imagen disponible en el servidor (`./deltactl load`) o publicada en un registry.
-2. Compose: `services/compose-sN.yaml` siguiendo `compose-s0.yaml` (variables `SN_TAG`, `SN_PORT`, `SN_MEM_LIMIT`, `profiles: ["sN"]`;
-   si depende de otro servicio, `depends_on` con `required: false`) y su línea en `include` de `compose.yaml`.
-3. Plantillas: `templates/.env.sN.example` y las variables `SN_TAG`, `SN_PORT` en `templates/.env.instance.example`.
-4. Catálogo y ayuda: la línea de `lib/core/catalog.data` (clave, nombre, imagen, puertos, plantilla, obligatorias, Mongo, dependencias,
-   memoria, carpetas, archivos de `secrets/`, secretos a generar), su descripción `catalog.desc.sN` en `lib/i18n/{es,en}/common.sh`,
-   cada variable de su plantilla en `lib/help/variables.txt` (y `en/`) y, si añade opciones a algún comando, su página `cmd-*.txt`.
-   `tests/run.sh test-help` y `test-catalog` fallan mientras falte algo.
-
-Solo hace falta código si el servicio tiene una regla propia: una comprobación previa especial se define como
-`preflight_extra_sN` en `lib/cmd/deploy.sh` (como la de `s1`, que avisa si `TCP_LISTEN_HOST` solo escucha en el contenedor).
-Las instancias existentes no lo activan solas: `./deltactl service add <instancia> sN` (o la pestaña Servicios del panel) crea su `.env.sN`, sus carpetas de `data/`,
-le busca un puerto libre y lo suma a `COMPOSE_PROFILES`; `service remove` lo quita conservando sus datos (`./deltactl help service`).
-Después, actualizar este catálogo y la tabla del README.
+Van en su propia guía: [add-service.md](add-service.md) (datos a decidir, lista de archivos, variables nuevas, cómo activarlo en
+instancias que ya existen y cómo comprobarlo). Después, actualizar este catálogo y la tabla del README.
