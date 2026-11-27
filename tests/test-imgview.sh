@@ -196,6 +196,11 @@ stat -c %a instances/ix-colorado/.env.instance > "$FIX/env.mode"; stat -c %a ins
 check "Enter opens the dialog with the instances that have the service (and what they would change)" 'o="$(panel 2 enter)"; f="$(echo "$o" | last_frame)"; echo "$f" | grep -q "Elige la instancia donde usar backend-s0:2.14.1 (servicio s0)" && echo "$f" | grep -q "ix-colorado  ahora 2.14.0 → 2.14.1" && echo "$f" | grep -q "ix-lima .*ya usa esta versión"'
 check "the cursor of the dialog starts on the first instance that can take it, and moves" 'o="$(panel 2 enter)"; echo "$o" | last_frame | grep -q "▸ ix-colorado"'
 check "Esc cancels, says so, and nothing is written" 'panel 2 enter esc | last_frame | grep -q "Cancelado" && [ "$(tag_of ix-colorado)" = 2.14.0 ] && [ ! -s "$FIX/calls.log" ] && [ "$(grep -c "" "instances/ix-colorado/.env.instance")" -gt 0 ]'
+check "both steps of the dialog draw their keys inside the box (the bar under it is easy to miss)" 'a="$(panel 2 enter | last_frame)"; b="$(panel 2 enter enter | last_frame)"; echo "$a" | grep -q "Enter continuar" && echo "$b" | grep -q "y cambiar y desplegar" && echo "$b" | grep -q "g solo guardar la etiqueta"'
+check "the confirmation says which variables of the template the .env of the service lacks, and where to add them" '
+  cp instances/ix-colorado/.env.s0 "$FIX/s0.keep"; sed -i "/^JWT_EXPIRES_IN=/d" instances/ix-colorado/.env.s0
+  f="$(panel 2 enter enter | last_frame)"; cp "$FIX/s0.keep" instances/ix-colorado/.env.s0
+  echo "$f" | grep -q "no tiene 1 variable(s) de la plantilla actual: JWT_EXPIRES_IN" && echo "$f" | grep -q "Variables, tecla A"'
 check "an instance that already uses the version cannot be chosen: Enter says why and stays" 'o="$(panel 2 enter down enter)"; f="$(echo "$o" | last_frame)"; echo "$f" | grep -q "ya usa esta versión" && ! echo "$f" | grep -q "Cambiar la versión de"'
 check "Enter on the instance shows what will change, before anything is written" 'o="$(panel 2 enter enter)"; f="$(echo "$o" | last_frame)"; echo "$f" | grep -q "Cambiar la versión de s0 en .ix-colorado.: 2.14.0 → 2.14.1" && [ "$(tag_of ix-colorado)" = 2.14.0 ]'
 check "in the confirmation a key that is not an answer does nothing (it stays, nothing is written), and the left arrow goes back to the list" '

@@ -47,6 +47,8 @@ source "$ROOT/lib/core/envschema.sh"
 source "$ROOT/lib/core/envedit.sh"
 # shellcheck source=lib/core/svcmgmt.sh
 source "$ROOT/lib/core/svcmgmt.sh"
+# shellcheck source=lib/core/envsync.sh
+source "$ROOT/lib/core/envsync.sh"
 # shellcheck source=lib/core/secretfile.sh
 source "$ROOT/lib/core/secretfile.sh"
 # shellcheck source=lib/core/proxy.sh

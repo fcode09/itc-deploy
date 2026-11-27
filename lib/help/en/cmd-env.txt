@@ -11,6 +11,7 @@ $ ./deltactl env <instance> get <[file:]VARIABLE> [--reveal]
 $ ./deltactl env <instance> set <[file:]VARIABLE> [value] [--stdin] [--force]
 $ ./deltactl env <instance> generate <[file:]VARIABLE> [--yes]
 $ ./deltactl env <instance> pending
+$ ./deltactl env <instance> sync [service] [--apply] [--json]
 
 ## Subcommands
 - `list` the variables of each file in the order of the glossary, with their state: `ok`, `MISSING` (required and empty),
@@ -25,6 +26,11 @@ $ ./deltactl env <instance> pending
   If there was one already it asks for confirmation (for `JWT_SECRET`, if either `s0` or `s1` has one); `JWT_SECRET` is written
   the same in `s0` and `s1`, in both or in none
 - `pending` which files changed since the last deploy and are not applied yet
+- `sync` compares the files of the instance with the current templates and says which new variables they lack (and which ones
+  are no longer in the template). Templates are copied when a file is made: an instance that already exists does not get the
+  variables added later. With `--apply` it writes them at the end of each file, with their comment and the template's example
+  value: it **only adds**, never changes a value that is there nor deletes anything (it leaves `<file>.bak`). Without a
+  service it checks the files of the services the instance runs; with one (`sync robin`), that one even if it is not active
 
 ## File and variable
 `file` is `instance` or the key of a service (`s0`, `s1`, `robin`…). A variable that is in a single file is given alone
@@ -35,6 +41,7 @@ $ ./deltactl env <instance> pending
 - `--reveal` shows the value of secrets (in `list` and `get`)
 - `--json` output for scripts: `instance`, the files with `pending` changes and each variable with `state`, `required`,
   `validator` and `generator`; secrets come out hidden unless `--reveal` is given
+- `--apply` (in `sync`) writes the new variables; without it `sync` only shows them
 - `--stdin` reads the value from the standard input: that way it stays out of the shell history and of `ps`. It reads all of it:
   a value with line breaks is refused. A secret typed as an argument warns that it stays in your shell history
 - `--force` writes even if the value does not pass its rule or the variable is not in the glossary (never a `fixed` one, nor an

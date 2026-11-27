@@ -28,7 +28,7 @@ COMPLETION_FLAGS=(
   "logs:-f"
   "menu:--classic"
   "runs:--instance -n --json --tail --raw"
-  "env:--reveal --json --stdin --force --yes"
+  "env:--reveal --json --stdin --force --yes --apply"
   "service:--tag --port --generate-secrets --yes"
   "access:--domain --host --www --no-www --tls --no-tls --proxy --save --apply --remove --service --yes"
   "secret:--force"
@@ -85,7 +85,7 @@ _deltactl_complete() {
       COMPREPLY=($(compgen -f -- "$cur")) ;;
     env)
       if [ "$COMP_CWORD" -eq 2 ]; then COMPREPLY=($(compgen -W "$insts" -- "$cur"))
-      elif [ "$COMP_CWORD" -eq 3 ]; then COMPREPLY=($(compgen -W "list get set generate pending" -- "$cur"))
+      elif [ "$COMP_CWORD" -eq 3 ]; then COMPREPLY=($(compgen -W "list get set generate pending sync" -- "$cur"))
       elif [ "$COMP_CWORD" -eq 4 ]; then
         case "${COMP_WORDS[3]}" in
           list) COMPREPLY=($(compgen -W "instance $services" -- "$cur")) ;;

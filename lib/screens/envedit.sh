@@ -29,6 +29,13 @@ dash_env_after() {
       else dash_start_job stay secret add "$inst" "$KEE_FILE_NAME" "$KEE_FILE_SRC"; fi
       KEE_FILEWAIT=1
       ;;
+    sync)
+      # The variables the templates have and the files lack: `env sync --apply` writes them (in the background, behind a question) and the
+      # editor reads the instance again when the command ends (scr_env_tick). With changes staged it asks to save or discard first.
+      if kee_dirty; then dash_msg warn "$(t tui.env.sync_dirty "$inst")"; return 0; fi
+      if job_running; then dash_msg warn "$(t tui.msg.busy)"; return 0; fi
+      dash_confirm "$(t tui.env.sync_confirm "$inst" "$KEE_N_SYNC")" stay env "$inst" sync --apply
+      ;;
     prev | next)
       # In the tab the instance is the one chosen in the list: another one is chosen there.
       [ "$DASH_VIEW" != instances ] || return 0

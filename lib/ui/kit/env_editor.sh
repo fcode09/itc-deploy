@@ -48,7 +48,7 @@ KEE_EDIT_KIND="" KEE_FILE_NAME="" KEE_FILE_SRC="" KEE_FILE_FORCE=0 KEE_FILEWAIT=
 declare -gA KEE_FST=()
 KEE_PROMPT="" KEE_PROMPT_ID="" KEE_PROMPT_KIND=""
 KEE_REVEAL_ID="" KEE_REVEAL_UNTIL=0 KEE_REVEAL_SECONDS=10
-KEE_N_CHANGED=0 KEE_N_TODO=0 KEE_N_PENDING=0 KEE_N_HIDDEN=0 KEE_N_VISIBLE=0 KEE_REV=0
+KEE_N_CHANGED=0 KEE_N_TODO=0 KEE_N_PENDING=0 KEE_N_HIDDEN=0 KEE_N_VISIBLE=0 KEE_REV=0 KEE_N_SYNC=0
 KEE_ACTION="" KEE_NOTE="" KEE_NOTE_KIND="" KEE_COMMIT_BAD=() KEE_COMMIT_FAIL="" KEE_COMMIT_N=0
 KEE_BOX=() KEE_FOOTER="" KEE_STATUS="" KEE_HINT=""
 # The lines of the variable rows, kept while nothing of what they show changes (the cursor moving does not): drawing a row costs more than
@@ -66,7 +66,7 @@ kee_reset() {
   KEE_VAL=() KEE_BASE=() KEE_ST=() KEE_MSG=() KEE_FOLD=() KEE_FIDS=() KEE_DEPLOY=()
   KEE_INST="" KEE_DISK=0 KEE_FILES=() KEE_ROWS=() KEE_SEL=0 KEE_SELROW="" KEE_TOP=0 KEE_ADV=0
   KEE_EDIT=0 KEE_EDIT_ID="" KEE_PROMPT="" KEE_PROMPT_ID="" KEE_PROMPT_KIND="" KEE_REVEAL_ID="" KEE_REVEAL_UNTIL=0
-  KEE_N_CHANGED=0 KEE_N_TODO=0 KEE_N_PENDING=0 KEE_N_HIDDEN=0 KEE_N_VISIBLE=0
+  KEE_N_CHANGED=0 KEE_N_TODO=0 KEE_N_PENDING=0 KEE_N_HIDDEN=0 KEE_N_VISIBLE=0 KEE_N_SYNC=0
   KEE_ACTION="" KEE_NOTE="" KEE_NOTE_KIND="" KEE_COMMIT_BAD=() KEE_COMMIT_FAIL="" KEE_COMMIT_N=0
   KEE_LC=() KEE_LC_KEY=""
   KEE_EDIT_KIND="" KEE_FILE_FORCE=0 KEE_FILEWAIT=0 KEE_FST=()
@@ -212,6 +212,9 @@ kee_open() { # instance
     done
   done
   kee_refresh
+  # variables the templates have and the files do not (an instance made before they existed): the chip says how many, A adds them
+  envsync_files_r "$1" > /dev/null
+  KEE_N_SYNC="$ENVSYNC_TOTAL"
   kee_autofold   # (it uses the states just evaluated and builds the rows again)
   kee_changed
 }
@@ -653,6 +656,7 @@ kee_key_nav() { # key
       fi
       ;;
     g) kee_generate ;;
+    A) if [ "$KEE_DISK" -eq 1 ] && [ "$KEE_N_SYNC" -gt 0 ]; then KEE_ACTION=sync; else return 1; fi ;;
     f) kee_file_open ;;
     d) kee_default ;;
     r) kee_reveal ;;
@@ -708,6 +712,10 @@ kee_status() {
     kee_t envview.status.pending "$KEE_N_PENDING"; c="${TH[info]:-}$UI_S_SYNC $KEE_T$TH_RESET"
     s+="${s:+ ${TH[dim]:-}$UI_S_DOT$TH_RESET }$c"
   fi
+  if [ "$KEE_N_SYNC" -gt 0 ]; then
+    kee_t envview.status.sync "$KEE_N_SYNC"; c="${TH[info]:-}$KEE_T$TH_RESET"
+    s+="${s:+ ${TH[dim]:-}$UI_S_DOT$TH_RESET }$c"
+  fi
   if [ -z "$s" ]; then kee_t envview.status.ok; s="${TH[ok]:-}$UI_S_OK $KEE_T$TH_RESET"; fi
   KEE_STATUS="$s"
 }
@@ -732,6 +740,7 @@ kee_hint() { # width
   if [ "$k" = envview.keys ] && [ -z "$KEE_CUR_ID" ]; then k=envview.keys_file; fi
   kee_t "$k" "$KEE_UD"
   KEE_HINT="$KEE_T"
+  if [ "$KEE_N_SYNC" -gt 0 ] && [ "$KEE_EDIT" -eq 0 ] && [ -z "$KEE_PROMPT" ]; then kee_t envview.keys_sync "$KEE_N_SYNC"; KEE_HINT+=" · $KEE_T"; fi
 }
 
 # One row of the list, $2 cells wide, into KEE_LINE. kw is the width of the name column, nw the room for a note.

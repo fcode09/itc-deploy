@@ -100,6 +100,12 @@ service_set() { # instance service field value
   [ -n "$value" ] || die "$(t service.set_usage "$name" "$svc")"
   svc_set "$name" "$svc" "$field" "$value" || die "$SVC_MSG"
   ok "$(t service.set_done "$svc" "$field" "$value" "$name")"
+  # a new version often comes with new variables: say which ones the file of the service lacks (only a note; deploy does not need them)
+  if [ "$field" = tag ] && envsync_r "$name" ".env.$svc" named && [ "${#ENVSYNC_NEW[@]}" -gt 0 ]; then
+    local sn="" k
+    for k in "${ENVSYNC_NEW[@]}"; do sn+="${sn:+, }$k"; done
+    warn "$(t service.sync_note "$svc" "$name" "${#ENVSYNC_NEW[@]}" "$sn")"
+  fi
   info "$(t service.next_deploy "$name" "$svc")"
 }
 

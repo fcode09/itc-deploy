@@ -9,6 +9,10 @@ MSG_es["tui.help.head.env"]="VARIABLES"
 MSG_es["tui.env.title"]="variables"
 MSG_es["tui.env.none"]="No hay instancias: crea una con n y vuelve aquí."
 MSG_es["tui.env.switch_dirty"]="Hay cambios sin guardar en {1}: guárdalos (s) o descártalos (Esc) antes de cambiar de instancia"
+MSG_es["tui.env.sync_dirty"]="Hay cambios sin guardar en {1}: guárdalos (s) o descártalos (Esc) antes de agregar las variables nuevas"
+MSG_es["tui.env.sync_confirm"]="Agrega a '{1}' las {2} variable(s) nuevas de la plantilla que sus archivos no tienen. Solo agrega, al final de cada archivo: no cambia ningún valor ni borra nada (deja una copia .bak). Las obligatorias quedan por completar. ¿Continuar?"
+MSG_es["envview.status.sync"]="{1} nuevas de la plantilla"
+MSG_es["envview.keys_sync"]="A agrega las {1} nuevas"
 
 # Una fila: lo que dice el estado de la variable
 MSG_es["envview.note.required"]="obligatoria"
