@@ -18,7 +18,8 @@ catalog_load() { # [file]
   while IFS='|' read -r key name repo port offset tpl req mongo deps mem data sfiles secrets || [ -n "$key" ]; do
     key="${key%$'\r'}"
     case "$key" in '' | '#'*) continue ;; esac
-    [[ "$key" =~ ^s[0-9]+$ ]] || continue
+    # a key is a lowercase word that starts with a letter (s0, s1, robin); "instance" is the name of .env.instance in --env-file
+    { [[ "$key" =~ ^[a-z][a-z0-9]*$ ]] && [ "$key" != instance ]; } || continue
     KNOWN_SERVICES+=("$key")
     CAT_NAME[$key]="$name" CAT_REPO[$key]="$repo" CAT_PORT[$key]="$port" CAT_OFFSET[$key]="$offset"
     CAT_TEMPLATE[$key]="$tpl" CAT_REQUIRED[$key]="$req" CAT_MONGO[$key]="$mongo" CAT_DEPENDS[$key]="$deps"

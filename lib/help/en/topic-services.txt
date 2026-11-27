@@ -24,8 +24,8 @@ $ ./deltactl rollback colorado s1
 - `s1` calls `s0` over HTTP with `AUTH_URL`
 - with only `s1` active, `AUTH_URL` must point to the Auth that applies
 
-## Adding a new service (s2...)
-The steps are in `docs/services-catalog.md`.
+## Adding a new service (robin, walle...)
+The steps are in `docs/add-service.md`.
 
 ## Related
 - `./deltactl help network`, `./deltactl help ports`

@@ -232,7 +232,10 @@ new_check_envfile() { # instance services-csv
     fi
     envschema_check_r "$file" "$key" "${W_ENVV[$i]}" "$1"
     if [ "$EV_RC" = 1 ]; then die "$(t new.envfile_invalid "$word" "$key")"; fi
-    if [ "$word" = instance ] && [[ "$key" =~ ^S([0-9]+)_PORT$ ]]; then W_ENVPORT["s${BASH_REMATCH[1]}"]="${W_ENVV[$i]}"; fi
+    if [ "$word" = instance ] && [[ "$key" =~ ^([A-Z][A-Z0-9]*)_PORT$ ]]; then
+      s="${BASH_REMATCH[1],,}"
+      ! valid_service "$s" || W_ENVPORT["$s"]="${W_ENVV[$i]}"
+    fi
   done
 }
 
@@ -332,7 +335,7 @@ cmd_new() {
         shift
         ;;
       # What the wizard asks, as flags: the panel's form starts `new` with them, and scripts can too.
-      --s[0-9]*-image | --s[0-9]*-tag | --ip)
+      --*-image | --*-tag | --ip)
         [ "$#" -ge 2 ] || die "$(t new.opt_value "$a")"
         if [ "$a" = "--ip" ]; then
           W_IP="$2"
