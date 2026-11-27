@@ -385,3 +385,127 @@ ic_note() { # group
   IC_NOTE=""
   [ -z "${IC_DISC[$1]:-}" ] || { t_r images.disc "${IC_DISC[$1]%%|*}" "${IC_DISC[$1]#*|}"; IC_NOTE="$T_OUT"; }
 }
+
+# --- Removing versions -----------------------------------------------------------------------------------------------
+# Which loaded versions can go and which cannot, and how much space going would free. Nothing here removes anything (that is dk_image_rm, asked by
+# `images rm` / `images prune` or the Images view): it only answers. A version is protected when
+#   current    an instance runs it (its tag in .env.instance)
+#   previous   it is the version `deploy` kept for the rollback of an instance
+#   container  a container uses it, running or stopped (an instance whose tag changed and was not deployed yet still runs the old one)
+# The most recent version of a service (the star) is not removed by `prune`: it is what `new --<service>-tag latest` would pick. `rm` removes it when asked.
+
+declare -gA IC_CONT=()   # the references (and short ids) that containers use, read once by ic_containers_load
+IC_RM_WHY="" IC_RM_SHARED=0
+
+ic_containers_load() {
+  local r
+  IC_CONT=()
+  while IFS= read -r r; do
+    [ -z "$r" ] || IC_CONT["$r"]=1
+  done < <(dk_container_images)
+}
+
+# Why the version at index $1 cannot be removed (IC_RM_WHY: ok | current | previous | container) and whether another loaded tag points to the same
+# image (IC_RM_SHARED=1: removing this one only takes the name off). ic_containers_load has to have run.
+ic_removable() { # i
+  local i="$1" id sid j
+  IC_RM_WHY=ok IC_RM_SHARED=0
+  id="${IC_ID[$i]}" sid="${id#sha256:}" sid="${sid:0:12}"
+  for ((j = 0; j < IC_N; j++)); do
+    [ "$j" -ne "$i" ] || continue
+    [ "${IC_ID[$j]}" != "$id" ] || { IC_RM_SHARED=1; break; }
+  done
+  case "${IC_USE[$i]}" in
+    *"(current)"*) IC_RM_WHY=current; return 0 ;;
+    *"(previous)"*) IC_RM_WHY=previous; return 0 ;;
+  esac
+  if [ -n "${IC_CONT[${IC_FULL[$i]}:${IC_TAG[$i]}]:-}" ]; then IC_RM_WHY=container; return 0; fi
+  # (a container that shows a short id is using the image itself: it only blocks the last name of it)
+  if [ "$IC_RM_SHARED" -eq 0 ] && { [ -n "${IC_CONT[$sid]:-}" ] || [ -n "${IC_CONT[$id]:-}" ]; }; then IC_RM_WHY=container; fi
+  return 0
+}
+
+# Why the version at index $1 is protected, in words (IC_RM_WHY set by ic_removable; nothing when it is ok).
+ic_why_text() { # i
+  local who
+  case "$IC_RM_WHY" in
+    current) who="${IC_USE[$1]}"; who="${who%%(current)*}"; who="${who##* }"; t images.why.current "${IC_SVC[$1]}:${IC_TAG[$1]}" "${who:-?}" ;;
+    previous) who="${IC_USE[$1]}"; who="${who%%(previous)*}"; who="${who##* }"; t images.why.previous "${IC_SVC[$1]}:${IC_TAG[$1]}" "${who:-?}" ;;
+    container) t images.why.container "${IC_SVC[$1]}:${IC_TAG[$1]}" ;;
+  esac
+}
+
+# "492MB", "1.83GB", "12.3kB" (the way Docker writes a size) in bytes into IC_BYTES; 0 when it cannot be read.
+IC_BYTES=0
+ic_size_bytes() { # text
+  local t="${1// /}" num unit mult int frac
+  IC_BYTES=0
+  [[ "$t" =~ ^([0-9]+(\.[0-9]+)?)([kKMGT]?B)$ ]] || return 1
+  num="${BASH_REMATCH[1]}" unit="${BASH_REMATCH[3]}"
+  case "$unit" in
+    B) mult=1 ;;
+    kB | KB) mult=1000 ;;
+    MB) mult=1000000 ;;
+    GB) mult=1000000000 ;;
+    TB) mult=1000000000000 ;;
+  esac
+  int="${num%%.*}"
+  frac=""
+  [[ "$num" != *.* ]] || frac="${num#*.}"
+  frac="${frac:0:3}"
+  while [ "${#frac}" -lt 3 ]; do frac+="0"; done
+  IC_BYTES=$((int * mult + 10#$frac * mult / 1000))
+}
+
+# Bytes the way Docker writes a size (decimal units) into IC_BYTES_H: 969MB, 1.83GB.
+IC_BYTES_H=""
+ic_fmt_bytes() { # bytes
+  local b="$1" t
+  if [ "$b" -ge 1000000000 ]; then t=$((b / 10000000)); IC_BYTES_H="$((t / 100)).$(printf '%02d' $((t % 100)))GB"
+  elif [ "$b" -ge 1000000 ]; then IC_BYTES_H="$((b / 1000000))MB"
+  else IC_BYTES_H="$((b / 1000))kB"; fi
+}
+
+# The space that removing the versions at the indexes given would free, into IC_FREES (bytes): an image is only freed when EVERY loaded tag of it
+# goes, so tags that share an image count once and a tag that stays keeps it.
+IC_FREES=0
+ic_frees_bytes() { # i...
+  local i j k id sel all first
+  local -A seen=()
+  IC_FREES=0
+  for i in "$@"; do
+    id="${IC_ID[$i]}"
+    [ -z "${seen[$id]:-}" ] || continue
+    seen[$id]=1
+    sel=0 all=0 first=""
+    for ((j = 0; j < IC_N; j++)); do
+      [ "${IC_ID[$j]}" = "$id" ] || continue
+      all=$((all + 1))
+      [ -n "$first" ] || first="$j"
+      for k in "$@"; do
+        if [ "$k" -eq "$j" ]; then sel=$((sel + 1)); break; fi
+      done
+    done
+    if [ "$sel" -eq "$all" ] && ic_size_bytes "${IC_SIZE[$first]}"; then IC_FREES=$((IC_FREES + IC_BYTES)); fi
+  done
+}
+
+# What `prune` removes, into IC_PLAN (indexes): for each image of the catalog (one service, or all), newest first, every version that is not protected
+# and is not the star, except the $2 most recent of those (--keep). ic_containers_load has to have run.
+IC_PLAN=()
+ic_prune_plan() { # service|"" keep
+  local only="$1" keep="${2:-0}" g svc i kept
+  IC_PLAN=()
+  for g in "${IC_GROUPS[@]}"; do
+    svc="${g%%|*}"
+    [ -z "$only" ] || [ "$svc" = "$only" ] || continue
+    kept=0
+    for i in ${IC_ORDER[$g]}; do
+      ic_removable "$i"
+      [ "$IC_RM_WHY" = ok ] || continue
+      [ "${IC_STAR[$i]}" -ne 1 ] || continue
+      if [ "$kept" -lt "$keep" ]; then kept=$((kept + 1)); continue; fi
+      IC_PLAN+=("$i")
+    done
+  done
+}

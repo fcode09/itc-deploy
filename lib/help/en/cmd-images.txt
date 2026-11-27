@@ -1,10 +1,12 @@
 # images · available image versions
 
 It lists the images loaded in this Docker by service and which instances use them.
-It only lists: it never deletes anything. Alias: `./deltactl versions`.
+It lists and, when asked, removes the versions nobody uses (`rm`, `prune`). Alias: `./deltactl versions`.
 
 ## Usage
 $ ./deltactl images [service] [--json]
+$ ./deltactl images rm <service>:<version>... [--yes]
+$ ./deltactl images prune [service] [--keep N] [--dry-run] [--yes]
 
 ## How to read the table
 The versions of each image go from the newest to the oldest **by creation date of the image** (a tag is only a name).
@@ -23,9 +25,24 @@ The versions of each image go from the newest to the oldest **by creation date o
   It also has `created_at` (ISO 8601 date in UTC, empty when Docker gives none), `latest` (`true` on the ★),
   `compatible` (`false` for another architecture) and `kind` (`version`, `latest` or `other`)
 
+## Removing versions nobody uses
+`rm` removes the versions you name; `prune` removes every one that is left over of a service (or of all). Both ask first
+(`--yes` skips it) and say how much space they free. **They touch no data and no instance**; to have a version again it
+has to be loaded (`load`).
+Never removed (it says why):
+- the version an instance runs now (`current`)
+- the **previous** one of an instance: the rollback needs it
+- one a container uses, even a stopped one (an instance whose tag changed and was not deployed yet still runs the old one)
+`prune` also always keeps the ★ (the most recent of the service) and `--keep N` leaves the N most recent of the ones left over.
+`prune --dry-run` only says what it would remove. Docker is called without force: if it refuses, its reason is shown. When
+another tag points to the same image only the name is taken off and no space is freed (the figure counts each image once).
+
 ## Examples
 $ ./deltactl images
 $ ./deltactl images s1 --json
+$ ./deltactl images prune --dry-run
+$ ./deltactl images prune s0 --keep 1 --yes
+$ ./deltactl images rm s0:v2.1.0
 
 ## Related
 - `./deltactl help local-images`, `./deltactl help update`

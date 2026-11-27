@@ -4,7 +4,7 @@
 # image archive (lib/screens/imgload.sh): English. Loaded by lib/i18n/i18n.sh; not executed.
 
 MSG_en["tui.tab.images"]="Images"
-MSG_en["tui.keys.images"]="{1} choose · Enter use in an instance · Space detail · l load · c copy · R read again · : command · ? help · q quit"
+MSG_en["tui.keys.images"]="{1} choose · Enter use in an instance · Space detail · l load · b remove · B clean up · c copy · R read again · : command · ? help · q quit"
 MSG_en["tui.help.head.images"]="IMAGES"
 MSG_en["tui.img.title"]="images"
 MSG_en["tui.img.status"]="server {1} · {2} versions"
@@ -49,6 +49,10 @@ MSG_en["tui.img.use.busy"]="Nothing was changed: another operation is running (.
 MSG_en["tui.img.use.blocked"]="Nothing was changed: run {1} ({2}) was interrupted and is still unreviewed (Runs view)."
 MSG_en["tui.img.use.saved"]="{1}: {2}={3} saved in .env.instance. Deploy to apply it (u on the instance)."
 MSG_en["tui.img.use.confirm"]="Change the version of {1} in '{2}': {3} → {4}. {5} is written in its .env.instance; the previous version is kept for rollback when you deploy."
+MSG_en["tui.img.rm.confirm"]="Removes the image {1}:{2} ({3}) from this Docker. It touches no data and no instance; to have it again it has to be loaded (l)."
+MSG_en["tui.img.rm.newest"]="It is the most recent version of {1}."
+MSG_en["tui.img.prune.confirm"]="Removes {1} image(s) of {2} ({3}) and frees {4}. The most recent one, the ones an instance uses, the previous one of each (rollback) and the ones of a container are kept. It touches no data and no instance. Continue?"
+MSG_en["tui.img.prune.none"]="Nothing to clean up in {1}: everything loaded is used, is the previous one of an instance, is used by a container or is the most recent."
 MSG_en["tui.img.use.deploy_warn"]="Deploying recreates the container of {1} of '{2}': there are a few seconds without service. The data is not touched."
 MSG_en["tui.img.use.sync_note"]="The .env.{1} of '{2}' lacks {3} variable(s) of the current template: {4}. Add them before deploying: in Variables, key A (or ./deltactl env {2} sync {1} --apply)."
 MSG_en["tui.img.use.keys_pick"]="↑↓ choose · Enter continue · Esc cancel"

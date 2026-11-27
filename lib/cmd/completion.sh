@@ -22,8 +22,8 @@ COMPLETION_FLAGS=(
   "rollback:--yes"
   "down:--yes"
   "status:--json --stats --strict --watch"
-  "images:--json"
-  "versions:--json"
+  "images:--json --keep --dry-run --yes"
+  "versions:--json --keep --dry-run --yes"
   "check:--mongo"
   "logs:-f"
   "menu:--classic"
@@ -80,7 +80,7 @@ _deltactl_complete() {
     init | adopt | down | ps | access)
       [ "$COMP_CWORD" -eq 2 ] && COMPREPLY=($(compgen -W "$insts" -- "$cur")) ;;
     images | versions)
-      [ "$COMP_CWORD" -eq 2 ] && COMPREPLY=($(compgen -W "$services" -- "$cur")) ;;
+      [ "$COMP_CWORD" -eq 2 ] && COMPREPLY=($(compgen -W "rm prune $services" -- "$cur")) ;;
     load)
       COMPREPLY=($(compgen -f -- "$cur")) ;;
     env)
