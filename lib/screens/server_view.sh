@@ -124,6 +124,7 @@ dash_srv_merge() { # array
 # 12 lines: the zoom z gives a box all its room) so that the containers, the processes and the ports fit; each row asks for what its content
 # needs (the containers: a line each) and what is left goes to the processes. The requirements are a strip of three rows and, when asked, a
 # modal over the body (Enter). With a box zoomed (z) it is the only thing on screen.
+DASH_SRV_BASE=() DASH_SRV_BASE_KEY="" DASH_SRV_BASE_HITS=0   # the body kept under the modal (see scr_server_render)
 DASH_SRV_PROCS_MIN=32   # rows of body from which the processes and the ports are drawn under the figures
 DASH_SRV_FIG=12         # lines the compact figures ask for
 scr_server_render() { # width height
@@ -135,6 +136,19 @@ scr_server_render() { # width height
   dash_srv_crows
   dash_srv_irows
   prof_e srv.alerts
+  # With the modal open the figures behind it do not move: the body as it was when the modal opened is kept and laid under it again, so a
+  # sample of the server (every 2 s) costs the modal alone and not the whole view. It is built again when the size, the language, the theme or
+  # the zoom change.
+  local bkey="$w|$h|$DASH_LANG_N|${UI_UTF8:-0}|${TH_NAME:-}|$DASH_SRV_ZOOM|$DASH_SRV_PZ"
+  if [ "$DASH_SRV_MODAL" -eq 0 ]; then
+    DASH_SRV_BASE_KEY=""
+  elif [ "$DASH_SRV_BASE_KEY" = "$bkey" ]; then
+    prof_count srv.base.reuse
+    DASH_SRV_BASE_HITS=$((DASH_SRV_BASE_HITS + 1))
+    TUI_FRAME+=("${DASH_SRV_BASE[@]}")
+    dash_srv_modal "$w" "$h" "$base0"
+    return 0
+  fi
   if [ -n "$DASH_SRV_PZ" ]; then
     DASH_SRV_ZM=1
     wa=("$w")
@@ -189,7 +203,10 @@ scr_server_render() { # width height
     wa=("${LAY[@]}")
     dash_srv_row_boxes "$nr" wa "${nms[@]}"
   done
-  [ "$DASH_SRV_MODAL" -eq 0 ] || dash_srv_modal "$w" "$h" "$base0"
+  if [ "$DASH_SRV_MODAL" -eq 1 ]; then
+    DASH_SRV_BASE=("${TUI_FRAME[@]:$base0}") DASH_SRV_BASE_KEY="$bkey"
+    dash_srv_modal "$w" "$h" "$base0"
+  fi
 }
 
 # kit_overlay for the modal, with what it spends most on kept: slicing the (long, coloured) line of the base under every row of the modal. The
