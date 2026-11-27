@@ -133,6 +133,16 @@ check "activar con --tag latest un servicio sin imagen cargada lo activa igual y
 check "service set image cambia el nombre de la imagen (sin etiqueta) y rechaza uno inválido" '
   D service set sv-a s1 image mi-gue > /dev/null 2>&1 && [ "$(val sv-a .env.instance S1_IMAGE)" = "mi-gue" ] && ! D service set sv-a s1 image "mi-gue:1.0" > /dev/null 2>&1 && D service set sv-a s1 image backend-s1 > /dev/null 2>&1'
 
+section "5b. Compose valida todos los servicios: uno que la instancia no usa no debe detener el deploy de otro"
+# `${ROBIN_TAG:?}` y `${ROBIN_PORT:?}` de compose-robin.yaml se interpolan aunque robin no esté en COMPOSE_PROFILES: una instancia hecha antes de robin
+# no tiene esas variables, y una hecha después puede tener la etiqueta vacía. dk_compose les da un valor de relleno solo a esas dos, en esa llamada.
+check "una etiqueta vacía recibe relleno; un puerto y una etiqueta con valor, no" '
+  p="$(run "dk_compose_placeholders sv-a")"; echo "$p" | grep -qx "ROBIN_TAG=unset" && ! echo "$p" | grep -q "^ROBIN_PORT=" && ! echo "$p" | grep -qE "^(S1_TAG|S1_PORT|S0_PORT)="'
+check "una instancia antigua (sin ROBIN_TAG ni ROBIN_PORT en .env.instance) recibe relleno de los dos" '
+  sed -i "/^ROBIN_TAG=/d; /^ROBIN_PORT=/d" instances/sv-a/.env.instance; p="$(run "dk_compose_placeholders sv-a")"; echo "$p" | grep -qx "ROBIN_TAG=unset" && echo "$p" | grep -qx "ROBIN_PORT=65535"'
+check "los servicios que sí tienen etiqueta y puerto no reciben nada (la del archivo nunca se pisa)" '
+  p="$(run "dk_compose_placeholders sv-a")"; ! echo "$p" | grep -qE "^(S1_TAG|S1_PORT|S0_PORT)="'
+
 section "6. .env.instance no se corrompe y las instancias existentes siguen igual"
 check "después de todo, .env.instance sigue teniendo una línea por variable (sin duplicados)" '
   [ -z "$(grep -o "^[A-Z0-9_]*=" instances/sv-a/.env.instance | sort | uniq -d)" ]'

@@ -74,12 +74,29 @@ compose_shell_vars() {
 #   not pull a same-named image that is not ours from Docker Hub.
 dk_compose() { # instance args...
   local name="$1" policy=missing v
-  local -a drop=()
+  local -a drop=() ph=()
   shift
   if uses_local_images "$name"; then policy=never; fi
   while IFS= read -r v; do drop+=("$v"); done < <(compose_shell_vars)
+  while IFS= read -r v; do ph+=("$v"); done < <(dk_compose_placeholders "$name")
   (cd "$ROOT" && unset "${drop[@]}" \
+    && { [ "${#ph[@]}" -eq 0 ] || export "${ph[@]}"; } \
     && PULL_POLICY="$policy" docker compose --env-file "instances/$name/.env.instance" "$@")
+}
+
+# Compose interpolates EVERY service of compose.yaml, also the ones the instance does not run, so the required `${<SVC>_TAG:?}` and
+# `${<SVC>_PORT:?}` of a service that is not in this instance would stop the deploy of another one (an instance made before the service existed
+# has no such variables; one made after may have left them empty because it never uses that service). Those two get a placeholder, only for
+# this call and only where the file has no value (a value in the environment would win over the file, so a real one is never replaced).
+# A service that IS run is checked by the preflight of deploy and check before Compose is asked: it never gets here without them.
+# Prints VAR=value lines.
+dk_compose_placeholders() { # instance
+  local s u f="$INSTANCES_DIR/$1/.env.instance"
+  for s in "${KNOWN_SERVICES[@]}"; do
+    u="${s^^}"
+    get_var_r "$f" "${u}_TAG"; [ -n "$GV" ] || printf '%s=%s\n' "${u}_TAG" unset
+    get_var_r "$f" "${u}_PORT"; [ -n "$GV" ] || printf '%s=%s\n' "${u}_PORT" 65535
+  done
 }
 
 # --- Images ------------------------------------------------------------------------------------------
