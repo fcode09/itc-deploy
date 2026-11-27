@@ -9,6 +9,10 @@ MSG_en["tui.help.head.env"]="VARIABLES"
 MSG_en["tui.env.title"]="variables"
 MSG_en["tui.env.none"]="There are no instances: create one with n and come back."
 MSG_en["tui.env.switch_dirty"]="There are unsaved changes in {1}: save them (s) or discard them (Esc) before changing instance"
+MSG_en["tui.env.sync_dirty"]="There are unsaved changes in {1}: save them (s) or discard them (Esc) before adding the new variables"
+MSG_en["tui.env.sync_confirm"]="Adds to '{1}' the {2} new variable(s) of the template that its files lack. It only adds, at the end of each file: it changes no value and deletes nothing (it leaves a .bak copy). The required ones are left to fill in. Continue?"
+MSG_en["envview.status.sync"]="{1} new from the template"
+MSG_en["envview.keys_sync"]="A adds the {1} new ones"
 
 # A row: what the state of the variable says
 MSG_en["envview.note.required"]="required"

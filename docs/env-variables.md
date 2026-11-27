@@ -20,7 +20,7 @@ A variable is identified by `<file>|<KEY>` (`.env.s1|JWT_SECRET`): the same key 
 **To add a variable:** add its entry to the glossary (both languages) and to the template, as `tests/test-help.sh` already asks.
 It shows up in the schema by itself, with the validator and the secret flag its name suggests (`*_PORT` is a port, `*_SECRET` and
 `*_API_KEY` are secrets, `*_ENABLED` is true/false…). Add a line to `envschema.data` only when the name is not enough.
-For an instance that already exists the new key is set with `./deltactl env <instance> set` (the templates are copied only when a file is created); the whole procedure to add a service or a variable is in [add-service.md](add-service.md).
+For an instance that already exists, `./deltactl env <instance> sync` finds the variables the templates have and its files lack (the templates are copied only when a file is created) and `sync --apply` adds them: it only adds, it never changes a value or deletes. The whole procedure to add a service or a variable is in [add-service.md](add-service.md).
 
 ## `envschema.data`
 

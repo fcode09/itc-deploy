@@ -135,4 +135,13 @@ rm -f instances/sw-a/.env.robin   # an instance made before the service existed 
 check "activating a service (a, y) and going to Variables lists its .env file, though the editor was open before (end: down to the last rows)" '
   f="$(panel "${SV[@]}" ">" "<" down down a y wait ">" end | last_frame)"; [ -f instances/sw-a/.env.robin ] && echo "$f" | grep -q ".env.robin" && echo "$f" | grep -q "KAFKA_TOPIC"'
 
+section "8. the Variables tab offers the variables the template has and the files lack (A adds them)"
+sed -i '/^QUEUE_BATCH_SIZE=/d' instances/sw-a/.env.robin   # an instance made before the template had it
+check "the chip says how many are new, the keys offer A, and nothing is written yet" '
+  f="$(panel "${SV[@]}" ">" | last_frame)"; echo "$f" | grep -q "1 nuevas de la plantilla" && echo "$f" | grep -q "A agrega las 1 nuevas" && ! grep -q "^QUEUE_BATCH_SIZE=" instances/sw-a/.env.robin'
+check "A asks before it writes, saying it only adds" '
+  f="$(panel "${SV[@]}" ">" A | last_frame)"; echo "$f" | grep -q "Agrega a .sw-a. las 1 variable(s) nuevas" && echo "$f" | grep -q "no cambia ningún valor" && ! grep -q "^QUEUE_BATCH_SIZE=" instances/sw-a/.env.robin'
+check "s (yes) runs env sync --apply, the file has the variable and the editor reads it again (no more chip)" '
+  f="$(panel "${SV[@]}" ">" A s wait ">" | last_frame)"; grep -q "^QUEUE_BATCH_SIZE=20$" instances/sw-a/.env.robin && ! echo "$f" | grep -q "nuevas de la plantilla"'
+
 finish

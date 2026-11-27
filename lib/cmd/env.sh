@@ -4,6 +4,7 @@
 #                           set <[file:]VARIABLE> [value] [--stdin] [--force]      (also VARIABLE=value)
 #                           generate <[file:]VARIABLE> [--yes]
 #                           pending
+#                           sync [service] [--apply] [--json]
 # The environment files of an instance: see them, validate what is written, change a value and generate a secret. The rules come from
 # lib/core/envschema.sh (what each variable is) and lib/core/envedit.sh (how a file is read and written safely).
 #
@@ -275,6 +276,76 @@ env_pending() { # instance
   fi
 }
 
+# ---------- sync ----------
+
+# The variables of the templates that the files of the instance do not have (and the ones the templates no longer know), and, with --apply,
+# writing the new ones at the end of each file. It only adds: no value that is there changes and nothing is deleted.
+env_sync() { # instance target apply json
+  local inst="$1" target="$2" apply="$3" json="$4" f k row named="" total=0 first=1 req st left miss
+  local -a files=() out=()
+  if [ -n "$target" ]; then
+    f="$(envschema_file_name "$target")" || die "$(t env.file_unknown "$target" "instance ${KNOWN_SERVICES[*]}")"
+    [ -f "$INSTANCES_DIR/$inst/$f" ] || die "$(t env.file_absent "$inst" "$f")"
+    files=("$f") named=named
+  else
+    envedit_files_r "$inst"
+    files=("${ENVEDIT_FILES[@]}")
+  fi
+  [ "$json" -eq 0 ] || printf '{"instance": "%s", "files": [' "$inst"
+  for f in "${files[@]}"; do
+    if [ "$apply" -eq 1 ]; then
+      envsync_apply "$inst" "$f" "$named" || die "$(t env.sync.write_failed "$f")"
+      out=("${ENVSYNC_ADDED[@]}")
+    else
+      envsync_r "$inst" "$f" "$named" || continue
+      out=("${ENVSYNC_NEW[@]}")
+    fi
+    if [ "$json" -eq 1 ]; then
+      [ "$first" -eq 1 ] || printf ', '
+      first=0
+      printf '{"file": "%s", "new": [' "$f"
+      row=""; for k in "${out[@]}"; do row+="${row:+, }\"$k\""; done; printf '%s], "obsolete": [' "$row"
+      row=""; for k in ${ENVSYNC_OBSOLETE[@]+"${ENVSYNC_OBSOLETE[@]}"}; do row+="${row:+, }\"$k\""; done; printf '%s]}' "$row"
+      total=$((total + ${#out[@]}))
+      continue
+    fi
+    if [ "${#out[@]}" -gt 0 ]; then
+      [ "$total" -gt 0 ] || { [ "$apply" -eq 1 ] || info "$(t env.sync.head "$inst")"; }
+      total=$((total + ${#out[@]}))
+      row=""
+      for k in "${out[@]}"; do
+        req=""
+        [ "${ENV_REQUIRED[$f|$k]:-0}" != 1 ] || req=" ($(t env.sync.required))"
+        row+="${row:+, }$k$req"
+      done
+      if [ "$apply" -eq 1 ]; then ok "$(t env.sync.applied "$f" "${#out[@]}" "$row")"; else info "  $(printf '%-14s' "$f") $(t env.sync.file_row "${#out[@]}" "$row")"; fi
+    fi
+    if [ "$apply" -eq 0 ] && [ "${#ENVSYNC_OBSOLETE[@]}" -gt 0 ]; then
+      row=""; for k in "${ENVSYNC_OBSOLETE[@]}"; do row+="${row:+, }$k"; done
+      info "  $(printf '%-14s' "$f") $(t env.sync.obsolete "$row")"
+    fi
+    if [ "$apply" -eq 1 ] && [ "${#out[@]}" -gt 0 ]; then
+      miss=""
+      for k in "${out[@]}"; do
+        envedit_state_r "$inst" "$f" "$k"
+        case "$ED_STATE" in missing | example) miss+="${miss:+, }$k" ;; esac
+      done
+      [ -z "$miss" ] || info "  $(t env.sync.todo "$miss" "$inst" "${f#.env.}")"
+    fi
+  done
+  if [ "$json" -eq 1 ]; then printf '], "total": %s}\n' "$total"; return 0; fi
+  if [ "$total" -eq 0 ]; then
+    info "$(t env.sync.none "$inst")"
+  elif [ "$apply" -eq 1 ]; then
+    info "$(t env.sync.backup)"
+    info "$(t env.sync.deploy_note "$inst")"
+  else
+    info ""
+    info "$(t env.sync.hint "$inst")"
+  fi
+}
+
+
 cmd_env() {
   local inst="${1:-}" sub="${2:-list}" a
   [ -n "$inst" ] || die "$(t env.usage)"
@@ -283,7 +354,7 @@ cmd_env() {
   require_instance "$inst"
   envschema_load
 
-  local reveal=0 json=0 use_stdin=0 force=0 have_value=0 value="" target="" dashdash=0
+  local reveal=0 json=0 use_stdin=0 force=0 have_value=0 value="" target="" dashdash=0 apply=0
   parse_yes "$@"   # --yes / -y: sets ASSUME_YES for confirm; the rest is in ARGS
   for a in ${ARGS[@]+"${ARGS[@]}"}; do
     if [ "$dashdash" -eq 1 ]; then
@@ -296,6 +367,7 @@ cmd_env() {
       --json) json=1 ;;
       --stdin) use_stdin=1 ;;
       --force) force=1 ;;
+      --apply) apply=1 ;;
       -*) die "$(t env.unknown_option "$a")" ;;
       *)
         if [ -z "$target" ]; then target="$a"
@@ -322,6 +394,7 @@ cmd_env() {
       esac
       ;;
     pending) env_pending "$inst" ;;
+    sync) env_sync "$inst" "$target" "$apply" "$json" ;;
     *) die "$(t env.unknown_sub "$sub")" ;;
   esac
 }

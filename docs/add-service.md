@@ -88,16 +88,29 @@ Además:
   (`URI_SIPCOPM|url|0`). Ver [env-variables.md](env-variables.md).
 - **Compose:** no se toca (usa `env_file`).
 
-### Instancias que ya existen
+### Instancias que ya existen: `env sync`
 
-Las plantillas solo se copian al **crear** el archivo: una instancia vieja no recibe las variables nuevas. Se agregan por instancia,
-desde el panel (vista Variables, tecla `9`) o por línea de comandos:
+Las plantillas solo se copian al **crear** el archivo: una instancia que ya existe no recibe las variables que se agregan después.
+`env sync` compara los `.env` de la instancia con las plantillas actuales y agrega lo que falta:
 
 ```bash
-./deltactl env <instancia> set robin ROBIN_X 10
-./deltactl env <instancia> pending        # qué cambió y aún no está desplegado
+./deltactl env <instancia> sync              # solo mira: qué variables nuevas le faltan a cada archivo (y cuáles ya no están)
+./deltactl env <instancia> sync --apply      # las escribe al final de cada archivo, con su comentario y su valor de ejemplo
+./deltactl env <instancia> sync robin        # un servicio concreto, aunque la instancia no lo corra
+./deltactl env <instancia> pending           # el archivo queda como cambio sin desplegar
 ./deltactl deploy <instancia> robin          # el contenedor lee el .env al arrancar
 ```
+
+- **Solo agrega.** Nunca cambia un valor que ya está ni borra nada (lo que el `.env` tiene y la plantilla ya no, solo se avisa). Deja
+  `<archivo>.bak` (permiso 600) y escribe de forma atómica, igual que `env set`.
+- **Las obligatorias nuevas quedan «por completar»** (traen el valor de ejemplo `CAMBIAR…` o vacío): complétalas en la vista Variables
+  o con `env set`.
+- **Los servicios que la instancia no corre no se revisan** (no están en `COMPOSE_PROFILES`), salvo que se pidan por su nombre.
+- **Dónde se ve sin ejecutar nada:** el chip «N nuevas de la plantilla» de la vista Variables (tecla `9` o la pestaña Variables de la
+  instancia; `A` las agrega, pidiendo confirmación con `s`), el cuadro «usar versión» de la vista Imágenes, `./deltactl check` y
+  `./deltactl service set … tag`.
+- **Es la plantilla de deltactl, no la de la imagen.** Si una versión nueva de un servicio necesita una variable, primero va a la
+  plantilla y al glosario de este repo; con `git pull` en el servidor, `env sync` la ofrece a todas las instancias.
 
 ## 4. Activarlo en una instancia
 

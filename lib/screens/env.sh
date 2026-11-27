@@ -145,7 +145,9 @@ scr_env_tick() {
   if dash_async_take env; then dash_env_apply "${DASH_AS_ARG[env]:-}" "$DASH_AS_TEXT"; fi
   if [ -n "$JOB_RC" ] && [ "$JOB_SEQ" -ne "$DASH_ENV_SEEN" ]; then
     DASH_ENV_SEEN="$JOB_SEQ"
-    dash_env_refresh_files || dash_env_request
+    if dash_env_refresh_files; then :
+    elif [ "$KEE_N_SYNC" -gt 0 ] && ! kee_dirty; then dash_env_load "$DASH_ENV_INST"   # (`env sync --apply` may have written the new variables)
+    else dash_env_request; fi
   fi
   if kee_tick; then DASH_DIRTY=1; fi
 }

@@ -121,6 +121,17 @@ dash_key_imguse() { # key
   esac
 }
 
+# The keys of the step go inside the box too: the bar under the body is easy to miss (and without it the dialog looked like a message).
+dash_iu_keys_lines() { # width
+  local k=tui.img.use.keys_pick l
+  [ "$DASH_IU_STEP" = "pick" ] || k=tui.img.use.keys_confirm
+  if [ "$UI_UTF8" -ne 1 ] || [ "$UI_RICH" -ne 1 ]; then k+=.ascii; fi
+  t_r "$k"; dash_wrap "$T_OUT" "$1"
+  for l in "${DASH_WRAP[@]}"; do DASH_DLG+=("  $C_BLD$l$C_OFF"); done
+  DASH_DLG+=("")
+}
+
+
 dash_dialog_imguse() { # body_height
   local l i ww=64 name cur sel mark why
   [ "$ww" -le $((TUI_COLS - 10)) ] || ww=$((TUI_COLS - 10))
@@ -145,6 +156,7 @@ dash_dialog_imguse() { # body_height
       DASH_DLG+=(" $l")
     done
     DASH_DLG+=("")
+    dash_iu_keys_lines "$ww"
     t_r tui.img.use.title "$DASH_IU_TAG"
   else
     name="${DASH_IU_NAMES[$DASH_IU_SEL]}" cur="${DASH_IU_CUR[$DASH_IU_SEL]:-?}"
@@ -154,6 +166,15 @@ dash_dialog_imguse() { # body_height
     t_r tui.img.use.deploy_warn "$DASH_IU_SVC" "$name"; dash_wrap "$T_OUT" "$ww"
     for l in "${DASH_WRAP[@]}"; do DASH_DLG+=("  ${TH[warn]:-$C_YEL}$l$C_OFF"); done
     DASH_DLG+=("")
+    # a new version often comes with new variables: the ones the template has and the file of this service lacks
+    if envsync_r "$name" ".env.$DASH_IU_SVC" named && [ "${#ENVSYNC_NEW[@]}" -gt 0 ]; then
+      local sn="" k
+      for k in "${ENVSYNC_NEW[@]}"; do sn+="${sn:+, }$k"; done
+      t_r tui.img.use.sync_note "$DASH_IU_SVC" "$name" "${#ENVSYNC_NEW[@]}" "$sn"; dash_wrap "$T_OUT" "$ww"
+      for l in "${DASH_WRAP[@]}"; do DASH_DLG+=("  ${TH[info]:-}$l$TH_RESET"); done
+      DASH_DLG+=("")
+    fi
+    dash_iu_keys_lines "$ww"
     t_r tui.img.use.title "$DASH_IU_TAG"
   fi
   dash_dialog "$1" "$T_OUT" 50

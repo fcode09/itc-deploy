@@ -50,6 +50,7 @@ MSG_en["tui.img.use.blocked"]="Nothing was changed: run {1} ({2}) was interrupte
 MSG_en["tui.img.use.saved"]="{1}: {2}={3} saved in .env.instance. Deploy to apply it (u on the instance)."
 MSG_en["tui.img.use.confirm"]="Change the version of {1} in '{2}': {3} → {4}. {5} is written in its .env.instance; the previous version is kept for rollback when you deploy."
 MSG_en["tui.img.use.deploy_warn"]="Deploying recreates the container of {1} of '{2}': there are a few seconds without service. The data is not touched."
+MSG_en["tui.img.use.sync_note"]="The .env.{1} of '{2}' lacks {3} variable(s) of the current template: {4}. Add them before deploying: in Variables, key A (or ./deltactl env {2} sync {1} --apply)."
 MSG_en["tui.img.use.keys_pick"]="↑↓ choose · Enter continue · Esc cancel"
 MSG_en["tui.img.use.keys_pick.ascii"]="Up/Down choose - Enter continue - Esc cancel"
 MSG_en["tui.img.use.keys_confirm"]="y change and deploy · g only save the tag · ← back · Esc cancel"

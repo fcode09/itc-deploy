@@ -50,6 +50,7 @@ MSG_es["tui.img.use.blocked"]="No se cambió nada: la ejecución {1} ({2}) se in
 MSG_es["tui.img.use.saved"]="{1}: {2}={3} guardado en .env.instance. Despliega para aplicarlo (u en la instancia)."
 MSG_es["tui.img.use.confirm"]="Cambiar la versión de {1} en '{2}': {3} → {4}. Se escribe {5} en su .env.instance; la versión anterior queda guardada para el rollback al desplegar."
 MSG_es["tui.img.use.deploy_warn"]="Desplegar vuelve a crear el contenedor de {1} de '{2}': hay unos segundos sin servicio. Los datos no se tocan."
+MSG_es["tui.img.use.sync_note"]="El .env.{1} de '{2}' no tiene {3} variable(s) de la plantilla actual: {4}. Agrégalas antes de desplegar: en Variables, tecla A (o ./deltactl env {2} sync {1} --apply)."
 MSG_es["tui.img.use.keys_pick"]="↑↓ elegir · Enter continuar · Esc cancelar"
 MSG_es["tui.img.use.keys_pick.ascii"]="Up/Down elegir - Enter continuar - Esc cancelar"
 MSG_es["tui.img.use.keys_confirm"]="y cambiar y desplegar · g solo guardar la etiqueta · ← volver · Esc cancelar"
