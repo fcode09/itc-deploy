@@ -28,14 +28,14 @@
 │ ▲ 1.4 KiB/s  top│  What for          Images, data and logs take disk: with less than 3 GB free a deploy can fail halfway.                  │                 │
 │ TCP 58 · closing│  Result            Low free disk in /var/lib/docker: 1.9 GB                                                              │                 │
 ╰─────────────────│  How               Images and logs need space. Free some disk or move Docker.                                            │─────────────────╯
-╭─┐instances┌─────╰─┘Enter details└─┘c copy└─┘! run└─┘Esc close└─────────────────────────────────────────────────────────────────────────────╯ from instances┌─╮
-│ INSTANCE                                    SVCS    CPU MEMORY                    DISK ││       PID USER         CPU   MEMORY  ││     PORT ADDRESS           │
-│   colorado                                   2/2  44.9% ██▏░ 55% 1.3G/2.5G     1M/514K ││      1412 mongodb     14.2      8.1  ││       22 0.0.0.0           │
-│   piura                                      1/2  89.8% ███▏ 79% 1.9G/2.5G       9M/3M ││      2231 root        11.8      3.4  ││       80 0.0.0.0           │
-│                                                                                        ││      2275 root         6.0      2.9  ││      443 0.0.0.0           │
-│                                                                                        ││       880 root         1.2      0.4  ││     4100 0.0.0.0           │
-│                                                                                        ││       611 root         0.4      0.1  ││     4101 0.0.0.0           │
-│                                                                                        ││       907 www-data     0.2      0.1  ││    27017 127.0.0.1         │
-╰────────────────────────────────────────────────────────────────────────────────────────╯╰──────────────────────────────────────╯╰────────────────────────────╯
+╭─┐instances┌─────╰─┘Enter details└─┘c copy└─┘! run└─┘Esc close└─────────────────────────────────────────────────────────────────────────────╯─────────────┐6┌─╮
+│ INSTANCE                  SVCS    CPU MEMORY                    DISK ││       PID USER         CPU   MEMORY  ││     PORT ADDRESS          PROCESS        SER │
+│   colorado                 2/2  44.9% ██▏░ 55% 1.3G/2.5G     1M/514K ││      1412 mongodb     14.2      8.1  ││       22 0.0.0.0          sshd           -   │
+│   piura                    1/2  89.8% ███▏ 79% 1.9G/2.5G       9M/3M ││      2231 root        11.8      3.4  ││       80 0.0.0.0          nginx          -   │
+│                                                                      ││      2275 root         6.0      2.9  ││      443 0.0.0.0          nginx          -   │
+│                                                                      ││       880 root         1.2      0.4  ││     4100 0.0.0.0          docker-proxy   col │
+│                                                                      ││       611 root         0.4      0.1  ││     4101 0.0.0.0          docker-proxy   col │
+│                                                                      ││       907 www-data     0.2      0.1  ││    27017 127.0.0.1        mongod         -   │
+╰──────────────────────────────────────────────────────────────────────╯╰──────────────────────────────────────╯╰──────────────────────────────────────────────╯
 
  ↑↓ choose · Enter details · c copy · ! run · R recheck · Esc close · : command · ? help · q quit

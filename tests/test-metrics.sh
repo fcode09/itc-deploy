@@ -333,7 +333,7 @@ host_cg_cpu "$D" 2; mt_sample_detail c/s0 3333 1000000
 echo "first: [\${MT_IOR[c/s0]:-}] [\${MT_NRX[c/s0]:-}] [\${MT_THR[c/s0]:-}] oom=\${MT_OOM[c/s0]:-}"
 printf '8:0 rbytes=3000 wbytes=2000 rios=1 wios=2 dbytes=0 dios=0\n8:16 rbytes=500 wbytes=4000 rios=1 wios=0 dbytes=0 dios=0\n' > "$D/io.stat"
 printf 'usage_usec 9500000\nnr_periods 200\nnr_throttled 70\n' > "$D/cpu.stat"
-printf '  eth0: 8000 5 0 0 0 0 0 0 3500 5 0 0 0 0 0 0\n' > "$FIX/proc/3333/net/dev"
+printf '  eth0: 8000 5 0 0 0 0 0 0 3500 5 0 0 0 0 0 0\n  eth1:1000 5 0 0 0 0 0 0 500 5 0 0 0 0 0 0\n' > "$FIX/proc/3333/net/dev"
 host_cg_cpu "$D" 2; mt_sample_detail c/s0 3333 3000000
 echo "second: ior=\${MT_IOR[c/s0]} iow=\${MT_IOW[c/s0]} rx=\${MT_NRX[c/s0]} tx=\${MT_NTX[c/s0]} thr=\${MT_THR[c/s0]}"
 mt_forget c/s0
