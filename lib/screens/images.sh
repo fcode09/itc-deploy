@@ -378,10 +378,9 @@ scr_images_back() {
   return 1
 }
 
-# When the view is chosen the catalog is read (again if it is not recent).
-scr_images_enter() {
-  if [ "$DASH_IMG_STATE" = "none" ] || [ "$DASH_IMG_STALE" -eq 1 ] || [ $((SECONDS - DASH_IMG_AT)) -ge 5 ]; then dash_img_request; fi
-}
+# When the view is chosen the catalog is read (again if it is not recent), once the view has stayed (see dash_dwelled): the tick does it.
+DASH_IMG_WANT=0
+scr_images_enter() { DASH_IMG_WANT=1; }
 
 # Every turn of the loop, whatever the view: the answer of the read, and a command that ended (a load or a deploy changes what is loaded
 # and who uses it).
@@ -397,6 +396,11 @@ scr_images_tick() {
   if [ -n "$JOB_RC" ] && [ "$JOB_SEQ" -ne "$DASH_IMG_SEEN" ]; then
     DASH_IMG_SEEN="$JOB_SEQ"; dash_img_stale
     if [ "$DASH_IMG_JOB" -eq "$JOB_SEQ" ]; then DASH_IMG_JOB=0 DASH_IMG_LOADING="" DASH_DIRTY=1; fi
+  fi
+  if [ "$DASH_VIEW" != "images" ]; then DASH_IMG_WANT=0
+  elif [ "$DASH_IMG_WANT" -eq 1 ] && dash_dwelled; then
+    DASH_IMG_WANT=0
+    if [ "$DASH_IMG_STATE" = "none" ] || [ "$DASH_IMG_STALE" -eq 1 ] || [ $((SECONDS - DASH_IMG_AT)) -ge 5 ]; then dash_img_request; fi
   fi
   [ "$DASH_VIEW" != "images" ] || [ "$DASH_IMG_STALE" -eq 0 ] || [ "$DASH_IMG_STATE" = "none" ] || dash_img_request
 }
