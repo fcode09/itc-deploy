@@ -209,6 +209,8 @@ tui_key() { # [timeout]
     '') TUI_KEY="enter" ;;
     $'\t') TUI_KEY="tab" ;;
     $'\177' | $'\b') TUI_KEY="backspace" ;;
+    # The Space bar arrives as a literal blank; every screen (and the test mode, which sends names) calls it "space".
+    ' ') TUI_KEY="space" ;;
     *) TUI_KEY="$k" ;;
   esac
 }

@@ -21,6 +21,8 @@ dash_ws_vars_sync() { # instance
 }
 
 ws_variables_enter() { # instance
+  # (the same instance may have got a file since the editor read it)
+  [ "$DASH_ENV_INST" != "$1" ] || dash_env_refresh_files || true
   if dash_ws_vars_sync "$1"; then DASH_MODE=envedit; else dash_msg warn "$(t tui.env.switch_dirty "$DASH_ENV_INST")"; fi
 }
 

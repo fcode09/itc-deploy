@@ -2,7 +2,7 @@
 # ./deltactl service list   <instance>
 #                   add    <instance> <service> [--tag <tag|latest>] [--port <n>] [--generate-secrets] [--yes]
 #                   remove <instance> <service> [--yes]
-#                   set    <instance> <service> tag|port|memory <value>
+#                   set    <instance> <service> tag|image|port|memory <value>
 # The services an instance runs: see them, add one, remove one (its data stays) and change its version, port or memory limit. The rules are in
 # lib/core/svcmgmt.sh, shared with the Services tab of the panel. Nothing here deploys: it says what is left (variables, then deploy).
 
@@ -22,12 +22,18 @@ service_list() { # instance
 }
 
 # `--tag latest`: the most recent version this server can run (lib/core/imagecat.sh), written as the tag it is, never the word latest.
-service_resolve_latest() { # instance service -> tag in SVC_TAG ("" when Docker does not answer: the template's tag stays)
-  local name="$1" svc="$2" repo
+service_resolve_latest() { # instance service [soft] -> tag in SVC_TAG ("" when Docker does not answer: the template's tag stays)
+  # soft: with no image to pick (the service has none loaded yet) it warns and leaves the tag empty instead of stopping; `service add` uses it
+  # so a service can be activated before its image exists (the panel's `a` key asks for latest).
+  local name="$1" svc="$2" soft="${3:-}" repo
   SVC_TAG=""
   repo="$(service_repo "$svc" "$name")"
   if ! ic_load "$svc=$repo"; then warn "$(t new.latest_nodocker "$svc" "$(tag_var "$svc")")"; return 0; fi
-  ic_latest "$svc" "$repo" || die "$(t new.latest_none "$svc" "$repo" "$IC_SERVER_ARCH")$(see local-images)"
+  if ! ic_latest "$svc" "$repo"; then
+    [ "$soft" = soft ] || die "$(t new.latest_none "$svc" "$repo" "$IC_SERVER_ARCH")$(see local-images)"
+    warn "$(t service.latest_none "$svc" "$repo" "$(tag_var "$svc")" "$name")"
+    return 0
+  fi
   info "$(t new.latest_resolved "$svc" "$repo" "$IC_LATEST")"
   SVC_TAG="$IC_LATEST"
 }
@@ -37,7 +43,7 @@ service_add() { # instance service tag port generate
   local -a opts=()
   valid_service "$svc" || die "$(t err.service_unknown "$svc" "${KNOWN_SERVICES[*]}")$(see services)"
   if svc_is_active "$name" "$svc"; then die "$(t service.already "$svc" "$name")"; fi
-  if [ "$tag" = latest ]; then service_resolve_latest "$name" "$svc"; tag="$SVC_TAG"; fi
+  if [ "$tag" = latest ]; then service_resolve_latest "$name" "$svc" soft; tag="$SVC_TAG"; fi
   [ -z "$tag" ] || opts+=("tag=$tag")
   [ -z "$port" ] || opts+=("port=$port")
   [ "$gen" -eq 0 ] || opts+=("generate=1")

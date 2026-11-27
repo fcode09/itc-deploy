@@ -33,10 +33,10 @@ strip_ansi() { sed 's/\x1b\[[0-9;]*m//g'; }
 has_ansi() { grep -q $'\033'; }
 
 # Rellena los valores obligatorios de una instancia para que pase las validaciones previas.
-fill_instance() { # carpeta s0_tag s1_tag
+fill_instance() { # carpeta s0_tag s1_tag [robin_tag]
   local dir="$1" f
-  sed -i -e "s/^S0_TAG=.*/S0_TAG=$2/" -e "s/^S1_TAG=.*/S1_TAG=$3/" "$dir/.env.instance"
-  for f in "$dir/.env.s0" "$dir/.env.s1"; do
+  sed -i -e "s/^S0_TAG=.*/S0_TAG=$2/" -e "s/^S1_TAG=.*/S1_TAG=$3/" -e "s/^ROBIN_TAG=.*/ROBIN_TAG=${4:-1.0}/" "$dir/.env.instance"
+  for f in "$dir/.env.s0" "$dir/.env.s1" "$dir/.env.robin"; do
     sed -i -e 's/^JWT_SECRET=.*/JWT_SECRET=x/' -e 's#CAMBIAR[A-Za-z_]*#ok#g' \
       -e 's/^IP_SERVER=.*/IP_SERVER=http:\/\/h/' "$f"
   done

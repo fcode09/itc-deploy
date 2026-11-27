@@ -460,6 +460,7 @@ check "tui_key reads the application-mode arrows too" '[ "$(printf "\033OA" | tk
 check "tui_key reads Home, End, PageUp, PageDown and Delete" '[ "$(printf "\033[H" | tk)" = "home" ] && [ "$(printf "\033[F" | tk)" = "end" ] && [ "$(printf "\033[5~" | tk)" = "pgup" ] && [ "$(printf "\033[6~" | tk)" = "pgdn" ] && [ "$(printf "\033[3~" | tk)" = "delete" ] && [ "$(printf "\033[1~" | tk)" = "home" ] && [ "$(printf "\033[4~" | tk)" = "end" ]'
 check "tui_key does not take an unknown sequence for Escape" '[ "$(printf "\033[15~" | tk)" = "other" ] && [ "$(printf "\033[1;5C" | tk)" = "other" ] && [ "$(printf "\033OP" | tk)" = "other" ]'
 check "tui_key reads Enter, Tab, Backspace and Escape" '[ "$(printf "\n" | tk)" = "enter" ] && [ "$(printf "\t" | tk)" = "tab" ] && [ "$(printf "\177" | tk)" = "backspace" ] && [ "$(printf "\033" | tk)" = "esc" ]'
+check "tui_key reads the Space bar as the name space (a real terminal sends a blank; the screens handle the name)" '[ "$(printf " " | tk)" = "space" ]'
 check "tui_key returns the typed character" '[ "$(printf "j" | tk)" = "j" ] && [ "$(printf "L" | tk)" = "L" ] && [ "$(printf "?" | tk)" = "?" ] && [ "$(printf ":" | tk)" = ":" ]'
 check "tui_key reports the end of input as eof" '[ "$(tk < /dev/null)" = "eof" ]'
 check "tui_key times out" '[ "$( (sleep 2) | ROOT="$PWD" bash -c "source lib/bootstrap.sh; source lib/ui/tui.sh; tui_key 0.2; printf \"%s\" \"\$TUI_KEY\"")" = "timeout" ]'

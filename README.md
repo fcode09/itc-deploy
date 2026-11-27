@@ -13,8 +13,11 @@ instancias conviven en el mismo servidor con un único `compose.yaml`.
 |---|---|---|---|
 | `s0` | backend-s0 | 3200 | `s0_<instancia>` |
 | `s1` | backend-s1 | 3000 | `s1_<instancia>` |
+| `robin` | backend-robin | 3601 | `robin_<instancia>` |
 
-Walle, Robin y Link todavía no están dockerizados: ver [`docs/services-catalog.md`](docs/services-catalog.md).
+`robin` está definido en el catálogo, pero su imagen aún no existe (falta el Dockerfile): hasta entonces no se puede desplegar.
+Walle y Link todavía no están dockerizados: ver [`docs/services-catalog.md`](docs/services-catalog.md). Para sumar un servicio
+nuevo: [`docs/add-service.md`](docs/add-service.md).
 
 ## Requisitos del servidor
 
@@ -31,12 +34,12 @@ Walle, Robin y Link todavía no están dockerizados: ver [`docs/services-catalog
 deltactl/
 ├─ deltactl             # CLI: ./deltactl help
 ├─ compose.yaml         # name: ${INSTANCE}; include de services/
-├─ services/            # compose-s0.yaml, compose-s1.yaml
-├─ templates/           # plantillas versionadas: .env.instance.example, .env.s0.example, .env.s1.example
+├─ services/            # compose-s0.yaml, compose-s1.yaml, compose-robin.yaml
+├─ templates/           # plantillas versionadas: .env.instance.example, .env.s0.example, .env.s1.example, .env.robin.example
 ├─ instances/           # instancias reales: NO se versionan
 ├─ lib/                 # el código, por capas (ver abajo)
 ├─ tests/               # suites de pruebas (tests/run.sh) y snapshots de la interfaz (tests/golden/)
-└─ docs/                # catálogo de servicios
+└─ docs/                # catálogo de servicios, cómo sumar uno nuevo (add-service.md) y el esquema de variables
 ```
 
 ### Arquitectura de `lib/`

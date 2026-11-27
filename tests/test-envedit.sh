@@ -127,6 +127,27 @@ check "el estado de un valor no repite el valor en el mensaje" '
   [ -z "$(run "envedit_state_value_r ee-a .env.instance S0_PORT SECRETO-abc; case \"\$EV_MSG\" in *SECRETO*) echo leak;; esac")" ]'
 check "un secreto se muestra enmascarado, y vacío se muestra vacío" '[ "$(ROOT="$PWD" bash -c "source lib/bootstrap.sh; envedit_show .env.s0 JWT_SECRET abc; printf \"[%s]\" \"\$ED_SHOW\"; envedit_show .env.s0 JWT_SECRET \"\"; printf \"[%s]\" \"\$ED_SHOW\"")" = "[********][]" ]'
 
+section "4b. las variables de un servicio que la instancia no usa no cuentan como pendientes"
+# `new` deja el archivo de cada servicio del catálogo (con su plantilla por completar), pero la instancia solo corre los de COMPOSE_PROFILES.
+D new ee-off > /dev/null 2>&1
+check "robin no está en COMPOSE_PROFILES: su etiqueta vacía y su valor de ejemplo no son «por completar»" '
+  [ "$(rget instances/ee-off/.env.instance COMPOSE_PROFILES)" = "s0,s1" ] \
+  && [ "$(run "envedit_state_r ee-off .env.instance ROBIN_TAG; printf %s \$ED_STATE")" = "unset" ] \
+  && [ "$(run "envedit_state_r ee-off .env.robin KAFKA_TOPIC; printf %s \$ED_STATE")" = "unset" ]'
+check "lo de los servicios que sí corre se sigue pidiendo (s0: su IP_SERVER de ejemplo)" '
+  [ "$(run "envedit_state_r ee-off .env.s0 IP_SERVER; printf %s \$ED_STATE")" = "example" ] \
+  && [ "$(run "envedit_state_r ee-off .env.instance S0_TAG; printf %s \$ED_STATE")" = "missing" ]'
+check "al sumar robin a COMPOSE_PROFILES vuelve a pedirse (etiqueta vacía = falta, tópico de ejemplo = por completar)" '
+  rset instances/ee-off/.env.instance COMPOSE_PROFILES s0,s1,robin \
+  && [ "$(run "envedit_state_r ee-off .env.instance ROBIN_TAG; printf %s \$ED_STATE")" = "missing" ] \
+  && [ "$(run "envedit_state_r ee-off .env.robin KAFKA_TOPIC; printf %s \$ED_STATE")" = "example" ]'
+check "una lista de servicios vacía o rota no esconde nada (se pide todo, como siempre)" '
+  rset instances/ee-off/.env.instance COMPOSE_PROFILES "" \
+  && [ "$(run "envedit_state_r ee-off .env.instance ROBIN_TAG; printf %s \$ED_STATE")" = "missing" ]'
+check "un guardado suelta lo que se sabía: cambiar COMPOSE_PROFILES con envedit_save se nota en el mismo proceso" '
+  [ "$(run "envedit_save ee-off .env.instance COMPOSE_PROFILES s0,s1 && envedit_state_r ee-off .env.instance ROBIN_TAG; printf %s \$ED_STATE")" = "unset" ]'
+
+
 section "5. el comando env: ver"
 check "list muestra las variables de cada archivo con su estado" 'out="$(D env ee-a list 2>&1)"; echo "$out" | grep -q "S0_PORT" && echo "$out" | grep -q "JWT_SECRET" && echo "$out" | grep -q "FEDERATION_ENCRYPTION_KEY"'
 check "list no muestra las variables fijas (SERVER_PORT, NODE_ENV)" '! D env ee-a list 2>&1 | grep -qE "SERVER_PORT|NODE_ENV"'
@@ -220,13 +241,13 @@ check "volver al valor anterior vuelve a dejarlo sincronizado" 'D env ee-b set s
 check "list avisa de los archivos pendientes" 'D env ee-b set s1:TCP_LISTEN_HOST 10.0.0.9 >/dev/null 2>&1; D env ee-b list 2>&1 | grep -q "Cambios sin desplegar.*\.env\.s1"'
 check "list --json trae los archivos pendientes" 'D env ee-b list --json 2>&1 | grep -q "\"pending\": \[\"\.env\.s1\"\]"'
 check "un deploy correcto (docker simulado) deja la marca de todos los archivos" '
-  newinst ee-c; sed -i "s/^S0_PORT=.*/S0_PORT=29790/; s/^S1_PORT=.*/S1_PORT=29791/" instances/ee-c/.env.instance
+  newinst ee-c; sed -i "s/^S0_PORT=.*/S0_PORT=29790/; s/^S1_PORT=.*/S1_PORT=29791/; s/^ROBIN_PORT=.*/ROBIN_PORT=29891/" instances/ee-c/.env.instance
   D deploy ee-c >/dev/null 2>&1; [ "$(run "for f in .env.instance .env.s0 .env.s1; do envedit_deploy_state_r ee-c \$f; printf \"%s \" \$ED_DEPLOY; done")" = "synced synced synced " ]'
 check "un deploy de un solo servicio marca su archivo y NO el de la instancia" '
-  newinst ee-d; sed -i "s/^S0_PORT=.*/S0_PORT=29792/; s/^S1_PORT=.*/S1_PORT=29793/" instances/ee-d/.env.instance
+  newinst ee-d; sed -i "s/^S0_PORT=.*/S0_PORT=29792/; s/^S1_PORT=.*/S1_PORT=29793/; s/^ROBIN_PORT=.*/ROBIN_PORT=29893/" instances/ee-d/.env.instance
   D deploy ee-d s1 >/dev/null 2>&1; grep -q "^ENV_SUM_S1=" instances/ee-d/.deployed && ! grep -q "^ENV_SUM_S0=" instances/ee-d/.deployed && ! grep -q "^ENV_SUM_INSTANCE=" instances/ee-d/.deployed'
 check "un deploy que falla no deja marca" '
-  newinst ee-e; sed -i "s/^S0_PORT=.*/S0_PORT=29794/; s/^S1_PORT=.*/S1_PORT=29795/" instances/ee-e/.env.instance
+  newinst ee-e; sed -i "s/^S0_PORT=.*/S0_PORT=29794/; s/^S1_PORT=.*/S1_PORT=29795/; s/^ROBIN_PORT=.*/ROBIN_PORT=29895/" instances/ee-e/.env.instance
   echo 23 > "$FIX/fail_pull"; sed -i "s/^REGISTRY=.*/REGISTRY=reg.test/" instances/ee-e/.env.instance; D deploy ee-e >/dev/null 2>&1; rm -f "$FIX/fail_pull"; ! grep -q "^ENV_SUM" instances/ee-e/.deployed 2>/dev/null'
 check "las marcas de .deployed no rompen la lectura de las etiquetas desplegadas (status)" '
   [ "$(run "get_var_r instances/ee-c/.deployed S0_TAG; printf %s \$GV")" = "1.0" ]'
@@ -313,7 +334,7 @@ check "sin sha256sum no se marca nada (un CRC de 32 bits no es una prueba): env 
 
 section "12. un cambio hecho mientras se despliega sigue pendiente"
 newinst ee-g
-sed -i "s/^S0_PORT=.*/S0_PORT=29796/; s/^S1_PORT=.*/S1_PORT=29797/" instances/ee-g/.env.instance
+sed -i "s/^S0_PORT=.*/S0_PORT=29796/; s/^S1_PORT=.*/S1_PORT=29797/; s/^ROBIN_PORT=.*/ROBIN_PORT=29897/" instances/ee-g/.env.instance
 # While compose runs `up`, another terminal changes a value: the containers got the old one.
 printf 'cd %q && bash ./deltactl env ee-g set s0:JWT_EXPIRES_IN 9h > "$FIX/hook.out" 2>&1\n' "$PWD" > "$FIX/hook_up"
 D deploy ee-g > /dev/null 2>&1
@@ -323,5 +344,6 @@ check "…pero ese archivo queda PENDIENTE: la marca es la de antes del cambio" 
 check "…y los que no cambiaron quedan sincronizados" '[ "$(run "for f in .env.instance .env.s1; do envedit_deploy_state_r ee-g \$f; printf \"%s \" \$ED_DEPLOY; done")" = "synced synced " ]'
 check "env set avisa cuando hay una operación en curso (deploy)" 'grep -q "operación en curso" "$FIX/hook.out" && grep -q "deploy ee-g" "$FIX/hook.out"'
 check "sin operación en curso no avisa" '! D env ee-g set s0:JWT_EXPIRES_IN 8h 2>&1 | grep -q "operación en curso"'
+
 
 finish

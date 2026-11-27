@@ -56,7 +56,7 @@ dash_nw_probe() {
   if dk_ready; then DASH_NW_IMGLIST="$(dk_images_tags)" || DASH_NW_IMGLIST=""; fi
   base="$(next_s0_port)"
   for s in "${KNOWN_SERVICES[@]}"; do
-    p=$((base + ${s#s}))
+    p=$((base + ${CAT_OFFSET[$s]:-0}))
     DASH_NW_PORT[$s]="$p" DASH_NW_PBUSY[$s]=0
     if [ -n "$(port_owner "$p" "")" ] || host_port_in_use "$p"; then DASH_NW_PBUSY[$s]=1; fi
     DASH_NW_MEM[$s]="$(get_var "$ROOT/templates/.env.instance.example" "${s^^}_MEM_LIMIT")"
@@ -90,7 +90,7 @@ dash_nw_sel_csv() {
 }
 
 dash_nw_svc_name() { # service
-  case "$1" in s0) DASH_NW_SN=Auth ;; s1) DASH_NW_SN=Gue ;; *) DASH_NW_SN="${1^^}" ;; esac
+  case "$1" in s0) DASH_NW_SN=Auth ;; s1) DASH_NW_SN=Gue ;; robin) DASH_NW_SN=Robin ;; *) DASH_NW_SN="${1^^}" ;; esac
 }
 DASH_NW_SN=""
 
@@ -504,7 +504,7 @@ dash_nw_pane_services() { # width
     row+=" ${DASH_NW_MEM[$s]:-}"
     dash_nw_choiceline check "$s" "${DASH_NW_SEL[$s]:-0}" "$row"
   done
-  t_r tui.nw.svc.pending "walle $UI_S_DOT robin $UI_S_DOT link"; DASH_NW_R+=("   $C_DIM$T_OUT$C_OFF")
+  t_r tui.nw.svc.pending "walle $UI_S_DOT link"; DASH_NW_R+=("   $C_DIM$T_OUT$C_OFF")
   DASH_NW_R+=("")
   t_r tui.nw.svc.state; DASH_NW_R+=(" $C_BLD$T_OUT$C_OFF")
   for s in "${KNOWN_SERVICES[@]}"; do
