@@ -5,10 +5,10 @@
 # the golden snapshots of tests/test-server.sh (tests/golden/server/) and the source of the PNG captures. Sourced, never executed: it needs
 # lib/bootstrap.sh and lib/cmd/dashboard.sh already loaded, and the environment of the panel (DELTACTL_UI=rich, DELTACTL_TUI_KEYS=...).
 #
-#   server_scene <name>      name: ok | missing | open | zoom | na | loading | alert | ok-open | focus-containers | zoom-cpu | many-cores |
+#   server_scene <name>      name: ok | missing | modal | open | zoom | na | loading | alert | ok-open | focus-containers | zoom-cpu | many-cores |
 #                                  many-containers | wide
 
-SERVER_SCENES=(ok missing open zoom na loading alert ok-open focus-containers zoom-cpu many-cores many-containers wide)
+SERVER_SCENES=(ok missing modal open zoom na loading alert ok-open focus-containers zoom-cpu many-cores many-containers wide)
 
 # A deterministic series of N samples between 0 and 100 (a wave with bursts), oldest first, into SS.
 SS=""
@@ -167,13 +167,14 @@ server_scene() { # name
   DASH_DOCKER_VER=27.0.0
   MT_HOST_PCT=48 MT_HOST_TOTAL_KB=12058624 MT_HOST_USED_KB=5892096 MT_HOST_LOAD=3.18 MT_HOST_HIST=""
   PR_DISTRO_ID=debian PR_DISTRO_NAME="Debian GNU/Linux 12" PR_MANAGER=apt
-  DASH_SRV_STATE=ready DASH_SRV_BUSY=0 DASH_SRV_SEL=0 DASH_SRV_OPEN=0 DASH_SRV_ZOOM=0 DASH_SRV_REQ=auto DASH_SRV_FOCUS=req DASH_SRV_PZ="" DASH_SRV_CSEL=0
+  DASH_SRV_STATE=ready DASH_SRV_BUSY=0 DASH_SRV_SEL=0 DASH_SRV_OPEN=0 DASH_SRV_ZOOM=0 DASH_SRV_MODAL=0 DASH_SRV_FOCUS=req DASH_SRV_PZ="" DASH_SRV_CSEL=0
   srv_host
   srv_ps_ss
   case "$name" in
     ok) srv_prereqs_ok ;;
-    missing) srv_prereqs_missing; DASH_SRV_SEL=3 ;;   # the first one that fails: the disk
-    open) srv_prereqs_missing; DASH_SRV_SEL=5; DASH_SRV_OPEN=1 ;;   # Mongo, open
+    missing) srv_prereqs_missing; DASH_SRV_SEL=3 ;;   # something required fails: the strip says so and stays a strip
+    modal) srv_prereqs_missing; DASH_SRV_SEL=3; DASH_SRV_MODAL=1 ;;   # the modal with the first one that fails (the disk) selected
+    open) srv_prereqs_missing; DASH_SRV_SEL=5; DASH_SRV_OPEN=1; DASH_SRV_MODAL=1 ;;   # the modal, Mongo with its whole detail
     zoom) srv_prereqs_ok; DASH_SRV_ZOOM=1 ;;
     na) srv_prereqs_ok; srv_host_na ;;
     alert)
@@ -182,7 +183,7 @@ server_scene() { # name
       HOST_DISK_PCT=(96 22 91) HOST_MEMD_AVAIL=524288 HOST_MEMD_USED=11534336 HOST_TEMP_CPU_C=96 HOST_TEMP_CPU_CRIT=100
       DSV_KIND[colorado/s1]=err DSV_TEXT[colorado/s1]=exited
       ;;
-    ok-open) srv_prereqs_ok; DASH_SRV_REQ=open; DASH_SRV_SEL=4 ;;   # the list opened by hand with everything fine
+    ok-open) srv_prereqs_ok; DASH_SRV_MODAL=1; DASH_SRV_SEL=4 ;;   # the modal with everything fine
     focus-containers) srv_prereqs_ok; DASH_SRV_FOCUS=containers; DASH_SRV_CSEL=2 ;;
     zoom-cpu) srv_prereqs_ok; DASH_SRV_FOCUS=cpu; DASH_SRV_PZ=cpu ;;
     many-cores) srv_prereqs_ok; srv_many_cores ;;

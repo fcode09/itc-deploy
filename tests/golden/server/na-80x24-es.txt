@@ -3,7 +3,7 @@
  [1 Servidor]  2   3   4   5   6   7   8   9   0                               
 ╭─┐ ▸requisitos ┌─────────────────────────────────────────────────┐9/9 listos┌─╮
 │  ▲ contenedor piura/s1: unhealthy                                            │
-╰─┘Enter ampliar└─┘R comprobar└─┘m métricas└───────────────────────────────────╯
+╰─┘Enter requisitos└─┘R comprobar└─┘m métricas└────────────────────────────────╯
 ╭─┐cpu┌────────────────────────────────────╮╭─┐memoria┌────────────────────────╮
 │ no disponible en este sistema            ││ no disponible en este sistema    │
 │                                          ││                                  │
@@ -22,4 +22,4 @@
 │                                                                              │
 ╰──────────────────────────────────────────────────────────────────────────────╯
 
- Enter ampliar · Tab otro panel · z zoom · m métricas · ? ayuda · q salir
+ Enter requisitos · Tab otro panel · z zoom · m métricas · ? ayuda · q salir

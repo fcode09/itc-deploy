@@ -1,0 +1,25 @@
+=== frame 1 ===
+  ITC  testhost · Memoria ███░░░ 5.6/11.5 GB 48% ▂▁▄▂▁▄ · Carga 3.18
+ [1 Servidor]  2   3   4   5   6   7   8   9   0                               
+╭─┐ ▸requisitos ┌─────────────────────┐6/9 listos · 3 recomendados pendientes┌─╮
+│  ╭─┐ ▸requisitos ┌───────────────┐6/9 listos · 3 recomendados pendientes┌─╮… │
+╰─┘│  ✖ 4 avisos: 2 requisitos obligatorios fallan: Disco libre, MongoDB a… │──╯
+╭─┐│ ────────────────────────────────────────────────────────────────────── │┌─╮
+│ C│   OBLIGATORIOS  6/9                                                    │B │
+│ C│   ● Docker Engine                 Docker 27.0.0 (arquitectura amd64)   │% │
+│  │   ● Acceso al daemon de Docker    El daemon de Docker responde         │B │
+│ ⢠│   ● Docker Compose 2.20 o super…  Docker Compose 2.30.0                │B │
+│ ⣼│ ▸ ✖ Disco libre                   Poco disco libre en /var/lib/docker… │B │
+│ ⣿│   ● Memoria                       Memoria: 11776 MB en total, 6022 MB… │B │
+│ -│   ✖ MongoDB alcanzable            127.0.0.1:27017 no responde por TCP  │B │
+│ m│ ─ ✖ Disco libre ────────────────────────────────────────────────────── │  │
+╰──│  Para qué        Las imágenes, los datos y los logs ocupan disco: con  │──╯
+╭─┐│                   menos de 3 GB libres un despliegue puede fallar a    │┌─╮
+│ S│                   medias.                                              │  │
+│  │  Resultado        Poco disco libre en /var/lib/docker: 1.9 GB          │  │
+│  │  Cómo            Las imágenes y los logs necesitan espacio. Libera     │  │
+│  │                   disco o mueve Docker.                                │  │
+│  ╰─┘Enter detalle└─┘c copiar└─┘! ejecutar└─┘Esc cerrar└───────────────────╯  │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+ ↑↓ elegir · Enter detalle · c copiar · ! ejecutar · ? ayuda · q salir

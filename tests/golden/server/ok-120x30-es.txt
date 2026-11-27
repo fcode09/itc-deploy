@@ -3,7 +3,7 @@
  [1 Servidor] 2 Imágenes 3 Instancias 4 Recursos 5 Salida 6 Ejecuciones 7 Procesos 8 Consola 9 Variables 0 Actividad   
 ╭─┐ ▸requisitos ┌─────────────────────────────────────────────────────────────────────────────────────────┐9/9 listos┌─╮
 │  disco / 86% · carga 3.18↗ · 8 núcleos · activo 02:22 · ▼ 4.0 MiB/s ▲ 1.4 KiB/s · ▲ 2 avisos: disco / al 86%         │
-╰─┘Enter ampliar└─┘R comprobar└─┘m métricas└───────────────────────────────────────────────────────────────────────────╯
+╰─┘Enter requisitos└─┘R comprobar└─┘m métricas└────────────────────────────────────────────────────────────────────────╯
 ╭─┐cpu┌─────────────────────────────────┐61°C┌─╮╭─┐memoria┌────────────────────┐48%┌─╮╭─┐discos┌───────────────────────╮
 │ Carga 3.18↗ 2.64 1.97 · 0.39/… CPU█▊░░░  37% ││ Usada ··················· 5.61 GiB ││ / ···················· 204 GiB │
 │                                C0 █░░░░  22% ││ ██████████████▒▒▒▒▒▒▒▒▒▒░░░░░  48% ││ █████████████████████▌░░░  86% │
@@ -28,4 +28,4 @@
 │ TCP 58 · cerrándose 7 · sockets 412       ││                                                                         │
 ╰───────────────────────────────────────────╯╰─────────────────────────────────────────────────────────────────────────╯
 
- Enter ampliar · Tab otro panel · z zoom · m métricas · R comprobar · : comando · ? ayuda · q salir
+ Enter requisitos · Tab otro panel · z zoom · m métricas · R comprobar · : comando · ? ayuda · q salir

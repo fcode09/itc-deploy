@@ -9,7 +9,7 @@ DASH_SRV_KEYV=""
 dash_srv_key_req() {
   local root=0 i
   for ((i = 0; i < HOST_DISK_N; i++)); do [ "${HOST_DISK_MNT[$i]}" != "/" ] || root="$i"; done
-  DASH_SRV_KEYV="$DASH_SRV_SEL|$DASH_SRV_OPEN|$DASH_SRV_REQ|$DASH_SRV_STATE|$DASH_SRV_BUSY|$DASH_SRV_N|$DASH_SRV_ALKEY|${MT_SRC[disk]:-}|${HOST_DISK_PCT[$root]:-}|${MT_SRC[load]:-}|$HOST_LOAD1|$HOST_LOAD5|${#MT_CORE_PCT[@]}|${MT_SRC[uptime]:-}|$HOST_UPTIME_S|${MT_SRC[net]:-}|$HOST_NET_DOWN_BPS|$HOST_NET_UP_BPS"
+  DASH_SRV_KEYV="$DASH_SRV_SEL|$DASH_SRV_OPEN|$DASH_SRV_STATE|$DASH_SRV_BUSY|$DASH_SRV_N|$DASH_SRV_ALKEY|${MT_SRC[disk]:-}|${HOST_DISK_PCT[$root]:-}|${MT_SRC[load]:-}|$HOST_LOAD1|$HOST_LOAD5|${#MT_CORE_PCT[@]}|${MT_SRC[uptime]:-}|$HOST_UPTIME_S|${MT_SRC[net]:-}|$HOST_NET_DOWN_BPS|$HOST_NET_UP_BPS"
   DASH_SRV_REQ_KEY="$DASH_SRV_KEYV"
 }
 dash_srv_key_cpu() { DASH_SRV_KEYV="${MT_SRC[cpu]:-}|${MT_SRC[temp]:-}|${MT_SRC[load]:-}|${MT_SRC[psi]:-}|$MT_CPU_ALL|${MT_CORE_PCT[*]}|$MT_HH_CPU|$MT_HH_LOAD|$HOST_TEMP_CPU_C|$HOST_LOAD1 $HOST_LOAD5 $HOST_LOAD15|$HOST_PSI_CPU|${MT_INTERVAL_US:-}"; }
@@ -108,10 +108,14 @@ dash_srv_merge() { # array
 #   wide (200 columns and more)   cpu | memory | disks | network, then the containers across the whole width
 #   medium (120 and more)         cpu | memory | disks, then network | containers
 #   narrow                        cpu | memory, then the containers (and, tall: disks | network)
-# and, from 49 rows of body (55 of terminal), one more row with the processes and the ports. Each row asks for what its content needs (the
-# containers: a line each), the figures take the rest. With a box zoomed (z) it is the only thing on screen.
+# and, from DASH_SRV_PROCS_MIN rows of body (36 of terminal), one more row with the processes and the ports. The figures are COMPACT (about
+# 12 lines: the zoom z gives a box all its room) so that the containers, the processes and the ports fit; each row asks for what its content
+# needs (the containers: a line each) and what is left goes to the processes. The requirements are a strip of three rows and, when asked, a
+# modal over the body (Enter). With a box zoomed (z) it is the only thing on screen.
+DASH_SRV_PROCS_MIN=32   # rows of body from which the processes and the ports are drawn under the figures
+DASH_SRV_FIG=12         # lines the compact figures ask for
 scr_server_render() { # width height
-  local w="$1" h="$2" top=3 cls="" i bw bmin bmax nk nr f ok=0 topmin
+  local w="$1" h="$2" top=3 cls="" i bw bmin bmax nk nr f ok=0 base0="${#TUI_FRAME[@]}" figmax=44
   local -a hs=() wa=() specs=() rows=() nms=() vis=()
   DASH_SRV_VIS=()
   prof_b srv.alerts
@@ -126,31 +130,27 @@ scr_server_render() { # width height
     return 0
   fi
   if [ "$w" -ge 200 ]; then cls=L; elif [ "$w" -ge 120 ]; then cls=M; else cls=N; fi
-  if [ "$DASH_SRV_ZOOM" -eq 1 ]; then top=0
-  elif dash_srv_expanded; then dash_srv_need $((w - 4)); top="$DASH_SRV_NEED"
-  fi
+  if [ "$DASH_SRV_ZOOM" -eq 1 ]; then top=0; fi
   # The names of the boxes of each row (the strip is above them).
   case "$cls" in
-    L) rows=("cpu mem disks net" "containers"); [ "$h" -lt 49 ] || rows+=("procs ports") ;;
-    M) rows=("cpu mem disks" "net containers"); [ "$h" -lt 49 ] || rows+=("procs ports") ;;
+    L) rows=("cpu mem disks net" "containers"); [ "$h" -lt "$DASH_SRV_PROCS_MIN" ] || rows+=("procs ports") ;;
+    M) rows=("cpu mem disks" "net containers"); [ "$h" -lt "$DASH_SRV_PROCS_MIN" ] || rows+=("procs ports") ;;
     *) rows=("cpu mem" "containers"); [ "$h" -lt 38 ] || rows+=("disks net") ;;
   esac
+  # (with the processes row under them the figures stay compact; without it they take what the containers leave, as before)
+  [ "${#rows[@]}" -lt 3 ] || figmax=16
   # The containers ask for a line each (and the header, the borders and the line of the ones not created).
   nk="${#DASH_SRV_CK[@]}"
   bw=$((nk + 3)); [ "$DASH_SRV_NC" -eq 0 ] || [ "$DASH_SRV_SHOW_NC" -eq 1 ] || bw=$((bw + 1))
   [ "$bw" -ge 6 ] || bw=6
-  # (the list of requirements, when it is open, is what the person came to see: the figures give way to it, down to 6 and 5 lines)
-  topmin="$top"
-  if [ "$top" -gt 3 ]; then topmin=$((h * 5 / 9)); [ "$topmin" -ge 10 ] || topmin=10; [ "$topmin" -le "$top" ] || topmin="$top"; fi
   # (with many services the containers keep at least two fifths of the body; the figures take what they do not need, up to 44 lines)
   bmin=$((h * 2 / 5)); [ "$bmin" -ge 6 ] || bmin=6; [ "$bmin" -le "$bw" ] || bmin="$bw"
-  [ "$top" -le 3 ] || bmin=5
-  specs=("$top:$topmin:$top:0" "14:6:44:3")
+  if [ "${#rows[@]}" -ge 3 ]; then specs=("$top:$top:$top:0" "$DASH_SRV_FIG:8:$figmax:1"); else specs=("$top:$top:$top:0" "14:6:$figmax:3"); fi
   case "$cls" in
     M) bmax="$bw"; [ "$bmax" -ge 16 ] || bmax=16; [ "$bw" -ge 12 ] || bw=12; specs+=("$bw:$bmin:$bmax:1") ;;
     *) specs+=("$bw:$bmin:$bw:1") ;;
   esac
-  [ "${#rows[@]}" -lt 3 ] || specs+=("10:6:12:2")
+  [ "${#rows[@]}" -lt 3 ] || specs+=("10:6:40:2")
   lay_split "$h" "${specs[@]}"
   hs=("${LAY[@]}")
   # A row too small to draw a box (under 4 lines) gives its lines to the one above it.
@@ -176,6 +176,29 @@ scr_server_render() { # width height
     wa=("${LAY[@]}")
     dash_srv_row_boxes "$nr" wa "${nms[@]}"
   done
+  [ "$DASH_SRV_MODAL" -eq 0 ] || dash_srv_modal "$w" "$h" "$base0"
+}
+
+# The requirements in a modal laid over the body that was just built (it starts at row $3 of TUI_FRAME): centred, at most 124 cells wide, as
+# tall as the list and the detail need. On a screen too small for a window it takes the whole body. While it is open it is the only box that
+# has the focus, the keys and the mouse (a click outside closes it).
+dash_srv_modal() { # width height first-row
+  local w="$1" h="$2" r0="$3" mw mh left top
+  DASH_SRV_FOCUS=req
+  mw=$((w - 6)); [ "$mw" -le 124 ] || mw=124
+  if [ "$mw" -lt 40 ] || [ "$h" -lt 14 ]; then
+    mw="$w" mh="$h" left=0 top=0
+  else
+    dash_srv_need $((mw - 4)); mh="$DASH_SRV_NEED"
+    [ "$mh" -le $((h - 2)) ] || mh=$((h - 2))
+    [ "$mh" -ge 12 ] || mh=12
+    left=$(((w - mw) / 2)) top=$(((h - mh) / 2))
+  fi
+  dash_srv_req "$mw" "$mh" full
+  kit_overlay TUI_FRAME $((r0 + top)) DASH_SRV_BOX "$left"
+  DASH_SRV_VIS=(req)
+  DASH_SRV_RECT=()
+  DASH_SRV_RECT[req]="$((left + 1)) $((r0 + top + 1)) $mw $mh"
 }
 
 # Moves the focus to the box that follows (+1) or precedes (-1) the one that has it among those on screen.
@@ -188,14 +211,14 @@ scr_server_tab() { # +1 | -1
 
 # --- Keys ---------------------------------------------------------------------------------------------------------------
 
-# The keys of the list of requirements (with the strip only Enter does something: it opens the list).
+# The keys of the list of requirements (with the strip only Enter does something: it opens the modal).
 dash_srv_key_req_k() { # key
   local n="${#DASH_SRV_ORDER[@]}" open=0
-  if dash_srv_expanded || [ "$DASH_SRV_PZ" = req ]; then open=1; fi
+  if dash_srv_listed; then open=1; fi
   case "$1" in
     enter | space)
-      # With the strip it opens the list; with the list open it opens or closes the detail of the requirement.
-      if [ "$open" -eq 1 ]; then DASH_SRV_OPEN=$((1 - DASH_SRV_OPEN)); else DASH_SRV_REQ=open; fi
+      # With the strip it opens the modal; with the list on screen it opens or closes the detail of the requirement.
+      if [ "$open" -eq 1 ]; then DASH_SRV_OPEN=$((1 - DASH_SRV_OPEN)); else DASH_SRV_MODAL=1; fi
       return 0 ;;
     c) [ "$open" -eq 0 ] || dash_srv_copy_sel; return 0 ;;
   esac
@@ -239,6 +262,15 @@ dash_srv_key_cont() { # key
 }
 
 scr_server_key() { # key
+  if [ "$DASH_SRV_MODAL" -eq 1 ]; then
+    # (the modal owns the keys: the zoom and the figures-only view are behind it)
+    case "$1" in
+      m | z | tab | btab) return 0 ;;
+      R) dash_srv_request; dash_msg info "$(t tui.srv.checking)"; return 0 ;;
+    esac
+    dash_srv_key_req_k "$1"
+    return 0
+  fi
   case "$1" in
     m) DASH_SRV_ZOOM=$((1 - DASH_SRV_ZOOM)); DASH_SRV_OPEN=0; DASH_SRV_PZ=""; return 0 ;;
     z) if [ -n "$DASH_SRV_PZ" ]; then DASH_SRV_PZ=""; else DASH_SRV_PZ="$DASH_SRV_FOCUS"; fi; DASH_SRV_OPEN=0; return 0 ;;
@@ -259,7 +291,7 @@ scr_server_bang() {
   [ "$DASH_VIEW" = "server" ] || return 1
   [ "$DASH_SRV_ZOOM" -eq 0 ] || return 0   # only the metrics are on screen: the requirement that would run is not shown
   [ "$DASH_SRV_FOCUS" = "req" ] || return 1
-  dash_srv_expanded || [ "$DASH_SRV_PZ" = req ] || return 1
+  dash_srv_listed || return 1
   [ -n "$id" ] || return 0
   if dash_srv_waiting "$id"; then dash_msg info "$(t tui.srv.nothing_wait)"; return 0; fi
   if [ "${PR_STATUS[$id]:-}" = "ok" ]; then dash_msg info "$(t tui.srv.nothing)"; return 0; fi
@@ -270,27 +302,29 @@ scr_server_bang() {
 
 # The hints of the last line: those of the box that has the focus (the zoom has its own).
 scr_server_keys() { # width
-  if [ "$DASH_SRV_ZOOM" -eq 1 ]; then dash_keys_view server_met "$1"
+  if [ "$DASH_SRV_MODAL" -eq 1 ]; then dash_keys_view server_modal "$1"
+  elif [ "$DASH_SRV_ZOOM" -eq 1 ]; then dash_keys_view server_met "$1"
   elif [ -n "$DASH_SRV_PZ" ]; then dash_keys_view server_zoom "$1"
   elif [ "$DASH_SRV_FOCUS" = "req" ]; then
-    if dash_srv_expanded; then dash_keys_view server "$1"; else dash_keys_view server_strip "$1"; fi
+    if dash_srv_listed; then dash_keys_view server "$1"; else dash_keys_view server_strip "$1"; fi
   else dash_keys_view "server_$DASH_SRV_FOCUS" "$1"; fi
 }
 scr_server_texts() {
   local f k
   DASH_KEYS[server]="$(t tui.keys.server "$DASH_UD" "$DASH_LR")"
   DASH_KEYS[server_strip]="$(t tui.keys.server_strip)"
+  DASH_KEYS[server_modal]="$(t tui.keys.server_modal "$DASH_UD")"
   DASH_KEYS[server_met]="$(t tui.keys.server_met)"
   DASH_KEYS[server_zoom]="$(t tui.keys.server_zoom "$DASH_UD")"
   for f in cpu mem disks net containers procs ports; do k="tui.keys.server_$f"; DASH_KEYS[server_$f]="$(t "$k" "$DASH_UD")"; done
 }
-scr_server_sig() { DASH_SIG+="|$DASH_SRV_SEL|$DASH_SRV_OPEN|$DASH_SRV_REQ|$DASH_SRV_ZOOM|$DASH_SRV_PZ|$DASH_SRV_STATE|$DASH_SRV_BUSY|$DASH_SRV_N|$DASH_SRV_FOCUS|$DASH_SRV_CSEL|$DASH_SRV_SHOW_NC|$DASH_RES_SORT|$DASH_SRV_PSEL|$DASH_SRV_TSEL|$DASH_SRV_PS_STATE|$DASH_SRV_SS_STATE"; }
+scr_server_sig() { DASH_SIG+="|$DASH_SRV_SEL|$DASH_SRV_OPEN|$DASH_SRV_MODAL|$DASH_SRV_ZOOM|$DASH_SRV_PZ|$DASH_SRV_STATE|$DASH_SRV_BUSY|$DASH_SRV_N|$DASH_SRV_FOCUS|$DASH_SRV_CSEL|$DASH_SRV_SHOW_NC|$DASH_RES_SORT|$DASH_SRV_PSEL|$DASH_SRV_TSEL|$DASH_SRV_PS_STATE|$DASH_SRV_SS_STATE"; }
 
-# Esc: first the zoom of a box, then the detail, then the list opened by hand, then the metrics view; else leave the view.
+# Esc: first the zoom of a box, then the detail, then the modal, then the metrics view; else leave the view.
 scr_server_back() {
   if [ -n "$DASH_SRV_PZ" ]; then DASH_SRV_PZ=""; return 0; fi
   if [ "$DASH_SRV_OPEN" -eq 1 ]; then DASH_SRV_OPEN=0; return 0; fi
-  if [ "$DASH_SRV_REQ" = "open" ]; then DASH_SRV_REQ=auto; return 0; fi
+  if [ "$DASH_SRV_MODAL" -eq 1 ]; then DASH_SRV_MODAL=0; return 0; fi
   if [ "$DASH_SRV_ZOOM" -eq 1 ]; then DASH_SRV_ZOOM=0; return 0; fi
   return 1
 }
@@ -318,12 +352,15 @@ dash_srv_hit() { # column row
 # cursor there and, if the cursor was already on it, does what Enter does.
 scr_server_click() { # column row
   local nm idx l r
-  dash_srv_hit "$1" "$2" || return 0
+  if ! dash_srv_hit "$1" "$2"; then
+    [ "$DASH_SRV_MODAL" -eq 0 ] || { DASH_SRV_MODAL=0; DASH_SRV_OPEN=0; }   # (a click outside the modal closes it)
+    return 0
+  fi
   nm="$DASH_SRV_HIT"
   if [ "$nm" != "$DASH_SRV_FOCUS" ]; then DASH_SRV_FOCUS="$nm"; return 0; fi
   case "$nm" in
     req)
-      if ! dash_srv_expanded; then DASH_SRV_REQ=open; return 0; fi
+      if ! dash_srv_listed; then DASH_SRV_MODAL=1; return 0; fi
       IFS='|' read -r l r <<< "${DASH_SRV_RMAP[$DASH_SRV_HROW]:-}"
       idx="${l:-}"
       if [ "$DASH_SRV_RCOLW" -gt 0 ] && [ "$DASH_SRV_HCOL" -gt $((DASH_SRV_RCOLW + 2)) ]; then idx="${r:-}"; fi
@@ -360,6 +397,7 @@ scr_server_wheel() { # button column row
 
 # The first time the view is chosen it asks for the check; the figures of the server start being read.
 scr_server_enter() {
+  DASH_SRV_MODAL=0 DASH_SRV_OPEN=0   # (coming back to the view finds the strip, not a window left open)
   [ "$DASH_SRV_STATE" != "none" ] || dash_srv_request
   MT_LAST_US=0
 }

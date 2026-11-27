@@ -2,40 +2,40 @@
   ITC  testhost · Memoria ███░░░ 5.6/11.5 GB 48% ▂▁▄▂▁▄ · Carga 3.18 · Docker 27.0.0 · contenedores 3.3G
  [1 Servidor]  2 Imágenes   3 Instancias   4 Recursos   5 Salida   6 Ejecuciones   7 Procesos   8 Consola   9 Variables   0 Actividad                          
 ╭─┐ ▸requisitos ┌─────────────────────────────────────────────────────────────────────────────────────────────────────┐6/9 listos · 3 recomendados pendientes┌─╮
-│  disco / 86% · carga 3.18↗ · 8 núcleos · activo 02:22 · ▼ 4.0 MiB/s ▲ 1.4 KiB/s · ✖ 4 avisos: 2 requisitos obligatorios fallan                               │
-│ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── │
-│   OBLIGATORIOS  6/9                                                          │   RECOMENDADOS  3/6                                                           │
-│   ● Docker Engine                   Docker 27.0.0 (arquitectura amd64)       │   ● Límite de archivos de mongod   mongod permite 524288 archivos abiertos    │
-│   ● Acceso al daemon de Docker      El daemon de Docker responde             │   ▲ Proxy inverso (nginx o Caddy)  No se detectó nginx ni Caddy (recomendado) │
-│   ● Docker Compose 2.20 o superior  Docker Compose 2.30.0                    │   ▲ certbot                        Falta 'certbot' (recomendado)              │
-│ ▸ ✖ Disco libre                     Poco disco libre en /var/lib/docker: 1.… │   ● Hora sincronizada              La hora del servidor está sincronizada (N… │
-│   ● Memoria                         Memoria: 11776 MB en total, 6022 MB dis… │   ▲ Cortafuegos                    No se detectó un cortafuegos activo (reco… │
-│   ✖ MongoDB alcanzable              127.0.0.1:27017 no responde por TCP      │   ● curl                           curl disponible                            │
-│   ▲ ss (iproute2)                   Falta 'ss'                               │                                                                               │
-│   ● openssl                         openssl disponible                       │                                                                               │
-│   ● gunzip (gzip)                   gunzip disponible                        │                                                                               │
-│                                                                              │                                                                               │
-│                                                                              │                                                                               │
-│                                                                              │                                                                               │
-│ ─ ✖ Disco libre ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── │
-│  Para qué        Las imágenes, los datos y los logs ocupan disco: con menos de 3 GB libres un despliegue puede fallar a medias.                              │
-│  Resultado        Poco disco libre en /var/lib/docker: 1.9 GB                                                                                                │
-│  Cómo            Las imágenes y los logs necesitan espacio. Libera disco o mueve Docker.                                                                     │
-╰─┘Enter detalle└─┘c copiar└─┘! ejecutar└─┘m métricas└─────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+│  disco / 86% · carga 3.18↗ · 8 núcleos · activo 02:22 · ✖ 4 avisos: 2 requisitos obligatorios fallan: Disco libre, MongoDB alcanzable                        │
+╰─┘Enter requisitos└─┘R comprobar└─┘m métricas└────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 ╭─┐cpu┌────────────────────────────────────────────────┐61°C┌─╮╭─┐memoria┌──────────────────────────────┐48%┌─╮╭─┐discos┌──────────────────────────────────────╮
-│ Carga 3.18↗ 2.64 1.97 · 0.39/… CPU█▊░░░  37%                ││ Usada ····························· 5.61 GiB ││ / ··································· 204 GiB │
-│  ⢀                             C0 █░░░░  22%  C1 ███▏░  64% ││ ███████████████████▒▒▒▒▒▒▒▒▒▒▒▒▒░░░░░░░  48% ││ ██████████████████████████████████▍░░░░░  86% │
-│ ⡇⢸  ⢀ ⡀⢀   ⡆⢸  ⢀       ⢰     ⢀ C2 ▍░░░░   8%  C3 ███░░  61% ││ Disponible ························ 5.88 GiB ││ /srv/data ··························· 500 GiB │
-│ ⣷⢸ ⡇⢸⡀⡇⢸⡄⢠ ⣷⢸⡇⡆⢸ ⡇ ⡀⢀ ⣴⢸⡆⡆⢸ ⡇⢸ C4 ▊░░░░  17%  C5 ████▌  90% ││ Total ······························· 11 GiB ││ ████████▊░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  22% │
-│ ⣿⣿⡆⣷⢸⡇⣿⢸⣇⢸⡀⣿⣾⡇⣧⢸⡇⣿ ⡇⢸ ⣿⣼⣧⣷⢸⡆⣷⢸ C6 ▎░░░░   5%  C7 █▋░░░  33% ││ Caché ····························· 4.00 GiB ││ /var/backups ······················· 1000 GiB │
-│ ⣿⣿⣷⣿⣼⣿⣿⣿⣿⣸⣇⣿⣿⣧⣿⣾⣷⣿⣆⣿⣸⣇⣿⣿⣿⣿⣼⣷⣿⣿                              ││ Libre ····························· 1.00 GiB ││ ██████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  25% │
-│ -2 min ───────────────── ahora                              ││ Swap ······························ 4.00 GiB ││ E/S ▼ 7.0 MiB/s ▲ 16.0 MiB/s                  │
-│ mín 0% · media 41% · máx 86%                                ││ +2 más                                       ││                                               │
+│ Carga 3.18↗ 2.64 1.97 · 0.39/núcleo           CPU█▊░░░  37% ││ Usada ····························· 5.61 GiB ││ / ··································· 204 GiB │
+│                                               C0 █░░░░  22% ││ ███████████████████▒▒▒▒▒▒▒▒▒▒▒▒▒░░░░░░░  48% ││ ██████████████████████████████████▍░░░░░  86% │
+│     ⡆          ⡄⢸         ⡀⢰          ⢠       C1 ███▏░  64% ││ Disponible ························ 5.88 GiB ││ /srv/data ··························· 500 GiB │
+│    ⡀⡇⢠ ⡀⢠      ⡇⢸ ⡀⢠ ⡆⢰   ⡇⢸  ⢠ ⡀     ⢸    ⡀⢠ C2 ▍░░░░   8% ││ Total ······························· 11 GiB ││ ████████▊░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  22% │
+│  ⡄⢸⡇⣿⢸ ⡇⢸⡀⢀ ⡀⢰ ⣷⢸ ⡇⢸ ⡇⢸⡄⢠ ⣿⢸⡇⡆⢸ ⡇ ⡀⢀ ⣴⢸⡆⡆⢸ ⡇⢸ C3 ███░░  61% ││ Caché ····························· 4.00 GiB ││ /var/backups ······················· 1000 GiB │
+│  ⡇⢸⣧⣿⣼⡆⣿⢸⡇⢸ ⣇⢸ ⣿⣾⡄⣧⢸⡇⣿⢸⡇⢸ ⣿⣸⡇⣇⢸⡆⣷ ⡇⢸ ⣿⣸⡇⣧⢸⡄⣧⢸ C4 ▊░░░░  17% ││ Libre ····························· 1.00 GiB ││ ██████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  25% │
+│ ⡇⣷⢸⣿⣿⣿⣇⣿⣸⣧⢸⡆⣿⢸⣿⣿⣿⡇⣿⢸⣧⣿⣸⣷⢸⡇⣿⣿⡇⣿⣸⡇⣿⡀⣧⢸⡄⣿⣿⣿⣿⢸⡇⣿⣸ C5 ████▌  90% ││ Swap ······························ 4.00 GiB ││ E/S ▼ 7.0 MiB/s ▲ 16.0 MiB/s                  │
+│ ⣇⣿⣾⣿⣿⣿⣿⣿⣿⣿⣸⣇⣿⣼⣿⣿⣿⣿⣿⣾⣿⣿⣿⣿⣸⣇⣿⣿⣷⣿⣿⣿⣿⣇⣿⣸⣇⣿⣿⣿⣿⣾⣿⣿⣿ C6 ▎░░░░   5% ││ ████▋░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  12% ││ sda      ██░░░░  34% ▼ 6.6 MiB/s ▲ 15.2 MiB/s │
+│ -3 min ──────────────────────────────── ahora C7 █▋░░░  33% ││ presión 0.00% · swap 0 pág. · OOM 0          ││ sdb      ▏░░░░░   3% ▼ 332.0 KiB/s ▲ 751.9 K… │
+│ mín 0% · media 40% · máx 86%                                ││                                              ││ Presión 1.37%                                 │
 ╰─────────────────────────────────────────────────────────────╯╰──────────────────────────────────────────────╯╰───────────────────────────────────────────────╯
 ╭─┐red┌─┐enp3s0┌────────────────┐activo 02:22┌─╮╭─┐contenedores┌─────────────────────────────────────────────────────────────────────────────────────────┐4/4┌─╮
-│ ▼ 4.0 MiB/s  máx 4.8 MiB/s                   ││ SVC    INSTANCIA    ESTADO       PUERTO    CPU TENDENCIA                MEMORIA                              │
-│ ▲ 1.4 KiB/s  máx 615.2 KiB/s                 ││   s0   colorado     ● healthy    4100     3.7% ▅▃▃▆▅▄▇▄▂▅▄▂▁▄▃▁▄▂▁▅▃▁▄▃ ██▎░░░ 38% 196M/512M                 │
-│ TCP 58 · cerrándose 7 · sockets 412          ││   s1   colorado     ● healthy    4101    41.2% ▅▃▃▆▅▄▇▄▂▅▄▂▁▄▃▁▄▂▁▅▃▁▄▃ ███▌░░ 59% 1.1G/2.0G                 │
+│   ⡀⢀          ⢀          ⢀ ⡀        ⢀        ││ SVC    INSTANCIA    ESTADO       PUERTO    CPU TENDENCIA                MEMORIA                              │
+│   ⣇⢸⡀⡄⢠    ⣆  ⢸⡄⡀⢀ ⡆⢠    ⢸⡀⡇⢀ ⡄⢠ ⡆  ⢸⡀⡇⢀ ⡀⢀  ││   s0   colorado     ● healthy    4100     3.7% ▅▃▃▆▅▄▇▄▂▅▄▂▁▄▃▁▄▂▁▅▃▁▄▃ ██▎░░░ 38% 196M/512M                 │
+│ ⢸⡀⣿⣸⡇⣧⢸⡄⢰ ⡆⣿⡀⣿⣸⣧⣧⢸⡀⣷⢸⡄⢸ ⡇⢸⣇⣇⢸⡄⣧⢸⡄⣷ ⡆⢸⣇⣿⢸⡀⣧⢸⡄ ││   s1   colorado     ● healthy    4101    41.2% ▅▃▃▆▅▄▇▄▂▅▄▂▁▄▃▁▄▂▁▅▃▁▄▃ ███▌░░ 59% 1.1G/2.0G                 │
+│ ⢸⣇⣿⣿⣧⣿⣼⣧⢸⡇⣷⣿⣇⣿⣿⣿⣿⣼⣷⣿⣾⣷⢸⡇⣿⣿⣿⣿⣸⣧⣿⣼⣷⣿⡆⣷⢸⣿⣿⣸⣇⣿⣼⣧ ││   s0   piura        ● healthy    4110     2.5% ▃▁▆▄▃▆▅▁▄▃▁▅▃▂▅▃▂▅▃▂▁▄▂▁ ██░░░░ 35% 180M/512M                 │
+│ ⠁⠈⠁⠉⠈ ⠁⠈ ⠁⠈ ⠈ ⠉⠈ ⠁⠈ ⠁⠈⠁  ⠉⠈⠁⠁⠈ ⠁⠈ ⠁⠈⠉⠈⠁⠁⠈ ⠁⠈ ││   s1   piura        ▲ unhealthy  4111    87.3% ▃▁▆▄▃▆▅▁▄▃▁▅▃▂▅▃▂▅▃▂▁▄▂▁ █████▎ 89% 1.7G/2.0G                 │
+│                                              ││                                                                                                              │
+│ 5.0MB                                        ││                                                                                                              │
+│ ▼ 4.0 MiB/s  máx 4.8 MiB/s                   ││                                                                                                              │
+│ ▲ 1.4 KiB/s  máx 615.2 KiB/s                 ││                                                                                                              │
+│ TCP 58 · cerrándose 7 · sockets 412          ││                                                                                                              │
 ╰──────────────────────────────────────────────╯╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭─┐procesos┌───────────────────────────────────────────────────────────────────────────────────┐7┌─╮╭─┐puertos┌─┐2 de instancias┌──────────────────────────┐6┌─╮
+│       PID USUARIO      CPU  MEMORIA COMANDO                                                      ││   PUERTO DIRECCIÓN        PROCESO        SERVICIO        │
+│      1412 mongodb     14.2      8.1 mongod                                                       ││       22 0.0.0.0          sshd           -               │
+│      2231 root        11.8      3.4 node                                                         ││       80 0.0.0.0          nginx          -               │
+│      2275 root         6.0      2.9 node                                                         ││      443 0.0.0.0          nginx          -               │
+│       880 root         1.2      0.4 dockerd                                                      ││     4100 0.0.0.0          docker-proxy   colorado/s0     │
+│       611 root         0.4      0.1 containerd                                                   ││     4101 0.0.0.0          docker-proxy   colorado/s1     │
+│       907 www-data     0.2      0.1 nginx                                                        ││    27017 127.0.0.1        mongod         -               │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────╯╰──────────────────────────────────────────────────────────╯
 
- ↑↓ elegir · Enter detalle · c copiar · ! ejecutar · Tab otro panel · z zoom · m métricas · R comprobar · : comando · ? ayuda · q salir
+ Enter requisitos · Tab otro panel · z zoom · m métricas · R comprobar · : comando · ? ayuda · q salir

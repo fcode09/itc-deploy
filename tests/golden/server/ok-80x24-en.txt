@@ -3,7 +3,7 @@
  [1 Server]  2   3   4   5   6   7   8   9   0                                 
 ╭─┐ ▸requirements ┌────────────────────────────────────────────────┐9/9 ready┌─╮
 │  disk / 86% · load 3.18↗ · 8 cores · up 02:22 · ▲ 2 warnings: disk / at 86%  │
-╰─┘Enter expand└─┘R recheck└─┘m metrics└───────────────────────────────────────╯
+╰─┘Enter requirements└─┘R recheck└─┘m metrics└─────────────────────────────────╯
 ╭─┐cpu┌─────────────────────────────┐61°C┌─╮╭─┐memory┌───────────────────┐48%┌─╮
 │ CPU ▕█████████▌░░░░░░░░░░░░░░░░▏ 37%     ││ Used ·················· 5.61 GiB │
 │ Load 3.18↗ 2.64 1.97 · 0.39/core · 8 cor ││ █████████████▒▒▒▒▒▒▒▒▒░░░░░  48% │
@@ -22,4 +22,4 @@
 │   s1   piura              ▲ unhealthy   87.3% 1.7G/2.0G                      │
 ╰──────────────────────────────────────────────────────────────────────────────╯
 
- Enter expand · Tab other box · z zoom · m metrics · R check · ? help · q quit
+ Enter requirements · Tab other box · z zoom · m metrics · ? help · q quit

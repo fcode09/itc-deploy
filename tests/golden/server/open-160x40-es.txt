@@ -2,40 +2,40 @@
   ITC  testhost · Memoria ███░░░ 5.6/11.5 GB 48% ▂▁▄▂▁▄ · Carga 3.18 · Docker 27.0.0 · contenedores 3.3G
  [1 Servidor]  2 Imágenes   3 Instancias   4 Recursos   5 Salida   6 Ejecuciones   7 Procesos   8 Consola   9 Variables   0 Actividad                          
 ╭─┐ ▸requisitos ┌─────────────────────────────────────────────────────────────────────────────────────────────────────┐6/9 listos · 3 recomendados pendientes┌─╮
-│  disco / 86% · carga 3.18↗ · 8 núcleos · activo 02:22 · ▼ 4.0 MiB/s ▲ 1.4 KiB/s · ✖ 4 avisos: 2 requisitos obligatorios fallan                               │
-│ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── │
-│   OBLIGATORIOS  6/9                                                          │   RECOMENDADOS  3/6                                                           │
-│   ● Docker Engine                   Docker 27.0.0 (arquitectura amd64)       │   ● Límite de archivos de mongod   mongod permite 524288 archivos abiertos    │
-│   ● Acceso al daemon de Docker      El daemon de Docker responde             │   ▲ Proxy inverso (nginx o Caddy)  No se detectó nginx ni Caddy (recomendado) │
-│   ● Docker Compose 2.20 o superior  Docker Compose 2.30.0                    │   ▲ certbot                        Falta 'certbot' (recomendado)              │
-│   ✖ Disco libre                     Poco disco libre en /var/lib/docker: 1.… │   ● Hora sincronizada              La hora del servidor está sincronizada (N… │
-│   ● Memoria                         Memoria: 11776 MB en total, 6022 MB dis… │   ▲ Cortafuegos                    No se detectó un cortafuegos activo (reco… │
-│ ▸ ✖ MongoDB alcanzable              127.0.0.1:27017 no responde por TCP      │   ● curl                           curl disponible                            │
-│   ▲ ss (iproute2)                   Falta 'ss'                               │                                                                               │
-│   ● openssl                         openssl disponible                       │                                                                               │
-│   ● gunzip (gzip)                   gunzip disponible                        │                                                                               │
-│                                                                              │                                                                               │
-│                                                                              │                                                                               │
-│                                                                              │                                                                               │
-│                                                                              │                                                                               │
-│                                                                              │                                                                               │
-│ ─ ✖ MongoDB alcanzable ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── │
-│  Para qué        Los servicios guardan sus datos en MongoDB: debe responder desde el host y desde los contenedores.                                          │
-│  Resultado        127.0.0.1:27017 no responde por TCP                                                                                                        │
-│                   Revisa la URI en colorado/.env.s0 y la red                                                                                                 │
-│  Cómo            Revisa la URI en colorado/.env.s0 y la red                                                                                                  │
-│  Más información  https://www.mongodb.com/docs/manual/administration/install-on-linux/                                                                       │
-╰─┘Enter detalle└─┘c copiar└─┘! ejecutar└─┘m métricas└─────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+│  disco / 86% · carga 3.18↗ · 8 núcleos · activo 02:22 · ✖ 4 avisos: 2 requisitos obligatorios fallan: Disco libre, MongoDB alcanzable                        │
+╰─┘Enter requisitos└─┘R comprobar└─┘m métricas└────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 ╭─┐cpu┌────────────────────────────────────────────────┐61°C┌─╮╭─┐memoria┌──────────────────────────────┐48%┌─╮╭─┐discos┌──────────────────────────────────────╮
-│ CPU ▕████████▏░░░░░░░░░░░░░▏ 37%                            ││ Usada ····························· 5.61 GiB ││ /          █████████████████▏░░  86%  204 GiB │
-│ Carga 3.18↗ 2.64 1.97 · 0.39/núcleo · 8 núcleos             ││ ███████████████████▒▒▒▒▒▒▒▒▒▒▒▒▒░░░░░░░  48% ││ /srv/data  ████▍░░░░░░░░░░░░░░░  22%  500 GiB │
-│      ⢠⡀⣆  ⡀       ⡄⢀ ⡀⢀      ⡄⢠  ⢀ ⡀⢀   ⡄⢠  ⢀ ⡀     ⢠     ⢀ ││ Disponible ························ 5.88 GiB ││ /var/backu █████░░░░░░░░░░░░░░░  25% 1000 GiB │
-│ ⣄⣦⣸⣄⣧⣸⣷⣿⣸⣆⣷⣀⣦⣸⣄⣧⣸⣧⣿⣾⣆⣷⣸⣆⣰⣄⣦⣸⣤⣿⣾⣄⣷⣸⣆⣷⣸⣧⣸⣄⣿⣼⣇⣧⣸⣆⣷⣀⣆⣰⣀⣿⣼⣧⣷⣸⣄⣧⣸ ││ +6 más                                       ││ E/S ▼ 7.0 MiB/s ▲ 16.0 MiB/s                  │
-╰─────────────────────────────────────────────────────────────╯╰──────────────────────────────────────────────╯╰───────────────────────────────────────────────╯
-╭─┐red┌─┐enp3s0┌────────────────┐activo 02:22┌─╮╭─┐contenedores┌─────────────────────────────────────────────────────────────────────────────────────────┐4/4┌─╮
-│ ▼ 4.0 MiB/s  máx 4.8 MiB/s                   ││ SVC    INSTANCIA    ESTADO       PUERTO    CPU TENDENCIA                MEMORIA                              │
-│ ▲ 1.4 KiB/s  máx 615.2 KiB/s                 ││   s0   colorado     ● healthy    4100     3.7% ▅▃▃▆▅▄▇▄▂▅▄▂▁▄▃▁▄▂▁▅▃▁▄▃ ██▎░░░ 38% 196M/512M                 │
-│ TCP 58 · cerrándose 7 · sockets 412          ││   s1   colorado     ● healthy    4101    41.2% ▅▃▃▆▅▄▇▄▂▅▄▂▁▄▃▁▄▂▁▅▃▁▄▃ ███▌░░ 59% 1.1G/2.0G                 │
-╰──────────────────────────────────────────────╯╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+│ Carga 3.18↗ 2.64╭─┐ ▸requisitos ┌─────────────────────────────────────────────────────────────────┐6/9 listos · 3 recomendados pendientes┌─╮········ 204 GiB │
+│                 │  disco / 86% · carga 3.18↗ · 8 núcleos · ✖ 4 avisos: 2 requisitos obligatorios fallan: Disco libre, MongoDB alcanzable   │█████▍░░░░░  86% │
+│     ⡆          ⡄│ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── │········ 500 GiB │
+│    ⡀⡇⢠ ⡀⢠      ⡇│   OBLIGATORIOS  6/9                                        │   RECOMENDADOS  3/6                                         │░░░░░░░░░░░  22% │
+│  ⡄⢸⡇⣿⢸ ⡇⢸⡀⢀ ⡀⢰ ⣷│   ● Docker Engine            Docker 27.0.0 (arquitectura … │   ● Límite de archivos de …  mongod permite 524288 archivo… │······· 1000 GiB │
+│  ⡇⢸⣧⣿⣼⡆⣿⢸⡇⢸ ⣇⢸ ⣿│   ● Acceso al daemon de Do…  El daemon de Docker responde  │   ▲ Proxy inverso (nginx o…  No se detectó nginx ni Caddy … │░░░░░░░░░░░  25% │
+│ ⡇⣷⢸⣿⣿⣿⣇⣿⣸⣧⢸⡆⣿⢸⣿⣿│   ● Docker Compose 2.20 o …  Docker Compose 2.30.0         │   ▲ certbot                  Falta 'certbot' (recomendado)  │                 │
+│ ⣇⣿⣾⣿⣿⣿⣿⣿⣿⣿⣸⣇⣿⣼⣿⣿│   ✖ Disco libre              Poco disco libre en /var/lib… │   ● Hora sincronizada        La hora del servidor está sin… │B/s ▲ 15.2 MiB/s │
+│ -3 min ─────────│   ● Memoria                  Memoria: 11776 MB en total, … │   ▲ Cortafuegos              No se detectó un cortafuegos … │KiB/s ▲ 751.9 K… │
+│ mín 0% · media 4│ ▸ ✖ MongoDB alcanzable       127.0.0.1:27017 no responde … │   ● curl                     curl disponible                │                 │
+╰─────────────────│   ▲ ss (iproute2)            Falta 'ss'                    │                                                             │─────────────────╯
+╭─┐red┌─┐enp3s0┌──│   ● openssl                  openssl disponible            │                                                             │───────────┐4/4┌─╮
+│   ⡀⢀          ⢀ │   ● gunzip (gzip)            gunzip disponible             │                                                             │                 │
+│   ⣇⢸⡀⡄⢠    ⣆  ⢸⡄│                                                            │                                                             │                 │
+│ ⢸⡀⣿⣸⡇⣧⢸⡄⢰ ⡆⣿⡀⣿⣸⣧│                                                            │                                                             │                 │
+│ ⢸⣇⣿⣿⣧⣿⣼⣧⢸⡇⣷⣿⣇⣿⣿⣿│                                                            │                                                             │                 │
+│ ⠁⠈⠁⠉⠈ ⠁⠈ ⠁⠈ ⠈ ⠉⠈│                                                            │                                                             │                 │
+│                 │                                                            │                                                             │                 │
+│ 5.0MB           │                                                            │                                                             │                 │
+│ ▼ 4.0 MiB/s  máx│                                                            │                                                             │                 │
+│ ▲ 1.4 KiB/s  máx│ ─ ✖ MongoDB alcanzable ───────────────────────────────────────────────────────────────────────────────────────────────── │                 │
+│ TCP 58 · cerránd│  Para qué        Los servicios guardan sus datos en MongoDB: debe responder desde el host y desde los contenedores.      │                 │
+╰─────────────────│  Resultado        127.0.0.1:27017 no responde por TCP                                                                    │─────────────────╯
+╭─┐procesos┌──────│                   Revisa la URI en colorado/.env.s0 y la red                                                             │─────────────┐6┌─╮
+│       PID USUARI│  Cómo            Revisa la URI en colorado/.env.s0 y la red                                                              │ SERVICIO        │
+│      1412 mongod│  Más información  https://www.mongodb.com/docs/manual/administration/install-on-linux/                                   │ -               │
+│      2231 root  ╰─┘Enter detalle└─┘c copiar└─┘! ejecutar└─┘Esc cerrar└─────────────────────────────────────────────────────────────────────╯ -               │
+│      2275 root         6.0      2.9 node                                                         ││      443 0.0.0.0          nginx          -               │
+│       880 root         1.2      0.4 dockerd                                                      ││     4100 0.0.0.0          docker-proxy   colorado/s0     │
+│       611 root         0.4      0.1 containerd                                                   ││     4101 0.0.0.0          docker-proxy   colorado/s1     │
+│       907 www-data     0.2      0.1 nginx                                                        ││    27017 127.0.0.1        mongod         -               │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────╯╰──────────────────────────────────────────────────────────╯
 
- ↑↓ elegir · Enter detalle · c copiar · ! ejecutar · Tab otro panel · z zoom · m métricas · R comprobar · : comando · ? ayuda · q salir
+ ↑↓ elegir · Enter detalle · c copiar · ! ejecutar · R comprobar · Esc cerrar · : comando · ? ayuda · q salir
