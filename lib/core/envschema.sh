@@ -283,6 +283,12 @@ ev_memory() {
   if [[ "$1" =~ $m ]] && [[ "${1%%[!0-9.]*}" =~ [1-9] ]]; then ev_ok; else ev_fail envschema.err.memory; fi
 }
 
+# CPU ceiling in cores for `cpus:` in the compose files: 0.4, 1, 1.5, 0.25 (up to two decimals, never zero).
+ev_cpus() {
+  local m='^[0-9]+(\.[0-9]{1,2})?$'
+  if [[ "$1" =~ $m ]] && [[ "$1" =~ [1-9] ]]; then ev_ok; else ev_fail envschema.err.cpus; fi
+}
+
 ev_tag() {
   local m='^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$'
   if ! [[ "$1" =~ $m ]]; then ev_fail envschema.err.tag; return; fi

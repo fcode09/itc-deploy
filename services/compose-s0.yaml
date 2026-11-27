@@ -27,6 +27,9 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     mem_limit: ${S0_MEM_LIMIT:-110m}
+    # Techo de CPU en núcleos (0.4 = 40 % de un núcleo). Al pasarlo el contenedor se ralentiza, no se cae:
+    # así un servicio desbocado no deja sin CPU al servidor ni a los demás. Ajusta S0_CPUS en .env.instance.
+    cpus: ${S0_CPUS:-0.4}
     logging:
       driver: json-file
       options:

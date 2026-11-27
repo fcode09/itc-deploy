@@ -22,7 +22,7 @@ requisitos» lo apaga). Detalle en [panel.md](panel.md).
 | `daemon` | obligatorio | `deltactl` habla con Docker con tu usuario | `docker info` responde (servicio activo, grupo `docker`) |
 | `compose` | obligatorio | cada instancia es un proyecto de Compose (`include`) | `docker compose version` ≥ 2.20 |
 | `disk` | obligatorio | imágenes, datos y logs | libre donde Docker guarda las imágenes: error < 3 GB, aviso < 10 GB |
-| `ram` | obligatorio | techos de memoria de los servicios | RAM total y suma de los `SN_MEM_LIMIT` de las instancias |
+| `ram` | obligatorio | techos de memoria y de CPU de los servicios | RAM total y suma de los `SN_MEM_LIMIT` de las instancias; además, la suma de los `SN_CPUS` contra los núcleos (aviso si no queda medio núcleo libre) |
 | `mongo` | obligatorio | los servicios guardan sus datos | cada URI de las instancias responde por TCP (la puerta de enlace de Docker para `host.docker.internal`) |
 | `ss` · `openssl` · `gunzip` | obligatorio | detectar puertos · generar secretos · leer `.tar.gz` | el programa existe (si falta es un aviso, no un error) |
 | `nofile` | recomendado | `mongod` con muchas instancias | `Max open files` de `mongod` ≥ 64000 |

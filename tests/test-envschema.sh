@@ -139,6 +139,10 @@ check "ruta (path): vale casi todo, menos caracteres de control" '[ -z "$(printf
 section "9. validadores: tamaños, banderas, listas y nombres"
 check "memoria: 512m, 2g, 1.5g, 1024, 512mb, 256K valen; 0, 0m, -1, m, 1x no" \
   '[ -z "$(printf "%s\n" 512m 2g 1.5g 1024 512mb 256K 1G "!0" "!0m" "!0.0g" "!-1" "!m" "!1x" "!" "!2 g" | vcases memory)" ]'
+check "CPU: 0.4, 1, 1.5, 0.25, 2 valen; 0, 0.0, 0.001, -1, .5, 1., 1,5, 1x, vacío y con espacio no" \
+  '[ -z "$(printf "%s\n" 0.4 1 1.5 0.25 2 10 "!0" "!0.0" "!0.00" "!0.001" "!-1" "!.5" "!1." "!1,5" "!1x" "!" "!1 5" | vcases cpus)" ]'
+check "CPU: *_CPUS usa el validador cpus y no es secreto (S0_CPUS, S1_CPUS, ROBIN_CPUS)" \
+  'for k in S0_CPUS S1_CPUS ROBIN_CPUS; do [ "$(run "envschema_load; echo \${ENV_VALIDATOR[.env.instance|$k]}")" = cpus ] || exit 1; done'
 check "booleano: solo true y false, en minúsculas" '[ -z "$(printf "%s\n" true false "!True" "!1" "!yes" "!" | vcases bool)" ]'
 check "entero: dígitos solamente" '[ -z "$(printf "%s\n" 0 4 600 "!-1" "!1.5" "!x" "!" | vcases int)" ]'
 check "etiqueta: versiones y commits valen; latest avisa; espacios, :, vacío y empezar con - no" \

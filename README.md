@@ -330,5 +330,10 @@ con el código, `check`, `doctor`, el asistente, el menú y el autocompletado.
 - **Mongo en el host:** los contenedores lo alcanzan con `host.docker.internal` (el compose añade
   `extra_hosts` con `host-gateway`). Si Mongo está en otra máquina, usa su dirección en las URI.
 - **Chromium:** cada backend-s1 puede abrir hasta 2 Chromium a la vez; ajusta `S1_MEM_LIMIT`.
+- **Límites de recursos por contenedor.** La memoria (`*_MEM_LIMIT`) es un techo duro: al pasarlo el kernel mata el
+  proceso y `restart: unless-stopped` lo levanta (se ve en la columna de reinicios del panel). La CPU (`*_CPUS`, en
+  núcleos) es distinta: al pasarlo el servicio se ralentiza, no se cae, y así un contenedor desbocado no deja sin CPU
+  al servidor. Deja al menos medio núcleo libre: `./deltactl doctor` avisa si la suma de las instancias no lo deja.
+  Los valores por defecto son estimaciones; ajústalos con la vista Recursos.
 - **Sin probar con imágenes reales.** Este repo se validó con `docker compose config` y valores
   de prueba; falta un despliegue real con imágenes publicadas.

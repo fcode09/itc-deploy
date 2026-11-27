@@ -43,6 +43,7 @@ A validator leaves `EV_RC` (0 valid, 1 invalid, 2 valid but with a warning) and 
 | `secret-path` | `/run/secrets/<file>`: the PATH, never the content |
 | `secret-min32` | 32 characters or more, no spaces |
 | `memory` | `512m`, `2g`, `1.5g`, `1024`… (not zero) |
+| `cpus` | cores of CPU for the `*_CPUS` ceilings: `0.4`, `1`, `1.5` (up to two decimals, not zero) |
 | `tag` | a tag; `latest` warns |
 | `image-name`, `instance-name`, `registry`, `host`, `duration`, `json-line`, `path`, `services-list`, `text` | see `ev_<name>` in `envschema.sh` |
 

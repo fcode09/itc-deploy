@@ -34,7 +34,7 @@ variables antes de dar la plantilla por buena.
 | 1 | `services/compose-<clave>.yaml` | el servicio, copiado de `compose-s0.yaml`/`compose-s1.yaml` | `deploy` falla |
 | 2 | `compose.yaml` | una línea en `include:` (no admite comodines) | el compose no ve el servicio |
 | 3 | `templates/.env.<clave>.example` | las variables, con su valor de ejemplo | `new` y `service add` no pueden crear su `.env.<clave>` |
-| 4 | `templates/.env.instance.example` | `<CLAVE>_IMAGE`, `<CLAVE>_TAG`, `<CLAVE>_PORT`, `<CLAVE>_MEM_LIMIT` | `tests/run.sh test-help` falla |
+| 4 | `templates/.env.instance.example` | `<CLAVE>_IMAGE`, `<CLAVE>_TAG`, `<CLAVE>_PORT`, `<CLAVE>_MEM_LIMIT`, `<CLAVE>_CPUS` | `tests/run.sh test-help` falla |
 | 5 | `lib/core/catalog.data` | la línea del servicio (13 campos separados por `\|`) | el servicio no existe para deltactl |
 | 6 | `lib/i18n/{es,en}/common.sh` | `catalog.desc.<clave>`: lo que es, en una frase | `test-help` y `test-catalog` fallan |
 | 7 | `lib/help/variables.txt` y `lib/help/en/variables.txt` | cada variable de la plantilla (y las `fija`) | `test-help` falla |

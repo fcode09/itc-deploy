@@ -64,7 +64,7 @@ compose_shell_vars() {
     COMPOSE_PROFILES COMPOSE_PROJECT_NAME COMPOSE_FILE COMPOSE_ENV_FILES COMPOSE_PATH_SEPARATOR
   for s in "${KNOWN_SERVICES[@]}"; do
     u="${s^^}"
-    printf '%s\n' "${u}_IMAGE" "${u}_TAG" "${u}_PORT" "${u}_MEM_LIMIT"
+    printf '%s\n' "${u}_IMAGE" "${u}_TAG" "${u}_PORT" "${u}_MEM_LIMIT" "${u}_CPUS"
   done
 }
 

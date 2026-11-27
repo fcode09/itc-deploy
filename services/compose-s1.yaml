@@ -35,6 +35,8 @@ services:
       - "host.docker.internal:host-gateway"
     # Cada instancia puede abrir hasta 2 Chromium a la vez: ajusta según la carga real.
     mem_limit: ${S1_MEM_LIMIT:-400m}
+    # Techo de CPU en núcleos (ver compose-s0.yaml). Chromium genera PDF a ráfagas: con menos CPU tarda más, no falla.
+    cpus: ${S1_CPUS:-0.7}
     logging:
       driver: json-file
       options:

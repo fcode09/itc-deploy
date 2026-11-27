@@ -130,6 +130,36 @@ check "disco ilegible: solo informa" '[ "$(st "host_free_kb() { echo; }" disk)" 
 printf 'MemTotal:       8000000 kB\nMemAvailable:   4000000 kB\n' > "$FIX/meminfo"
 check "memoria leída de DELTACTL_MEMINFO" 'run "DELTACTL_MEMINFO=$FIX/meminfo prereq_run ram; echo \"\${PR_RES_MSG[0]}\"" | grep -q "7812 MB en total, 3906 MB disponibles"'
 check "memoria ilegible: solo informa" '[ "$(st "DELTACTL_MEMINFO=$FIX/no-existe" ram)" = info ]'
+printf 'processor\t: 0\nmodel name\t: x\n\nprocessor\t: 1\nmodel name\t: x\n' > "$FIX/cpuinfo"
+mkdir -p instances/pr-cpu
+cpus_of() { # contenido de .env.instance -> "estado|mensajes" del requisito ram con 2 núcleos
+  printf '%s\n' "$1" > instances/pr-cpu/.env.instance
+  run "DELTACTL_MEMINFO=$FIX/meminfo DELTACTL_CPUINFO=$FIX/cpuinfo prereq_run ram; echo \"\${PR_STATUS[ram]}|\${PR_RES_MSG[*]}\""
+}
+check "dr_cpus_centi: 0.4 -> 40, 1.5 -> 150, 2 -> 200, 0.25 -> 25" \
+  '[ "$(run "dr_cpus_centi 0.4; echo; dr_cpus_centi 1.5; echo; dr_cpus_centi 2; echo; dr_cpus_centi 0.25" | tr "\n" " ")" = "40 150 200 25" ]'
+check "dr_cpu_cores cuenta los processor de /proc/cpuinfo" '[ "$(run "DELTACTL_CPUINFO=$FIX/cpuinfo dr_cpu_cores")" = 2 ]'
+check "dr_cpu_cores ilegible: vacío" '[ -z "$(run "DELTACTL_CPUINFO=$FIX/no-existe dr_cpu_cores")" ]'
+check "CPU: 0.4 + 0.7 de 2 núcleos deja más de medio núcleo: ok y lo dice" \
+  'o="$(cpus_of "COMPOSE_PROFILES=s0,s1
+S0_CPUS=0.4
+S1_CPUS=0.7")"; [[ "$o" == ok\|* ]] && [[ "$o" == *"Techos de CPU de las instancias: 1.10 núcleos de 2"* ]]'
+check "CPU: 1.0 + 0.7 de 2 núcleos deja menos de medio núcleo: aviso" \
+  'o="$(cpus_of "COMPOSE_PROFILES=s0,s1
+S0_CPUS=1.0
+S1_CPUS=0.7")"; [[ "$o" == warn\|* ]] && [[ "$o" == *"suman 1.70 núcleos y el servidor tiene 2"* ]]'
+check "CPU: los servicios que la instancia no corre no cuentan" \
+  'o="$(cpus_of "COMPOSE_PROFILES=s0
+S0_CPUS=0.4
+S1_CPUS=5")"; [[ "$o" == ok\|* ]] && [[ "$o" == *"0.40 núcleos de 2"* ]]'
+check "CPU: sin *_CPUS en la instancia no se añade ningún resultado" \
+  '[ "$(cpus_of "COMPOSE_PROFILES=s0,s1")" = "ok|Memoria: 7812 MB en total, 3906 MB disponibles" ]'
+check "CPU: un valor inválido se ignora (no rompe el diagnóstico)" \
+  '[ "$(cpus_of "COMPOSE_PROFILES=s0
+S0_CPUS=abc")" = "ok|Memoria: 7812 MB en total, 3906 MB disponibles" ]'
+check "CPU: sin poder leer los núcleos no se añade ningún resultado" \
+  'printf "COMPOSE_PROFILES=s0\nS0_CPUS=0.4\n" > instances/pr-cpu/.env.instance; [ "$(run "DELTACTL_MEMINFO=$FIX/meminfo DELTACTL_CPUINFO=$FIX/no-existe prereq_run ram; echo \${#PR_RES_ST[@]}")" = 1 ]'
+rm -rf instances/pr-cpu
 for t in ss openssl gunzip; do
   check "sin $t: aviso (no error, como antes) con la pista" \
     '[ "$(st "host_has() { [ \"\$1\" != '$t' ]; }" '$t')" = warn ]'

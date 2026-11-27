@@ -58,6 +58,19 @@ PDF reports; with less memory they can fail.
 @ ROBIN_MEM_LIMIT | .env.instance | optional | 256m
 Memory limit of the Robin container. Provisional: measure it in the panel's Resources view and adjust it.
 
+@ S0_CPUS | .env.instance | optional | 0.4
+CPU ceiling of the s0 container, in cores (`0.4` = 40% of one core). Past it the service slows down instead of crashing.
+Without a value `0.4` is used. The sum over all the instances must leave at least half a core free for
+the server (`./deltactl doctor` warns about it).
+
+@ S1_CPUS | .env.instance | optional | 0.7
+CPU ceiling of the s1 container, in cores. The PDF reports (Chromium) work in bursts: with less CPU they
+take longer, they do not fail. Without a value `0.7` is used.
+
+@ ROBIN_CPUS | .env.instance | optional | 0.4
+CPU ceiling of the Robin container, in cores. Provisional: measure it in the panel's Resources view and
+adjust it. Without a value `0.4` is used.
+
 @ DATA_DIR | .env.instance | optional | ./instances/<INSTANCE>/data
 Data folder of the instance. Use it only if the data must live outside the repository (another disk).
 

@@ -225,6 +225,45 @@ prereq_check_disk() {
   fi
 }
 
+# 0.4 -> 40, 1.5 -> 150, 2 -> 200 (hundredths of a core, so the sums stay integers)
+dr_cpus_centi() { # value
+  awk -v v="$1" 'BEGIN { printf "%d", v * 100 + 0.5 }'
+}
+
+# Cores of this server (DELTACTL_CPUINFO replaces /proc/cpuinfo, for tests); empty when it cannot be read.
+dr_cpu_cores() {
+  local n
+  n="$(awk '/^processor[[:space:]]*:/ { n++ } END { if (n > 0) print n }' "${DELTACTL_CPUINFO:-/proc/cpuinfo}" 2> /dev/null || true)"
+  printf '%s' "$n"
+}
+
+# The CPU ceilings (<SVC>_CPUS) of the active services of every instance against the cores of the server. Like the memory ones they
+# are ceilings, not reservations; the point is to leave at least half a core for the system and Docker. Only values written in a
+# .env.instance count (a service without one runs with the default of its compose file).
+prereq_check_cpus() {
+  local cores f name svc raw c sum=0 free
+  cores="$(dr_cpu_cores)"
+  for f in "$INSTANCES_DIR"/*/.env.instance; do
+    [ -f "$f" ] || continue
+    name="$(basename "$(dirname "$f")")"
+    st_enabled "$name" 2> /dev/null || ST_ENABLED=()
+    for svc in ${ST_ENABLED[@]+"${ST_ENABLED[@]}"}; do
+      raw="$(get_var "$f" "${svc^^}_CPUS")"
+      [[ "$raw" =~ ^[0-9]+(\.[0-9]{1,2})?$ ]] || continue
+      c="$(dr_cpus_centi "$raw")"
+      sum=$((sum + c))
+    done
+  done
+  [[ "${cores:-}" =~ ^[0-9]+$ ]] || return 0
+  [ "$sum" -gt 0 ] || return 0
+  free=$((cores * 100 - sum))
+  if [ "$free" -lt 50 ]; then
+    pr_res warn "$(t doctor.cpu_over "$(awk -v s="$sum" 'BEGIN { printf "%.2f", s / 100 }')" "$cores")" "$(t doctor.cpu_over_hint)"
+  else
+    pr_res ok "$(t doctor.cpu_limits "$(awk -v s="$sum" 'BEGIN { printf "%.2f", s / 100 }')" "$cores")"
+  fi
+}
+
 prereq_check_ram() {
   local total avail f name svc raw mb sum=0
   total="$(awk '/^MemTotal:/ { print $2 }' "${DELTACTL_MEMINFO:-/proc/meminfo}" 2> /dev/null || true)"
@@ -250,6 +289,7 @@ prereq_check_ram() {
   else
     pr_res info "$(t doctor.mem_unknown)"
   fi
+  prereq_check_cpus
 }
 
 # MongoDB reachable from the host and, for host.docker.internal, from the containers (through Docker's gateway).

@@ -66,7 +66,7 @@ check "un comando sin opciones no sugiere nada con --" '[ -z "$(comp deltactl de
 section "5. ayuda"
 check "help completa comandos y temas" 'r="$(comp deltactl help "")"; has "$r" deploy && has "$r" nueva-instancia && has "$r" variable && has "$r" buscar'
 check "help completa un tema por prefijo" '[ "$(comp deltactl help nue)" = "nueva-instancia " ]'
-check "help variable completa las variables del glosario" '[ "$(comp deltactl help variable S0_)" = "S0_IMAGE S0_MEM_LIMIT S0_PORT S0_TAG " ]'
+check "help variable completa las variables del glosario" '[ "$(comp deltactl help variable S0_)" = "S0_CPUS S0_IMAGE S0_MEM_LIMIT S0_PORT S0_TAG " ]'
 check "las variables salen sin duplicados" '[ "$(comp deltactl help variable JWT)" = "JWT_EXPIRES_IN JWT_SECRET " ]'
 check "completion completa bash" '[ "$(comp deltactl completion "")" = "bash " ]'
 

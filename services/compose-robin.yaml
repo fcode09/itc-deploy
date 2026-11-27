@@ -35,6 +35,8 @@ services:
       - "host.docker.internal:host-gateway"
     # Memoria provisional: mídela con la vista Recursos del panel y ajusta ROBIN_MEM_LIMIT.
     mem_limit: ${ROBIN_MEM_LIMIT:-256m}
+    # Techo de CPU en núcleos (ver compose-s0.yaml). Provisional, como la memoria: mídelo en la vista Recursos.
+    cpus: ${ROBIN_CPUS:-0.4}
     logging:
       driver: json-file
       options:

@@ -58,6 +58,19 @@ reportes PDF; con menos memoria pueden fallar.
 @ ROBIN_MEM_LIMIT | .env.instance | opcional | 256m
 Límite de memoria del contenedor de Robin. Provisional: mídelo con la vista Recursos del panel y ajústalo.
 
+@ S0_CPUS | .env.instance | opcional | 0.4
+Techo de CPU del contenedor de s0, en núcleos (`0.4` = 40 % de un núcleo). Al pasarlo el servicio se ralentiza, no se cae.
+Sin valor se usa `0.4`. La suma de todas las instancias debe dejar libre al menos medio núcleo del
+servidor (`./deltactl doctor` lo avisa).
+
+@ S1_CPUS | .env.instance | opcional | 0.7
+Techo de CPU del contenedor de s1, en núcleos. Los reportes PDF (Chromium) trabajan a ráfagas: con menos
+CPU tardan más, no fallan. Sin valor se usa `0.7`.
+
+@ ROBIN_CPUS | .env.instance | opcional | 0.4
+Techo de CPU del contenedor de Robin, en núcleos. Provisional: mídelo con la vista Recursos del panel y
+ajústalo. Sin valor se usa `0.4`.
+
 @ DATA_DIR | .env.instance | opcional | ./instances/<INSTANCE>/data
 Carpeta de datos de la instancia. Úsala solo si los datos deben vivir fuera del repositorio (otro disco).
 
