@@ -349,6 +349,38 @@ dash_img_copy() {
   fi
 }
 
+# b: remove the version under the cursor. Only one nobody uses (ic_removable says why not otherwise); it asks first and runs `images rm` as a command
+# like any other (in the background, in Output, cancellable). The containers are read now, when the key is pressed, never while drawing.
+dash_img_rm() {
+  local svc tag extra=""
+  dash_img_cur || { dash_msg info "$(t tui.img.nothing)"; return 0; }
+  if job_running; then dash_msg warn "$(t tui.msg.busy)"; return 0; fi
+  svc="${DASH_IMG_G%%|*}" tag="${IC_TAG[$DASH_IMG_CI]}"
+  ic_containers_load
+  ic_removable "$DASH_IMG_CI"
+  if [ "$IC_RM_WHY" != ok ]; then dash_msg warn "$(ic_why_text "$DASH_IMG_CI")"; return 0; fi
+  [ "$IC_RM_SHARED" -eq 0 ] || extra+=" $(t images.rm.shared)."
+  [ "${IC_STAR[$DASH_IMG_CI]}" -ne 1 ] || extra+=" $(t tui.img.rm.newest "$svc")"
+  dash_confirm "$(t tui.img.rm.confirm "$svc" "$tag" "${IC_SIZE[$DASH_IMG_CI]}")$extra" stay images rm "$svc:$tag" --yes
+}
+
+# B: remove every version of the service of the cursor that is left over (not in use, not the previous one of an instance, not used by a container,
+# not the most recent). It says which ones and how much space it frees before asking.
+dash_img_prune() {
+  local svc i tags="" n
+  dash_img_cur || { dash_msg info "$(t tui.img.nothing)"; return 0; }
+  if job_running; then dash_msg warn "$(t tui.msg.busy)"; return 0; fi
+  svc="${DASH_IMG_G%%|*}"
+  ic_containers_load
+  ic_prune_plan "$svc" 0
+  n="${#IC_PLAN[@]}"
+  if [ "$n" -eq 0 ]; then dash_msg info "$(t tui.img.prune.none "$svc")"; return 0; fi
+  for i in "${IC_PLAN[@]}"; do tags+="${tags:+, }${IC_TAG[$i]}"; done
+  ic_frees_bytes "${IC_PLAN[@]}"
+  ic_fmt_bytes "$IC_FREES"
+  dash_confirm "$(t tui.img.prune.confirm "$n" "$svc" "$tags" "$IC_BYTES_H")" stay images prune "$svc" --yes
+}
+
 scr_images_key() { # key
   local n="${#DASH_IMG_ITEMS[@]}"
   case "$1" in
@@ -362,6 +394,8 @@ scr_images_key() { # key
     space) DASH_IMG_OPEN=$((1 - DASH_IMG_OPEN)) ;;
     l) dash_img_load_ask ;;
     c) dash_img_copy ;;
+    b) dash_img_rm ;;
+    B) dash_img_prune ;;
     R) dash_img_request; dash_msg info "$(t tui.img.refreshing)" ;;
   esac
 }

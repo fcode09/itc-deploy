@@ -195,3 +195,20 @@ dk_project_running_count() { # project
 dk_project_publishes_port() { # project port
   docker ps --filter "label=com.docker.compose.project=$1" --format '{{.Ports}}' 2>/dev/null | grep -q ":$2->"
 }
+
+# --- Removing images -----------------------------------------------------------------------------------------------
+
+# The images that containers use (any container, running or stopped), one per line, as `docker ps -a` shows them: the name the container was made
+# with, or a short id when that name now points to another image.
+dk_container_images() { docker ps -a --format '{{.Image}}' 2> /dev/null; }
+
+# Removes an image reference. It is NEVER forced: Docker refuses one that a container uses, and that refusal is the last safety net. The text of the
+# refusal is left in DK_RM_ERR, what Docker said when it worked in DK_RM_OUT. Returns Docker's status.
+DK_RM_ERR="" DK_RM_OUT=""
+dk_image_rm() { # reference
+  local out
+  DK_RM_ERR="" DK_RM_OUT=""
+  if out="$(docker rmi "$1" 2>&1)"; then DK_RM_OUT="$out"; return 0; fi
+  DK_RM_ERR="$out"
+  return 1
+}

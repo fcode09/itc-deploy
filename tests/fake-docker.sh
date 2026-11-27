@@ -21,6 +21,8 @@ case "$1" in
     cat "$FIX/gateway" 2> /dev/null || echo 127.0.0.1   # ($FIX/gateway: the address of the bridge, for the tests of mongo setup)
     exit 0 ;;
   ps)
+    # `ps -a --format '{{.Image}}'`: the image of every container of containers.txt (project|service|state|health|image|...), one per line.
+    case "$*" in *'{{.Image}}'*) cut -d'|' -f5 "$FIX/containers.txt" 2> /dev/null; exit 0 ;; esac
     # `ps -a --format ...com.docker.compose.project...`: the project of every row of containers.txt, one per line.
     case "$*" in *'--format'*'com.docker.compose.project'*) cut -d'|' -f1 "$FIX/containers.txt" 2> /dev/null; exit 0 ;; esac
     # $FIX/containers.txt (optional): project|service|state|health|image|started|name|pid|restarts, one per container.
@@ -39,10 +41,11 @@ case "$1" in
   image)
     case "$2" in
       ls)
+        # The size is 300MB unless $FIX/image_sizes.txt (ref|size, optional) says another.
         # repo|tag|id|created|size|created_at. The date comes from $FIX/image_dates.txt (ref|date, optional); without it the field is empty.
-        awk -F'|' -v dates="$FIX/image_dates.txt" '
-          BEGIN { while ((getline l < dates) > 0) { split(l, d, "|"); at[d[1]] = d[2] } }
-          { split($1, r, ":"); printf "%s|%s|%s|1 hour ago|300MB|%s\n", r[1], r[2], $2, at[$1] }' "$FIX/images.txt" ;;
+        awk -F'|' -v dates="$FIX/image_dates.txt" -v sizes="$FIX/image_sizes.txt" '
+          BEGIN { while ((getline l < dates) > 0) { split(l, d, "|"); at[d[1]] = d[2] } while ((getline l < sizes) > 0) { split(l, z, "|"); sz[z[1]] = z[2] } }
+          { split($1, r, ":"); printf "%s|%s|%s|1 hour ago|%s|%s\n", r[1], r[2], $2, ($1 in sz ? sz[$1] : "300MB"), at[$1] }' "$FIX/images.txt" ;;
       inspect)
         # Any number of references (or ids) after the options; --format decides what each one prints: id|architecture, the architecture or the id.
         shift 2
@@ -62,6 +65,19 @@ case "$1" in
         done
         [ "$rc" -eq 0 ] || exit 1 ;;
     esac
+    exit 0 ;;
+  rmi)
+    # `docker rmi <ref>`: logs "rmi <ref>" in calls.log. Like the real one it refuses an image a container uses (the 5th field of containers.txt), and
+    # $FIX/rmi_fail (optional) makes it refuse everything. Otherwise the reference leaves images.txt and answers "Untagged: <ref>".
+    echo "rmi $2" >> "$FIX/calls.log"
+    if [ -f "$FIX/rmi_fail" ]; then echo "Error response from daemon: simulated failure" >&2; exit 1; fi
+    if cut -d'|' -f5 "$FIX/containers.txt" 2> /dev/null | grep -qxF "$2"; then
+      echo "Error response from daemon: conflict: unable to remove repository reference \"$2\" (must force) - container abc123 is using its referenced image def456" >&2
+      exit 1
+    fi
+    grep -qF "$2|" "$FIX/images.txt" 2> /dev/null || { echo "Error response from daemon: No such image: $2" >&2; exit 1; }
+    grep -vF "$2|" "$FIX/images.txt" > "$FIX/images.txt.new"; mv -f "$FIX/images.txt.new" "$FIX/images.txt"
+    echo "Untagged: $2"
     exit 0 ;;
   load)
     # `docker load -i <file>` (or reading stdin): prints what $FIX/load_result says ("Loaded image: ref" lines, one per image) and adds those

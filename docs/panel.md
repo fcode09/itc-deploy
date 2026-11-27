@@ -137,6 +137,13 @@ etiqueta se mueve, que es la más reciente).
 - **Espacio** abre el detalle de la versión (la referencia completa, el id, la fecha exacta en UTC y en palabras, el tamaño, la arquitectura y quién la
   usa); Espacio o Esc lo cierran.
 - **c** copia la referencia (`backend-s0:2.14.1`) como en la vista Servidor. **R** lee Docker de nuevo.
+- **b** borra la versión elegida de este Docker, **solo si nadie la usa**: si una instancia la corre, es la **previa** que guarda el rollback o la usa un
+  contenedor (aunque esté parado), no pregunta y dice por qué. Si se puede, un cuadro (con sus teclas dentro: `s` sí, `n` no, Enter = no) dice la imagen y el
+  tamaño; al confirmar corre `./deltactl images rm <servicio>:<versión> --yes` como cualquier comando (en segundo plano, en Salida, cancelable con `x`).
+  No toca datos ni instancias; para tenerla otra vez hay que cargarla (`l`).
+- **B** limpia el servicio de la versión elegida: lista las versiones que sobran (las que nadie usa, salvo la ★ más reciente), el espacio que libera, y pide
+  una confirmación (`./deltactl images prune <servicio> --yes`). Si otra etiqueta apunta a la misma imagen, solo se quita el nombre y no se libera espacio.
+  Por línea de comandos: `images rm`, `images prune [--keep N] [--dry-run]` ([image-catalog.md](image-catalog.md)).
 
 La vista lee el catálogo en segundo plano al elegirla, cuando termina un comando (una carga o un despliegue cambian lo cargado y quién lo usa), cada
 minuto mientras está a la vista y con `R`. Nada de aquí borra una imagen.
