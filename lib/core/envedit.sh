@@ -21,6 +21,7 @@ ENVEDIT_FILES=()
 envedit_files_r() { # instance
   local f dir="$INSTANCES_DIR/$1" s
   ENVEDIT_FILES=()
+  ENVEDIT_OFF_FOR=""
   [ ! -f "$dir/.env.instance" ] || ENVEDIT_FILES+=(.env.instance)
   for s in "${KNOWN_SERVICES[@]}"; do
     f=".env.$s"
@@ -114,6 +115,7 @@ envedit_save() { # instance file key value [force]
     if [ "$EV_RC" = 1 ] && { [ "$force" != 1 ] || [ "${ENV_TYPE[$id]}" = fixed ] || [ "$id" = ".env.instance|INSTANCE" ]; }; then return 1; fi
   fi
   envedit_set "$INSTANCES_DIR/$inst/$file" "$key" "$val" "$secret" || return 2
+  ENVEDIT_OFF_FOR=""   # (it may have been COMPOSE_PROFILES)
   return 0
 }
 
@@ -142,7 +144,7 @@ ED_STATE=""
 ED_VALUE=""
 # The same for a value the caller already has (the editor of the panel keeps the values it is changing before they are written): nothing is
 # read from the file. EV_MSG is the message of the validator for `invalid` and `warn`.
-envedit_state_value_r() { # instance file key value
+envedit_state_value_core_r() { # instance file key value
   local id="$2|$3" val="$4"
   envschema_load
   ED_VALUE="$val"
@@ -158,6 +160,50 @@ envedit_state_value_r() { # instance file key value
   if [[ "$val" == *CAMBIAR* ]]; then ED_STATE=example; return 0; fi
   envschema_check_r "$2" "$3" "$val" "$1"
   case "$EV_RC" in 1) ED_STATE=invalid ;; 2) ED_STATE=warn ;; *) ED_STATE=ok ;; esac
+}
+
+# The variables of a service the instance does not run (it is not in COMPOSE_PROFILES) are not asked for: `deploy` and `new` already skip
+# them, so what the editor, `env list` and the summary count as "to fill in" has to skip them too (a new instance has the file of every
+# service of the catalog, and the three variables of one it does not use would stay pending for ever). The set is read from .env.instance
+# when it is needed and when the files of the instance are read again; a save drops it.
+declare -gA ENVEDIT_OFF=()
+ENVEDIT_OFF_FOR=""
+envedit_off_load_r() { # instance
+  local s a
+  local -A on=()
+  ENVEDIT_OFF=()
+  ENVEDIT_OFF_FOR="$1"
+  svc_active_r "$1"
+  # No list (a model that is not on disk yet, or a broken COMPOSE_PROFILES): everything is asked for, as it always was.
+  [ "${#SVC_ACTIVE[@]}" -gt 0 ] || return 0
+  for a in "${SVC_ACTIVE[@]}"; do on[$a]=1; done
+  for s in "${KNOWN_SERVICES[@]}"; do [ -n "${on[$s]:-}" ] || ENVEDIT_OFF[$s]=1; done
+}
+
+# The service a variable belongs to, into ED_OWNER: every variable of `.env.<service>`; in .env.instance those that start with its name
+# (ROBIN_TAG, ROBIN_PORT...). Empty for the rest (INSTANCE, COMPOSE_PROFILES, REGISTRY, DATA_DIR).
+ED_OWNER=""
+envedit_owner() { # file key
+  local s
+  ED_OWNER=""
+  case "$1" in
+    .env.instance)
+      for s in "${KNOWN_SERVICES[@]}"; do
+        if [[ "$2" == "${s^^}_"* ]]; then ED_OWNER="$s"; return 0; fi
+      done
+      ;;
+    .env.*) ED_OWNER="${1#.env.}" ;;
+  esac
+  return 0
+}
+
+envedit_state_value_r() { # instance file key value
+  envedit_state_value_core_r "$@"
+  case "$ED_STATE" in missing | example) ;; *) return 0 ;; esac
+  [ "$ENVEDIT_OFF_FOR" = "$1" ] || envedit_off_load_r "$1"
+  envedit_owner "$2" "$3"
+  if [ -n "$ED_OWNER" ] && [ -n "${ENVEDIT_OFF[$ED_OWNER]:-}" ]; then ED_STATE="unset"; fi
+  return 0
 }
 
 envedit_state_r() { # instance file key
@@ -310,6 +356,12 @@ envedit_mark_deployed() { # instance all(0|1) service...
 ED_DEPLOY=""
 envedit_deploy_state_r() { # instance file
   local dir="$INSTANCES_DIR/$1" cur mark
+  # The file of a service the instance does not run is never deployed: there is nothing to apply (and no mark to be missing).
+  envedit_owner "$2" ""
+  if [ -n "$ED_OWNER" ]; then
+    [ "$ENVEDIT_OFF_FOR" = "$1" ] || envedit_off_load_r "$1"
+    if [ -n "${ENVEDIT_OFF[$ED_OWNER]:-}" ]; then ED_DEPLOY=synced; return 0; fi
+  fi
   get_var_r "$dir/.deployed" "$(envedit_sum_key "$2")"
   mark="$GV"
   if [ -z "$mark" ]; then ED_DEPLOY=unknown; return 0; fi
