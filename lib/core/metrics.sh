@@ -42,6 +42,10 @@ declare -gA MT_SRC=()
 declare -ga MT_CORE_PCT=()
 MT_CPU_ALL="" MT_TEMP_EVERY=3 MT_SLOW_EVERY=5 MT_HH_CPU="" MT_HH_LOAD="" MT_HH_NETD="" MT_HH_NETU="" MT_HH_DIOR="" MT_HH_DIOW="" MT_HH_TEMP=""
 declare -gA MT_PIDS=()   # processes in the cgroup of each container ("instance/service")
+# More per container, read only while the Server view is on screen (MT_HOST_DETAIL=1): disk read/write and network received/sent in bytes
+# per second, the share of CPU periods it was throttled in (percent, last sample) and the processes killed for lack of memory since it
+# started. MT_PV keeps the previous counter of each ("<key>|<name>") to turn it into a rate.
+declare -gA MT_IOR=() MT_IOW=() MT_NRX=() MT_NTX=() MT_THR=() MT_OOM=() MT_PV=() MT_PVT=()
 MT_NET_DOWN_MAX=0 MT_NET_UP_MAX=0 MT_NET_DOWN_TOTAL=0 MT_NET_UP_TOTAL=0 MT_NET_START_RX="" MT_NET_START_TX=""
 MT_HOST_N=0 MT_DISK_AT=0
 
@@ -134,6 +138,7 @@ mt_hund() { # figure
 mt_reset() {
   MT_HH_CPU="" MT_HH_LOAD="" MT_HH_NETD="" MT_HH_NETU="" MT_HH_DIOR="" MT_HH_DIOW="" MT_HH_TEMP="" MT_HOST_N=0
   MT_SRC[psi]=1 MT_PIDS=()
+  MT_IOR=() MT_IOW=() MT_NRX=() MT_NTX=() MT_THR=() MT_OOM=() MT_PV=() MT_PVT=()
   MT_NET_DOWN_MAX=0 MT_NET_UP_MAX=0 MT_NET_START_RX="" MT_NET_START_TX=""
   MT_MEM=() MT_LIM=() MT_CPU=() MT_HMEM=() MT_HCPU=()
   MT_CG_PID=() MT_CG_VER=() MT_CG_MEMDIR=() MT_CG_CPUDIR=() MT_PREV_CPU=() MT_PREV_T=() MT_HN=()
@@ -173,6 +178,47 @@ mt_push() { # history value [counter_key] [length]
   MT_H="$h"
 }
 
+# A counter turned into a rate (units per second) since its previous reading into MT_RATE (empty on the first reading or when the
+# counter went back): key name counter now_us.
+MT_RATE=""
+mt_rate() { # key name counter now
+  local k="$1|$2" prev="${MT_PV[$1|$2]:-}" pt="${MT_PVT[$1|$2]:-}" dt
+  MT_RATE=""
+  if [ -n "$prev" ] && [ "$3" -ge "$prev" ]; then
+    dt=$(($4 - pt))
+    [ "$dt" -le 0 ] || MT_RATE=$((($3 - prev) * 1000000 / dt))
+  fi
+  MT_PV[$k]="$3" MT_PVT[$k]="$4"
+}
+
+# The extra readings of one container (see MT_IOR above): $1 its key, $2 its main pid, $3 the time of the sample. The CPU ones come from the
+# host_cg_cpu call that was just made for it. A reading that is not there (cgroup v1, a namespace we may not read) is left out, never zero.
+mt_sample_detail() { # key pid now
+  local key="$1" pid="$2" now="$3" dp dt
+  if [[ "${CG_CPU_PER:-}" =~ ^[0-9]+$ ]] && [[ "${CG_CPU_THR:-}" =~ ^[0-9]+$ ]]; then
+    dp="${MT_PV[$key|per]:-}"
+    if [ -n "$dp" ] && [ "$CG_CPU_PER" -gt "$dp" ] && [ "$CG_CPU_THR" -ge "${MT_PV[$key|thr]:-0}" ]; then
+      dt=$(((CG_CPU_THR - MT_PV[$key|thr]) * 100 / (CG_CPU_PER - dp)))
+      [ "$dt" -le 100 ] || dt=100
+      MT_THR[$key]="$dt"
+    elif [ -n "$dp" ]; then
+      MT_THR[$key]=0
+    fi
+    MT_PV[$key|per]="$CG_CPU_PER" MT_PV[$key|thr]="$CG_CPU_THR"
+  fi
+  if host_cg_io "${MT_CG_MEMDIR[$key]}" "${MT_CG_VER[$key]}"; then
+    mt_rate "$key" ior "$CG_IO_R" "$now"; if [ -n "$MT_RATE" ]; then MT_IOR[$key]="$MT_RATE"; fi
+    mt_rate "$key" iow "$CG_IO_W" "$now"; if [ -n "$MT_RATE" ]; then MT_IOW[$key]="$MT_RATE"; fi
+  fi
+  if host_pid_net "$pid"; then
+    mt_rate "$key" nrx "$HOST_PN_RX" "$now"; if [ -n "$MT_RATE" ]; then MT_NRX[$key]="$MT_RATE"; fi
+    mt_rate "$key" ntx "$HOST_PN_TX" "$now"; if [ -n "$MT_RATE" ]; then MT_NTX[$key]="$MT_RATE"; fi
+  fi
+  if [ $((MT_SAMPLES % MT_SLOW_EVERY)) -eq 0 ]; then
+    if host_cg_oom "${MT_CG_MEMDIR[$key]}" "${MT_CG_VER[$key]}"; then MT_OOM[$key]="$CG_OOM"; fi
+  fi
+}
+
 # One reading of the host and of every running container.
 mt_sample() {
   local key pid state now dt cur prev dcpu
@@ -188,6 +234,7 @@ mt_sample() {
   fi
   host_load_read && MT_HOST_LOAD="$HOST_LOAD1" || MT_HOST_LOAD=""
   [ "$MT_HOST_DETAIL" != 1 ] || mt_host_sample
+  HOST_CG_CPU_DETAIL="$MT_HOST_DETAIL"
 
   for key in "${!MT_CG_PID[@]}"; do
     [ -n "${ST_STATE[$key]+x}" ] || mt_forget "$key"
@@ -226,6 +273,7 @@ mt_sample() {
       fi
       MT_PREV_CPU[$key]="$cur" MT_PREV_T[$key]="$now"
     fi
+    if [ "$MT_HOST_DETAIL" = 1 ]; then mt_sample_detail "$key" "$pid" "$now"; fi
   done
   MT_LAST_US="$now"
   MT_SAMPLES=$((MT_SAMPLES + 1))
@@ -233,7 +281,10 @@ mt_sample() {
 
 mt_forget() { # key
   unset "MT_CG_PID[$1]" "MT_CG_VER[$1]" "MT_CG_MEMDIR[$1]" "MT_CG_CPUDIR[$1]" "MT_PREV_CPU[$1]" "MT_PREV_T[$1]" \
-    "MT_MEM[$1]" "MT_LIM[$1]" "MT_CPU[$1]" "MT_HMEM[$1]" "MT_HCPU[$1]" "MT_HN[mem/$1]" "MT_HN[cpu/$1]" "MT_PIDS[$1]"
+    "MT_MEM[$1]" "MT_LIM[$1]" "MT_CPU[$1]" "MT_HMEM[$1]" "MT_HCPU[$1]" "MT_HN[mem/$1]" "MT_HN[cpu/$1]" "MT_PIDS[$1]" \
+    "MT_IOR[$1]" "MT_IOW[$1]" "MT_NRX[$1]" "MT_NTX[$1]" "MT_THR[$1]" "MT_OOM[$1]"
+  local n
+  for n in per thr ior iow nrx ntx; do unset "MT_PV[$1|$n]" "MT_PVT[$1|$n]"; done
 }
 
 # Totals of an instance over its services: MT_SUM_MEM, MT_SUM_LIM (bytes) and MT_SUM_CPU (tenths of a percent).

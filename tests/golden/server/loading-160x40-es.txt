@@ -3,17 +3,9 @@
  [1 Servidor]  2 Imágenes   3 Instancias   4 Recursos   5 Salida   6 Ejecuciones   7 Procesos   8 Consola   9 Variables   0 Actividad                          
 ╭─┐ ▸requisitos ┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐◐ comprobando…┌─╮
 │  ▲ contenedor piura/s1: unhealthy                                                                                                                            │
-╰─┘Enter ampliar└─┘R comprobar└─┘m métricas└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╰─┘Enter requisitos└─┘R comprobar└─┘m métricas└────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 ╭─┐cpu┌───────────────────────────────────────────────────────╮╭─┐memoria┌────────────────────────────────────╮╭─┐discos┌──────────────────────────────────────╮
 │ no disponible en este sistema                               ││ no disponible en este sistema                ││ no disponible en este sistema                 │
-│                                                             ││                                              ││                                               │
-│                                                             ││                                              ││                                               │
-│                                                             ││                                              ││                                               │
-│                                                             ││                                              ││                                               │
-│                                                             ││                                              ││                                               │
-│                                                             ││                                              ││                                               │
-│                                                             ││                                              ││                                               │
-│                                                             ││                                              ││                                               │
 │                                                             ││                                              ││                                               │
 │                                                             ││                                              ││                                               │
 │                                                             ││                                              ││                                               │
@@ -35,7 +27,15 @@
 │                                              ││                                                                                                              │
 │                                              ││                                                                                                              │
 │                                              ││                                                                                                              │
-│                                              ││                                                                                                              │
 ╰──────────────────────────────────────────────╯╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭─┐instancias┌─────────────────────────────────────────────────────┐0┌─╮╭─┐procesos┌───────────────────────┐7┌─╮╭─┐puertos┌─┐2 de instancias┌──────────────┐6┌─╮
+│ INSTANCIA                 SVCS    CPU MEMORIA                  DISCO ││       PID USUARIO      CPU  MEMORIA  ││   PUERTO DIRECCIÓN        PROCESO        SER │
+│ No hay contenedores en marcha.                                       ││      1412 mongodb     14.2      8.1  ││       22 0.0.0.0          sshd           -   │
+│                                                                      ││      2231 root        11.8      3.4  ││       80 0.0.0.0          nginx          -   │
+│                                                                      ││      2275 root         6.0      2.9  ││      443 0.0.0.0          nginx          -   │
+│                                                                      ││       880 root         1.2      0.4  ││     4100 0.0.0.0          docker-proxy   col │
+│                                                                      ││       611 root         0.4      0.1  ││     4101 0.0.0.0          docker-proxy   col │
+│                                                                      ││       907 www-data     0.2      0.1  ││    27017 127.0.0.1        mongod         -   │
+╰──────────────────────────────────────────────────────────────────────╯╰──────────────────────────────────────╯╰──────────────────────────────────────────────╯
 
- Enter ampliar · Tab otro panel · z zoom · m métricas · R comprobar · : comando · ? ayuda · q salir
+ Enter requisitos · Tab otro panel · z zoom · m métricas · R comprobar · : comando · ? ayuda · q salir

@@ -3,7 +3,7 @@
  [1 Servidor] 2 Imágenes 3 Instancias 4 Recursos 5 Salida 6 Ejecuciones 7 Procesos 8 Consola 9 Variables 0 Actividad   
 ╭─┐ ▸requisitos ┌─────────────────────────────────────────────────────────────────────────────────────┐◐ comprobando…┌─╮
 │  ▲ contenedor piura/s1: unhealthy                                                                                    │
-╰─┘Enter ampliar└─┘R comprobar└─┘m métricas└───────────────────────────────────────────────────────────────────────────╯
+╰─┘Enter requisitos└─┘R comprobar└─┘m métricas└────────────────────────────────────────────────────────────────────────╯
 ╭─┐cpu┌────────────────────────────────────────╮╭─┐memoria┌──────────────────────────╮╭─┐discos┌───────────────────────╮
 │ no disponible en este sistema                ││ no disponible en este sistema      ││ no disponible en este sistema  │
 │                                              ││                                    ││                                │
@@ -28,4 +28,4 @@
 │                                           ││                                                                         │
 ╰───────────────────────────────────────────╯╰─────────────────────────────────────────────────────────────────────────╯
 
- Enter ampliar · Tab otro panel · z zoom · m métricas · R comprobar · : comando · ? ayuda · q salir
+ Enter requisitos · Tab otro panel · z zoom · m métricas · R comprobar · : comando · ? ayuda · q salir

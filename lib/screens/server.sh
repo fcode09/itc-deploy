@@ -5,10 +5,11 @@
 # drawn as btop does: boxes with chips in their border, braille graphs, gradient meters and a mirrored network graph. It is built from the
 # UI kit (lib/ui/kit/*).
 #
-# The top of the view is a STRIP of three rows: the requirements (`9/9 listos`) and the vital signs of the server (disk, load, uptime,
-# network) with the warnings that are active. While everything required is fine it stays a strip; when something required fails or warns it
-# opens by itself into the list of requirements (grouped as required and recommended, what is pending or failing first) with the detail of
-# the selected one in its own zone (what it is for, the whole result, how to fix it, where to read more); Enter opens it by hand, Esc closes it.
+# The top of the view is a STRIP of three rows, always three: the requirements (`9/9 listos`) and the vital signs of the server (disk, load,
+# uptime, network) with the warnings that are active. It never grows: when something required fails or warns its border and its warning turn
+# red/yellow and name what is wrong. Enter opens the requirements in a MODAL laid over the view (the list, grouped as required and
+# recommended with what is pending or failing first, and the detail of the selected one in its own zone: what it is for, the whole result, how
+# to fix it, where to read more); Esc closes it. The boxes under the strip keep their room while it is open.
 #
 # The requirements are checked in the background (a check can ask Docker or open a TCP connection, which takes seconds) and shown as soon as
 # they arrive; they are checked again every 2 minutes while the view is on screen, and with R. The panel NEVER installs anything: `c` copies
@@ -19,24 +20,26 @@
 # The warnings (dash_srv_alerts) have fixed thresholds that an environment variable moves: DELTACTL_ALERT_DISK_WARN / _DISK_ERR (percent
 # used, 85 / 95), DELTACTL_ALERT_MEM_AVAIL (percent available below which it warns, 10; below half of it, it is an error),
 # DELTACTL_ALERT_SWAP (percent of swap in use, 50), DELTACTL_ALERT_LOAD_PCT (load of one minute over the cores, in percent, 100),
-# DELTACTL_ALERT_TEMP_MARGIN (degrees below the critical temperature of the CPU, 10).
+# DELTACTL_ALERT_TEMP_MARGIN (degrees below the critical temperature of the CPU, 10), DELTACTL_ALERT_THROTTLE (percent of the CPU periods a
+# container was held back in, 25).
 #
-# Below the strip the figures are boxes: cpu, memory, disks, network, containers (lib/screens/server_boxes.sh) and, on a tall screen, the busiest
-# processes and the ports that listen (lib/screens/server_ps.sh, the only ones that start a program, in the background). How they are laid out
+# Below the strip the figures are boxes: cpu, memory, disks, network, containers (lib/screens/server_boxes.sh) and, on a tall screen, the
+# instances (their services added up: CPU, memory, disk, network, limits), the busiest
+# processes (with where each one runs) and the ports that listen (lib/screens/server_ps.sh, the only ones that start a program, in the background). How they are laid out
 # depends on the size of the screen (see scr_server_render): the more room, the more boxes side by side, the more columns, the longer the history.
 #
 # Keys. One box has the focus (Tab and Shift+Tab move it; DASH_SRV_FOCUS): Up/Down choose a requirement or a container (or a process or a port) ·
-# Enter opens the detail of a requirement or the instance of a container · c copies the command · ! runs it (asks first) · l opens the logs of a
+# Enter opens the requirements (a modal) or, inside it, the whole detail of one, or the instance of a container · c copies the command · ! runs it (asks first) · l opens the logs of a
 # container · s sorts the containers · h shows or hides the services that were never created · z zooms the box that has the focus (it shows
 # everything it has) · m shows only the figures (the strip gives its room to them) · R checks again · Esc steps back: the zoom, the detail, the
-# list, the figures-only view, then the panel. The mouse (when it is on): a click focuses a box (a second click on a row does what Enter does,
-# a click on the strip opens the requirements), the wheel moves the cursor of the box that has the focus.
+# modal, the figures-only view, then the panel. The mouse (when it is on): a click focuses a box (a second click on a row does what Enter does,
+# a click on the strip opens the requirements, a click outside the modal closes it), the wheel moves the cursor of the box that has the focus.
 
 DASH_SRV_SEL=0           # the requirement under the cursor (index into DASH_SRV_ORDER)
 DASH_SRV_OPEN=0          # 1: the detail of the requirement is open (every result, with its hint)
-DASH_SRV_REQ=auto        # auto: the list of requirements opens by itself when something required fails | open: opened by hand (Enter)
+DASH_SRV_MODAL=0         # 1: the modal with the requirements is open (Enter on the strip); the strip itself never grows
 DASH_SRV_ZOOM=0          # 1: only the metrics (m)
-DASH_SRV_FOCUS=req       # the box that has the keys: req, cpu, mem, disks, net, containers, procs or ports
+DASH_SRV_FOCUS=req       # the box that has the keys: req, cpu, mem, disks, net, containers, inst, procs or ports
 DASH_SRV_PZ=""           # the box that is zoomed (z): it takes the whole body and shows everything it has
 DASH_SRV_ZM=0            # 1 while a zoomed box is being drawn
 DASH_SRV_STATE=none      # none (never asked) | loading (first answer pending) | ready
@@ -189,10 +192,9 @@ dash_srv_counts() {
   done
 }
 
-# Is the list of requirements open? By hand (Enter), or by itself because something required fails or warns.
-dash_srv_expanded() {
-  [ "$DASH_SRV_STATE" = "ready" ] || return 1
-  [ "$DASH_SRV_REQ" = "open" ] || [ "$DASH_SRV_BAD" -gt 0 ] || [ "$DASH_SRV_RWARN" -gt 0 ]
+# Is the list of requirements on screen? In the modal, or in the box zoomed to the whole body (the strip is never the list).
+dash_srv_listed() {
+  [ "$DASH_SRV_MODAL" -eq 1 ] || [ "$DASH_SRV_PZ" = req ]
 }
 
 # Runs in the background: checks everything and prints the results as `declare -p` lines.
@@ -401,9 +403,17 @@ dash_srv_alerts() {
     dash_srv_t tui.srv.al.cont "$key" "${DSV_TEXT[$key]:-}"
     if [ "$kind" = err ]; then errs+=("err|containers|$DASH_T"); else warns+=("warn|containers|$DASH_T"); fi
   done
+  # The limits of the containers: one held back by its CPU limit (throttled) and processes killed for lack of memory.
+  dash_srv_thr DELTACTL_ALERT_THROTTLE 25; cap="$DASH_THR"
+  for key in "${!MT_THR[@]}"; do
+    if [ "${MT_THR[$key]}" -ge "$cap" ]; then dash_srv_t tui.srv.al.thr "$key" "${MT_THR[$key]}"; warns+=("warn|inst|$DASH_T"); fi
+  done
+  for key in "${!MT_OOM[@]}"; do
+    if [ "${MT_OOM[$key]}" -gt 0 ]; then dash_srv_t tui.srv.al.oom "$key" "${MT_OOM[$key]}"; warns+=("warn|inst|$DASH_T"); fi
+  done
   # The requirements: what is required and fails, what is required and warns, and the clock.
   if [ "$DASH_SRV_STATE" = "ready" ]; then
-    if [ "$DASH_SRV_BAD" -gt 0 ]; then dash_srv_t tui.srv.al.req "$DASH_SRV_BAD"; errs+=("err|req|$DASH_T"); fi
+    if [ "$DASH_SRV_BAD" -gt 0 ]; then dash_srv_t tui.srv.al.req "$DASH_SRV_BAD" "$DASH_SRV_BAD_NAMES"; errs+=("err|req|$DASH_T"); fi
     if [ "$DASH_SRV_RWARN" -gt 0 ]; then dash_srv_t tui.srv.al.reqw "$DASH_SRV_RWARN"; warns+=("warn|req|$DASH_T"); fi
     if [ "${PR_STATUS[timesync]:-}" = "info" ]; then
       dt prereq.time_off
@@ -664,7 +674,7 @@ dash_srv_detail() { # width lines
   done
 }
 
-# How many rows the box of the requirements wants when it is open, with $1 cells inside: the strip and its rule, the list, the line of the
+# How many rows the modal of the requirements wants, with $1 cells inside: the strip and its rule, the list, the line of the
 # detail and the detail (a few lines; open, as many as it needs), into DASH_SRV_NEED.
 DASH_SRV_NEED=3
 dash_srv_need() { # inner_width
@@ -756,8 +766,8 @@ dash_srv_req_list() {
   dt tui.srv.foot.req; foot="$DTV"
 }
 
-dash_srv_req() { # width height
-  local w="$1" h="$2" cw=$(($1 - 4)) inner=$(($2 - 2)) i foot chips status lkey
+dash_srv_req() { # width height [full]   (full: the list and the detail, as the modal and the zoom draw it)
+  local w="$1" h="$2" full="${3:-}" cw=$(($1 - 4)) inner=$(($2 - 2)) i foot chips status lkey
   local -a body=()
   local foc=0 col=""
   [ "$DASH_SRV_FOCUS" != "req" ] || foc=1
@@ -771,7 +781,7 @@ dash_srv_req() { # width height
   fi
   dt tui.srv.title.req; chips="$DTV"
   DASH_SRV_RMAP=() DASH_SRV_RCOLW=0
-  if [ "$inner" -lt 5 ] || { ! dash_srv_expanded && [ "$DASH_SRV_PZ" != req ]; }; then
+  if [ "$inner" -lt 5 ] || { [ "$full" != full ] && [ "$DASH_SRV_PZ" != req ]; }; then
     dt tui.srv.foot.strip; foot="$DTV"
     while [ "${#body[@]}" -lt "$inner" ]; do body+=(""); done
     kit_box "$w" "$h" body "chips=$chips" "status=$status" "footer=$foot" "focus=$foc" ${col:+"color=$col"}
@@ -780,7 +790,7 @@ dash_srv_req() { # width height
   fi
   # Open: the strip, a rule, the list and the detail. The list and the detail are the expensive part (about two thirds of the box) and they do not
   # depend on the figures of the strip, which move at every sample: they are kept apart and built again only when what they draw changed.
-  lkey="$w|$h|$foc|$col|$DASH_LANG_N|${UI_UTF8:-0}|${TH_NAME:-}|$DASH_SRV_PZ|$DASH_SRV_SEL|$DASH_SRV_OPEN|$DASH_SRV_REQ|$DASH_SRV_STATE|$DASH_SRV_BUSY|$DASH_SRV_N|$DASH_SRV_ALKEY"
+  lkey="$w|$h|$foc|$col|$DASH_LANG_N|${UI_UTF8:-0}|${TH_NAME:-}|$DASH_SRV_PZ|$DASH_SRV_SEL|$DASH_SRV_OPEN|$DASH_SRV_STATE|$DASH_SRV_BUSY|$DASH_SRV_N|$DASH_SRV_ALKEY"
   if [ "$lkey" = "$DASH_SRV_REQL_KEY" ]; then
     prof_count box.req.list.hit
     body+=("${DASH_SRV_REQL_BODY[@]}")

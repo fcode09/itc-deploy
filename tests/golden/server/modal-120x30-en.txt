@@ -1,0 +1,31 @@
+=== frame 1 ===
+  ITC  testhost · Memory ███░░░ 5.6/11.5 GB 48% ▂▁▄▂▁▄ · Load 3.18 · Docker 27.0.0 · containers 3.3G
+ [1 Server] 2 Images 3 Instances 4 Resources 5 Output 6 Runs 7 Processes 8 Console 9 Variables 0 Activity              
+╭─┐ ▸requirements ┌────────────────────────────────────────────────────────────────┐6/9 ready · 3 recommended pending┌─╮
+│  disk / 86% · load 3.18↗ · 8 cores · ✖ 4 warnings: 2 required requirements fail: Free disk, MongoDB reachable        │
+╰─┘╭─┐ ▸requirements ┌──────────────────────────────────────────────────────────┐6/9 ready · 3 recommended pending┌─╮──╯
+╭─┐│  disk / 86% · load 3.18↗ · 8 cores · ✖ 4 warnings: 2 required requirements fail: Free disk, MongoDB reachable  │──╮
+│ L│ ────────────────────────────────────────────────────────────────────────────────────────────────────────────── │B │
+│  │   REQUIRED  6/9                                       │   RECOMMENDED  3/6                                     │% │
+│ ⡀│   ● Docker Engine          Docker 27.0.0 (architectu… │   ● mongod file limit      mongod allows 524288 open … │B │
+│ ⡇│   ● Access to the Docker…  The Docker daemon answers  │   ▲ Reverse proxy (nginx…  Neither nginx nor Caddy wa… │% │
+│ ⡇│   ● Docker Compose 2.20 …  Docker Compose 2.30.0      │   ▲ certbot                'certbot' is missing (reco… │B │
+│ ⣿│ ▸ ✖ Free disk              Low free disk in /var/lib… │   ● Synchronized clock     The server clock is synchr… │% │
+│ ⣿│   ● Memory                 Memory: 11776 MB in total… │   ▲ Firewall               No active firewall was det… │  │
+│ ⣿│   ✖ MongoDB reachable      127.0.0.1:27017 does not … │   ● curl                   curl available              │… │
+│ ⣿│   ▲ ss (iproute2)          'ss' is missing            │                                                        │… │
+│ ⣿│   ● openssl                openssl available          │                                                        │  │
+│ -│   ● gunzip (gzip)          gunzip available           │                                                        │  │
+│ m│                                                       │                                                        │  │
+╰──│                                                       │                                                        │──╯
+╭─┐│                                                       │                                                        │┌─╮
+│ ⢠│ ─ ✖ Free disk ──────────────────────────────────────────────────────────────────────────────────────────────── │  │
+│ ⣼│  What for          Images, data and logs take disk: with less than 3 GB free a deploy can fail halfway.        │  │
+│ ⠁│  Result            Low free disk in /var/lib/docker: 1.9 GB                                                    │  │
+│ 5│  How               Images and logs need space. Free some disk or move Docker.                                  │  │
+│ ▼╰─┘Enter details└─┘c copy└─┘! run└─┘Esc close└───────────────────────────────────────────────────────────────────╯  │
+│ ▲ 1.4 KiB/s  top 615.2 KiB/s              ││                                                                         │
+│ TCP 58 · closing 7 · sockets 412          ││                                                                         │
+╰───────────────────────────────────────────╯╰─────────────────────────────────────────────────────────────────────────╯
+
+ ↑↓ choose · Enter details · c copy · ! run · R recheck · Esc close · : command · ? help · q quit

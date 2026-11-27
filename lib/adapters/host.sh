@@ -138,21 +138,69 @@ host_cg_mem() { # dir version
   return 0
 }
 
-# Accumulated CPU time of a resolved cgroup, in microseconds, into CG_CPU_USEC.
-CG_CPU_USEC=""
+# Accumulated CPU time of a resolved cgroup, in microseconds, into CG_CPU_USEC. With HOST_CG_CPU_DETAIL=1 (the Server view is on screen)
+# the same file also gives the periods the container was allowed to run (CG_CPU_PER) and how many of them it was held back in (CG_CPU_THR):
+# a container that is throttled has a CPU limit lower than it needs. Cgroup v2 only (v1 has them in another file).
+CG_CPU_USEC="" CG_CPU_PER="" CG_CPU_THR="" HOST_CG_CPU_DETAIL=0
 host_cg_cpu() { # dir version
   local dir="$1" ver="$2" k v
-  CG_CPU_USEC=""
+  CG_CPU_USEC="" CG_CPU_PER="" CG_CPU_THR=""
   if [ "$ver" = 2 ]; then
     [ -r "$dir/cpu.stat" ] || return 1
     while read -r k v; do
-      if [ "$k" = "usage_usec" ]; then CG_CPU_USEC="$v"; break; fi
+      case "$k" in
+        usage_usec) CG_CPU_USEC="$v"; [ "$HOST_CG_CPU_DETAIL" = 1 ] || break ;;
+        nr_periods) CG_CPU_PER="$v" ;;
+        nr_throttled) CG_CPU_THR="$v"; break ;;
+      esac
     done < "$dir/cpu.stat"
   else
     host_read1 "$dir/cpuacct.usage" || return 1
     [[ "$REPLY" =~ ^[0-9]+$ ]] && CG_CPU_USEC=$((REPLY / 1000))
   fi
   [[ "$CG_CPU_USEC" =~ ^[0-9]+$ ]]
+}
+
+# Bytes read from and written to the disks by a container, summed over its devices (cgroup v2 io.stat), into CG_IO_R / CG_IO_W.
+CG_IO_R="" CG_IO_W=""
+host_cg_io() { # dir version
+  local dir="$1" r=0 w=0 dev f
+  CG_IO_R="" CG_IO_W=""
+  [ "$2" = 2 ] && [ -r "$dir/io.stat" ] || return 1
+  while read -r dev f; do
+    f=" $f"
+    case "$f" in *" rbytes="*) f="${f#* rbytes=}"; r=$((r + ${f%% *})) ;; esac
+    case "$f" in *" wbytes="*) f=" $f"; f="${f#* wbytes=}"; w=$((w + ${f%% *})) ;; esac
+  done < "$dir/io.stat"
+  CG_IO_R="$r" CG_IO_W="$w"
+}
+
+# Processes of the container killed for lack of memory since it started (cgroup v2 memory.events), into CG_OOM.
+CG_OOM=""
+host_cg_oom() { # dir version
+  local k v
+  CG_OOM=""
+  [ "$2" = 2 ] && [ -r "$1/memory.events" ] || return 1
+  while read -r k v; do
+    if [ "$k" = "oom_kill" ]; then CG_OOM="$v"; break; fi
+  done < "$1/memory.events"
+  [[ "$CG_OOM" =~ ^[0-9]+$ ]]
+}
+
+# Bytes received and sent by the network namespace of a process (a container's main pid; the loopback does not count), into HOST_PN_RX /
+# HOST_PN_TX. It fails when the file cannot be read (another user's process without root) and the screen says "not available".
+HOST_PN_RX="" HOST_PN_TX=""
+host_pid_net() { # pid
+  local file="${DELTACTL_PROC_ROOT:-/proc}/$1/net/dev" ifc rx tx rest rxs=0 txs=0 any=0 _
+  HOST_PN_RX="" HOST_PN_TX=""
+  [[ "$1" =~ ^[0-9]+$ ]] && [ -r "$file" ] || return 1
+  while IFS=': ' read -r ifc rx _ _ _ _ _ _ _ tx rest; do
+    [[ "$rx" =~ ^[0-9]+$ ]] && [[ "$tx" =~ ^[0-9]+$ ]] || continue
+    [ "$ifc" != lo ] || continue
+    rxs=$((rxs + rx)) txs=$((txs + tx)) any=1
+  done < "$file"
+  [ "$any" = 1 ] || return 1
+  HOST_PN_RX="$rxs" HOST_PN_TX="$txs"
 }
 
 # Current time in microseconds into HOST_NOW_US (the clock can be fixed with HOST_FAKE_NOW_US in tests).

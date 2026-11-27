@@ -76,7 +76,7 @@ dash_key_srvask() { # key
   DASH_MODE=normal
   case "$1" in
     y | Y | s | S) DASH_SRV_SKIP=1; dash_open_new ;;
-    v | V | enter) dash_screen_goto server ;;
+    v | V | enter) dash_screen_goto server; DASH_SRV_MODAL=1 ;;
     n | N)
       DASH_PREREQ=0
       dash_cfg_set TUI_PREREQ off

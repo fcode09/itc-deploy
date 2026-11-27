@@ -1,0 +1,41 @@
+=== frame 1 ===
+  ITC  testhost · Memory ███░░░ 5.6/11.5 GB 48% ▂▁▄▂▁▄ · Load 3.18 · Docker 27.0.0 · containers 3.3G
+ [1 Server]  2 Images   3 Instances   4 Resources   5 Output   6 Runs   7 Processes   8 Console   9 Variables   0 Activity                                     
+╭─┐ ▸requirements ┌────────────────────────────────────────────────────────────────────────────────────────────────────────┐6/9 ready · 3 recommended pending┌─╮
+│  disk / 86% · load 3.18↗ · 8 cores · up 02:22 · ▼ 4.0 MiB/s ▲ 1.4 KiB/s · ✖ 4 warnings: 2 required requirements fail: Free disk, MongoDB reachable           │
+╰─┘Enter requirements└─┘R recheck└─┘m metrics└─────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭─┐cpu┌────────────────────────────────────────────────┐61°C┌─╮╭─┐memory┌───────────────────────────────┐48%┌─╮╭─┐disks┌───────────────────────────────────────╮
+│ Load 3.18↗ 2.64 1.97 · 0.39/core              CPU█▊░░░  37% ││ Used ······························ 5.61 GiB ││ / ··································· 204 GiB │
+│                                               C0 █░░░░  22% ││ ███████████████████▒▒▒▒▒▒▒▒▒▒▒▒▒░░░░░░░  48% ││ ██████████████████████████████████▍░░░░░  86% │
+│     ⡆          ⡄⢸         ⡀⢰          ⢠       C1 ███▏░  64% ││ Available ························· 5.88 GiB ││ /srv/data ··························· 500 GiB │
+│    ⡀⡇⢠ ⡀⢠      ⡇╭─┐ ▸requirements ┌────────────────────────────────────────────────────────────────────┐6/9 ready · 3 recommended pending┌─╮░░░░░░░░░░░  22% │
+│  ⡄⢸⡇⣿⢸ ⡇⢸⡀⢀ ⡀⢰ ⣷│  disk / 86% · load 3.18↗ · 8 cores · up 02:22 · ✖ 4 warnings: 2 required requirements fail: Free disk, MongoDB reachable │······· 1000 GiB │
+│  ⡇⢸⣧⣿⣼⡆⣿⢸⡇⢸ ⣇⢸ ⣿│ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── │░░░░░░░░░░░  25% │
+│ ⡇⣷⢸⣿⣿⣿⣇⣿⣸⣧⢸⡆⣿⢸⣿⣿│   REQUIRED  6/9                                            │   RECOMMENDED  3/6                                          │                 │
+│ ⣇⣿⣾⣿⣿⣿⣿⣿⣿⣿⣸⣇⣿⣼⣿⣿│   ● Docker Engine            Docker 27.0.0 (architecture … │   ● mongod file limit        mongod allows 524288 open fil… │B/s ▲ 15.2 MiB/s │
+│ -3 min ─────────│   ● Access to the Docker d…  The Docker daemon answers     │   ▲ Reverse proxy (nginx o…  Neither nginx nor Caddy was d… │KiB/s ▲ 751.9 K… │
+│ min 0% · avg 40%│   ● Docker Compose 2.20 or…  Docker Compose 2.30.0         │   ▲ certbot                  'certbot' is missing (recomme… │                 │
+╰─────────────────│ ▸ ✖ Free disk                Low free disk in /var/lib/do… │   ● Synchronized clock       The server clock is synchroni… │─────────────────╯
+╭─┐network┌─┐enp3s│   ● Memory                   Memory: 11776 MB in total, 6… │   ▲ Firewall                 No active firewall was detect… │───────────┐4/4┌─╮
+│   ⡀⢀          ⢀ │   ✖ MongoDB reachable        127.0.0.1:27017 does not res… │   ● curl                     curl available                 │                 │
+│   ⣇⢸⡀⡄⢠    ⣆  ⢸⡄│   ▲ ss (iproute2)            'ss' is missing               │                                                             │                 │
+│ ⢸⡀⣿⣸⡇⣧⢸⡄⢰ ⡆⣿⡀⣿⣸⣧│   ● openssl                  openssl available             │                                                             │                 │
+│ ⢸⣇⣿⣿⣧⣿⣼⣧⢸⡇⣷⣿⣇⣿⣿⣿│   ● gunzip (gzip)            gunzip available              │                                                             │                 │
+│ ⠁⠈⠁⠉⠈ ⠁⠈ ⠁⠈ ⠈ ⠉⠈│                                                            │                                                             │                 │
+│                 │                                                            │                                                             │                 │
+│ 5.0MB           │                                                            │                                                             │                 │
+│ ▼ 4.0 MiB/s  top│ ─ ✖ Free disk ────────────────────────────────────────────────────────────────────────────────────────────────────────── │                 │
+│ ▲ 1.4 KiB/s  top│  What for          Images, data and logs take disk: with less than 3 GB free a deploy can fail halfway.                  │                 │
+│ TCP 58 · closing│  Result            Low free disk in /var/lib/docker: 1.9 GB                                                              │                 │
+╰─────────────────│  How               Images and logs need space. Free some disk or move Docker.                                            │─────────────────╯
+╭─┐instances┌─────╰─┘Enter details└─┘c copy└─┘! run└─┘Esc close└─────────────────────────────────────────────────────────────────────────────╯─────────────┐6┌─╮
+│ INSTANCE                  SVCS    CPU MEMORY                    DISK ││       PID USER         CPU   MEMORY  ││     PORT ADDRESS          PROCESS        SER │
+│   colorado                 2/2  44.9% ██▏░ 55% 1.3G/2.5G     1M/514K ││      1412 mongodb     14.2      8.1  ││       22 0.0.0.0          sshd           -   │
+│   piura                    1/2  89.8% ███▏ 79% 1.9G/2.5G       9M/3M ││      2231 root        11.8      3.4  ││       80 0.0.0.0          nginx          -   │
+│                                                                      ││      2275 root         6.0      2.9  ││      443 0.0.0.0          nginx          -   │
+│                                                                      ││       880 root         1.2      0.4  ││     4100 0.0.0.0          docker-proxy   col │
+│                                                                      ││       611 root         0.4      0.1  ││     4101 0.0.0.0          docker-proxy   col │
+│                                                                      ││       907 www-data     0.2      0.1  ││    27017 127.0.0.1        mongod         -   │
+╰──────────────────────────────────────────────────────────────────────╯╰──────────────────────────────────────╯╰──────────────────────────────────────────────╯
+
+ ↑↓ choose · Enter details · c copy · ! run · R recheck · Esc close · : command · ? help · q quit

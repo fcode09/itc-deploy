@@ -1,0 +1,25 @@
+=== frame 1 ===
+  ITC  testhost · Memory ███░░░ 5.6/11.5 GB 48% ▂▁▄▂▁▄ · Load 3.18
+ [1 Server]  2   3   4   5   6   7   8   9   0                                 
+╭─┐ ▸requirements ┌────────────────────────┐6/9 ready · 3 recommended pending┌─╮
+│  ╭─┐ ▸requirements ┌──────────────────┐6/9 ready · 3 recommended pending┌─╮  │
+╰─┘│  ✖ 4 warnings: 2 required requirements fail: Free disk, MongoDB reach… │──╯
+╭─┐│ ────────────────────────────────────────────────────────────────────── │┌─╮
+│ C│   REQUIRED  6/9                                                        │B │
+│ L│   ● Docker Engine                 Docker 27.0.0 (architecture amd64)   │% │
+│  │   ● Access to the Docker daemon   The Docker daemon answers            │B │
+│ ⢠│   ● Docker Compose 2.20 or newer  Docker Compose 2.30.0                │B │
+│ ⣼│ ▸ ✖ Free disk                     Low free disk in /var/lib/docker: 1… │B │
+│ ⣿│   ● Memory                        Memory: 11776 MB in total, 6022 MB … │B │
+│ -│   ✖ MongoDB reachable             127.0.0.1:27017 does not respond ov… │B │
+│ m│   ▲ ss (iproute2)                 'ss' is missing                      │  │
+╰──│ ─ ✖ Free disk ──────────────────────────────────────────────────────── │──╯
+╭─┐│  What for          Images, data and logs take disk: with less than 3   │┌─╮
+│ S│                    GB free a deploy can fail halfway.                  │  │
+│  │  Result            Low free disk in /var/lib/docker: 1.9 GB            │  │
+│  │  How               Images and logs need space. Free some disk or move  │  │
+│  │                    Docker.                                             │  │
+│  ╰─┘Enter details└─┘c copy└─┘! run└─┘Esc close└───────────────────────────╯  │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+ ↑↓ choose · Enter details · c copy · ! run · R recheck · ? help · q quit

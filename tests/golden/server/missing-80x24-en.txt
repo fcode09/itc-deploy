@@ -2,16 +2,8 @@
   ITC  testhost · Memory ███░░░ 5.6/11.5 GB 48% ▂▁▄▂▁▄ · Load 3.18
  [1 Server]  2   3   4   5   6   7   8   9   0                                 
 ╭─┐ ▸requirements ┌────────────────────────┐6/9 ready · 3 recommended pending┌─╮
-│  disk / 86% · ✖ 4 warnings: 2 required requirements fail                     │
-│ ──────────────────────────────────────────────────────────────────────────── │
-│   ● Docker Engine                 Docker 27.0.0 (architecture amd64)         │
-│   ● Access to the Docker daemon   The Docker daemon answers                  │
-│   ● Docker Compose 2.20 or newer  Docker Compose 2.30.0                      │
-│ ▸ ✖ Free disk                     Low free disk in /var/lib/docker: 1.9 GB   │
-│ ─ ✖ Free disk ────────────────────────────────────────────────────────────── │
-│  Result            Low free disk in /var/lib/docker: 1.9 GB                  │
-│                                                                              │
-╰─┘Enter details└─┘c copy└─┘! run└─┘m metrics└─────────────────────────────────╯
+│  ✖ 4 warnings: 2 required requirements fail: Free disk, MongoDB reachable    │
+╰─┘Enter requirements└─┘R recheck└─┘m metrics└─────────────────────────────────╯
 ╭─┐cpu┌─────────────────────────────┐61°C┌─╮╭─┐memory┌───────────────────┐48%┌─╮
 │ CPU ▕█████████▌░░░░░░░░░░░░░░░░▏ 37%     ││ Used ·················· 5.61 GiB │
 │ Load 3.18↗ 2.64 1.97 · 0.39/core · 8 cor ││ █████████████▒▒▒▒▒▒▒▒▒░░░░░  48% │
@@ -19,7 +11,15 @@
 │ ⢠ ⡄⢠      ⣇⢸ ⡀⢠ ⡄⢰   ⣇⢸⡀⡀⢠ ⡄    ⢀⢸  ⢀ ⡀⢠ ││ Total ··················· 11 GiB │
 │ ⣼⡄⣧⢸⡆⢰ ⣆⢸⢀⣿⣼⡀⣧⢸⡆⣷⢸⡇⢸ ⣿⣸⡇⣇⢸⡄⣧ ⡆⢰ ⣿⣸⡇⣧⢸⡀⣇⢸ ││ Cached ················ 4.00 GiB │
 │ ⣿⣧⣿⣾⣷⣸⣇⣿⣸⣿⣿⣿⣧⣿⣼⣷⣿⣾⣿⣸⣇⣿⣿⣇⣿⣾⣧⣿⣄⣷⣸⣆⣿⣿⣿⣿⣼⣧⣿⣾ ││ Free ·················· 1.00 GiB │
-│ -2 min ───────────────────────────── now ││ +3 more                          │
+│ -2 min ───────────────────────────── now ││ Swap ·················· 4.00 GiB │
+│ min 0% · avg 39% · max 86%               ││ +2 more                          │
 ╰──────────────────────────────────────────╯╰──────────────────────────────────╯
+╭─┐containers┌───────────────────────────────────────────────────────────┐4/4┌─╮
+│ SVC    INSTANCE           STATE           CPU MEMORY                         │
+│   s0   colorado           ● healthy      3.7% 196M/512M                      │
+│   s1   colorado           ● healthy     41.2% 1.1G/2.0G                      │
+│   s0   piura              ● healthy      2.5% 180M/512M                      │
+│   s1   piura              ▲ unhealthy   87.3% 1.7G/2.0G                      │
+╰──────────────────────────────────────────────────────────────────────────────╯
 
- ↑↓ choose · Enter details · c copy · ! run · Tab other box · ? help · q quit
+ Enter requirements · Tab other box · z zoom · m metrics · ? help · q quit
