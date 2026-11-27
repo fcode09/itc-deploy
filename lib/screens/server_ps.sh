@@ -124,6 +124,7 @@ dash_srv_ps_tick() {
   if dash_async_take srvss; then dash_srv_ss_apply "$DASH_AS_TEXT"; fi
   if dash_async_take srvdu; then dash_srv_du_apply "$DASH_AS_TEXT"; fi
   [ "$DASH_VIEW" = "server" ] && [ "$DASH_PAUSED" -eq 0 ] || return 0
+  dash_dwelled || return 0   # (passing through the view starts no program)
   if dash_srv_visible procs; then
     dash_srv_ttl DELTACTL_PS_TTL 5; ttl="$DASH_THR"
     if [ $((SECONDS - DASH_SRV_PS_AT)) -ge "$ttl" ] && [ -z "${DASH_AS_PID[srvps]:-}" ]; then dash_srv_ps_request; fi

@@ -118,6 +118,10 @@ tui_mouse_parse() { # sequence
 
 # Reads one key into TUI_KEY, waiting at most $1 seconds (none = forever). The result is a name (up, down, left,
 # right, home, end, pgup, pgdn, delete, enter, esc, tab, backspace, timeout, eof, mouse, other) or the typed character.
+# Is there input waiting that has not been read yet? (`read -t 0` only looks; it consumes nothing.) The panel uses it to keep a burst of keys
+# (a held Tab, a finger drumming on the arrows) from drawing a whole screen for each one: see dash_loop.
+tui_pending() { IFS= read -t 0 -r _ 2> /dev/null; }
+
 tui_key() { # [timeout]
   local t="${1:-}" k rest="" c rc=0
   if tui_test_mode; then
