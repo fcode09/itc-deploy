@@ -9,7 +9,10 @@ DASH_SRV_KEYV=""
 dash_srv_key_req() {
   local root=0 i
   for ((i = 0; i < HOST_DISK_N; i++)); do [ "${HOST_DISK_MNT[$i]}" != "/" ] || root="$i"; done
-  DASH_SRV_KEYV="$DASH_SRV_SEL|$DASH_SRV_OPEN|$DASH_SRV_STATE|$DASH_SRV_BUSY|$DASH_SRV_N|$DASH_SRV_ALKEY|${MT_SRC[disk]:-}|${HOST_DISK_PCT[$root]:-}|${MT_SRC[load]:-}|$HOST_LOAD1|$HOST_LOAD5|${#MT_CORE_PCT[@]}|${MT_SRC[uptime]:-}|$HOST_UPTIME_S|${MT_SRC[net]:-}|$HOST_NET_DOWN_BPS|$HOST_NET_UP_BPS"
+  # (the cursor and the detail only show in the box when it is the zoomed list; the strip is the same whatever is selected)
+  local sel=""
+  if [ "$DASH_SRV_PZ" = req ]; then sel="$DASH_SRV_SEL|$DASH_SRV_OPEN"; fi
+  DASH_SRV_KEYV="$sel|$DASH_SRV_STATE|$DASH_SRV_BUSY|$DASH_SRV_N|$DASH_SRV_ALKEY|${MT_SRC[disk]:-}|${HOST_DISK_PCT[$root]:-}|${MT_SRC[load]:-}|$HOST_LOAD1|$HOST_LOAD5|${#MT_CORE_PCT[@]}|${MT_SRC[uptime]:-}|$HOST_UPTIME_S|${MT_SRC[net]:-}|$HOST_NET_DOWN_BPS|$HOST_NET_UP_BPS"
   DASH_SRV_REQ_KEY="$DASH_SRV_KEYV"
 }
 dash_srv_key_cpu() { DASH_SRV_KEYV="${MT_SRC[cpu]:-}|${MT_SRC[temp]:-}|${MT_SRC[load]:-}|${MT_SRC[psi]:-}|$MT_CPU_ALL|${MT_CORE_PCT[*]}|$MT_HH_CPU|$MT_HH_LOAD|$HOST_TEMP_CPU_C|$HOST_LOAD1 $HOST_LOAD5 $HOST_LOAD15|$HOST_PSI_CPU|${MT_INTERVAL_US:-}"; }
@@ -52,6 +55,7 @@ dash_srv_row_boxes() { # height widths-array name...
   for ((i = 0; i < n; i++)); do
     nm="${names[$i]}"
     local -n _memo="DASH_SRV_MEMO_$nm"
+    prof_b srv.memo
     "dash_srv_key_$nm"
     key="${_wd[$i]}|$h|$DASH_LANG_N|${UI_UTF8:-0}|$DASH_SRV_FOCUS|$DASH_SRV_ZM|${DASH_SRV_AL[$nm]:-0}|$DASH_SRV_KEYV"
     if [ "${DASH_SRV_MEMO_KEY[$nm]:-}" = "$key" ] && [ "${#_memo[@]}" -eq "$h" ]; then
@@ -64,17 +68,22 @@ dash_srv_row_boxes() { # height widths-array name...
       DASH_SRV_MEMO_KEY[$nm]="$key"
       prof_e "box.$nm"
     fi
+    prof_e srv.memo
+    prof_b srv.flat
     for ((k = 0; k < h; k++)); do DASH_SRV_FLAT[i * h + k]="${DASH_SRV_BOX[$k]:-}"; done
+    prof_e srv.flat
     DASH_SRV_RECT[$nm]="$x $y ${_wd[$i]} $h"
     DASH_SRV_VIS+=("$nm")
     x=$((x + _wd[i]))
     unset -n _memo
   done
+  prof_b srv.assemble
   for ((k = 0; k < h; k++)); do
     line=""
     for ((i = 0; i < n; i++)); do line+="${DASH_SRV_FLAT[i * h + k]}"; done
     TUI_FRAME+=("$line")
   done
+  prof_e srv.assemble
 }
 
 # The widths of the boxes of a row of a screen of class $2 (L wide, M medium, N narrow) in $1 cells into LAY: each box asks for what it needs, never
@@ -183,6 +192,35 @@ scr_server_render() { # width height
   [ "$DASH_SRV_MODAL" -eq 0 ] || dash_srv_modal "$w" "$h" "$base0"
 }
 
+# kit_overlay for the modal, with what it spends most on kept: slicing the (long, coloured) line of the base under every row of the modal. The
+# base does not change while a person walks through the list, so the slices of a base line are made once ("row-text|left|width" is the key) and
+# every key only joins head + modal line + tail. The modal lines are exactly its width (kit_box), so they are not fitted again.
+declare -gA DASH_SRV_OVH=() DASH_SRV_OVT=() DASH_SRV_OVW=()
+dash_srv_overlay() { # top left width   (the box in DASH_SRV_BOX over TUI_FRAME)
+  local top="$1" left="$2" mw="$3" j r key iw bw line
+  [ "${#DASH_SRV_OVH[@]}" -le 400 ] || { DASH_SRV_OVH=() DASH_SRV_OVT=() DASH_SRV_OVW=(); }
+  for ((j = 0; j < ${#DASH_SRV_BOX[@]}; j++)); do
+    r=$((top + j))
+    [ "$r" -ge 0 ] && [ "$r" -lt "${#TUI_FRAME[@]}" ] || continue
+    key="$left|$mw|${TUI_FRAME[$r]}"
+    if [ -z "${DASH_SRV_OVW[$key]+x}" ]; then
+      tui_vlen "${TUI_FRAME[$r]}"; bw="$TUI_VL"
+      iw="$mw"
+      if [ "$left" -ge "$bw" ]; then iw=0; elif [ $((left + iw)) -gt "$bw" ]; then iw=$((bw - left)); fi
+      DASH_SRV_OVW[$key]="$iw" DASH_SRV_OVH[$key]="" DASH_SRV_OVT[$key]=""
+      if [ "$iw" -gt 0 ]; then
+        kit_slice "${TUI_FRAME[$r]}" 0 "$left"; DASH_SRV_OVH[$key]="$KIT_OUT"
+        kit_slice "${TUI_FRAME[$r]}" $((left + iw)) $((bw - left - iw)); DASH_SRV_OVT[$key]="$KIT_OUT"
+      fi
+    fi
+    iw="${DASH_SRV_OVW[$key]}"
+    [ "$iw" -gt 0 ] || continue
+    line="${DASH_SRV_BOX[$j]}"
+    if [ "$iw" -ne "$mw" ]; then tui_fit "$line" "$iw"; line="$TUI_OUT"; fi
+    TUI_FRAME[r]="${DASH_SRV_OVH[$key]}$line$TH_RESET${DASH_SRV_OVT[$key]}"
+  done
+}
+
 # The requirements in a modal laid over the body that was just built (it starts at row $3 of TUI_FRAME): centred, at most 124 cells wide, as
 # tall as the list and the detail need. On a screen too small for a window it takes the whole body. While it is open it is the only box that
 # has the focus, the keys and the mouse (a click outside closes it).
@@ -198,8 +236,12 @@ dash_srv_modal() { # width height first-row
     [ "$mh" -ge 12 ] || mh=12
     left=$(((w - mw) / 2)) top=$(((h - mh) / 2))
   fi
+  prof_b srv.modal.box
   dash_srv_req "$mw" "$mh" full
-  kit_overlay TUI_FRAME $((r0 + top)) DASH_SRV_BOX "$left"
+  prof_e srv.modal.box
+  prof_b srv.overlay
+  dash_srv_overlay $((r0 + top)) "$left" "$mw"
+  prof_e srv.overlay
   DASH_SRV_VIS=(req)
   DASH_SRV_RECT=()
   DASH_SRV_RECT[req]="$((left + 1)) $((r0 + top + 1)) $mw $mh"
